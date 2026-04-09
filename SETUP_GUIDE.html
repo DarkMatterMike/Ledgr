@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ledgr – Complete Setup Guide for Beginners</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f8f9fc;
+    --white: #ffffff;
+    --border: #e2e8f0;
+    --blue: #2563eb;
+    --blue-light: #eff6ff;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --gray: #64748b;
+    --dark: #0f172a;
+    --text: #1e293b;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 16px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    color: white;
+    padding: 64px 40px 56px;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: #00d4ff22;
+    border: 1px solid #00d4ff55;
+    color: #00d4ff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 99px;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: -1px;
+  }
+  .hero h1 span { color: #00d4ff; }
+  .hero p {
+    font-size: 18px;
+    color: #94a3b8;
+    max-width: 560px;
+    margin: 0 auto 32px;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #cbd5e1;
+  }
+  .hero-meta-item .dot { color: #00d4ff; }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 36px;
+    margin: 40px auto;
+    max-width: 820px;
+  }
+  .toc-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gray);
+    margin-bottom: 16px;
+  }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: var(--blue); text-decoration: none; font-size: 15px; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Step sections ── */
+  .step-section {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 40px 36px;
+    margin: 0 auto 24px;
+    max-width: 820px;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step-number {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #0f172a;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: var(--mono);
+  }
+
+  .step-title { font-size: 22px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+  .step-subtitle { font-size: 14px; color: var(--gray); }
+
+  /* ── Content blocks ── */
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark);
+    margin: 24px 0 10px;
+  }
+  h3:first-child { margin-top: 0; }
+
+  p { margin-bottom: 14px; color: var(--text); }
+  p:last-child { margin-bottom: 0; }
+
+  ul, ol { padding-left: 22px; margin-bottom: 14px; }
+  li { margin-bottom: 6px; }
+  li:last-child { margin-bottom: 0; }
+
+  /* ── Code blocks ── */
+  .code-block {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin: 16px 0;
+    position: relative;
+    overflow-x: auto;
+  }
+  .code-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 10px;
+  }
+  .code-block code {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: #e2e8f0;
+    display: block;
+    line-height: 1.8;
+    white-space: pre-wrap;
+  }
+  .code-block code .comment { color: #475569; }
+  .code-block code .key { color: #93c5fd; }
+  .code-block code .val { color: #86efac; }
+  .code-block code .cmd { color: #fde68a; }
+  .code-block code .path { color: #c4b5fd; }
+
+  code.inline {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    padding: 2px 7px;
+    color: #be185d;
+  }
+
+  /* ── Callouts ── */
+  .callout {
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 18px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 20px; flex-shrink: 0; line-height: 1.5; }
+  .callout-body { flex: 1; font-size: 14px; line-height: 1.65; }
+  .callout-body strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+
+  .callout-info    { background: var(--blue-light);  border: 1px solid #bfdbfe; }
+  .callout-info .callout-body { color: #1e40af; }
+  .callout-success { background: var(--green-light); border: 1px solid #bbf7d0; }
+  .callout-success .callout-body { color: #14532d; }
+  .callout-warning { background: var(--amber-light); border: 1px solid #fde68a; }
+  .callout-warning .callout-body { color: #78350f; }
+  .callout-danger  { background: var(--red-light);   border: 1px solid #fecaca; }
+  .callout-danger .callout-body  { color: #7f1d1d; }
+
+  /* ── OS tabs ── */
+  .os-tabs { display: flex; gap: 8px; margin-bottom: 0; }
+  .os-tab {
+    padding: 7px 18px; border-radius: 8px 8px 0 0;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    border: 1px solid var(--border); border-bottom: none;
+    background: #f1f5f9; color: var(--gray);
+    user-select: none;
+  }
+  .os-tab.active { background: var(--white); color: var(--dark); border-color: var(--border); }
+  .os-panel {
+    border: 1px solid var(--border);
+    border-radius: 0 10px 10px 10px;
+    padding: 20px;
+    display: none;
+    background: var(--white);
+  }
+  .os-panel.active { display: block; }
+
+  /* ── Numbered steps inside sections ── */
+  .substeps { counter-reset: substep; margin: 16px 0; }
+  .substep {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 18px;
+    align-items: flex-start;
+  }
+  .substep-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--blue-light);
+    border: 2px solid #bfdbfe;
+    color: var(--blue);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-family: var(--mono);
+  }
+  .substep-num::after { counter-increment: substep; content: counter(substep); }
+  .substep-body { flex: 1; }
+
+  /* ── Test credentials box ── */
+  .cred-box {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+  .cred-item label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #475569;
+    font-weight: 700;
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+  .cred-item .cred-val {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: #86efac;
+    font-weight: 600;
+  }
+
+  /* ── URL pill ── */
+  .url-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--blue-light);
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--blue);
+    font-weight: 600;
+    margin: 8px 0;
+    text-decoration: none;
+  }
+
+  /* ── Troubleshoot ── */
+  .error-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .error-header {
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--red);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .error-body {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  /* ── What is X ── */
+  .explainer {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 16px;
+    margin: 14px 0;
+    font-size: 14px;
+    color: var(--gray);
+  }
+  .explainer strong { color: var(--dark); }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--gray);
+    font-size: 14px;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .hero { padding: 40px 20px; }
+    .hero h1 { font-size: 28px; }
+    .step-section { padding: 24px 20px; }
+    .step-header { flex-direction: column; gap: 12px; }
+    .hero-meta { gap: 16px; }
+  }
+
+  /* Print styles */
+  @media print {
+    body { background: white; }
+    .step-section, .toc { box-shadow: none; border: 1px solid #ccc; }
+    .hero { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Hero ─────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-badge">Complete Setup Guide</div>
+  <h1>Getting Started with <span>ledgr.</span></h1>
+  <p>A step-by-step guide written for someone who has never done anything like this before. No experience needed.</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item"><span class="dot">◆</span> ~30 minutes total</div>
+    <div class="hero-meta-item"><span class="dot">◆</span> Works on Mac &amp; Windows</div>
+    <div class="hero-meta-item"><span class="dot">◆</span> Free to run locally</div>
+  </div>
+</div>
+
+<!-- ── TOC ──────────────────────────────────────────────────────── -->
+<div class="toc container">
+  <div class="toc-title">📋 What we'll do</div>
+  <ol>
+    <li><a href="#step1">Install Node.js — the engine that runs the app</a></li>
+    <li><a href="#step2">Create your free Plaid account and get API keys</a></li>
+    <li><a href="#step3">Unzip the project files onto your computer</a></li>
+    <li><a href="#step4">Open a Terminal (the black window for typing commands)</a></li>
+    <li><a href="#step5">Install the app's required packages</a></li>
+    <li><a href="#step6">Set up your Plaid API keys</a></li>
+    <li><a href="#step7">Run the app for the first time</a></li>
+    <li><a href="#step8">Connect a test bank account</a></li>
+    <li><a href="#step9">Access the app from your phone or other devices</a></li>
+    <li><a href="#troubleshoot">Troubleshooting — what to do if something goes wrong</a></li>
+  </ol>
+</div>
+
+<!-- ── STEP 1 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step1">
+  <div class="step-header">
+    <div class="step-number">1</div>
+    <div>
+      <div class="step-title">Install Node.js</div>
+      <div class="step-subtitle">The engine that powers the app — think of it like installing Java to run Java apps</div>
+    </div>
+  </div>
+
+  <div class="explainer">
+    <strong>What is Node.js?</strong> Node.js lets your computer run JavaScript programs outside of a web browser. The ledgr app is written in JavaScript, so Node.js is required for it to work — similar to how you need a PDF reader to open a PDF file.
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">ℹ️</div>
+    <div class="callout-body"><strong>Already have Node.js?</strong> Skip to Step 2. To check, open a Terminal (see Step 4 for how) and type <code class="inline">node --version</code> then press Enter. If you see a number like <code class="inline">v20.11.0</code>, you're good.</div>
+  </div>
+
+  <div class="substeps">
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>Go to the official Node.js website in your web browser:</p>
+        <a class="url-pill" href="https://nodejs.org" target="_blank">🌐 nodejs.org</a>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>You'll see two big green download buttons. Click the one that says <strong>"LTS"</strong> (it may also say "Recommended For Most Users"). LTS stands for Long-Term Support — it's the stable version.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>Once downloaded, <strong>open the file</strong> (it will be in your Downloads folder). Follow the installer — just click <strong>Next → Next → Install</strong> through all the screens. You don't need to change any settings.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>When the installer finishes, click <strong>Finish</strong>. Node.js is now installed.</p>
+        <div class="callout callout-success">
+          <div class="callout-icon">✅</div>
+          <div class="callout-body">You only need to install Node.js once — ever. You won't need to do this again.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP 2 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step2">
+  <div class="step-header">
+    <div class="step-number">2</div>
+    <div>
+      <div class="step-title">Create a Free Plaid Account</div>
+      <div class="step-subtitle">Plaid is what connects the app to your bank — it handles all the secure login stuff</div>
+    </div>
+  </div>
+
+  <div class="explainer">
+    <strong>What is Plaid?</strong> Plaid is a trusted service used by apps like Venmo and Robinhood to securely connect to banks. It handles bank logins so ledgr never sees your actual bank username or password — Plaid acts as the middleman. You need two "API keys" from Plaid, which are like secret passwords that allow ledgr to communicate with Plaid.
+  </div>
+
+  <div class="callout callout-warning">
+    <div class="callout-icon">💰</div>
+    <div class="callout-body"><strong>It's free!</strong> Plaid has a free "Sandbox" mode for testing with fake bank data. You can use this indefinitely for free. We'll start with Sandbox — you can connect real banks later if you want.</div>
+  </div>
+
+  <div class="substeps">
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>Go to the Plaid developer dashboard and create a free account:</p>
+        <a class="url-pill" href="https://dashboard.plaid.com/signup" target="_blank">🌐 dashboard.plaid.com/signup</a>
+        <p style="margin-top:10px">Fill in your name, email, and create a password. You may need to verify your email address.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>After signing in, Plaid may ask you a few questions about what you're building. You can answer honestly (personal finance app, personal use) or just click through.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>Once you're in the dashboard, find your API keys. Look for one of these in the left sidebar or top menu:</p>
+        <ul>
+          <li><strong>Team Settings</strong> → then click <strong>Keys</strong></li>
+          <li>Or look for a menu item called <strong>Keys</strong> or <strong>API Keys</strong></li>
+        </ul>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>On the Keys page you'll see two important pieces of information. <strong>Keep this page open — you'll need to copy these in Step 6.</strong></p>
+        <ul>
+          <li><strong>Client ID</strong> — a long string of letters and numbers, like <code class="inline">6123abc456def789</code></li>
+          <li><strong>Sandbox secret</strong> — another long string, like <code class="inline">abc123def456ghi789jkl</code></li>
+        </ul>
+        <div class="callout callout-danger">
+          <div class="callout-icon">🔒</div>
+          <div class="callout-body"><strong>Keep these private.</strong> Treat these like passwords. Don't share them, post them online, or put them in an email. We'll store them in a file that's hidden from the internet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP 3 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step3">
+  <div class="step-header">
+    <div class="step-number">3</div>
+    <div>
+      <div class="step-title">Unzip the Project Files</div>
+      <div class="step-subtitle">Extract the ledgr folder to somewhere easy to find</div>
+    </div>
+  </div>
+
+  <div class="substeps">
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>Find the <strong>ledgr.zip</strong> file — it's likely in your Downloads folder.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+
+        <div class="os-tabs">
+          <div class="os-tab active" onclick="switchTab(this, 'unzip-mac')">🍎 Mac</div>
+          <div class="os-tab" onclick="switchTab(this, 'unzip-win')">🪟 Windows</div>
+        </div>
+        <div id="unzip-mac" class="os-panel active">
+          <p>Double-click <strong>ledgr.zip</strong>. Mac will automatically extract it and create a folder called <strong>ledgr</strong> right next to the zip file.</p>
+        </div>
+        <div id="unzip-win" class="os-panel">
+          <p>Right-click on <strong>ledgr.zip</strong> and choose <strong>"Extract All…"</strong> A window will pop up asking where to extract. Just click <strong>Extract</strong> — it will create a <strong>ledgr</strong> folder in the same location.</p>
+        </div>
+
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p><strong>Move the ledgr folder somewhere permanent.</strong> We recommend moving it to your Desktop or your Documents folder so you can easily find it later. Don't leave it inside your Downloads folder — things in Downloads sometimes get accidentally deleted.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">📁</div>
+    <div class="callout-body"><strong>What's inside the ledgr folder?</strong> You'll see two folders: <code class="inline">backend</code> (the part that talks to Plaid) and <code class="inline">frontend</code> (the part you see in your browser). You don't need to open or change any of these files manually — we'll do everything through the terminal.</div>
+  </div>
+</div>
+
+<!-- ── STEP 4 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step4">
+  <div class="step-header">
+    <div class="step-number">4</div>
+    <div>
+      <div class="step-title">Open a Terminal</div>
+      <div class="step-subtitle">The Terminal lets you type commands directly to your computer — don't worry, we'll tell you exactly what to type</div>
+    </div>
+  </div>
+
+  <div class="explainer">
+    <strong>What is a Terminal?</strong> A Terminal (also called "Command Prompt" on Windows) is a text-based window where you give your computer instructions by typing. It looks intimidating but you'll only be copying and pasting a few simple commands. Think of it like texting your computer.
+  </div>
+
+  <div class="os-tabs">
+    <div class="os-tab active" onclick="switchTab(this, 'term-mac')">🍎 Mac</div>
+    <div class="os-tab" onclick="switchTab(this, 'term-win')">🪟 Windows</div>
+  </div>
+  <div id="term-mac" class="os-panel active">
+    <div class="substeps">
+      <div class="substep">
+        <div class="substep-num"></div>
+        <div class="substep-body"><p>Press <strong>Command (⌘) + Space</strong> to open Spotlight Search. A search bar will appear in the middle of your screen.</p></div>
+      </div>
+      <div class="substep">
+        <div class="substep-num"></div>
+        <div class="substep-body"><p>Type <strong>Terminal</strong> and press <strong>Enter</strong>. A black or white window will open — this is your Terminal.</p></div>
+      </div>
+      <div class="substep">
+        <div class="substep-num"></div>
+        <div class="substep-body"><p>You'll see a prompt that looks something like <code class="inline">yourname@MacBook ~ %</code>. This means the Terminal is ready for you to type a command.</p></div>
+      </div>
+    </div>
+  </div>
+  <div id="term-win" class="os-panel">
+    <div class="substeps">
+      <div class="substep">
+        <div class="substep-num"></div>
+        <div class="substep-body"><p>Press the <strong>Windows key</strong> (the one with the Windows logo) on your keyboard.</p></div>
+      </div>
+      <div class="substep">
+        <div class="substep-num"></div>
+        <div class="substep-body"><p>Type <strong>PowerShell</strong> and you'll see "Windows PowerShell" appear in the results. Click on it to open it.</p></div>
+      </div>
+      <div class="substep">
+        <div class="substep-num"></div>
+        <div class="substep-body">
+          <p>You'll see a blue or black window with text ending in <code class="inline">PS C:\Users\YourName&gt;</code>. This means PowerShell is ready.</p>
+          <div class="callout callout-info">
+            <div class="callout-icon">💡</div>
+            <div class="callout-body">On Windows, you can also use <strong>Windows Terminal</strong> (available in the Microsoft Store) which is a nicer version of the same thing.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STEP 5 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step5">
+  <div class="step-header">
+    <div class="step-number">5</div>
+    <div>
+      <div class="step-title">Navigate to the Ledgr Folder &amp; Install Packages</div>
+      <div class="step-subtitle">Tell the Terminal where to find your app files, then download the required libraries</div>
+    </div>
+  </div>
+
+  <div class="explainer">
+    <strong>What does "navigate" mean in a Terminal?</strong> When you open a Terminal, it starts in your "home" folder. You need to move it into the ledgr folder, like changing directories in File Explorer. The command to change folder is <code class="inline">cd</code> which stands for "change directory."
+  </div>
+
+  <h3>Navigate to your ledgr folder</h3>
+
+  <div class="os-tabs">
+    <div class="os-tab active" onclick="switchTab(this, 'cd-mac')">🍎 Mac</div>
+    <div class="os-tab" onclick="switchTab(this, 'cd-win')">🪟 Windows</div>
+  </div>
+  <div id="cd-mac" class="os-panel active">
+    <p>The easiest way: type <code class="inline">cd </code> (with a space after it) in the Terminal, then <strong>drag and drop the ledgr folder</strong> from Finder directly into the Terminal window. The path will fill in automatically. Then press <strong>Enter</strong>.</p>
+    <p>Or if you put the ledgr folder on your Desktop, type this exactly:</p>
+    <div class="code-block">
+      <div class="code-label">Terminal — Mac</div>
+      <code><span class="cmd">cd</span> ~/Desktop/ledgr</code>
+    </div>
+    <p>If you put it in Documents instead, use:</p>
+    <div class="code-block">
+      <div class="code-label">Terminal — Mac</div>
+      <code><span class="cmd">cd</span> ~/Documents/ledgr</code>
+    </div>
+  </div>
+  <div id="cd-win" class="os-panel">
+    <p>If you put the ledgr folder on your Desktop, type this exactly:</p>
+    <div class="code-block">
+      <div class="code-label">PowerShell — Windows</div>
+      <code><span class="cmd">cd</span> <span class="path">$HOME\Desktop\ledgr</span></code>
+    </div>
+    <p>If you put it in Documents instead, use:</p>
+    <div class="code-block">
+      <div class="code-label">PowerShell — Windows</div>
+      <code><span class="cmd">cd</span> <span class="path">$HOME\Documents\ledgr</span></code>
+    </div>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-icon">✅</div>
+    <div class="callout-body">After pressing Enter, the prompt should change to show the ledgr folder name. For example on Mac it might show <code class="inline">ledgr %</code> — that means it worked.</div>
+  </div>
+
+  <h3>Install the required packages</h3>
+
+  <div class="explainer">
+    <strong>What are packages?</strong> Packages are pre-built pieces of code that the app relies on — things like the Plaid connection library, the web server, etc. This command downloads them all automatically from the internet. You only need to do this once.
+  </div>
+
+  <p>Now type this command and press <strong>Enter</strong>:</p>
+
+  <div class="code-block">
+    <div class="code-label">Type this exactly, then press Enter</div>
+    <code>npm run install:all</code>
+  </div>
+
+  <p>You'll see a lot of text scroll by — this is normal! It's downloading everything the app needs. <strong>Wait until it finishes</strong> and you see the prompt (the blinking cursor) come back. This usually takes 1–3 minutes depending on your internet speed.</p>
+
+  <div class="callout callout-warning">
+    <div class="callout-icon">⏳</div>
+    <div class="callout-body"><strong>Be patient!</strong> The screen may look like it's frozen. As long as you don't see a big red error message, it's still working. Only move on when you see the cursor is blinking and ready for input again.</div>
+  </div>
+</div>
+
+<!-- ── STEP 6 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step6">
+  <div class="step-header">
+    <div class="step-number">6</div>
+    <div>
+      <div class="step-title">Set Up Your Plaid API Keys</div>
+      <div class="step-subtitle">Tell the app your private Plaid credentials — you'll create one hidden file</div>
+    </div>
+  </div>
+
+  <h3>Create the secrets file</h3>
+
+  <p>Inside the <strong>ledgr</strong> folder, open the <strong>backend</strong> folder. You'll see a file called <strong>.env.example</strong>. You need to make a copy of it called <strong>.env</strong> (without the word "example").</p>
+
+  <div class="os-tabs">
+    <div class="os-tab active" onclick="switchTab(this, 'env-mac')">🍎 Mac</div>
+    <div class="os-tab" onclick="switchTab(this, 'env-win')">🪟 Windows</div>
+  </div>
+  <div id="env-mac" class="os-panel active">
+    <p>In your Terminal (which should still be in the ledgr folder), type this and press Enter:</p>
+    <div class="code-block">
+      <div class="code-label">Terminal — Mac</div>
+      <code>cp backend/.env.example backend/.env</code>
+    </div>
+    <p>Nothing will happen visually — that's fine. The file was created silently.</p>
+  </div>
+  <div id="env-win" class="os-panel">
+    <p>In your PowerShell window (which should still be in the ledgr folder), type this and press Enter:</p>
+    <div class="code-block">
+      <div class="code-label">PowerShell — Windows</div>
+      <code>copy backend\.env.example backend\.env</code>
+    </div>
+  </div>
+
+  <h3>Edit the secrets file</h3>
+
+  <p>Now open the <strong>.env</strong> file you just created with a plain text editor.</p>
+
+  <div class="callout callout-warning">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body"><strong>Important: Do NOT use Microsoft Word or Google Docs.</strong> Use a plain text editor only. Word adds hidden formatting that will break the file. Use Notepad (Windows), TextEdit (Mac), or any code editor.</div>
+  </div>
+
+  <div class="os-tabs">
+    <div class="os-tab active" onclick="switchTab(this, 'edit-mac')">🍎 Mac</div>
+    <div class="os-tab" onclick="switchTab(this, 'edit-win')">🪟 Windows</div>
+  </div>
+  <div id="edit-mac" class="os-panel active">
+    <p>In your Terminal, type this to open the file in TextEdit:</p>
+    <div class="code-block">
+      <div class="code-label">Terminal — Mac</div>
+      <code>open -e backend/.env</code>
+    </div>
+    <p>TextEdit will open with the file content.</p>
+  </div>
+  <div id="edit-win" class="os-panel">
+    <p>In PowerShell, type this to open the file in Notepad:</p>
+    <div class="code-block">
+      <div class="code-label">PowerShell — Windows</div>
+      <code>notepad backend\.env</code>
+    </div>
+  </div>
+
+  <h3>Fill in your Plaid keys</h3>
+
+  <p>The file will look like this:</p>
+
+  <div class="code-block">
+    <div class="code-label">Contents of backend/.env</div>
+    <code><span class="key">PLAID_CLIENT_ID</span>=<span class="val">your_client_id_here</span>
+<span class="key">PLAID_SECRET</span>=<span class="val">your_sandbox_secret_here</span>
+<span class="key">PLAID_ENV</span>=<span class="val">sandbox</span>
+<span class="key">PLAID_PRODUCTS</span>=<span class="val">transactions</span>
+<span class="key">PLAID_COUNTRY_CODES</span>=<span class="val">US</span>
+<span class="key">PORT</span>=<span class="val">3001</span>
+<span class="key">FRONTEND_URL</span>=<span class="val">http://localhost:5173</span></code>
+  </div>
+
+  <p>Replace <strong>only</strong> the two values shown in yellow below with your actual keys from the Plaid dashboard (the page you left open in Step 2):</p>
+
+  <ul>
+    <li>Replace <code class="inline">your_client_id_here</code> with your actual <strong>Client ID</strong></li>
+    <li>Replace <code class="inline">your_sandbox_secret_here</code> with your actual <strong>Sandbox secret</strong></li>
+  </ul>
+
+  <p>The final result should look something like this (with your real values):</p>
+
+  <div class="code-block">
+    <div class="code-label">Example of what it looks like filled in</div>
+    <code><span class="key">PLAID_CLIENT_ID</span>=<span class="val">6123abc456def789012345</span>
+<span class="key">PLAID_SECRET</span>=<span class="val">abc123def456ghi789jkl000</span>
+<span class="key">PLAID_ENV</span>=<span class="val">sandbox</span>
+<span class="comment"># ... rest stays the same ...</span></code>
+  </div>
+
+  <p><strong>Save the file</strong> (Cmd+S on Mac, Ctrl+S on Windows) and close it.</p>
+
+  <div class="callout callout-danger">
+    <div class="callout-icon">🔒</div>
+    <div class="callout-body"><strong>Never share the .env file.</strong> It contains your private keys. Don't email it, post it online, or upload it anywhere. The app is already set up to keep this file hidden.</div>
+  </div>
+</div>
+
+<!-- ── STEP 7 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step7">
+  <div class="step-header">
+    <div class="step-number">7</div>
+    <div>
+      <div class="step-title">Run the App for the First Time</div>
+      <div class="step-subtitle">Start both the frontend and backend with a single command</div>
+    </div>
+  </div>
+
+  <p>Go back to your Terminal window (which should still be in the ledgr folder). Type this command and press <strong>Enter</strong>:</p>
+
+  <div class="code-block">
+    <div class="code-label">Type this, then press Enter</div>
+    <code>npm run dev</code>
+  </div>
+
+  <p>You'll see output that looks something like this:</p>
+
+  <div class="code-block">
+    <div class="code-label">What you should see</div>
+    <code><span class="comment">  🏦  Ledgr backend running</span>
+<span class="comment">  →  http://localhost:3001/api/health</span>
+<span class="comment">  →  Plaid env: sandbox</span>
+
+<span class="val">  VITE v5.x.x  ready in 312 ms</span>
+
+<span class="comment">  ➜  Local:   http://localhost:5173/</span>
+<span class="comment">  ➜  Network: http://192.168.1.x:5173/</span></code>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-icon">🎉</div>
+    <div class="callout-body"><strong>The app is running!</strong> Now open your web browser (Chrome, Safari, Firefox, Edge — any of them) and go to this address:</div>
+  </div>
+
+  <a class="url-pill">🌐 http://localhost:5173</a>
+
+  <p style="margin-top: 16px">Type that address into your browser's address bar (the same bar you'd type google.com into) and press <strong>Enter</strong>. You should see the ledgr app!</p>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body"><strong>What does "localhost" mean?</strong> "localhost" just means "this computer." The app is running on your own computer, not on the internet. Only you can access it (unless you follow Step 9 to open it to other devices on your home network).</div>
+  </div>
+
+  <h3>To stop the app</h3>
+  <p>Go back to the Terminal and press <strong>Ctrl + C</strong> (on both Mac and Windows). This stops the servers. The app will no longer be accessible until you run <code class="inline">npm run dev</code> again.</p>
+
+  <h3>Every time you want to use the app</h3>
+  <ol>
+    <li>Open a Terminal</li>
+    <li>Navigate to the ledgr folder: <code class="inline">cd ~/Desktop/ledgr</code> (or wherever you put it)</li>
+    <li>Type <code class="inline">npm run dev</code> and press Enter</li>
+    <li>Open your browser and go to <code class="inline">http://localhost:5173</code></li>
+  </ol>
+</div>
+
+<!-- ── STEP 8 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step8">
+  <div class="step-header">
+    <div class="step-number">8</div>
+    <div>
+      <div class="step-title">Connect a Test Bank Account</div>
+      <div class="step-subtitle">Use Plaid's built-in test credentials to try it out safely before using real accounts</div>
+    </div>
+  </div>
+
+  <div class="explainer">
+    <strong>What is Sandbox mode?</strong> Plaid's Sandbox is a fake bank environment built for testing. It has fake accounts loaded with fake transactions, so you can try everything without connecting a real bank. When you're confident it all works, you can then connect your real bank.
+  </div>
+
+  <div class="substeps">
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>In the ledgr app, click the <strong>"Connect a Bank"</strong> or <strong>"🏦 Connect a Bank"</strong> button. A window called Plaid Link will pop up.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>In the Plaid Link window, type any bank name in the search box — for example, type <strong>"Chase"</strong> or <strong>"Bank of America"</strong> and select it. (In Sandbox mode it doesn't matter which bank you pick — they all use the same test credentials.)</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>When asked to log in, use these <strong>test credentials</strong>:</p>
+        <div class="cred-box">
+          <div class="cred-item">
+            <label>Username</label>
+            <div class="cred-val">user_good</div>
+          </div>
+          <div class="cred-item">
+            <label>Password</label>
+            <div class="cred-val">pass_good</div>
+          </div>
+        </div>
+        <p>These are Plaid's official test credentials — they work for any bank in Sandbox mode.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>If asked for a verification code, type <strong>1234</strong>.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>Select which accounts to link (select all of them for a fuller demo) and click <strong>Continue</strong>.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>The Plaid Link window will close and you'll return to ledgr. The app will automatically sync your test transactions — you should see accounts and transactions appear!</p>
+        <div class="callout callout-success">
+          <div class="callout-icon">🎉</div>
+          <div class="callout-body">Congratulations — ledgr is fully working! You can now create budget categories, assign transactions, and explore all the features.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Ready to connect your real bank?</h3>
+  <p>When you're ready to use real bank data, you'll need to apply for Plaid's "Development" access (still free, just requires approval). Go to <strong>dashboard.plaid.com</strong>, look for a "Request Development Access" or "Move to Development" option, fill in the form, and Plaid typically approves it within a few hours to a day. Once approved, change <code class="inline">PLAID_ENV=development</code> in your <code class="inline">backend/.env</code> file and use your Development secret instead.</p>
+</div>
+
+<!-- ── STEP 9 ────────────────────────────────────────────────────── -->
+<div class="step-section container" id="step9">
+  <div class="step-header">
+    <div class="step-number">9</div>
+    <div>
+      <div class="step-title">Access from Your Phone or Other Devices</div>
+      <div class="step-subtitle">Use the app on any device connected to the same Wi-Fi network</div>
+    </div>
+  </div>
+
+  <div class="explainer">
+    <strong>How this works:</strong> When the app is running on your computer, any other device on the same home Wi-Fi network can access it using your computer's local IP address — similar to how a shared printer works on a home network. This is not accessible from outside your home.
+  </div>
+
+  <div class="substeps">
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>Make sure the app is running (<code class="inline">npm run dev</code> in the terminal). Look at the terminal output — you'll see two lines like this:</p>
+        <div class="code-block">
+          <code><span class="comment">  ➜  Local:   http://localhost:5173/</span>
+<span class="val">  ➜  Network: http://192.168.1.45:5173/</span></code>
+        </div>
+        <p>The <strong>Network</strong> address (the one starting with 192.168…) is what you'll use on other devices.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>On your phone or tablet (connected to the same Wi-Fi), open any browser and type that Network address into the address bar — for example <code class="inline">http://192.168.1.45:5173</code>.</p>
+      </div>
+    </div>
+    <div class="substep">
+      <div class="substep-num"></div>
+      <div class="substep-body">
+        <p>The ledgr app should load on your phone. You can even <strong>add it to your home screen</strong> for quick access:</p>
+        <ul>
+          <li><strong>iPhone:</strong> Tap the Share button (the square with an arrow) → "Add to Home Screen"</li>
+          <li><strong>Android:</strong> Tap the three dots menu → "Add to Home Screen"</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-warning">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body"><strong>Your computer must be on and running the app</strong> for other devices to access it. If you close the terminal or shut down your computer, the app goes offline. It will come back when you run <code class="inline">npm run dev</code> again.</div>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">🌐</div>
+    <div class="callout-body"><strong>Want it available everywhere, not just your home network?</strong> That requires "deploying" the app to a cloud server, which is an advanced step. If you'd like to do this, ask for help — it's very doable and there are free options.</div>
+  </div>
+</div>
+
+<!-- ── TROUBLESHOOT ───────────────────────────────────────────────── -->
+<div class="step-section container" id="troubleshoot">
+  <div class="step-header">
+    <div class="step-number">?</div>
+    <div>
+      <div class="step-title">Troubleshooting</div>
+      <div class="step-subtitle">Common problems and exactly how to fix them</div>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ "command not found: npm" or "npm is not recognized"</div>
+    <div class="error-body">
+      <p>This means Node.js didn't install correctly, or the Terminal opened before Node.js was installed.</p>
+      <p><strong>Fix:</strong> Close the Terminal completely, then re-open it. If the error persists, reinstall Node.js from nodejs.org (Step 1) and restart your computer.</p>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ "No such file or directory" when using cd</div>
+    <div class="error-body">
+      <p>The Terminal can't find your ledgr folder at the path you typed.</p>
+      <p><strong>Fix:</strong> Make sure you put the ledgr folder in the right place. Try the drag-and-drop method: type <code class="inline">cd </code> (with a space), then drag the ledgr folder from Finder/File Explorer into the Terminal window, then press Enter.</p>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ "PLAID_CLIENT_ID is not defined" or "Invalid API keys"</div>
+    <div class="error-body">
+      <p>The app can't find your Plaid keys. Either the .env file wasn't created, or the keys weren't saved correctly.</p>
+      <p><strong>Fix:</strong> Go back to Step 6. Make sure the file is named exactly <code class="inline">.env</code> (not <code class="inline">.env.txt</code> or <code class="inline">.env.example</code>). On Windows, Notepad sometimes adds .txt without telling you — check by enabling "show file extensions" in File Explorer settings.</p>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ "Port 3001 is already in use" or "Port 5173 is already in use"</div>
+    <div class="error-body">
+      <p>The app is already running in another terminal window, or something else is using that port.</p>
+      <p><strong>Fix:</strong> Press Ctrl+C in any open terminal windows to stop running apps. Then try <code class="inline">npm run dev</code> again. If still stuck, restart your computer.</p>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ The app loads but "Connect a Bank" does nothing or shows an error</div>
+    <div class="error-body">
+      <p>The backend isn't running, or your Plaid keys are wrong.</p>
+      <p><strong>Fix:</strong> Check your terminal — you should see both the backend message (🏦 Ledgr backend running) and the Vite message. If you only see one, stop everything (Ctrl+C) and run <code class="inline">npm run dev</code> again from the ledgr folder. Also double-check your Plaid keys in <code class="inline">backend/.env</code>.</p>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ I can't see the .env file in my file explorer</div>
+    <div class="error-body">
+      <p>Files starting with a dot (.) are hidden by default on Mac and Windows.</p>
+      <p><strong>Mac fix:</strong> In Finder, press <strong>Cmd + Shift + .</strong> (period) to toggle hidden files.</p>
+      <p><strong>Windows fix:</strong> In File Explorer, click the <strong>View</strong> tab and check the <strong>"Hidden items"</strong> checkbox.</p>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ The app worked before but now shows a blank page</div>
+    <div class="error-body">
+      <p>The app servers might not be running.</p>
+      <p><strong>Fix:</strong> Open Terminal, navigate to the ledgr folder, and run <code class="inline">npm run dev</code> again. Then refresh your browser.</p>
+    </div>
+  </div>
+
+  <div class="error-item">
+    <div class="error-header">❌ My phone can't connect to the app (Network address doesn't work)</div>
+    <div class="error-body">
+      <p>Your phone and computer need to be on the same Wi-Fi network. Also, some computers have a firewall that blocks incoming connections.</p>
+      <p><strong>Mac fix:</strong> Go to System Settings → Network → Firewall, and either turn it off temporarily or add Node.js as an allowed app.</p>
+      <p><strong>Windows fix:</strong> When Windows asks "Do you want to allow this app through the firewall?" click <strong>Allow</strong>. If you missed that prompt, search for "Windows Defender Firewall" in the Start menu → Allow an app through firewall → add Node.js.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-info" style="margin-top:24px">
+    <div class="callout-icon">🆘</div>
+    <div class="callout-body"><strong>Still stuck?</strong> Copy the exact error message from your terminal (it will be red text) and ask for help. The more detail you share about what you see on screen, the easier it is to diagnose.</div>
+  </div>
+</div>
+
+<!-- ── Quick Reference ────────────────────────────────────────────── -->
+<div class="step-section container" style="background: #0f172a; border-color: #1e293b;">
+  <div style="color: #e2e8f0; font-family: var(--mono);">
+    <div style="font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:#475569;margin-bottom:20px;font-family:var(--sans);font-weight:700;">📌 Quick Reference — Daily Use</div>
+    <div style="display:grid;gap:12px;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <span style="color:#475569;width:20px;flex-shrink:0;">1.</span>
+        <span style="color:#94a3b8;font-family:var(--sans);font-size:14px;width:220px;flex-shrink:0;">Open Terminal</span>
+        <span style="color:#86efac;">Cmd+Space → "Terminal" (Mac) &nbsp;|&nbsp; Windows key → "PowerShell"</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <span style="color:#475569;width:20px;flex-shrink:0;">2.</span>
+        <span style="color:#94a3b8;font-family:var(--sans);font-size:14px;width:220px;flex-shrink:0;">Navigate to app folder</span>
+        <code style="color:#fde68a;">cd ~/Desktop/ledgr</code>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <span style="color:#475569;width:20px;flex-shrink:0;">3.</span>
+        <span style="color:#94a3b8;font-family:var(--sans);font-size:14px;width:220px;flex-shrink:0;">Start the app</span>
+        <code style="color:#fde68a;">npm run dev</code>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <span style="color:#475569;width:20px;flex-shrink:0;">4.</span>
+        <span style="color:#94a3b8;font-family:var(--sans);font-size:14px;width:220px;flex-shrink:0;">Open in browser</span>
+        <code style="color:#fde68a;">http://localhost:5173</code>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <span style="color:#475569;width:20px;flex-shrink:0;">5.</span>
+        <span style="color:#94a3b8;font-family:var(--sans);font-size:14px;width:220px;flex-shrink:0;">Stop the app</span>
+        <code style="color:#fde68a;">Ctrl + C</code><span style="color:#475569;margin-left:8px;">(in terminal)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>ledgr. — Personal Finance App</p>
+  <p style="margin-top:6px;font-size:12px;">Open this file in any web browser any time you need a refresher.</p>
+</footer>
+
+<script>
+  function switchTab(tab, panelId) {
+    // Deactivate all tabs and panels in the same group
+    const parent = tab.parentElement;
+    parent.querySelectorAll('.os-tab').forEach(t => t.classList.remove('active'));
+    // Find sibling panels (next sibling elements that are .os-panel)
+    let el = parent.nextElementSibling;
+    while (el && el.classList.contains('os-panel')) {
+      el.classList.remove('active');
+      el = el.nextElementSibling;
+    }
+    // Activate selected
+    tab.classList.add('active');
+    document.getElementById(panelId).classList.add('active');
+  }
+</script>
+</body>
+</html>

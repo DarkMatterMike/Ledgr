@@ -1,0 +1,890 @@
+/**
+ * src/App.jsx
+ * Ledgr – full finance app wired to the Express/Plaid backend.
+ */
+
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { usePlaidLink } from "react-plaid-link";
+import * as api from "./api.js";
+
+/* ─── Styles ────────────────────────────────────────────────────── */
+const S = {
+  shell:       { display:"flex", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
+  sidebar:     { width:220, flexShrink:0, background:"var(--surface)", borderRight:"1px solid var(--border)", display:"flex", flexDirection:"column" },
+  sidebarLogo: { padding:"28px 24px 20px", fontFamily:"var(--font-disp)", fontSize:18, fontWeight:800, letterSpacing:"-0.5px", borderBottom:"1px solid var(--border)" },
+  nav:         { flex:1, padding:"16px 12px", display:"flex", flexDirection:"column", gap:4 },
+  navItem:     (active) => ({
+    display:"flex", alignItems:"center", gap:12, padding:"10px 12px",
+    borderRadius:"var(--radius)", fontSize:14, fontWeight:500,
+    color: active ? "var(--cyan)" : "var(--t2)",
+    background: active ? "var(--cyan-dim)" : "transparent",
+    border: `1px solid ${active ? "#00d4ff33" : "transparent"}`,
+    cursor:"pointer", transition:"all 0.15s", userSelect:"none",
+  }),
+  footer:      { padding:"16px 12px", borderTop:"1px solid var(--border)" },
+  main:        { flex:1, display:"flex", flexDirection:"column", overflow:"hidden" },
+  topbar:      { height:60, flexShrink:0, borderBottom:"1px solid var(--border)", background:"var(--surface)", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 28px" },
+  content:     { flex:1, overflowY:"auto", padding:28 },
+  card:        { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:20 },
+  cardTitle:   { fontFamily:"var(--font-disp)", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:16 },
+  grid2:       { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
+  grid4:       { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 },
+  stat:        { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"20px 22px" },
+  statLabel:   { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 },
+  statValue:   { fontFamily:"var(--font-mono)", fontSize:26, fontWeight:600 },
+  statSub:     { fontSize:12, color:"var(--t2)", marginTop:4 },
+  btn:         (variant="ghost", sm=false) => {
+    const base = { display:"inline-flex", alignItems:"center", gap:7, padding: sm ? "6px 12px" : "9px 16px", borderRadius:"var(--radius)", fontSize: sm ? 12 : 13, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none" };
+    if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
+    if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"#ff4d6d44" };
+    return { ...base, background:"transparent", color:"var(--t2)", borderColor:"var(--border2)" };
+  },
+  input:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 12px", fontSize:13, color:"var(--t1)", outline:"none", width:"100%" },
+  select:      { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"6px 10px", fontSize:12, color:"var(--t1)", outline:"none" },
+  field:       { display:"flex", flexDirection:"column", gap:6 },
+  label:       { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
+  overlay:     { position:"fixed", inset:0, background:"#00000088", backdropFilter:"blur(4px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
+  modal:       { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:28, width:500, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
+  modalTitle:  { fontFamily:"var(--font-disp)", fontSize:18, fontWeight:800, marginBottom:20, letterSpacing:"-0.3px" },
+  badge:       (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color:color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
+  toast:       { position:"fixed", bottom:24, right:24, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"12px 18px", fontSize:13, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
+  monthBar:    { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 16px", display:"flex", alignItems:"center", gap:16, fontSize:12, color:"var(--t2)", marginBottom:20, flexWrap:"wrap" },
+  sectionHdr:  { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
+  sectionTitle:{ fontFamily:"var(--font-disp)", fontSize:16, fontWeight:700, letterSpacing:"-0.2px" },
+  tableWrap:   { overflowX:"auto" },
+  th:          { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"0 12px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)" },
+  td:          { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
+  filterRow:   { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
+};
+
+/* ─── Constants ─────────────────────────────────────────────────── */
+const CAT_COLORS = ["#00d4ff","#00e676","#ff4d6d","#fbbf24","#a78bfa","#f97316","#06b6d4","#84cc16","#ec4899","#14b8a6","#8b5cf6","#ef4444","#22c55e","#3b82f6","#f59e0b"];
+
+const DEMO_CATEGORIES = [
+  { id:"c1", name:"Groceries",     limit:600,  color:"#00e676" },
+  { id:"c2", name:"Dining Out",    limit:300,  color:"#fbbf24" },
+  { id:"c3", name:"Rent",          limit:2000, color:"#a78bfa" },
+  { id:"c4", name:"Utilities",     limit:200,  color:"#00d4ff" },
+  { id:"c5", name:"Entertainment", limit:150,  color:"#f97316" },
+  { id:"c6", name:"Transport",     limit:250,  color:"#ec4899" },
+  { id:"c7", name:"Health",        limit:200,  color:"#06b6d4" },
+  { id:"c8", name:"Shopping",      limit:400,  color:"#8b5cf6" },
+];
+
+const today = new Date();
+const pad = n => String(n).padStart(2,"0");
+function randDate(daysBack) {
+  const d = new Date(today); d.setDate(d.getDate() - daysBack);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+const DEMO_TRANSACTIONS = [
+  { id:"dt1",  date:randDate(0),  merchant:"Whole Foods",        name:"",amount:-87.43,  categoryId:"c1", accountId:null },
+  { id:"dt2",  date:randDate(1),  merchant:"Netflix",            name:"",amount:-15.99,  categoryId:"c5", accountId:null },
+  { id:"dt3",  date:randDate(1),  merchant:"Chipotle",           name:"",amount:-13.50,  categoryId:"c2", accountId:null },
+  { id:"dt4",  date:randDate(2),  merchant:"Salary Deposit",     name:"",amount:3500,    categoryId:null, accountId:null },
+  { id:"dt5",  date:randDate(2),  merchant:"Trader Joe's",       name:"",amount:-62.18,  categoryId:"c1", accountId:null },
+  { id:"dt6",  date:randDate(3),  merchant:"Rent Payment",       name:"",amount:-1800,   categoryId:"c3", accountId:null },
+  { id:"dt7",  date:randDate(3),  merchant:"Uber",               name:"",amount:-22.50,  categoryId:"c6", accountId:null },
+  { id:"dt8",  date:randDate(4),  merchant:"Walgreens",          name:"",amount:-34.12,  categoryId:"c7", accountId:null },
+  { id:"dt9",  date:randDate(5),  merchant:"Amazon",             name:"",amount:-156.78, categoryId:"c8", accountId:null },
+  { id:"dt10", date:randDate(5),  merchant:"Electric Bill",      name:"",amount:-89.00,  categoryId:"c4", accountId:null },
+  { id:"dt11", date:randDate(6),  merchant:"Spotify",            name:"",amount:-9.99,   categoryId:"c5", accountId:null },
+  { id:"dt12", date:randDate(6),  merchant:"Sweetgreen",         name:"",amount:-18.25,  categoryId:"c2", accountId:null },
+  { id:"dt13", date:randDate(7),  merchant:"Target",             name:"",amount:-72.34,  categoryId:"c8", accountId:null },
+  { id:"dt14", date:randDate(8),  merchant:"Lyft",               name:"",amount:-14.00,  categoryId:"c6", accountId:null },
+  { id:"dt15", date:randDate(9),  merchant:"Costco",             name:"",amount:-134.55, categoryId:"c1", accountId:null },
+  { id:"dt16", date:randDate(10), merchant:"Gym Membership",     name:"",amount:-49.00,  categoryId:"c7", accountId:null },
+  { id:"dt17", date:randDate(11), merchant:"Dinner Out",         name:"",amount:-68.00,  categoryId:"c2", accountId:null },
+  { id:"dt18", date:randDate(12), merchant:"iCloud",             name:"",amount:-2.99,   categoryId:"c5", accountId:null },
+  { id:"dt19", date:randDate(14), merchant:"Internet Bill",      name:"",amount:-79.99,  categoryId:"c4", accountId:null },
+  { id:"dt20", date:randDate(15), merchant:"Freelance Payment",  name:"",amount:850,     categoryId:null, accountId:null },
+];
+
+/* ─── Helpers ───────────────────────────────────────────────────── */
+const fmt = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
+function daysLeft() { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
+
+const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+
+function lsGet(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+/* ─── Sub-components ────────────────────────────────────────────── */
+
+function ProgressBar({ cat, spent }) {
+  const pct  = Math.min((spent / cat.limit) * 100, 100);
+  const over = pct >= 100;
+  const warn = pct >= 80 && !over;
+  const barColor = over ? "var(--red)" : warn ? "var(--amber)" : cat.color;
+  const remaining = cat.limit - spent;
+  return (
+    <div style={{marginBottom:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,fontWeight:500,color:"var(--t1)"}}>
+          <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+          {cat.name}
+        </div>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)"}}>
+          {fmt(spent)} / {fmt(cat.limit)}
+          <span style={{marginLeft:8,color:remaining>=0?"var(--green)":"var(--red)"}}>
+            {remaining>=0?`+${fmt(remaining)}`:fmt(remaining)}
+          </span>
+        </div>
+      </div>
+      <div style={{height:6,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+        <div style={{height:"100%",borderRadius:99,background:barColor,width:`${pct}%`,transition:"width 0.6s cubic-bezier(.4,0,.2,1)"}}/>
+      </div>
+    </div>
+  );
+}
+
+function CategoryBadge({ cat }) {
+  if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
+  return <span style={S.badge(cat.color)}><span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>{cat.name}</span>;
+}
+
+function Modal({ title, onClose, children, actions }) {
+  return (
+    <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={S.modal}>
+        <div style={S.modalTitle}>{title}</div>
+        {children}
+        <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:24}}>{actions}</div>
+      </div>
+    </div>
+  );
+}
+
+function Toast({ msg }) {
+  return msg ? <div style={S.toast}>✓ {msg}</div> : null;
+}
+
+/* ─── Plaid Link Button ─────────────────────────────────────────── */
+function PlaidButton({ onSuccess, onExit, label = "Connect a Bank" }) {
+  const [linkToken, setLinkToken] = useState(null);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState(null);
+
+  const fetchToken = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const { link_token } = await api.createLinkToken();
+      setLinkToken(link_token);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: (publicToken, metadata) => {
+      onSuccess(publicToken, metadata?.institution?.name);
+    },
+    onExit,
+  });
+
+  // Auto-open once we have a token
+  useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
+
+  const handleClick = () => {
+    if (linkToken && ready) { open(); return; }
+    fetchToken();
+  };
+
+  return (
+    <div>
+      <button style={S.btn("primary")} onClick={handleClick} disabled={loading}>
+        {loading ? "…" : "🏦 " + label}
+      </button>
+      {error && <div style={{marginTop:8,fontSize:12,color:"var(--red)"}}>{error}</div>}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════════════════════════════ */
+export default function App() {
+  /* ── State ── */
+  const [view,         setView]         = useState("dashboard");
+  const [accounts,     setAccounts]     = useState(() => lsGet("lgr-accounts",     []));
+  const [categories,   setCategories]   = useState(() => lsGet("lgr-categories",   []));
+  const [transactions, setTransactions] = useState(() => lsGet("lgr-transactions", []));
+  const [plaidItems,   setPlaidItems]   = useState(() => lsGet("lgr-plaid-items",  []));
+
+  const [modal,       setModal]       = useState(null);
+  const [editTarget,  setEditTarget]  = useState(null);
+  const [toast,       setToast]       = useState("");
+  const [syncing,     setSyncing]     = useState(false);
+
+  // Month selector — defaults to current month, user can change it
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+
+  // Filter state
+  const [search,     setSearch]     = useState("");
+  const [filterCat,  setFilterCat]  = useState("all");
+  const [filterAcct, setFilterAcct] = useState("all");
+
+  // Inline rename
+  const [editingId,   setEditingId]   = useState(null);
+  const [editingName, setEditingName] = useState("");
+
+  // Forms
+  const [catForm,  setCatForm]  = useState({ name:"", limit:"", color:CAT_COLORS[0] });
+  const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
+  const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
+
+  /* ── Persist ── */
+  useEffect(() => lsSet("lgr-accounts",     accounts),     [accounts]);
+  useEffect(() => lsSet("lgr-categories",   categories),   [categories]);
+  useEffect(() => lsSet("lgr-transactions", transactions), [transactions]);
+  useEffect(() => lsSet("lgr-plaid-items",  plaidItems),   [plaidItems]);
+
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
+
+  /* ── Computed ── */
+  // All months that have at least one transaction, for the month picker
+  const availableMonths = useMemo(() => {
+    const months = new Set(transactions.map(t => t.date?.slice(0,7)).filter(Boolean));
+    if (!months.has(currentMonth)) months.add(currentMonth);
+    return [...months].sort().reverse();
+  }, [transactions]);
+
+  const monthTxns = useMemo(() =>
+    transactions.filter(t => t.date?.startsWith(selectedMonth)),
+  [transactions, selectedMonth]);
+
+  const isCurrentMonth = selectedMonth === currentMonth;
+
+  function prevMonth() {
+    const [y,m] = selectedMonth.split("-").map(Number);
+    const d = new Date(y, m-2, 1);
+    setSelectedMonth(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
+  }
+  function nextMonth() {
+    const [y,m] = selectedMonth.split("-").map(Number);
+    const d = new Date(y, m, 1);
+    const next = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    if (next <= currentMonth) setSelectedMonth(next);
+  }
+  function monthLabel(ym) {
+    const [y,m] = ym.split("-").map(Number);
+    return new Date(y, m-1, 1).toLocaleString("default",{month:"long",year:"numeric"});
+  }
+
+  const spentByCat = useMemo(() => {
+    const m = {};
+    monthTxns.forEach(t => { if (t.amount < 0 && t.categoryId) m[t.categoryId] = (m[t.categoryId]||0)+Math.abs(t.amount); });
+    return m;
+  }, [monthTxns]);
+
+  const spentByAcct = useMemo(() => {
+    const m = {};
+    monthTxns.forEach(t => { if (t.amount < 0 && t.accountId) m[t.accountId] = (m[t.accountId]||0)+Math.abs(t.amount); });
+    return m;
+  }, [monthTxns]);
+
+  const totalSpent  = Object.values(spentByCat).reduce((a,b)=>a+b,0);
+  const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
+  const totalIncome = monthTxns.filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0);
+
+  const catMap  = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
+  const acctMap = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
+
+  const filteredTxns = useMemo(() =>
+    transactions.filter(t => {
+      const label = (t.name || t.merchant || "").toLowerCase();
+      if (search && !label.includes(search.toLowerCase())) return false;
+      if (filterCat  !== "all" && t.categoryId !== filterCat)  return false;
+      if (filterAcct !== "all" && t.accountId  !== filterAcct) return false;
+      return true;
+    }).sort((a,b) => b.date?.localeCompare(a.date)),
+  [transactions, search, filterCat, filterAcct]);
+
+  /* ── Plaid ── */
+  const handlePlaidSuccess = useCallback(async (publicToken, institutionName) => {
+    try {
+      const { item_id } = await api.exchangePublicToken(publicToken, institutionName);
+      const newItem = { item_id, institution: institutionName };
+      setPlaidItems(p => [...p.filter(i => i.item_id !== item_id), newItem]);
+      showToast(`${institutionName} connected! Syncing…`);
+      await doSync(item_id);
+    } catch (e) {
+      showToast("Connection failed: " + e.message);
+    }
+  }, []);
+
+  async function doSync(itemId) {
+    setSyncing(true);
+    try {
+      // Sync transactions
+      const { added, modified, removed } = await api.syncTransactions(itemId);
+      setTransactions(prev => {
+        let next = [...prev];
+        // Apply removals
+        const removeIds = new Set(removed.map(r => r.transaction_id));
+        next = next.filter(t => !removeIds.has(t.id));
+        // Apply modifications
+        const modMap = Object.fromEntries(modified.map(t => [t.transaction_id, t]));
+        next = next.map(t => modMap[t.id] ? plaidTxnToLocal(modMap[t.id], catMap) : t);
+        // Merge added (skip existing)
+        const existingIds = new Set(next.map(t => t.id));
+        const newTxns = added.filter(t => !existingIds.has(t.transaction_id)).map(t => plaidTxnToLocal(t, catMap));
+        return [...newTxns, ...next];
+      });
+
+      // Sync accounts
+      const { accounts: plaidAccts } = await api.getAccounts();
+      setAccounts(prev => {
+        const byId = Object.fromEntries(prev.map(a => [a.plaidId, a]));
+        return plaidAccts.map(pa => ({
+          id:        byId[pa.account_id]?.id || "a"+pa.account_id,
+          plaidId:   pa.account_id,
+          name:      byId[pa.account_id]?.name || pa.name,
+          balance:   pa.balance,
+          available: pa.available,
+          type:      capitalise(pa.subtype || pa.type),
+          institution: pa.institution,
+        }));
+      });
+
+      // Update account IDs on transactions
+      setTransactions(prev => {
+        const plaidToLocal = {};
+        plaidAccts.forEach(pa => { plaidToLocal[pa.account_id] = "a"+pa.account_id; });
+        return prev.map(t => t.plaidAccountId ? { ...t, accountId: plaidToLocal[t.plaidAccountId] || t.accountId } : t);
+      });
+
+      showToast(`Synced: +${added.length} transactions`);
+    } catch (e) {
+      showToast("Sync error: " + e.message);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  function plaidTxnToLocal(t, catMap) {
+    // Auto-map Plaid category to local category
+    const plaidCat = (t.category || "").toLowerCase();
+    const matched  = Object.values(catMap).find(c => plaidCat.includes(c.name.toLowerCase().split(" ")[0]));
+    return {
+      id:             t.transaction_id,
+      plaidAccountId: t.account_id,
+      accountId:      "a"+t.account_id,
+      date:           t.date || t.authorized_date,
+      merchant:       t.merchant_name || t.name,
+      name:           "",
+      amount:         t.amount,
+      categoryId:     matched?.id || null,
+      pending:        t.pending,
+    };
+  }
+
+  async function disconnectItem(itemId) {
+    try {
+      await api.deleteItem(itemId);
+      setPlaidItems(p => p.filter(i => i.item_id !== itemId));
+      showToast("Account disconnected");
+    } catch (e) {
+      showToast("Error: " + e.message);
+    }
+  }
+
+  /* ── Demo data ── */
+  function loadDemo() {
+    setCategories(DEMO_CATEGORIES);
+    setTransactions(DEMO_TRANSACTIONS);
+    setAccounts([
+      { id:"a1", name:"Chase Checking",   balance:4820.55, type:"Checking", plaidId:null },
+      { id:"a2", name:"Amex Credit Card", balance:1240.00, type:"Credit",   plaidId:null },
+      { id:"a3", name:"Ally Savings",     balance:12500.00,type:"Savings",  plaidId:null },
+    ]);
+    setTransactions(DEMO_TRANSACTIONS.map((t,i)=>({...t,accountId:["a1","a2","a1","a1","a1","a1","a2","a2","a2","a1","a2","a2","a2","a2","a1","a1","a2","a2","a1","a1"][i]})));
+    setModal(null);
+    showToast("Demo data loaded!");
+  }
+
+  /* ── Category CRUD ── */
+  function openAddCat()  { setCatForm({name:"",limit:"",color:CAT_COLORS[0]}); setModal("addCat"); }
+  function openEditCat(c){ setCatForm({name:c.name,limit:String(c.limit),color:c.color}); setEditTarget(c); setModal("editCat"); }
+  function saveCat() {
+    if (!catForm.name.trim()||!catForm.limit) return;
+    if (modal==="addCat")
+      setCategories(p=>[...p,{id:"c"+Date.now(),name:catForm.name.trim(),limit:parseFloat(catForm.limit),color:catForm.color}]);
+    else
+      setCategories(p=>p.map(c=>c.id===editTarget.id?{...c,...catForm,limit:parseFloat(catForm.limit)}:c));
+    setModal(null); showToast("Category saved");
+  }
+  function deleteCat(id){
+    setCategories(p=>p.filter(c=>c.id!==id));
+    setTransactions(p=>p.map(t=>t.categoryId===id?{...t,categoryId:null}:t));
+    showToast("Category removed");
+  }
+
+  /* ── Account CRUD ── */
+  function openAddAcct()  { setAcctForm({name:"",balance:"",type:"Checking"}); setModal("addAcct"); }
+  function openEditAcct(a){ setAcctForm({name:a.name,balance:String(a.balance),type:a.type}); setEditTarget(a); setModal("editAcct"); }
+  function saveAcct() {
+    if (!acctForm.name.trim()) return;
+    if (modal==="addAcct")
+      setAccounts(p=>[...p,{id:"a"+Date.now(),name:acctForm.name.trim(),balance:parseFloat(acctForm.balance)||0,type:acctForm.type}]);
+    else
+      setAccounts(p=>p.map(a=>a.id===editTarget.id?{...a,...acctForm,balance:parseFloat(acctForm.balance)||0}:a));
+    setModal(null); showToast("Account saved");
+  }
+  function deleteAcct(id){ setAccounts(p=>p.filter(a=>a.id!==id)); showToast("Account removed"); }
+
+  /* ── Transaction CRUD ── */
+  function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }
+  function saveRename(id) {
+    setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant}:t));
+    setEditingId(null); showToast("Name updated");
+  }
+  function updateTxnCat(id,  val){ setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null}:t)); }
+  function updateTxnAcct(id, val){ setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
+  function deleteTxn(id){ setTransactions(p=>p.filter(t=>t.id!==id)); showToast("Deleted"); }
+
+  function openAddTxn(){
+    setTxnForm({merchant:"",amount:"",date:today.toISOString().slice(0,10),categoryId:"",accountId:"",sign:"-1"});
+    setModal("addTxn");
+  }
+  function saveManualTxn(){
+    if(!txnForm.merchant.trim()||!txnForm.amount) return;
+    setTransactions(p=>[{
+      id:"m"+Date.now(), date:txnForm.date,
+      merchant:txnForm.merchant.trim(), name:"",
+      amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign),
+      categoryId:txnForm.categoryId||null, accountId:txnForm.accountId||null,
+    },...p]);
+    setModal(null); showToast("Transaction added");
+  }
+
+  /* ─── Screens ─────────────────────────────────────────────────── */
+
+  /* Dashboard */
+  const Dashboard = (
+    <div>
+      <div style={{...S.monthBar, justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"2px 10px",fontSize:16,lineHeight:1.4}}>‹</button>
+          <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:180,textAlign:"center"}}>
+            📅 {monthLabel(selectedMonth)}
+            {isCurrentMonth && <span style={{marginLeft:8,fontSize:11,color:"var(--cyan)",fontWeight:500,fontFamily:"var(--font-body)"}}>current</span>}
+          </span>
+          <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"2px 10px",fontSize:16,lineHeight:1.4}}>›</button>
+        </div>
+        <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)"}}>
+          {isCurrentMonth && <span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
+          <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
+          <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
+          <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+        </div>
+      </div>
+
+      <div style={{...S.grid4, marginBottom:20}}>
+        {[
+          { label:"Total Budget",  value:fmt(totalBudget), sub:`${categories.length} categories`,        color:"var(--t1)" },
+          { label:"Spent",         value:fmt(totalSpent),  sub:`${fmt(totalBudget-totalSpent)} remaining`, color:"var(--red)" },
+          { label:"Income",        value:fmt(totalIncome), sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)" },
+          { label:"Transactions",  value:monthTxns.length, sub:monthLabel(selectedMonth),                 color:"var(--t1)" },
+        ].map(s=>(
+          <div key={s.label} style={S.stat}>
+            <div style={S.statLabel}>{s.label}</div>
+            <div style={{...S.statValue, color:s.color}}>{s.value}</div>
+            <div style={S.statSub}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Connect banner */}
+      {plaidItems.length===0 && (
+        <div style={{background:"linear-gradient(135deg,#0c1e38,#091629)",border:"1px solid #00d4ff33",borderRadius:"var(--radius-lg)",padding:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:24,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:16,fontWeight:700,marginBottom:4}}>🏦 Connect Your Bank</div>
+            <div style={{fontSize:13,color:"var(--t2)"}}>Link accounts via Plaid, or load demo data to explore</div>
+          </div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}}/>
+            <button style={S.btn("ghost")} onClick={loadDemo}>Load Demo Data</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{...S.grid2, gap:20}}>
+        {/* Budget progress */}
+        <div style={S.card}>
+          <div style={S.cardTitle}>Budget Progress</div>
+          {categories.length===0
+            ? <div style={{textAlign:"center",padding:"32px 0",color:"var(--t3)"}}>No categories yet</div>
+            : categories.map(cat=><ProgressBar key={cat.id} cat={cat} spent={spentByCat[cat.id]||0}/>)
+          }
+        </div>
+
+        {/* Recent transactions */}
+        <div style={S.card}>
+          <div style={{...S.sectionHdr, marginBottom:12}}>
+            <div style={S.cardTitle}>Recent Transactions</div>
+            <button style={S.btn("ghost",true)} onClick={()=>setView("transactions")}>All →</button>
+          </div>
+          {filteredTxns.slice(0,9).map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:500,color:"var(--t1)"}}>{t.name||t.merchant}</div>
+                <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
+              </div>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+              </span>
+            </div>
+          ))}
+          {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* Transactions */
+  const Transactions = (
+    <div>
+      <div style={{...S.sectionHdr, marginBottom:16}}>
+        <div style={S.sectionTitle}>Transactions</div>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          {syncing && <span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
+          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>⟳ Sync All</button>}
+          <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
+        </div>
+      </div>
+
+      <div style={S.filterRow}>
+        <div style={{position:"relative",flex:1,minWidth:180}}>
+          <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:14}}>🔍</span>
+          <input style={{...S.input,paddingLeft:36}} placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        </div>
+        <select style={{...S.select,width:160,padding:"9px 10px"}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+          <option value="all">All Categories</option>
+          {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          <option value="">Uncategorized</option>
+        </select>
+        <select style={{...S.select,width:160,padding:"9px 10px"}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
+          <option value="all">All Accounts</option>
+          {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </div>
+
+      <div style={{...S.card,padding:0}}>
+        <div style={S.tableWrap}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>
+              <th style={S.th}>Date</th>
+              <th style={S.th}>Name / Merchant</th>
+              <th style={S.th}>Category</th>
+              <th style={S.th}>Account</th>
+              <th style={{...S.th,textAlign:"right"}}>Amount</th>
+              <th style={S.th}/>
+            </tr></thead>
+            <tbody>
+              {filteredTxns.length===0&&(
+                <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:48,color:"var(--t3)"}}>No transactions found</td></tr>
+              )}
+              {filteredTxns.map(t=>(
+                <tr key={t.id} style={{background:"transparent"}}>
+                  <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{t.date}</td>
+                  <td style={{...S.td,color:"var(--t1)",fontWeight:500}}>
+                    {editingId===t.id ? (
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        <input style={{background:"var(--surface)",border:"1px solid var(--cyan)",borderRadius:6,padding:"4px 8px",fontSize:13,color:"var(--t1)",outline:"none",width:170}}
+                          value={editingName} onChange={e=>setEditingName(e.target.value)}
+                          onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
+                        <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
+                        <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
+                      </div>
+                    ) : (
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span>{t.name||t.merchant}</span>
+                        {t.name&&<span style={{fontSize:10,color:"var(--t3)"}}>({t.merchant})</span>}
+                        {t.pending&&<span style={{fontSize:10,color:"var(--amber)",border:"1px solid var(--amber)44",borderRadius:4,padding:"1px 5px"}}>pending</span>}
+                        {t.date && !t.date.startsWith(selectedMonth) && <span title={`This transaction is from ${t.date?.slice(0,7)} — not counted in ${selectedMonth} budget`} style={{fontSize:10,color:"var(--t3)",border:"1px solid var(--border2)",borderRadius:4,padding:"1px 5px",cursor:"help"}}>≠ {t.date?.slice(0,7)}</span>}
+                        <button onClick={()=>startRename(t)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 4px"}}>✏</button>
+                      </div>
+                    )}
+                  </td>
+                  <td style={S.td}>
+                    <select style={{...S.select,width:140}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
+                      <option value="">— None —</option>
+                      {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </td>
+                  <td style={S.td}>
+                    <select style={{...S.select,width:140}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
+                      <option value="">— None —</option>
+                      {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </td>
+                  <td style={{...S.td,textAlign:"right",fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                    {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                  </td>
+                  <td style={{...S.td,width:36}}>
+                    <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14}} title="Delete">🗑</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* Budgets */
+  const Budgets = (
+    <div>
+      <div style={{...S.sectionHdr, marginBottom:16}}>
+        <div style={S.sectionTitle}>Budget Categories</div>
+        <button style={S.btn("primary",true)} onClick={openAddCat}>+ New Category</button>
+      </div>
+      {categories.length===0
+        ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet. Create one to get started.</div>
+        : <div style={S.grid2}>
+            {categories.map(cat=>{
+              const spent = spentByCat[cat.id]||0;
+              const pct   = Math.min((spent/cat.limit)*100,100);
+              const over  = pct>=100; const warn = pct>=80&&!over;
+              const barC  = over?"var(--red)":warn?"var(--amber)":cat.color;
+              return (
+                <div key={cat.id} style={{...S.card,borderLeft:`3px solid ${cat.color}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                    <div>
+                      <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{width:10,height:10,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>
+                        {cat.name}
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:600,color:over?"var(--red)":warn?"var(--amber)":cat.color,margin:"6px 0"}}>
+                        {fmt(spent)}<span style={{fontSize:13,color:"var(--t3)",fontWeight:400}}> / {fmt(cat.limit)}</span>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <button style={S.btn("ghost",true)} onClick={()=>openEditCat(cat)}>Edit</button>
+                      <button style={S.btn("danger",true)} onClick={()=>deleteCat(cat.id)}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{height:6,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                    <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s ease"}}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,color:"var(--t3)"}}>
+                    <span>{pct.toFixed(0)}% used</span>
+                    <span style={{color:cat.limit-spent>=0?"var(--green)":"var(--red)"}}>
+                      {cat.limit-spent>=0?`${fmt(cat.limit-spent)} left`:`${fmt(Math.abs(cat.limit-spent))} over budget`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+      }
+    </div>
+  );
+
+  /* Accounts */
+  const Accounts = (
+    <div>
+      <div style={{...S.sectionHdr,marginBottom:8}}>
+        <div style={S.sectionTitle}>Accounts & Projections</div>
+        <div style={{display:"flex",gap:10}}>
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank"/>
+          <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
+        </div>
+      </div>
+      <div style={{fontSize:13,color:"var(--t2)",marginBottom:20}}>
+        Projections estimate spending needed through end of {today.toLocaleString("default",{month:"long"})} based on your current daily rate per account.
+      </div>
+
+      {/* Connected Plaid items */}
+      {plaidItems.length>0&&(
+        <div style={{...S.card,marginBottom:20}}>
+          <div style={S.cardTitle}>Connected Banks</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
+            {plaidItems.map(item=>(
+              <div key={item.item_id} style={{display:"flex",alignItems:"center",gap:10,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",padding:"8px 14px"}}>
+                <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>🏦 {item.institution}</span>
+                <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:11}} onClick={()=>doSync(item.item_id)} title="Sync">⟳</button>
+                <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:11}} onClick={()=>disconnectItem(item.item_id)} title="Disconnect">✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {accounts.length===0
+        ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+        : <div style={S.grid2}>
+            {accounts.map(acct=>{
+              const spent    = spentByAcct[acct.id]||0;
+              const income   = monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((a,t)=>a+t.amount,0);
+              const daysGone = today.getDate();
+              const totalDays= daysInMonth(today.getFullYear(),today.getMonth()+1);
+              const daily    = daysGone>0?spent/daysGone:0;
+              const projected= daily*totalDays;
+              const needed   = daily*daysLeft();
+              const tight    = needed>acct.balance;
+              const typeIcon = acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
+              return (
+                <div key={acct.id} style={S.card}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{fontSize:12,color:"var(--t3)",marginBottom:4}}>{typeIcon} {acct.type}{acct.institution?` · ${acct.institution}`:""}</div>
+                      <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700}}>{acct.name}</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:600,color:"var(--cyan)",margin:"8px 0"}}>{fmt(acct.balance)}</div>
+                      {acct.available!=null&&<div style={{fontSize:11,color:"var(--t3)"}}>Available: {fmt(acct.available)}</div>}
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
+                      <button style={S.btn("danger",true)} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)"}}>
+                    {[
+                      ["Spent this month",     fmt(spent),     "var(--t1)"],
+                      ["Income this month",    fmt(income),    "var(--green)"],
+                      ["Daily avg spend",      `${fmt(daily)}/day`, "var(--t1)"],
+                      ["Projected month total",fmt(projected), "var(--t1)"],
+                    ].map(([label,value,color])=>(
+                      <div key={label} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--t2)",marginBottom:6}}>
+                        <span>{label}</span>
+                        <span style={{fontFamily:"var(--font-mono)",color}}>{value}</span>
+                      </div>
+                    ))}
+                    <div style={{marginTop:10,padding:"10px 12px",borderRadius:8,background:tight?"var(--red-dim)":"var(--green-dim)",border:`1px solid ${tight?"var(--red)":"var(--green)"}33`}}>
+                      <div style={{fontSize:11,color:"var(--t3)",marginBottom:3}}>Est. needed · {daysLeft()} days left</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:700,color:tight?"var(--red)":"var(--green)"}}>{fmt(needed)}</div>
+                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                        {tight?`⚠ May fall short by ${fmt(needed-acct.balance)}`:`Comfortable — ${fmt(acct.balance-needed)} cushion`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+      }
+    </div>
+  );
+
+  /* ─── Modals ────────────────────────────────────────────────── */
+  const CatModal = (
+    <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Groceries" value={catForm.name} onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}/></div>
+        <div style={S.field}><label style={S.label}>Monthly Limit ($)</label><input style={S.input} type="number" placeholder="500" value={catForm.limit} onChange={e=>setCatForm(p=>({...p,limit:e.target.value}))}/></div>
+        <div style={S.field}>
+          <label style={S.label}>Color</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {CAT_COLORS.map(c=>(
+              <div key={c} onClick={()=>setCatForm(p=>({...p,color:c}))} style={{width:28,height:28,borderRadius:6,background:c,cursor:"pointer",border:`2px solid ${catForm.color===c?"var(--t1)":"transparent"}`,transition:"transform 0.15s",transform:catForm.color===c?"scale(1.15)":"scale(1)"}}/>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+
+  const AcctModal = (
+    <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
+        <div style={S.field}><label style={S.label}>Type</label>
+          <select style={{...S.input,padding:"9px 12px"}} value={acctForm.type} onChange={e=>setAcctForm(p=>({...p,type:e.target.value}))}>
+            {["Checking","Savings","Credit","Investment"].map(t=><option key={t}>{t}</option>)}
+          </select>
+        </div>
+        <div style={S.field}><label style={S.label}>Current Balance ($)</label><input style={S.input} type="number" placeholder="0.00" value={acctForm.balance} onChange={e=>setAcctForm(p=>({...p,balance:e.target.value}))}/></div>
+      </div>
+    </Modal>
+  );
+
+  const TxnModal = (
+    <Modal title="Add Transaction" onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={S.field}><label style={S.label}>Type</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.sign} onChange={e=>setTxnForm(p=>({...p,sign:e.target.value}))}>
+              <option value="-1">Expense (−)</option><option value="1">Income (+)</option>
+            </select>
+          </div>
+          <div style={S.field}><label style={S.label}>Amount ($)</label><input style={S.input} type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/></div>
+        </div>
+        <div style={S.field}><label style={S.label}>Date</label><input style={S.input} type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={S.field}><label style={S.label}>Category</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
+              <option value="">None</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div style={S.field}><label style={S.label}>Account</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.accountId} onChange={e=>setTxnForm(p=>({...p,accountId:e.target.value}))}>
+              <option value="">None</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+
+  /* ── Nav ── */
+  const NAV = [
+    { id:"dashboard",    icon:"◈", label:"Dashboard"    },
+    { id:"transactions", icon:"↕", label:"Transactions" },
+    { id:"budgets",      icon:"◉", label:"Budgets"      },
+    { id:"accounts",     icon:"▣", label:"Accounts"     },
+  ];
+  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts };
+
+  return (
+    <div style={S.shell}>
+      <aside style={S.sidebar}>
+        <div style={S.sidebarLogo}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+        <nav style={S.nav}>
+          {NAV.map(n=>(
+            <div key={n.id} style={S.navItem(view===n.id)} onClick={()=>setView(n.id)}>
+              <span style={{width:18,textAlign:"center"}}>{n.icon}</span>
+              <span>{n.label}</span>
+            </div>
+          ))}
+        </nav>
+        <div style={S.footer}>
+          {plaidItems.length>0
+            ? <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={()=>doSync()} disabled={syncing}>{syncing?"Syncing…":"⟳ Sync All"}</button>
+            : <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={loadDemo}>Load Demo</button>
+          }
+        </div>
+      </aside>
+
+      <div style={S.main}>
+        <div style={S.topbar}>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:16,fontWeight:700,letterSpacing:"-0.3px"}}>{NAV.find(n=>n.id===view)?.label}</div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
+            {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}
+            {" · "}{daysLeft()}d left
+          </div>
+        </div>
+        <div style={S.content}>{VIEWS[view]}</div>
+      </div>
+
+      {(modal==="addCat"||modal==="editCat") && CatModal}
+      {(modal==="addAcct"||modal==="editAcct") && AcctModal}
+      {modal==="addTxn" && TxnModal}
+
+      <Toast msg={toast}/>
+    </div>
+  );
+}
+
+function capitalise(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }

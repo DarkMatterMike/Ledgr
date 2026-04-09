@@ -190,8 +190,8 @@ function PlaidButton({ onSuccess, onExit, label = "Connect a Bank" }) {
   // Auto-open once we have a token
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
 
-  const handleClick = () => {
-    if (linkToken && ready) { open(); return; }
+    const handleClick = () => {
+    setLinkToken(null);
     fetchToken();
   };
 

@@ -3,7 +3,7 @@
  * Thin wrapper around fetch() for all backend endpoints.
  */
 
-const BASE = "/api";
+const BASE = "https://ledgr-production-9e35.up.railway.app/api";
 
 async function request(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {

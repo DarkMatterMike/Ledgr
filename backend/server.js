@@ -118,6 +118,7 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
       products:      PRODUCTS,
       country_codes: COUNTRY_CODES,
       language:      "en",
+	redirect_uri:  "https://ledgr-eight-zeta.vercel.app",
     });
     res.json({ link_token: response.data.link_token });
   } catch (err) {

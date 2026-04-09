@@ -190,8 +190,8 @@ function PlaidButton({ onSuccess, onExit, label = "Connect a Bank" }) {
   // Auto-open once we have a token
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
 
-    const handleClick = () => {
-    setLinkToken(null);
+  const handleClick = () => {
+    if (linkToken && ready) { open(); return; }
     fetchToken();
   };
 
@@ -211,10 +211,11 @@ function PlaidButton({ onSuccess, onExit, label = "Connect a Bank" }) {
 export default function App() {
   /* ── State ── */
   const [view,         setView]         = useState("dashboard");
-  const [accounts,     setAccounts]     = useState(() => lsGet("lgr-accounts",     []));
-  const [categories,   setCategories]   = useState(() => lsGet("lgr-categories",   []));
-  const [transactions, setTransactions] = useState(() => lsGet("lgr-transactions", []));
-  const [plaidItems,   setPlaidItems]   = useState(() => lsGet("lgr-plaid-items",  []));
+  const [accounts,     setAccounts]     = useState([]);
+  const [categories,   setCategories]   = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [plaidItems,   setPlaidItems]   = useState([]);
+  const [loading,      setLoading]      = useState(true);
 
   const [modal,       setModal]       = useState(null);
   const [editTarget,  setEditTarget]  = useState(null);
@@ -238,11 +239,34 @@ export default function App() {
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
 
-  /* ── Persist ── */
-  useEffect(() => lsSet("lgr-accounts",     accounts),     [accounts]);
-  useEffect(() => lsSet("lgr-categories",   categories),   [categories]);
-  useEffect(() => lsSet("lgr-transactions", transactions), [transactions]);
-  useEffect(() => lsSet("lgr-plaid-items",  plaidItems),   [plaidItems]);
+  /* ── Load data from backend on mount ── */
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.loadData();
+        setAccounts(data.accounts     || []);
+        setCategories(data.categories || []);
+        setTransactions(data.transactions || []);
+        setPlaidItems(data.plaidItems || []);
+      } catch (e) {
+        console.warn("Could not load data from backend:", e.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  /* ── Save data to backend whenever it changes ── */
+  const saveTimeout = useRef(null);
+  function scheduleSave(patch) {
+    clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => api.saveData(patch), 600);
+  }
+
+  useEffect(() => { if (!loading) scheduleSave({ accounts });     }, [accounts]);
+  useEffect(() => { if (!loading) scheduleSave({ categories });   }, [categories]);
+  useEffect(() => { if (!loading) scheduleSave({ transactions }); }, [transactions]);
+  useEffect(() => { if (!loading) scheduleSave({ plaidItems });   }, [plaidItems]);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
 
@@ -846,6 +870,13 @@ export default function App() {
     { id:"accounts",     icon:"▣", label:"Accounts"     },
   ];
   const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts };
+
+  if (loading) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
+      <div style={{fontFamily:"var(--font-disp)",fontSize:28,fontWeight:800,color:"var(--t1)"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+      <div style={{fontSize:13,color:"var(--t3)"}}>Loading your data…</div>
+    </div>
+  );
 
   return (
     <div style={S.shell}>

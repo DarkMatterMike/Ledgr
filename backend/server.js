@@ -2,8 +2,8 @@
  * ledgr – backend/server.js
  *
  * Express server that wraps the Plaid API.
- * Stores Plaid Items (access tokens + cursors) in a local JSON file
- * so connections survive restarts. No native compilation required.
+ * Stores all app data (Plaid items, transactions, categories, accounts)
+ * in a local JSON file so every device sees the same data.
  */
 
 "use strict";
@@ -40,7 +40,7 @@ const plaidConfig = new Configuration({
 });
 const plaidClient = new PlaidApi(plaidConfig);
 
-/* ── JSON file storage (replaces SQLite — no compilation needed) ─── */
+/* ── JSON file storage ───────────────────────────────────────────── */
 const DB_PATH = path.join(__dirname, "ledgr-data.json");
 
 function readDB() {
@@ -51,7 +51,7 @@ function readDB() {
   } catch (e) {
     console.warn("Could not read DB file, starting fresh:", e.message);
   }
-  return { items: {} };
+  return { items: {}, transactions: [], categories: [], accounts: [], plaidItems: [] };
 }
 
 function writeDB(data) {
@@ -62,47 +62,54 @@ function writeDB(data) {
   }
 }
 
-function getItem(itemId) {
-  return readDB().items[itemId] || null;
-}
-
-function saveItem(itemId, data) {
-  const db = readDB();
-  db.items[itemId] = { ...db.items[itemId], ...data };
-  writeDB(db);
-}
-
-function deleteItem(itemId) {
-  const db = readDB();
-  delete db.items[itemId];
-  writeDB(db);
-}
-
-function getAllItems() {
-  return Object.values(readDB().items);
-}
-
-function updateCursor(itemId, cursor) {
-  const db = readDB();
-  if (db.items[itemId]) {
-    db.items[itemId].cursor = cursor;
-    writeDB(db);
-  }
-}
+function getItem(itemId)         { return readDB().items[itemId] || null; }
+function getAllItems()            { return Object.values(readDB().items); }
+function saveItem(itemId, data)  { const db = readDB(); db.items[itemId] = { ...db.items[itemId], ...data }; writeDB(db); }
+function removeItem(itemId)      { const db = readDB(); delete db.items[itemId]; writeDB(db); }
+function updateCursor(itemId, c) { const db = readDB(); if (db.items[itemId]) { db.items[itemId].cursor = c; writeDB(db); } }
 
 /* ── Express ──────────────────────────────────────────────────────── */
 const app = express();
 app.use(cors({ origin: FRONTEND_URL, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 /* ── Health ──────────────────────────────────────────────────────── */
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, env: PLAID_ENV, products: PRODUCTS });
 });
 
-/* ─────────────────────────────────────────────────────────────────
-   POST /api/plaid/create_link_token
-───────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   APP DATA STORAGE
+   Replaces localStorage so all devices share the same data.
+═══════════════════════════════════════════════════════════════════ */
+
+/* GET /api/data — load all app data */
+app.get("/api/data", (_req, res) => {
+  const db = readDB();
+  res.json({
+    transactions: db.transactions || [],
+    categories:   db.categories   || [],
+    accounts:     db.accounts     || [],
+    plaidItems:   db.plaidItems   || [],
+  });
+});
+
+/* PATCH /api/data — save updated fields */
+app.patch("/api/data", (req, res) => {
+  const db = readDB();
+  const { transactions, categories, accounts, plaidItems } = req.body;
+  if (transactions !== undefined) db.transactions = transactions;
+  if (categories   !== undefined) db.categories   = categories;
+  if (accounts     !== undefined) db.accounts     = accounts;
+  if (plaidItems   !== undefined) db.plaidItems   = plaidItems;
+  writeDB(db);
+  res.json({ ok: true });
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   PLAID ENDPOINTS
+═══════════════════════════════════════════════════════════════════ */
+
 app.post("/api/plaid/create_link_token", async (req, res) => {
   try {
     const response = await plaidClient.linkTokenCreate({
@@ -119,25 +126,17 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
   }
 });
 
-/* ─────────────────────────────────────────────────────────────────
-   POST /api/plaid/exchange_public_token
-───────────────────────────────────────────────────────────────── */
 app.post("/api/plaid/exchange_public_token", async (req, res) => {
   const { public_token, institution_name } = req.body;
   if (!public_token) return res.status(400).json({ error: "public_token required" });
-
   try {
     const exchangeRes = await plaidClient.itemPublicTokenExchange({ public_token });
     const { access_token, item_id } = exchangeRes.data;
-
     saveItem(item_id, {
-      item_id,
-      access_token,
+      item_id, access_token,
       institution: institution_name || "Unknown Bank",
-      cursor: null,
-      created_at: Date.now(),
+      cursor: null, created_at: Date.now(),
     });
-
     res.json({ item_id, institution: institution_name });
   } catch (err) {
     console.error("exchange_public_token error:", err.response?.data || err.message);
@@ -145,9 +144,6 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
   }
 });
 
-/* ─────────────────────────────────────────────────────────────────
-   GET /api/plaid/items
-───────────────────────────────────────────────────────────────── */
 app.get("/api/plaid/items", (_req, res) => {
   const items = getAllItems().map(({ item_id, institution, created_at }) => ({
     item_id, institution, created_at,
@@ -155,35 +151,26 @@ app.get("/api/plaid/items", (_req, res) => {
   res.json({ items });
 });
 
-/* ─────────────────────────────────────────────────────────────────
-   DELETE /api/plaid/items/:itemId
-───────────────────────────────────────────────────────────────── */
 app.delete("/api/plaid/items/:itemId", async (req, res) => {
   const { itemId } = req.params;
   const item = getItem(itemId);
   if (!item) return res.status(404).json({ error: "Item not found" });
-
   try {
     await plaidClient.itemRemove({ access_token: item.access_token });
   } catch (e) {
     console.warn("Plaid itemRemove failed (continuing):", e.message);
   }
-
-  deleteItem(itemId);
+  removeItem(itemId);
   res.json({ ok: true });
 });
 
-/* ─────────────────────────────────────────────────────────────────
-   GET /api/plaid/accounts
-───────────────────────────────────────────────────────────────── */
 app.get("/api/plaid/accounts", async (_req, res) => {
   const items = getAllItems();
   const allAccounts = [];
-
   for (const item of items) {
     try {
       const r = await plaidClient.accountsGet({ access_token: item.access_token });
-      const accounts = r.data.accounts.map(a => ({
+      allAccounts.push(...r.data.accounts.map(a => ({
         account_id:  a.account_id,
         item_id:     item.item_id,
         institution: item.institution,
@@ -194,19 +181,14 @@ app.get("/api/plaid/accounts", async (_req, res) => {
         balance:     a.balances.current,
         available:   a.balances.available,
         currency:    a.balances.iso_currency_code,
-      }));
-      allAccounts.push(...accounts);
+      })));
     } catch (err) {
       console.error(`accountsGet error for item ${item.item_id}:`, err.response?.data || err.message);
     }
   }
-
   res.json({ accounts: allAccounts });
 });
 
-/* ─────────────────────────────────────────────────────────────────
-   POST /api/plaid/transactions/sync
-───────────────────────────────────────────────────────────────── */
 app.post("/api/plaid/transactions/sync", async (req, res) => {
   const { item_id: targetItemId } = req.body;
   const items = targetItemId
@@ -215,24 +197,17 @@ app.post("/api/plaid/transactions/sync", async (req, res) => {
 
   if (!items.length) return res.json({ added: [], modified: [], removed: [] });
 
-  const allAdded    = [];
-  const allModified = [];
-  const allRemoved  = [];
+  const allAdded = [], allModified = [], allRemoved = [];
 
   for (const item of items) {
-    let cursor  = item.cursor || undefined;
+    let cursor = item.cursor || undefined;
     let hasMore = true;
-
     while (hasMore) {
       try {
         const syncRes = await plaidClient.transactionsSync({
-          access_token: item.access_token,
-          cursor,
-          count: 500,
+          access_token: item.access_token, cursor, count: 500,
         });
-
         const { added, modified, removed, next_cursor, has_more } = syncRes.data;
-
         const mapTxn = t => ({
           transaction_id:  t.transaction_id,
           account_id:      t.account_id,
@@ -248,14 +223,11 @@ app.post("/api/plaid/transactions/sync", async (req, res) => {
           currency:        t.iso_currency_code,
           logo_url:        t.logo_url || null,
         });
-
-        allAdded.push(   ...added.map(mapTxn));
+        allAdded.push(...added.map(mapTxn));
         allModified.push(...modified.map(mapTxn));
-        allRemoved.push( ...removed.map(t => ({ transaction_id: t.transaction_id })));
-
-        cursor  = next_cursor;
+        allRemoved.push(...removed.map(t => ({ transaction_id: t.transaction_id })));
+        cursor = next_cursor;
         hasMore = has_more;
-
         updateCursor(item.item_id, cursor);
       } catch (err) {
         console.error(`transactions/sync error for item ${item.item_id}:`, err.response?.data || err.message);
@@ -263,7 +235,6 @@ app.post("/api/plaid/transactions/sync", async (req, res) => {
       }
     }
   }
-
   res.json({ added: allAdded, modified: allModified, removed: allRemoved });
 });
 

@@ -3,7 +3,7 @@
  * Thin wrapper around fetch() for all backend endpoints.
  */
 
-const BASE = "https://ledgr-production-9e35.up.railway.app/api";
+const BASE = "/api";
 
 async function request(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {
@@ -56,6 +56,14 @@ export const getAccounts = () => request("GET", "/plaid/accounts");
  */
 export const syncTransactions = (itemId) =>
   request("POST", "/plaid/transactions/sync", itemId ? { item_id: itemId } : {});
+
+/* ── App data (shared across all devices) ───────────────────────── */
+
+/** Load all app data from the backend */
+export const loadData = () => request("GET", "/data");
+
+/** Save a partial update to the backend */
+export const saveData = (patch) => request("PATCH", "/data", patch);
 
 /* ── Health ─────────────────────────────────────────────────────── */
 export const healthCheck = () => request("GET", "/health");

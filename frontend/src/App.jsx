@@ -524,20 +524,7 @@ export default function App() {
         ))}
       </div>
 
-      {/* Connect banner */}
-      {plaidItems.length===0 && (
-        <div style={{background:"linear-gradient(135deg,#0c1e38,#091629)",border:"1px solid #00d4ff33",borderRadius:"var(--radius-lg)",padding:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:24,flexWrap:"wrap"}}>
-          <div>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:16,fontWeight:700,marginBottom:4}}>🏦 Connect Your Bank</div>
-            <div style={{fontSize:13,color:"var(--t2)"}}>Link accounts via Plaid, or load demo data to explore</div>
-          </div>
-          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-            <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}}/>
-            <button style={S.btn("ghost")} onClick={loadDemo}>Load Demo Data</button>
-          </div>
-        </div>
-      )}
-
+     
       <div style={{...S.grid2, gap:20}}>
         {/* Budget progress */}
         <div style={S.card}>
@@ -891,10 +878,7 @@ export default function App() {
           ))}
         </nav>
         <div style={S.footer}>
-          {plaidItems.length>0
-            ? <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={()=>doSync()} disabled={syncing}>{syncing?"Syncing…":"⟳ Sync All"}</button>
-            : <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={loadDemo}>Load Demo</button>
-          }
+          <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={()=>doSync()} disabled={syncing}>{syncing?"Syncing…":"⟳ Sync All"}</button>
         </div>
       </aside>
 

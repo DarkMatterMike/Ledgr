@@ -623,12 +623,12 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
           <div style={S.tableWrap}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                <th style={S.th}>Date</th>
-                <th style={S.th}>Name / Merchant</th>
-                <th style={S.th}>Category</th>
-                <th style={S.th}>Account</th>
-                <th style={{...S.th,textAlign:"right"}}>Amount</th>
-                <th style={S.th}/>
+                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Date</th>
+                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Name / Merchant</th>
+                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Category</th>
+                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Account</th>
+                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2,textAlign:"right"}}>Amount</th>
+                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}/>
               </tr></thead>
               <tbody>
                 {filteredTxns.length===0&&(

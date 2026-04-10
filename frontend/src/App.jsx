@@ -59,6 +59,8 @@ function useIsMobile() {
     }
     @media (min-width: 768px) {
       .ledgr-bottomnav { display: none !important; }
+      .ledgr-dash-cards { flex-direction: row !important; align-items: flex-start; }
+      .ledgr-dash-cards > * { flex: 1; min-width: 0; }
     }
   `;
   document.head.appendChild(s);
@@ -584,7 +586,7 @@ export default function App() {
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16,alignItems:"start"}}>
+      <div className="ledgr-dash-cards" style={{display:"flex",flexDirection:"column",gap:16}}>
         <div style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:12}}>
             <div style={S.cardTitle}>Budget Progress</div>
@@ -592,7 +594,7 @@ export default function App() {
           </div>
           {categories.length===0
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-            : sortedCategories.slice(0,isMobile?5:8).map(cat=>{
+            : sortedCategories.slice(0,6).map(cat=>{
                 const spent=spentByCat[cat.id]||0, remaining=cat.limit-spent;
                 const pct=Math.min((spent/cat.limit)*100,100);
                 const over=pct>=100, warn=pct>=80&&!over;

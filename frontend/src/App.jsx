@@ -217,7 +217,7 @@ export default function App() {
 
   const totalSpent  = Object.values(spentByCat).reduce((a,b)=>a+b,0);
   const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
-  const totalIncome = monthTxns.filter(t=>t.amount>0&&t.type==="income").reduce((a,t)=>a+t.amount,0);
+  const totalIncome = monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
@@ -967,7 +967,7 @@ export default function App() {
         : <div className="ledgr-acct-grid">
             {accounts.map(acct=>{
               const spent=spentByAcct[acct.id]||0;
-              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&t.type==="income").reduce((a,t)=>a+t.amount,0);
+              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);&&t.accountId===acct.id&&t.type==="income").reduce((a,t)=>a+t.amount,0);
               const daily=today.getDate()>0?spent/today.getDate():0;
               const needed=daily*daysLeft(),tight=needed>acct.balance;
               const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";

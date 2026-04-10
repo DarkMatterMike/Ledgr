@@ -217,7 +217,7 @@ export default function App() {
 
   const totalSpent  = Object.values(spentByCat).reduce((a,b)=>a+b,0);
   const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
-  const totalIncome = monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
+  const totalIncome = monthTxns.filter(t=>t.amount>0&&t.type==="income").reduce((a,t)=>a+t.amount,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
@@ -967,7 +967,7 @@ export default function App() {
         : <div className="ledgr-acct-grid">
             {accounts.map(acct=>{
               const spent=spentByAcct[acct.id]||0;
-              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
+              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&t.type==="income").reduce((a,t)=>a+t.amount,0);
               const daily=today.getDate()>0?spent/today.getDate():0;
               const needed=daily*daysLeft(),tight=needed>acct.balance;
               const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
@@ -1121,6 +1121,61 @@ export default function App() {
           })}
         </div>
       </div>
+
+      {/* ── Account charge summaries ── */}
+      {recurringTxns.length>0&&(()=>{
+        const isCurrentCalMonth = calYear===today.getFullYear()&&calMonthN===today.getMonth()+1;
+        const isPastCalMonth    = calYear<today.getFullYear()||(calYear===today.getFullYear()&&calMonthN<today.getMonth()+1);
+        const relevantTxns = recurringTxns.filter(t=>{
+          if (isPastCalMonth) return false;
+          if (isCurrentCalMonth) return (t.recurringDay||0)>=today.getDate();
+          return true;
+        });
+        const byAccount = {};
+        relevantTxns.forEach(t=>{
+          const key=t.accountId||"unassigned";
+          if (!byAccount[key]) byAccount[key]={name:acctMap[t.accountId]?.name||"Unassigned",total:0,count:0};
+          byAccount[key].total+=Math.abs(t.amount);
+          byAccount[key].count+=1;
+        });
+        const entries=Object.values(byAccount).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
+        if (entries.length===0) return null;
+        const totalRemaining=entries.reduce((a,e)=>a+e.total,0);
+        const label=isPastCalMonth?"Charged in":isCurrentCalMonth?"Remaining charges this":"Total charges in";
+        return (
+          <div style={{...S.card,marginBottom:20}}>
+            <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:14,paddingBottom:14,borderBottom:"1px solid var(--border)"}}>
+              <div>
+                <div style={S.cardTitle}>{label} {monthLabel(calendarMonth)}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,color:"var(--red)"}}>{fmt(totalRemaining)}</div>
+                <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>
+                  {isCurrentCalMonth?`from day ${today.getDate()} onwards · `:""}
+                  {entries.reduce((a,e)=>a+e.count,0)} charge{entries.reduce((a,e)=>a+e.count,0)!==1?"s":""} across {entries.length} account{entries.length!==1?"s":""}
+                </div>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {entries.map(e=>{
+                const pct=totalRemaining>0?(e.total/totalRemaining)*100:0;
+                return (
+                  <div key={e.name}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div>
+                        <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{e.count} charge{e.count!==1?"s":""}</div>
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--red)",flexShrink:0,marginLeft:12}}>{fmt(e.total)}</div>
+                    </div>
+                    <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                      <div style={{height:"100%",borderRadius:99,background:"var(--red)",width:`${pct}%`,opacity:0.6,transition:"width 0.5s"}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {recurringTxns.length>0&&(
         <div style={S.card}>

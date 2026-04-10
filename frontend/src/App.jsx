@@ -687,6 +687,33 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   );
 
   /* ── Budgets ── */
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const spentA = spentByCat[a.id] || 0;
+      const spentB = spentByCat[b.id] || 0;
+      const remA   = a.limit - spentA;
+      const remB   = b.limit - spentB;
+      const overA  = remA < 0;
+      const overB  = remB < 0;
+      const zeroA  = remA === 0;
+      const zeroB  = remB === 0;
+
+      // Overspent always first
+      if (overA && !overB) return -1;
+      if (!overA && overB) return 1;
+
+      // Both overspent — most over first
+      if (overA && overB) return remA - remB;
+
+      // Zero remaining next
+      if (zeroA && !zeroB) return -1;
+      if (!zeroA && zeroB) return 1;
+
+      // Then sort by least remaining
+      return remA - remB;
+    });
+  }, [categories, spentByCat]);
+
   const Budgets = (
     <div>
       <div style={{...S.sectionHdr,marginBottom:16}}>
@@ -697,7 +724,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
       {categories.length===0
         ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet. Create one to get started.</div>
         : <div className="ledgr-budget-grid" style={S.grid2}>
-            {categories.map(cat=>{
+            {sortedCategories.map(cat=>{
               const spent    = spentByCat[cat.id]||0;
               const pct      = Math.min((spent/cat.limit)*100,100);
               const over     = pct>=100, warn = pct>=80&&!over;

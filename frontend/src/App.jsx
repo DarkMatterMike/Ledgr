@@ -942,7 +942,7 @@ export default function App() {
                     <div style={{marginTop:10,padding:"10px 12px",borderRadius:8,background:tight?"var(--red-dim)":"var(--green-dim)",border:`1px solid ${tight?"var(--red)":"var(--green)"}33`}}>
                       <div style={{fontSize:11,color:"var(--t2)",marginBottom:3}}>Est. needed · {daysLeft()} days left</div>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?18:20,fontWeight:700,color:tight?"var(--red)":"var(--green)"}}>{fmt(needed)}</div>
-                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                      <div style={{fontSize:11,color:"var(--t2)",marginTop:3}}>
                         {tight?`⚠ May fall short by ${fmt(needed-acct.balance)}`:`Comfortable — ${fmt(acct.balance-needed)} cushion`}
                       </div>
                     </div>

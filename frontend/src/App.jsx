@@ -174,6 +174,8 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
 ═══════════════════════════════════════════════════════════════════ */
 export default function App() {
   const isMobile = useIsMobile();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [moreMenuOpen,     setMoreMenuOpen]     = useState(false);
 
   /* ── All state ── */
   const [view,          setView]          = useState("dashboard");
@@ -582,7 +584,7 @@ export default function App() {
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16,alignItems:"start"}}>
         <div style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:12}}>
             <div style={S.cardTitle}>Budget Progress</div>
@@ -1129,14 +1131,10 @@ export default function App() {
       {recurringTxns.length>0&&(
         <div style={{...S.card,marginTop:20}}>
           <div style={S.cardTitle}>All Recurring Transactions</div>
-         {recurringTxns.sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+          {recurringTxns.sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
             const cat = catMap[t.categoryId];
             return (
-              <div key={t.id}
-                onClick={()=>setModal("editRecurring") || setEditTarget(t)}
-                style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)",cursor:"pointer",borderRadius:6,padding:"8px",margin:"0 -8px 2px",transition:"background 0.12s"}}
-                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
                   <div style={{width:28,height:28,borderRadius:8,background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,color:"var(--cyan)",flexShrink:0}}>
                     {t.recurringDay||"?"}
@@ -1149,12 +1147,9 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginLeft:10}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
-                    {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                  </span>
-                  <span style={{fontSize:11,color:"var(--t3)"}}>✏</span>
-                </div>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:10}}>
+                  {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                </span>
               </div>
             );
           })}
@@ -1308,45 +1303,6 @@ export default function App() {
     </Modal>
   );
 
-const EditRecurringModal = editTarget && modal==="editRecurring" ? (
-    <Modal title="Edit Recurring Transaction" onClose={()=>{ setModal(null); setEditTarget(null); }}
-      actions={<>
-        <button style={S.btn("ghost")} onClick={()=>{ setModal(null); setEditTarget(null); }}>Cancel</button>
-        <button style={S.btn("primary")} onClick={()=>{
-          setTransactions(p=>p.map(t=>t.id===editTarget.id?{
-            ...t,
-            name: editTarget.name,
-            recurringDay: editTarget.recurringDay,
-            categoryId: editTarget.categoryId||null,
-          }:t));
-          setModal(null); setEditTarget(null); showToast("Recurring transaction updated");
-        }}>Save</button>
-      </>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
-        <div style={{padding:"10px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",fontSize:12,color:"var(--t3)"}}>
-          Original merchant: <span style={{color:"var(--t1)",fontWeight:500}}>{editTarget.merchant}</span>
-        </div>
-        <div style={S.field}>
-          <label style={S.label}>Display Name</label>
-          <input style={S.input} placeholder={editTarget.merchant} value={editTarget.name||""} onChange={e=>setEditTarget(p=>({...p,name:e.target.value}))}/>
-          <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>Leave blank to use the original merchant name.</div>
-        </div>
-        <div style={S.field}>
-          <label style={S.label}>Recurring Day of Month</label>
-          <input style={S.input} type="number" min="1" max="31" placeholder="e.g. 15" value={editTarget.recurringDay||""} onChange={e=>setEditTarget(p=>({...p,recurringDay:parseInt(e.target.value)||null}))}/>
-          <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>The day of each month this charge occurs.</div>
-        </div>
-        <div style={S.field}>
-          <label style={S.label}>Category</label>
-          <select style={{...S.input,padding:"9px 12px"}} value={editTarget.categoryId||""} onChange={e=>setEditTarget(p=>({...p,categoryId:e.target.value||null}))}>
-            <option value="">— None —</option>
-            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-      </div>
-    </Modal>
-  ) : null;
-
   /* ─────────────────────────────────────────────────────────────────
      NAV + RENDER
   ───────────────────────────────────────────────────────────────── */
@@ -1358,7 +1314,161 @@ const EditRecurringModal = editTarget && modal==="editRecurring" ? (
     { id:"rules",        icon:"◎", label:"Rules"        },
     { id:"calendar",     icon:"▦", label:"Calendar"     },
   ];
+  const NAV_PRIMARY = NAV.slice(0, 4);   // always visible in bottom nav
+  const NAV_MORE    = NAV.slice(4);       // Rules + Calendar in ⋯ drawer
   const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar };
+
+  if (loading) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
+      <div style={{fontFamily:"var(--font-disp)",fontSize:28,fontWeight:800,color:"var(--t1)"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+      <div style={{fontSize:13,color:"var(--t3)"}}>Loading your data…</div>
+    </div>
+  );
+
+  const sideW = sidebarCollapsed ? 56 : 220;
+
+  return (
+    <div style={S.shell}>
+
+      {/* ── Desktop sidebar (collapsible) ── */}
+      <aside className="ledgr-sidebar" style={{...S.sidebar, width:sideW, transition:"width 0.2s ease", overflow:"hidden"}}>
+        {/* Logo + collapse toggle */}
+        <div style={{...S.sidebarLogo, display:"flex", alignItems:"center", justifyContent:sidebarCollapsed?"center":"space-between", padding:sidebarCollapsed?"16px 0":"28px 24px 20px", overflow:"hidden"}}>
+          {!sidebarCollapsed&&<span>ledgr<span style={{color:"var(--cyan)"}}>.</span></span>}
+          <button
+            onClick={()=>setSidebarCollapsed(p=>!p)}
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:4,flexShrink:0,lineHeight:1}}
+            title={sidebarCollapsed?"Expand":"Collapse"}>
+            {sidebarCollapsed?"›":"‹"}
+          </button>
+        </div>
+
+        <nav style={S.nav}>
+          {NAV.map(n=>(
+            <div key={n.id}
+              style={{
+                ...S.navItem(view===n.id),
+                justifyContent:sidebarCollapsed?"center":"flex-start",
+                padding:sidebarCollapsed?"10px 0":"10px 12px",
+                gap:sidebarCollapsed?0:12,
+              }}
+              onClick={()=>setView(n.id)}
+              title={sidebarCollapsed?n.label:""}>
+              <span style={{width:18,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+              {!sidebarCollapsed&&<span>{n.label}</span>}
+            </div>
+          ))}
+        </nav>
+
+        <div style={{...S.footer, padding:sidebarCollapsed?"12px 0":"16px 12px"}}>
+          <button
+            style={{...S.btn("ghost"), width:"100%", fontSize:11, justifyContent:"center", padding:sidebarCollapsed?"8px 0":"9px 16px"}}
+            onClick={()=>doSync()}
+            disabled={syncing}
+            title="Sync All">
+            {syncing?"…":"⟳"}{!sidebarCollapsed&&<span style={{marginLeft:6}}>{syncing?"Syncing…":"Sync All"}</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main content ── */}
+      <div style={S.main}>
+        <div className="ledgr-topbar" style={S.topbar}>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:16,fontWeight:700,letterSpacing:"-0.3px"}}>
+            ledgr<span style={{color:"var(--cyan)"}}>.</span>
+            {!isMobile&&<span style={{marginLeft:12,fontSize:13,fontWeight:500,color:"var(--t3)"}}>{NAV.find(n=>n.id===view)?.label}</span>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {isMobile&&syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳</span>}
+            {!isMobile&&<div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
+              {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+              {" · "}{daysLeft()}d left
+            </div>}
+          </div>
+        </div>
+        <div className="ledgr-content" style={S.content}>{VIEWS[view]}</div>
+      </div>
+
+      {/* ── Mobile bottom nav (4 primary + ⋯) ── */}
+      <nav className="ledgr-bottomnav" style={{zIndex:moreMenuOpen?0:50}}>
+        {NAV_PRIMARY.map(n=>(
+          <button key={n.id} className={`ledgr-bottomnav-item ${view===n.id?"active":""}`} onClick={()=>{ setView(n.id); setMoreMenuOpen(false); }}>
+            <span className="nav-icon">{n.icon}</span>
+            <span>{n.label}</span>
+          </button>
+        ))}
+        {/* ⋯ More button */}
+        <button
+          className={`ledgr-bottomnav-item ${NAV_MORE.some(n=>n.id===view)?"active":""}`}
+          onClick={()=>setMoreMenuOpen(p=>!p)}>
+          <span className="nav-icon" style={{fontSize:22,letterSpacing:-2}}>⋯</span>
+          <span>More</span>
+        </button>
+      </nav>
+
+      {/* ── Mobile ⋯ slide-up drawer ── */}
+      {moreMenuOpen&&(
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={()=>setMoreMenuOpen(false)}
+            style={{position:"fixed",inset:0,background:"#00000055",zIndex:60}}/>
+          {/* Drawer */}
+          <div style={{
+            position:"fixed",bottom:68,left:0,right:0,zIndex:70,
+            background:"var(--surface)",borderTop:"1px solid var(--border)",
+            borderRadius:"16px 16px 0 0",
+            padding:"8px 0 12px",
+            boxShadow:"0 -8px 32px #00000060",
+          }}>
+            {/* Handle */}
+            <div style={{width:36,height:4,borderRadius:2,background:"var(--border2)",margin:"0 auto 16px"}}/>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1.5px",padding:"0 24px",marginBottom:8,fontFamily:"var(--font-disp)"}}>More</div>
+            {NAV_MORE.map(n=>(
+              <button key={n.id}
+                onClick={()=>{ setView(n.id); setMoreMenuOpen(false); }}
+                style={{
+                  display:"flex",alignItems:"center",gap:14,
+                  width:"100%",padding:"14px 24px",
+                  background:view===n.id?"var(--cyan-dim)":"transparent",
+                  border:"none",cursor:"pointer",
+                  color:view===n.id?"var(--cyan)":"var(--t1)",
+                  fontSize:15,fontWeight:500,
+                  fontFamily:"var(--font-body)",
+                }}>
+                <span style={{fontSize:20,width:24,textAlign:"center"}}>{n.icon}</span>
+                <span>{n.label}</span>
+                {view===n.id&&<span style={{marginLeft:"auto",color:"var(--cyan)",fontSize:12}}>✓</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Modals ── */}
+      {(modal==="addCat"||modal==="editCat")   && CatModal}
+      {(modal==="addAcct"||modal==="editAcct") && AcctModal}
+      {modal==="addTxn"                        && TxnModal}
+      {(modal==="addRule"||modal==="editRule") && RuleModal}
+      {EditRecurringModal}
+
+      {rulePrompt&&(
+        <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>
+          <div style={{flex:1,fontSize:13}}>
+            <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Save as a rule?</div>
+            <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; → <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>
+          </div>
+          <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
+          <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
+        </div>
+      )}
+
+      <Toast msg={toast}/>
+    </div>
+  );
+}
+
+function capitalise(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
@@ -1416,7 +1526,6 @@ const EditRecurringModal = editTarget && modal==="editRecurring" ? (
       {(modal==="addAcct"||modal==="editAcct") && AcctModal}
       {modal==="addTxn"                        && TxnModal}
       {(modal==="addRule"||modal==="editRule") && RuleModal}
-{EditRecurringModal}
 
       {rulePrompt&&(
         <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>

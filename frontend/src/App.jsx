@@ -1301,6 +1301,35 @@ export default function App() {
         </div>
       </div>
     </Modal>
+  );
+const TxnModal = (
+    <Modal title="Add Transaction" onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={S.field}><label style={S.label}>Type</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.sign} onChange={e=>setTxnForm(p=>({...p,sign:e.target.value}))}>
+              <option value="-1">Expense (−)</option><option value="1">Income (+)</option>
+            </select>
+          </div>
+          <div style={S.field}><label style={S.label}>Amount ($)</label><input style={S.input} type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/></div>
+        </div>
+        <div style={S.field}><label style={S.label}>Date</label><input style={S.input} type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={S.field}><label style={S.label}>Category</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
+              <option value="">None</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div style={S.field}><label style={S.label}>Account</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.accountId} onChange={e=>setTxnForm(p=>({...p,accountId:e.target.value}))}>
+              <option value="">None</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+    </Modal>
 const EditRecurringModal = editTarget && modal==="editRecurring" ? (
     <Modal title="Edit Recurring Transaction" onClose={()=>{ setModal(null); setEditTarget(null); }}
       actions={<>
@@ -1337,7 +1366,6 @@ const EditRecurringModal = editTarget && modal==="editRecurring" ? (
       </div>
     </Modal>
   ) : null;
-  );
 
   /* ─────────────────────────────────────────────────────────────────
      NAV + RENDER

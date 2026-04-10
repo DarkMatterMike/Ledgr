@@ -723,42 +723,52 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
 
       {categories.length===0
         ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet. Create one to get started.</div>
-        : <div className="ledgr-budget-grid" style={S.grid2}>
-            {sortedCategories.map(cat=>{
+       : <div style={{...S.card,padding:0,overflow:"hidden"}}>
+            {sortedCategories.map((cat,i)=>{
               const spent    = spentByCat[cat.id]||0;
               const pct      = Math.min((spent/cat.limit)*100,100);
               const over     = pct>=100, warn = pct>=80&&!over;
               const barC     = over?"var(--red)":warn?"var(--amber)":cat.color;
+              const remaining = cat.limit - spent;
               const txnCount = monthTxns.filter(t=>t.categoryId===cat.id&&t.amount<0).length;
               return (
                 <div key={cat.id}
-                  style={{...S.card,borderLeft:`3px solid ${cat.color}`,cursor:"pointer",transition:"box-shadow 0.15s"}}
                   onClick={()=>setDrillCat(cat)}
-                  onMouseEnter={e=>e.currentTarget.style.boxShadow=`0 0 0 1px ${cat.color}55`}
-                  onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                    <div>
-                      <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{width:10,height:10,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>
-                        {cat.name}
-                      </div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?18:22,fontWeight:600,color:over?"var(--red)":warn?"var(--amber)":cat.color,margin:"6px 0"}}>
-                        {fmt(spent)}<span style={{fontSize:13,color:"var(--t3)",fontWeight:400}}> / {fmt(cat.limit)}</span>
-                      </div>
-                    </div>
-                    <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
-                      <button style={S.btn("ghost",true)} onClick={()=>openEditCat(cat)}>Edit</button>
-                      <button style={S.btn("danger",true)} onClick={()=>deleteCat(cat.id)}>✕</button>
+                  style={{padding:"14px 20px",borderBottom:i<sortedCategories.length-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"background 0.12s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+
+                  {/* Row 1: name + spent + remaining */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                    <span style={{width:9,height:9,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                    <span style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,color:"var(--t1)",flex:1}}>{cat.name}</span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t2)"}}>{fmt(spent)}</span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,
+                      color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",
+                      background:over?"var(--red-dim)":remaining===0?"var(--surface)":"var(--green-dim)",
+                      border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":"var(--green)"}33`,
+                      borderRadius:99,padding:"3px 10px",minWidth:70,textAlign:"center"}}>
+                      {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
+                    </span>
+                    <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
+                      <button style={{...S.btn("ghost",true),padding:"4px 8px",fontSize:11}} onClick={()=>openEditCat(cat)}>Edit</button>
+                      <button style={{...S.btn("danger",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
                     </div>
                   </div>
-                  <div style={{height:6,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+
+                  {/* Row 2: progress bar */}
+                  <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:6}}>
                     <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s ease"}}/>
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,color:"var(--t3)"}}>
-                    <span style={{color:"var(--cyan)"}}>{txnCount} transaction{txnCount!==1?"s":""} · click to view</span>
-                    <span style={{color:cat.limit-spent>=0?"var(--green)":"var(--red)"}}>
-                      {cat.limit-spent>=0?`${fmt(cat.limit-spent)} left`:`${fmt(Math.abs(cat.limit-spent))} over`}
-                    </span>
+
+                  {/* Row 3: status text */}
+                  <div style={{fontSize:11,color:"var(--t3)"}}>
+                    {over
+                      ? <span style={{color:"var(--red)"}}>Overspent. {fmt(spent)} of {fmt(cat.limit)}</span>
+                      : remaining===0
+                        ? <span>Fully spent. {fmt(spent)} of {fmt(cat.limit)}</span>
+                        : <span>{fmt(spent)} of {fmt(cat.limit)} · {txnCount} transaction{txnCount!==1?"s":""}</span>
+                    }
                   </div>
                 </div>
               );

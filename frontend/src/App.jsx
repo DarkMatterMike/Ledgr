@@ -846,7 +846,7 @@ export default function App() {
 
       {rules.length===0 ? (
         <div style={{...S.card,textAlign:"center",padding:48}}>
-          <div style={{fontSize:32,marginBottom:12}}>⚡</div>
+          <div style={{fontSize:32,marginBottom:12}}>◎</div>
           <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
           <div style={{fontSize:13,color:"var(--t3)"}}>Assign a category to any transaction and you'll be prompted to save it as a rule.</div>
         </div>
@@ -997,10 +997,10 @@ export default function App() {
   /* ── Nav ── */
   const NAV = [
     { id:"dashboard",    icon:"◈", label:"Dashboard"    },
-    { id:"transactions", icon:"↕", label:"Transactions" },
+    { id:"transactions", icon:"⇅", label:"Transactions" },
     { id:"budgets",      icon:"◉", label:"Budgets"      },
     { id:"accounts",     icon:"▣", label:"Accounts"     },
-    { id:"rules",        icon:"⚡", label:"Rules"        },
+    { id:"rules",        icon:"◎", label:"Rules"        },
   ];
   const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules };
 

@@ -498,7 +498,7 @@ export default function App() {
                 const pct       = Math.min((spent/cat.limit)*100,100);
                 const over      = pct>=100, warn = pct>=80&&!over;
                 return (
-                  <div key={cat.id} style={{marginBottom:14,cursor:"pointer"}} onClick={()=>{ setDrillCat(cat); setView("budgets"); }}>
+                 <div key={cat.id} style={{marginBottom:14,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
                       <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
                         <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
@@ -537,7 +537,68 @@ export default function App() {
           {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
         </div>
       </div>
-    </div>
+   {drillCat&&(
+        <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
+          <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
+                <div style={{fontSize:17,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.3px"}}>{drillCat.name}</div>
+              </div>
+              <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
+              {[
+                { label:"Spent",        value:fmt(spentByCat[drillCat.id]||0), color:drillCat.color },
+                { label:"Budget",       value:fmt(drillCat.limit),             color:"var(--t2)"    },
+                { label:"Remaining",    value:fmt(drillCat.limit-(spentByCat[drillCat.id]||0)), color:(spentByCat[drillCat.id]||0)<=drillCat.limit?"var(--green)":"var(--red)" },
+                { label:"Transactions", value:catTxns.length,                  color:"var(--t1)"    },
+              ].map(s=>(
+                <div key={s.label} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
+                  <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{s.label}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:600,color:s.color}}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{marginBottom:14,flexShrink:0}}>
+              <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",borderRadius:99,
+                  background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
+                  width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s ease"}}/>
+              </div>
+            </div>
+            <div style={{overflowY:"auto",flex:1}}>
+              {catTxns.length===0 ? (
+                <div style={{textAlign:"center",padding:"40px 0",color:"var(--t3)"}}>
+                  <div style={{fontSize:24,marginBottom:8,opacity:0.3}}>◉</div>
+                  No transactions in {monthLabel(selectedMonth)}
+                </div>
+              ) : (
+                <div style={{display:"flex",flexDirection:"column"}}>
+                  {catTxns.map((t,i)=>(
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 4px",borderBottom:i<catTxns.length-1?"1px solid var(--border)":"none",flexWrap:"wrap"}}>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0}}>{t.date}</div>
+                      <div style={{flex:1,minWidth:80,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <select style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
+                        value={t.categoryId||""}
+                        onChange={e=>{ updateTxnCat(t.id,e.target.value); if(e.target.value!==drillCat.id) showToast("Transaction moved"); }}>
+                        {categories.map(c=><option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>)}
+                        <option value="">— Uncategorized —</option>
+                      </select>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0,minWidth:70,textAlign:"right"}}>
+                        {fmt(Math.abs(t.amount))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",flexShrink:0}}>
+              <button style={S.btn("ghost")} onClick={()=>setDrillCat(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )} </div>
   );
 
   /* ── Transactions ── */

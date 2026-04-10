@@ -125,19 +125,20 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/data", async (_req, res) => {
   try {
-    const [transactions, categories, accounts, plaidItems] = await Promise.all([
+    const [transactions, categories, accounts, plaidItems, rules] = await Promise.all([
       getData("transactions"),
       getData("categories"),
       getData("accounts"),
       getData("plaidItems"),
+      getData("rules"),
     ]);
     res.json({
       transactions: transactions || [],
       categories:   categories   || [],
       accounts:     accounts     || [],
       plaidItems:   plaidItems   || [],
-    });
-  } catch (err) {
+      rules:        rules        || [],
+    });  } catch (err) {
     console.error("GET /api/data error:", err.message);
     res.status(500).json({ error: err.message });
   }
@@ -145,12 +146,13 @@ app.get("/api/data", async (_req, res) => {
 
 app.patch("/api/data", async (req, res) => {
   try {
-    const { transactions, categories, accounts, plaidItems } = req.body;
+    const { transactions, categories, accounts, plaidItems, rules } = req.body;
     const ops = [];
     if (transactions !== undefined) ops.push(setData("transactions", transactions));
     if (categories   !== undefined) ops.push(setData("categories",   categories));
     if (accounts     !== undefined) ops.push(setData("accounts",     accounts));
     if (plaidItems   !== undefined) ops.push(setData("plaidItems",   plaidItems));
+    if (rules        !== undefined) ops.push(setData("rules",        rules));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) {

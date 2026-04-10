@@ -7,6 +7,63 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 
+/* ─── Mobile detection hook ─────────────────────────────────────── */
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 768);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return mobile;
+}
+
+/* ─── Mobile CSS injected once ──────────────────────────────────── */
+const mobileCSS = `
+  @media (max-width: 767px) {
+    .ledgr-sidebar   { display: none !important; }
+    .ledgr-topbar    { padding: 0 16px !important; height: 52px !important; }
+    .ledgr-content   { padding: 16px !important; padding-bottom: 80px !important; }
+    .ledgr-bottomnav {
+      display: flex !important;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: var(--surface); border-top: 1px solid var(--border);
+      height: 64px; align-items: center; justify-content: space-around;
+    }
+    .ledgr-bottomnav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      flex: 1; padding: 8px 4px; cursor: pointer;
+      font-size: 10px; color: var(--t3); font-family: var(--font-disp);
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      border: none; background: none; transition: color 0.15s;
+    }
+    .ledgr-bottomnav-item.active { color: var(--cyan); }
+    .ledgr-bottomnav-item .nav-icon { font-size: 20px; line-height: 1; }
+    .ledgr-stat-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+    .ledgr-dash-grid  { grid-template-columns: 1fr !important; gap: 14px !important; }
+    .ledgr-budget-grid { grid-template-columns: 1fr !important; }
+    .ledgr-acct-grid  { grid-template-columns: 1fr !important; }
+    .ledgr-monthbar   { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
+    .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; }
+    .ledgr-filter-row { flex-direction: column !important; }
+    .ledgr-filter-row > * { width: 100% !important; }
+    .ledgr-section-hdr { flex-wrap: wrap; gap: 8px; }
+    .ledgr-txn-actions { flex-wrap: wrap !important; gap: 6px !important; }
+  }
+  @media (min-width: 768px) {
+    .ledgr-bottomnav { display: none !important; }
+  }
+`;
+
+(function injectCSS() {
+  if (!document.getElementById("ledgr-mobile-css")) {
+    const s = document.createElement("style");
+    s.id = "ledgr-mobile-css";
+    s.textContent = mobileCSS;
+    document.head.appendChild(s);
+  }
+})();
+
 /* ─── Styles ────────────────────────────────────────────────────── */
 const S = {
   shell:       { display:"flex", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
@@ -209,6 +266,7 @@ function PlaidButton({ onSuccess, onExit, label = "Connect a Bank" }) {
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
 export default function App() {
+  const isMobile = useIsMobile();
   /* ── State ── */
   const [view,         setView]         = useState("dashboard");
   const [accounts,     setAccounts]     = useState([]);
@@ -492,7 +550,471 @@ export default function App() {
   /* Dashboard */
   const Dashboard = (
     <div>
-      <div style={{...S.monthBar, justifyContent:"space-between"}}>
+      <div className="ledgr-monthbar" style={{...S.monthBar, justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>‹</button>
+          <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:isMobile?100:180,textAlign:"center"}}>
+            📅 {monthLabel(selectedMonth)}
+            {isCurrentMonth && <span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontWeight:500,fontFamily:"var(--font-body)"}}>current</span>}
+          </span>
+          <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>›</button>
+        </div>
+        <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)"}}>
+          {isCurrentMonth && <span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
+          <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
+          <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
+          <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+        </div>
+      </div>
+
+      <div className="ledgr-stat-grid" style={{...S.grid4, marginBottom:20}}>
+        {[
+          { label:"Budget",       value:fmt(totalBudget), sub:`${categories.length} categories`,         color:"var(--t1)" },
+          { label:"Spent",        value:fmt(totalSpent),  sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)" },
+          { label:"Income",       value:fmt(totalIncome), sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)" },
+          { label:"Transactions", value:monthTxns.length, sub:monthLabel(selectedMonth),                 color:"var(--t1)" },
+        ].map(s=>(
+          <div key={s.label} style={S.stat}>
+            <div style={S.statLabel}>{s.label}</div>
+            <div style={{...S.statValue, color:s.color, fontSize:isMobile?18:26}}>{s.value}</div>
+            <div style={{...S.statSub, fontSize:isMobile?10:12}}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="ledgr-dash-grid" style={{...S.grid2, gap:16}}>
+        <div style={S.card}>
+          <div style={S.cardTitle}>Budget Progress</div>
+          {categories.length===0
+            ? <div style={{textAlign:"center",padding:"32px 0",color:"var(--t3)"}}>No categories yet</div>
+            : categories.map(cat=><ProgressBar key={cat.id} cat={cat} spent={spentByCat[cat.id]||0}/>)
+          }
+        </div>
+        <div style={S.card}>
+          <div style={{...S.sectionHdr, marginBottom:12}}>
+            <div style={S.cardTitle}>Recent Transactions</div>
+            <button style={S.btn("ghost",true)} onClick={()=>setView("transactions")}>All →</button>
+          </div>
+          {filteredTxns.slice(0,9).map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+              <div style={{flex:1,minWidth:0,marginRight:10}}>
+                <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
+              </div>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+                {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+              </span>
+            </div>
+          ))}
+          {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* Transactions */
+  const Transactions = (
+    <div>
+      <div className="ledgr-section-hdr" style={{...S.sectionHdr, marginBottom:16}}>
+        <div style={S.sectionTitle}>Transactions</div>
+        <div className="ledgr-txn-actions" style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          {syncing && <span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
+          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>⟳ Sync</button>}
+          <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
+        </div>
+      </div>
+
+      <div className="ledgr-filter-row" style={S.filterRow}>
+        <div style={{position:"relative",flex:1,minWidth:160}}>
+          <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:14}}>🔍</span>
+          <input style={{...S.input,paddingLeft:36}} placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        </div>
+        <select style={{...S.select,width:isMobile?"100%":160,padding:"9px 10px"}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+          <option value="all">All Categories</option>
+          {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          <option value="">Uncategorized</option>
+        </select>
+        <select style={{...S.select,width:isMobile?"100%":160,padding:"9px 10px"}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
+          <option value="all">All Accounts</option>
+          {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </div>
+
+      {/* Mobile: card list */}
+      {isMobile ? (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {filteredTxns.length===0&&<div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No transactions found</div>}
+          {filteredTxns.map(t=>(
+            <div key={t.id} style={{...S.card,padding:"14px 16px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div style={{flex:1,minWidth:0,marginRight:10}}>
+                  {editingId===t.id ? (
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <input style={{background:"var(--surface)",border:"1px solid var(--cyan)",borderRadius:6,padding:"4px 8px",fontSize:13,color:"var(--t1)",outline:"none",flex:1}}
+                        value={editingName} onChange={e=>setEditingName(e.target.value)}
+                        onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
+                      <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</span>
+                      <button onClick={()=>startRename(t)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px",flexShrink:0}}>✏</button>
+                    </div>
+                  )}
+                  <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                    {t.date}
+                    {t.pending&&<span style={{marginLeft:6,color:"var(--amber)"}}>pending</span>}
+                  </div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                    {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                  </span>
+                  <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13}}>🗑</button>
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
+                  <option value="">— Category —</option>
+                  {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
+                  <option value="">— Account —</option>
+                  {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Desktop: table */
+        <div style={{...S.card,padding:0}}>
+          <div style={S.tableWrap}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>
+                <th style={S.th}>Date</th>
+                <th style={S.th}>Name / Merchant</th>
+                <th style={S.th}>Category</th>
+                <th style={S.th}>Account</th>
+                <th style={{...S.th,textAlign:"right"}}>Amount</th>
+                <th style={S.th}/>
+              </tr></thead>
+              <tbody>
+                {filteredTxns.length===0&&(
+                  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:48,color:"var(--t3)"}}>No transactions found</td></tr>
+                )}
+                {filteredTxns.map(t=>(
+                  <tr key={t.id} style={{background:"transparent"}}>
+                    <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{t.date}</td>
+                    <td style={{...S.td,color:"var(--t1)",fontWeight:500}}>
+                      {editingId===t.id ? (
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          <input style={{background:"var(--surface)",border:"1px solid var(--cyan)",borderRadius:6,padding:"4px 8px",fontSize:13,color:"var(--t1)",outline:"none",width:170}}
+                            value={editingName} onChange={e=>setEditingName(e.target.value)}
+                            onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
+                          <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
+                          <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
+                        </div>
+                      ) : (
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span>{t.name||t.merchant}</span>
+                          {t.name&&<span style={{fontSize:10,color:"var(--t3)"}}>({t.merchant})</span>}
+                          {t.pending&&<span style={{fontSize:10,color:"var(--amber)",border:"1px solid var(--amber)44",borderRadius:4,padding:"1px 5px"}}>pending</span>}
+                          {t.date && !t.date.startsWith(selectedMonth) && <span title={`From ${t.date?.slice(0,7)} — not counted in ${selectedMonth}`} style={{fontSize:10,color:"var(--t3)",border:"1px solid var(--border2)",borderRadius:4,padding:"1px 5px",cursor:"help"}}>≠ {t.date?.slice(0,7)}</span>}
+                          <button onClick={()=>startRename(t)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 4px"}}>✏</button>
+                        </div>
+                      )}
+                    </td>
+                    <td style={S.td}>
+                      <select style={{...S.select,width:140}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
+                        <option value="">— None —</option>
+                        {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </td>
+                    <td style={S.td}>
+                      <select style={{...S.select,width:140}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
+                        <option value="">— None —</option>
+                        {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                    </td>
+                    <td style={{...S.td,textAlign:"right",fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                      {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                    </td>
+                    <td style={{...S.td,width:36}}>
+                      <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14}} title="Delete">🗑</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  /* Budgets */
+  const Budgets = (
+    <div>
+      <div style={{...S.sectionHdr, marginBottom:16}}>
+        <div style={S.sectionTitle}>Budget Categories</div>
+        <button style={S.btn("primary",true)} onClick={openAddCat}>+ New Category</button>
+      </div>
+      {categories.length===0
+        ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet. Create one to get started.</div>
+        : <div className="ledgr-budget-grid" style={S.grid2}>
+            {categories.map(cat=>{
+              const spent = spentByCat[cat.id]||0;
+              const pct   = Math.min((spent/cat.limit)*100,100);
+              const over  = pct>=100; const warn = pct>=80&&!over;
+              const barC  = over?"var(--red)":warn?"var(--amber)":cat.color;
+              return (
+                <div key={cat.id} style={{...S.card,borderLeft:`3px solid ${cat.color}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                    <div>
+                      <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{width:10,height:10,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>
+                        {cat.name}
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?18:22,fontWeight:600,color:over?"var(--red)":warn?"var(--amber)":cat.color,margin:"6px 0"}}>
+                        {fmt(spent)}<span style={{fontSize:13,color:"var(--t3)",fontWeight:400}}> / {fmt(cat.limit)}</span>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <button style={S.btn("ghost",true)} onClick={()=>openEditCat(cat)}>Edit</button>
+                      <button style={S.btn("danger",true)} onClick={()=>deleteCat(cat.id)}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{height:6,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                    <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s ease"}}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11,color:"var(--t3)"}}>
+                    <span>{pct.toFixed(0)}% used</span>
+                    <span style={{color:cat.limit-spent>=0?"var(--green)":"var(--red)"}}>
+                      {cat.limit-spent>=0?`${fmt(cat.limit-spent)} left`:`${fmt(Math.abs(cat.limit-spent))} over`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+      }
+    </div>
+  );
+
+  /* Accounts */
+  const Accounts = (
+    <div>
+      <div style={{...S.sectionHdr,marginBottom:8}}>
+        <div style={S.sectionTitle}>Accounts</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank"/>
+          <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
+        </div>
+      </div>
+      <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>
+        Projections show estimated spend needed through end of {today.toLocaleString("default",{month:"long"})} based on your daily rate.
+      </div>
+
+      {plaidItems.length>0&&(
+        <div style={{...S.card,marginBottom:16}}>
+          <div style={S.cardTitle}>Connected Banks</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {plaidItems.map(item=>(
+              <div key={item.item_id} style={{display:"flex",alignItems:"center",gap:8,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",padding:"8px 12px"}}>
+                <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>🏦 {item.institution}</span>
+                <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13}} onClick={()=>doSync(item.item_id)} title="Sync">⟳</button>
+                <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:13}} onClick={()=>disconnectItem(item.item_id)} title="Disconnect">✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {accounts.length===0
+        ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+        : <div className="ledgr-acct-grid" style={S.grid2}>
+            {accounts.map(acct=>{
+              const spent    = spentByAcct[acct.id]||0;
+              const income   = monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((a,t)=>a+t.amount,0);
+              const daysGone = today.getDate();
+              const totalDays= daysInMonth(today.getFullYear(),today.getMonth()+1);
+              const daily    = daysGone>0?spent/daysGone:0;
+              const projected= daily*totalDays;
+              const needed   = daily*daysLeft();
+              const tight    = needed>acct.balance;
+              const typeIcon = acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
+              return (
+                <div key={acct.id} style={S.card}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <div style={{fontSize:12,color:"var(--t3)",marginBottom:4}}>{typeIcon} {acct.type}{acct.institution?` · ${acct.institution}`:""}</div>
+                      <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700}}>{acct.name}</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?20:24,fontWeight:600,color:"var(--cyan)",margin:"8px 0"}}>{fmt(acct.balance)}</div>
+                      {acct.available!=null&&<div style={{fontSize:11,color:"var(--t3)"}}>Available: {fmt(acct.available)}</div>}
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
+                      <button style={S.btn("danger",true)} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)"}}>
+                    {[
+                      ["Spent this month",     fmt(spent),     "var(--t1)"],
+                      ["Income this month",    fmt(income),    "var(--green)"],
+                      ["Daily avg spend",      `${fmt(daily)}/day`, "var(--t1)"],
+                      ["Projected month total",fmt(projected), "var(--t1)"],
+                    ].map(([label,value,color])=>(
+                      <div key={label} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--t2)",marginBottom:6}}>
+                        <span>{label}</span>
+                        <span style={{fontFamily:"var(--font-mono)",color}}>{value}</span>
+                      </div>
+                    ))}
+                    <div style={{marginTop:10,padding:"10px 12px",borderRadius:8,background:tight?"var(--red-dim)":"var(--green-dim)",border:`1px solid ${tight?"var(--red)":"var(--green)"}33`}}>
+                      <div style={{fontSize:11,color:"var(--t3)",marginBottom:3}}>Est. needed · {daysLeft()} days left</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?18:20,fontWeight:700,color:tight?"var(--red)":"var(--green)"}}>{fmt(needed)}</div>
+                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                        {tight?`⚠ May fall short by ${fmt(needed-acct.balance)}`:`Comfortable — ${fmt(acct.balance-needed)} cushion`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+      }
+    </div>
+  );
+
+  /* ─── Modals ────────────────────────────────────────────────── */
+  const CatModal = (
+    <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Groceries" value={catForm.name} onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}/></div>
+        <div style={S.field}><label style={S.label}>Monthly Limit ($)</label><input style={S.input} type="number" placeholder="500" value={catForm.limit} onChange={e=>setCatForm(p=>({...p,limit:e.target.value}))}/></div>
+        <div style={S.field}>
+          <label style={S.label}>Color</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {CAT_COLORS.map(c=>(
+              <div key={c} onClick={()=>setCatForm(p=>({...p,color:c}))} style={{width:32,height:32,borderRadius:6,background:c,cursor:"pointer",border:`2px solid ${catForm.color===c?"var(--t1)":"transparent"}`,transition:"transform 0.15s",transform:catForm.color===c?"scale(1.15)":"scale(1)"}}/>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+
+  const AcctModal = (
+    <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
+        <div style={S.field}><label style={S.label}>Type</label>
+          <select style={{...S.input,padding:"9px 12px"}} value={acctForm.type} onChange={e=>setAcctForm(p=>({...p,type:e.target.value}))}>
+            {["Checking","Savings","Credit","Investment"].map(t=><option key={t}>{t}</option>)}
+          </select>
+        </div>
+        <div style={S.field}><label style={S.label}>Current Balance ($)</label><input style={S.input} type="number" placeholder="0.00" value={acctForm.balance} onChange={e=>setAcctForm(p=>({...p,balance:e.target.value}))}/></div>
+      </div>
+    </Modal>
+  );
+
+  const TxnModal = (
+    <Modal title="Add Transaction" onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={S.field}><label style={S.label}>Type</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.sign} onChange={e=>setTxnForm(p=>({...p,sign:e.target.value}))}>
+              <option value="-1">Expense (−)</option><option value="1">Income (+)</option>
+            </select>
+          </div>
+          <div style={S.field}><label style={S.label}>Amount ($)</label><input style={S.input} type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/></div>
+        </div>
+        <div style={S.field}><label style={S.label}>Date</label><input style={S.input} type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={S.field}><label style={S.label}>Category</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
+              <option value="">None</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div style={S.field}><label style={S.label}>Account</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.accountId} onChange={e=>setTxnForm(p=>({...p,accountId:e.target.value}))}>
+              <option value="">None</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+
+  /* ── Nav ── */
+    if (loading) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
+      <div style={{fontFamily:"var(--font-disp)",fontSize:28,fontWeight:800,color:"var(--t1)"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+      <div style={{fontSize:13,color:"var(--t3)"}}>Loading your data…</div>
+    </div>
+  );
+
+  return (
+    <div style={S.shell}>
+      {/* Desktop sidebar */}
+      <aside className="ledgr-sidebar" style={S.sidebar}>
+        <div style={S.sidebarLogo}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+        <nav style={S.nav}>
+          {NAV.map(n=>(
+            <div key={n.id} style={S.navItem(view===n.id)} onClick={()=>setView(n.id)}>
+              <span style={{width:18,textAlign:"center"}}>{n.icon}</span>
+              <span>{n.label}</span>
+            </div>
+          ))}
+        </nav>
+        <div style={S.footer}>
+          <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={()=>doSync()} disabled={syncing}>{syncing?"Syncing…":"⟳ Sync All"}</button>
+        </div>
+      </aside>
+
+      <div style={S.main}>
+        <div className="ledgr-topbar" style={S.topbar}>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:16,fontWeight:700,letterSpacing:"-0.3px"}}>
+            ledgr<span style={{color:"var(--cyan)"}}>.</span>
+            {!isMobile && <span style={{marginLeft:12,fontSize:13,fontWeight:500,color:"var(--t3)"}}>{NAV.find(n=>n.id===view)?.label}</span>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {isMobile && syncing && <span style={{fontSize:12,color:"var(--cyan)"}}>⟳</span>}
+            {!isMobile && <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
+              {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+              {" · "}{daysLeft()}d left
+            </div>}
+          </div>
+        </div>
+        <div className="ledgr-content" style={S.content}>{VIEWS[view]}</div>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="ledgr-bottomnav">
+        {NAV.map(n=>(
+          <button key={n.id} className={`ledgr-bottomnav-item ${view===n.id?"active":""}`} onClick={()=>setView(n.id)}>
+            <span className="nav-icon">{n.icon}</span>
+            <span>{n.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {(modal==="addCat"||modal==="editCat") && CatModal}
+      {(modal==="addAcct"||modal==="editAcct") && AcctModal}
+      {modal==="addTxn" && TxnModal}
+
+      <Toast msg={toast}/>
+    </div>
+  );
+}
+
+function capitalise(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }
+
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"2px 10px",fontSize:16,lineHeight:1.4}}>‹</button>
           <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:180,textAlign:"center"}}>
@@ -524,7 +1046,20 @@ export default function App() {
         ))}
       </div>
 
-     
+      {/* Connect banner */}
+      {plaidItems.length===0 && (
+        <div style={{background:"linear-gradient(135deg,#0c1e38,#091629)",border:"1px solid #00d4ff33",borderRadius:"var(--radius-lg)",padding:24,display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:24,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:16,fontWeight:700,marginBottom:4}}>🏦 Connect Your Bank</div>
+            <div style={{fontSize:13,color:"var(--t2)"}}>Link accounts via Plaid, or load demo data to explore</div>
+          </div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}}/>
+            <button style={S.btn("ghost")} onClick={loadDemo}>Load Demo Data</button>
+          </div>
+        </div>
+      )}
+
       <div style={{...S.grid2, gap:20}}>
         {/* Budget progress */}
         <div style={S.card}>
@@ -856,7 +1391,7 @@ export default function App() {
     { id:"budgets",      icon:"◉", label:"Budgets"      },
     { id:"accounts",     icon:"▣", label:"Accounts"     },
   ];
-  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts };
+  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
@@ -878,7 +1413,10 @@ export default function App() {
           ))}
         </nav>
         <div style={S.footer}>
-          <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={()=>doSync()} disabled={syncing}>{syncing?"Syncing…":"⟳ Sync All"}</button>
+          {plaidItems.length>0
+            ? <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={()=>doSync()} disabled={syncing}>{syncing?"Syncing…":"⟳ Sync All"}</button>
+            : <button style={{...S.btn("ghost"),width:"100%",fontSize:11,justifyContent:"center"}} onClick={loadDemo}>Load Demo</button>
+          }
         </div>
       </aside>
 
@@ -896,6 +1434,17 @@ export default function App() {
       {(modal==="addCat"||modal==="editCat") && CatModal}
       {(modal==="addAcct"||modal==="editAcct") && AcctModal}
       {modal==="addTxn" && TxnModal}
+{(modal==="addRule"||modal==="editRule") && RuleModal}
+{rulePrompt && (
+  <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>
+    <div style={{flex:1,fontSize:13}}>
+      <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Save as a rule?</div>
+      <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; → <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>
+    </div>
+    <button style={{...S.btn("primary",true)}} onClick={confirmSaveRule}>Save Rule</button>
+    <button style={{...S.btn("ghost",true)}} onClick={()=>setRulePrompt(null)}>✕</button>
+  </div>
+)}
 
       <Toast msg={toast}/>
     </div>

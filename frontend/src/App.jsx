@@ -498,18 +498,22 @@ export default function App() {
                 const pct       = Math.min((spent/cat.limit)*100,100);
                 const over      = pct>=100, warn = pct>=80&&!over;
                 return (
-                 <div key={cat.id} style={{marginBottom:14,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                  <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
                       <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
                         <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                         <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                       </div>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8}}>
-                        {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                        {over?`−${fmt(Math.abs(remaining))} over`:fmt(remaining)+" left"}
                       </span>
                     </div>
-                    <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                    <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
                       <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s ease",background:over?"var(--red)":warn?"var(--amber)":cat.color}}/>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                      <span>{fmt(spent)} spent</span>
+                      <span>{fmt(cat.limit)} budget</span>
                     </div>
                   </div>
                 );

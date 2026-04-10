@@ -765,31 +765,95 @@ export default function App() {
 
       {categories.length===0 ? (
         <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet.</div>
-      ) : (
-        <div style={{...S.card,padding:0,overflow:"hidden",overflowX:"auto"}}>
-          {/* Table header */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",borderBottom:"2px solid var(--border)",padding:"10px 20px",background:"var(--surface)",minWidth:600}}>
-            {[["Category","left"],["Budgeted","right"],["Spent","right"],["Remaining","right"],["","right"]].map(([h,align])=>(
-              <div key={h} style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)",textAlign:align}}>
-                {h}
-              </div>
-            ))}
-          </div>
+      ) : isMobile ? (
 
+        /* ── Mobile: card list ── */
+        <div style={{display:"flex",flexDirection:"column",gap:0,...S.card,padding:0,overflow:"hidden"}}>
           {sortedCategories.map((cat,i)=>{
-            const spent     = spentByCat[cat.id]||0;
-            const pct       = Math.min((spent/cat.limit)*100,100);
-            const over      = pct>=100, warn=pct>=80&&!over;
-            const barC      = over?"var(--red)":warn?"var(--amber)":cat.color;
-            const remaining = cat.limit-spent;
-            const isLast    = i===sortedCategories.length-1;
+            const spent=spentByCat[cat.id]||0,pct=Math.min((spent/cat.limit)*100,100);
+            const over=pct>=100,warn=pct>=80&&!over,barC=over?"var(--red)":warn?"var(--amber)":cat.color;
+            const remaining=cat.limit-spent,isLast=i===sortedCategories.length-1;
             return (
               <div key={cat.id} onClick={()=>setDrillCat(cat)}
-                style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"13px 20px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",alignItems:"center",transition:"background 0.12s",minWidth:600}}
+                style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",transition:"background 0.12s"}}
                 onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                {/* Name row */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <span style={{width:16,height:16,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,
+                    background:over?"var(--red-dim)":warn?"#fbbf2422":"var(--green-dim)",
+                    border:`1px solid ${over?"var(--red)":warn?"var(--amber)":"var(--green)"}55`,
+                    color:over?"var(--red)":warn?"var(--amber)":"var(--green)"}}>
+                    {over?"!":warn?"~":"✓"}
+                  </span>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                  <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                  <button style={{...S.btn("danger",true),padding:"3px 7px",fontSize:11}} onClick={e=>{e.stopPropagation();deleteCat(cat.id);}}>✕</button>
+                </div>
+                {/* Progress bar */}
+                <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:10}}>
+                  <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s"}}/>
+                </div>
+                {/* Stats row */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                  {/* Budgeted */}
+                  <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"8px 10px"}} onClick={e=>e.stopPropagation()}>
+                    <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Budgeted</div>
+                    {editingLimitId===cat.id ? (
+                      <input type="number" autoFocus
+                        style={{background:"none",border:"none",borderBottom:"1px solid var(--cyan)",fontSize:13,color:"var(--t1)",outline:"none",width:"100%",fontFamily:"var(--font-mono)",padding:"2px 0"}}
+                        value={editingLimitVal}
+                        onChange={e=>setEditingLimitVal(e.target.value)}
+                        onBlur={()=>saveLimit(cat.id)}
+                        onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}/>
+                    ):(
+                      <div onClick={e=>startEditLimit(cat,e)} style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",cursor:"text"}}>
+                        {fmt(cat.limit)} <span style={{fontSize:9,opacity:0.4}}>✏</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Spent */}
+                  <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"8px 10px"}}>
+                    <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Spent</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:13,color:spent>0?"var(--t1)":"var(--t3)"}}>{fmt(spent)}</div>
+                  </div>
+                  {/* Remaining */}
+                  <div style={{background:over?"var(--red-dim)":remaining===0?"var(--surface)":"var(--green-dim)",border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":"var(--green)"}33`,borderRadius:"var(--radius)",padding:"8px 10px"}}>
+                    <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Left</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)"}}>
+                      {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {/* Mobile totals */}
+          <div style={{padding:"12px 16px",borderTop:"2px solid var(--border)",background:"var(--surface)",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            <div><div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Budgeted</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalBudget)}</div></div>
+            <div><div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div></div>
+            <div><div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Left</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalBudget-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalBudget-totalSpent)}</div></div>
+          </div>
+        </div>
 
-                {/* Col 1: Category */}
+      ) : (
+
+        /* ── Desktop: table ── */
+        <div style={{...S.card,padding:0,overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",borderBottom:"2px solid var(--border)",padding:"10px 20px",background:"var(--surface)"}}>
+            {[["Category","left"],["Budgeted","right"],["Spent","right"],["Remaining","right"],["","right"]].map(([h,align])=>(
+              <div key={h} style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)",textAlign:align}}>{h}</div>
+            ))}
+          </div>
+          {sortedCategories.map((cat,i)=>{
+            const spent=spentByCat[cat.id]||0,pct=Math.min((spent/cat.limit)*100,100);
+            const over=pct>=100,warn=pct>=80&&!over,barC=over?"var(--red)":warn?"var(--amber)":cat.color;
+            const remaining=cat.limit-spent,isLast=i===sortedCategories.length-1;
+            return (
+              <div key={cat.id} onClick={()=>setDrillCat(cat)}
+                style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"13px 20px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",alignItems:"center",transition:"background 0.12s"}}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <div style={{minWidth:0,paddingRight:16}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
                     <span style={{width:18,height:18,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,
@@ -801,24 +865,20 @@ export default function App() {
                     <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                     <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                     <span style={{fontSize:11,color:over?"var(--red)":warn?"var(--amber)":"var(--t3)",marginLeft:"auto",whiteSpace:"nowrap",flexShrink:0,paddingLeft:8}}>
-                      {over?`Overspent`:warn?`${pct.toFixed(0)}% used`:"Funded"}
+                      {over?"Overspent":warn?`${pct.toFixed(0)}% used`:"Funded"}
                     </span>
                   </div>
                   <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
                     <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s"}}/>
                   </div>
                 </div>
-
-                {/* Col 2: Budgeted (editable) */}
                 <div style={{textAlign:"right",paddingRight:16}} onClick={e=>e.stopPropagation()}>
                   {editingLimitId===cat.id ? (
-                    <input type="number" autoFocus
-                      style={{...S.input,width:110,padding:"5px 8px",fontSize:13,textAlign:"right"}}
-                      value={editingLimitVal}
-                      onChange={e=>setEditingLimitVal(e.target.value)}
+                    <input type="number" autoFocus style={{...S.input,width:110,padding:"5px 8px",fontSize:13,textAlign:"right"}}
+                      value={editingLimitVal} onChange={e=>setEditingLimitVal(e.target.value)}
                       onBlur={()=>saveLimit(cat.id)}
                       onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}/>
-                  ) : (
+                  ):(
                     <span onClick={e=>startEditLimit(cat,e)} title="Click to edit"
                       style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",cursor:"text",padding:"4px 8px",borderRadius:"var(--radius)",border:"1px solid transparent",transition:"border-color 0.15s",display:"inline-block"}}
                       onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border2)"}
@@ -827,13 +887,7 @@ export default function App() {
                     </span>
                   )}
                 </div>
-
-                {/* Col 3: Spent */}
-                <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,color:spent>0?"var(--t1)":"var(--t3)"}}>
-                  {fmt(spent)}
-                </div>
-
-                {/* Col 4: Remaining */}
+                <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,color:spent>0?"var(--t1)":"var(--t3)"}}>{fmt(spent)}</div>
                 <div style={{textAlign:"right",paddingRight:16}}>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,display:"inline-block",padding:"4px 10px",borderRadius:6,
                     color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",
@@ -842,25 +896,17 @@ export default function App() {
                     {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
                   </span>
                 </div>
-
-                {/* Col 5: Actions */}
                 <div style={{display:"flex",gap:4,justifyContent:"flex-end"}} onClick={e=>e.stopPropagation()}>
                   <button style={{...S.btn("danger",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
                 </div>
               </div>
             );
           })}
-
-          {/* Totals row */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"12px 20px",borderTop:"2px solid var(--border)",background:"var(--surface)",minWidth:600}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"12px 20px",borderTop:"2px solid var(--border)",background:"var(--surface)"}}>
             <div style={{fontSize:12,fontWeight:700,color:"var(--t3)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.5px"}}>Totals</div>
             <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalBudget)}</div>
             <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div>
-            <div style={{textAlign:"right",paddingRight:16}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalBudget-totalSpent>=0?"var(--green)":"var(--red)"}}>
-                {fmt(totalBudget-totalSpent)}
-              </span>
-            </div>
+            <div style={{textAlign:"right",paddingRight:16}}><span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalBudget-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalBudget-totalSpent)}</span></div>
             <div/>
           </div>
         </div>

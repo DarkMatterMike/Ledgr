@@ -781,10 +781,10 @@ export default function App() {
                 {/* Name row */}
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                   <span style={{width:16,height:16,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,
-                    background:over?"var(--red-dim)":warn?"#fbbf2422":"var(--green-dim)",
-                    border:`1px solid ${over?"var(--red)":warn?"var(--amber)":"var(--green)"}55`,
-                    color:over?"var(--red)":warn?"var(--amber)":"var(--green)"}}>
-                    {over?"!":warn?"~":"✓"}
+                    background:over?"var(--red-dim)":remaining===0?"var(--surface)":warn?"#fbbf2422":"var(--green-dim)",
+                    border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":warn?"var(--amber)":"var(--green)"}55`,
+                    color:over?"var(--red)":remaining===0?"var(--t3)":warn?"var(--amber)":"var(--green)"}}>
+                    {over?"!":remaining===0?"○":warn?"~":"✓"}
                   </span>
                   <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                   <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
@@ -857,15 +857,15 @@ export default function App() {
                 <div style={{minWidth:0,paddingRight:16}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
                     <span style={{width:18,height:18,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,
-                      background:over?"var(--red-dim)":warn?"#fbbf2422":"var(--green-dim)",
-                      border:`1px solid ${over?"var(--red)":warn?"var(--amber)":"var(--green)"}55`,
-                      color:over?"var(--red)":warn?"var(--amber)":"var(--green)"}}>
-                      {over?"!":warn?"~":"✓"}
+                      background:over?"var(--red-dim)":remaining===0?"var(--surface)":warn?"#fbbf2422":"var(--green-dim)",
+                      border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":warn?"var(--amber)":"var(--green)"}55`,
+                      color:over?"var(--red)":remaining===0?"var(--t3)":warn?"var(--amber)":"var(--green)"}}>
+                      {over?"!":remaining===0?"○":warn?"~":"✓"}
                     </span>
                     <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                     <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                     <span style={{fontSize:11,color:over?"var(--red)":warn?"var(--amber)":"var(--t3)",marginLeft:"auto",whiteSpace:"nowrap",flexShrink:0,paddingLeft:8}}>
-                      {over?"Overspent":warn?`${pct.toFixed(0)}% used`:"Funded"}
+                      {over?"Overspent":remaining===0?"Fully spent":warn?`${pct.toFixed(0)}% used`:"Funded"}
                     </span>
                   </div>
                   <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>

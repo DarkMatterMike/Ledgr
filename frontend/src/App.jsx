@@ -528,7 +528,7 @@ export default function App() {
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
             : sortedCategories.slice(0,6).map(cat=>{
                 const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                const pct=Math.min((spent/cat.limit)*100,100),over=pct>=100,warn=pct>=80&&!over;
+                const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
                 return (
                   <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
@@ -537,11 +537,11 @@ export default function App() {
                         <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                       </div>
                       <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                        {over?`−${fmt(Math.abs(remaining))} over`:fmt(remaining)+" left"}
+                        {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
                       </span>
                     </div>
                     <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
-                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":cat.color}}/>
+                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                       <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>

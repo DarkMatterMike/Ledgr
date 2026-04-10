@@ -375,6 +375,11 @@ export default function App() {
         plaidAccts.forEach(pa=>{ map[pa.account_id]="a"+pa.account_id; });
         return prev.map(t=>t.plaidAccountId?{...t,accountId:map[t.plaidAccountId]||t.accountId}:t);
       });
+      // Explicitly persist accounts immediately after sync
+      setAccounts(current => {
+        api.saveData({ accounts: current });
+        return current;
+      });
       showToast(`Synced: +${added.length} transactions`);
     } catch (e) { showToast("Sync error: "+e.message); }
     finally { setSyncing(false); }

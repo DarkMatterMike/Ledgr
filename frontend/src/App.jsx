@@ -619,8 +619,8 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
           ))}
         </div>
       ) : (
-        <div style={{...S.card,padding:0}}>
-          <div style={S.tableWrap}>
+       <div style={{...S.card,padding:0,overflow:"hidden"}}>
+          <div style={{...S.tableWrap,overflowY:"auto",maxHeight:"calc(100vh - 280px)"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
                 <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Date</th>

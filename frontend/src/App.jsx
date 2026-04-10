@@ -1129,10 +1129,14 @@ export default function App() {
       {recurringTxns.length>0&&(
         <div style={{...S.card,marginTop:20}}>
           <div style={S.cardTitle}>All Recurring Transactions</div>
-          {recurringTxns.sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+         {recurringTxns.sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
             const cat = catMap[t.categoryId];
             return (
-              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+              <div key={t.id}
+                onClick={()=>setModal("editRecurring") || setEditTarget(t)}
+                style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)",cursor:"pointer",borderRadius:6,padding:"8px",margin:"0 -8px 2px",transition:"background 0.12s"}}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
                 <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
                   <div style={{width:28,height:28,borderRadius:8,background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,color:"var(--cyan)",flexShrink:0}}>
                     {t.recurringDay||"?"}
@@ -1145,9 +1149,12 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:10}}>
-                  {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                </span>
+                <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginLeft:10}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                    {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                  </span>
+                  <span style={{fontSize:11,color:"var(--t3)"}}>✏</span>
+                </div>
               </div>
             );
           })}
@@ -1301,6 +1308,45 @@ export default function App() {
     </Modal>
   );
 
+const EditRecurringModal = editTarget && modal==="editRecurring" ? (
+    <Modal title="Edit Recurring Transaction" onClose={()=>{ setModal(null); setEditTarget(null); }}
+      actions={<>
+        <button style={S.btn("ghost")} onClick={()=>{ setModal(null); setEditTarget(null); }}>Cancel</button>
+        <button style={S.btn("primary")} onClick={()=>{
+          setTransactions(p=>p.map(t=>t.id===editTarget.id?{
+            ...t,
+            name: editTarget.name,
+            recurringDay: editTarget.recurringDay,
+            categoryId: editTarget.categoryId||null,
+          }:t));
+          setModal(null); setEditTarget(null); showToast("Recurring transaction updated");
+        }}>Save</button>
+      </>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{padding:"10px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",fontSize:12,color:"var(--t3)"}}>
+          Original merchant: <span style={{color:"var(--t1)",fontWeight:500}}>{editTarget.merchant}</span>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Display Name</label>
+          <input style={S.input} placeholder={editTarget.merchant} value={editTarget.name||""} onChange={e=>setEditTarget(p=>({...p,name:e.target.value}))}/>
+          <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>Leave blank to use the original merchant name.</div>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Recurring Day of Month</label>
+          <input style={S.input} type="number" min="1" max="31" placeholder="e.g. 15" value={editTarget.recurringDay||""} onChange={e=>setEditTarget(p=>({...p,recurringDay:parseInt(e.target.value)||null}))}/>
+          <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>The day of each month this charge occurs.</div>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Category</label>
+          <select style={{...S.input,padding:"9px 12px"}} value={editTarget.categoryId||""} onChange={e=>setEditTarget(p=>({...p,categoryId:e.target.value||null}))}>
+            <option value="">— None —</option>
+            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+      </div>
+    </Modal>
+  ) : null;
+
   /* ─────────────────────────────────────────────────────────────────
      NAV + RENDER
   ───────────────────────────────────────────────────────────────── */
@@ -1370,6 +1416,7 @@ export default function App() {
       {(modal==="addAcct"||modal==="editAcct") && AcctModal}
       {modal==="addTxn"                        && TxnModal}
       {(modal==="addRule"||modal==="editRule") && RuleModal}
+{EditRecurringModal}
 
       {rulePrompt&&(
         <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>

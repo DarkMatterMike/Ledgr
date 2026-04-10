@@ -1,6 +1,7 @@
 /**
  * src/App.jsx
  * Ledgr – personal finance app
+ * Features: Dashboard, Transactions, Budgets, Accounts, Rules, Calendar
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -53,6 +54,8 @@ function useIsMobile() {
       .ledgr-budget-grid { grid-template-columns: 1fr !important; }
       .ledgr-monthbar    { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
       .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; }
+      .ledgr-cal-grid    { gap: 2px !important; }
+      .ledgr-cal-cell    { min-height: 52px !important; padding: 4px !important; }
     }
     @media (min-width: 768px) {
       .ledgr-bottomnav { display: none !important; }
@@ -91,6 +94,7 @@ const S = {
     const base = { display:"inline-flex", alignItems:"center", gap:7, padding:sm?"6px 12px":"9px 16px", borderRadius:"var(--radius)", fontSize:sm?12:13, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none" };
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"#ff4d6d44" };
+    if (variant==="amber")   return { ...base, background:"var(--amber-dim)", color:"var(--amber)", borderColor:"#fbbf2444" };
     return { ...base, background:"transparent", color:"var(--t2)", borderColor:"var(--border2)" };
   },
   input:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 12px", fontSize:13, color:"var(--t1)", outline:"none", width:"100%" },
@@ -119,6 +123,7 @@ const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",curren
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
+const DAYS_OF_WEEK = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 /* ─── Sub-components ─────────────────────────────────────────────── */
 function CategoryBadge({ cat }) {
@@ -170,7 +175,7 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
 export default function App() {
   const isMobile = useIsMobile();
 
-  /* ── State — all hooks at top level ── */
+  /* ── All state ── */
   const [view,          setView]          = useState("dashboard");
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
@@ -185,6 +190,8 @@ export default function App() {
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [calendarMonth, setCalendarMonth] = useState(currentMonth);
+  const [calendarDay,   setCalendarDay]   = useState(null); // { day, txns }
   const [search,        setSearch]        = useState("");
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
@@ -207,10 +214,7 @@ export default function App() {
         setPlaidItems(data.plaidItems     || []);
         setRules(data.rules               || []);
       } catch (e) { console.warn("Could not load data:", e.message); }
-      finally {
-        setLoading(false);
-        initialized.current = true;
-      }
+      finally { setLoading(false); initialized.current = true; }
     })();
   }, []);
 
@@ -265,28 +269,38 @@ export default function App() {
     }).sort((a,b) => b.date?.localeCompare(a.date)),
   [transactions, search, filterCat, filterAcct]);
 
-  /* Sorted categories — overspent first, then least remaining */
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => {
       const remA = a.limit - (spentByCat[a.id]||0);
       const remB = b.limit - (spentByCat[b.id]||0);
-      const overA = remA < 0, overB = remB < 0;
-      const zeroA = remA === 0, zeroB = remB === 0;
-      if (overA && !overB) return -1;
-      if (!overA && overB) return 1;
-      if (overA && overB)  return remA - remB;
-      if (zeroA && !zeroB) return -1;
-      if (!zeroA && zeroB) return 1;
-      return remA - remB;
+      const overA = remA<0, overB = remB<0;
+      const zeroA = remA===0, zeroB = remB===0;
+      if (overA && !overB) return -1; if (!overA && overB) return 1;
+      if (overA && overB)  return remA-remB;
+      if (zeroA && !zeroB) return -1; if (!zeroA && zeroB) return 1;
+      return remA-remB;
     });
   }, [categories, spentByCat]);
 
-  /* Category drill-down transactions */
   const catTxns = useMemo(() =>
-    drillCat
-      ? monthTxns.filter(t=>t.categoryId===drillCat.id&&t.amount<0).sort((a,b)=>b.date.localeCompare(a.date))
-      : [],
+    drillCat ? monthTxns.filter(t=>t.categoryId===drillCat.id&&t.amount<0).sort((a,b)=>b.date.localeCompare(a.date)) : [],
   [drillCat, monthTxns]);
+
+  /* ── Recurring transactions ── */
+  const recurringTxns = useMemo(() =>
+    transactions.filter(t => t.recurring && t.recurringDay),
+  [transactions]);
+
+  /* Calendar computed: map day number → recurring txns for that day */
+  const calendarTxnsByDay = useMemo(() => {
+    const map = {};
+    recurringTxns.forEach(t => {
+      const day = parseInt(t.recurringDay);
+      if (!map[day]) map[day] = [];
+      map[day].push(t);
+    });
+    return map;
+  }, [recurringTxns]);
 
   function prevMonth() {
     const [y,m] = selectedMonth.split("-").map(Number);
@@ -304,7 +318,18 @@ export default function App() {
     return new Date(y,m-1,1).toLocaleString("default",{month:"long",year:"numeric"});
   }
 
-  /* ── Rules ── */
+  function prevCalMonth() {
+    const [y,m] = calendarMonth.split("-").map(Number);
+    const d = new Date(y,m-2,1);
+    setCalendarMonth(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
+  }
+  function nextCalMonth() {
+    const [y,m] = calendarMonth.split("-").map(Number);
+    const d = new Date(y,m,1);
+    setCalendarMonth(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
+  }
+
+  /* ── Rules engine ── */
   function applyRules(txns, currentRules) {
     if (!currentRules?.length) return txns;
     return txns.map(t => {
@@ -364,21 +389,18 @@ export default function App() {
       const { accounts: plaidAccts } = await api.getAccounts();
       setAccounts(prev => {
         const byId = Object.fromEntries(prev.map(a=>[a.plaidId,a]));
-        return plaidAccts.map(pa=>({
+        const updated = plaidAccts.map(pa=>({
           id:byId[pa.account_id]?.id||"a"+pa.account_id, plaidId:pa.account_id,
           name:byId[pa.account_id]?.name||pa.name, balance:pa.balance,
           available:pa.available, type:capitalise(pa.subtype||pa.type), institution:pa.institution,
         }));
+        api.saveData({ accounts: updated });
+        return updated;
       });
       setTransactions(prev => {
         const map = {};
         plaidAccts.forEach(pa=>{ map[pa.account_id]="a"+pa.account_id; });
         return prev.map(t=>t.plaidAccountId?{...t,accountId:map[t.plaidAccountId]||t.accountId}:t);
-      });
-      // Explicitly persist accounts immediately after sync
-      setAccounts(current => {
-        api.saveData({ accounts: current });
-        return current;
       });
       showToast(`Synced: +${added.length} transactions`);
     } catch (e) { showToast("Sync error: "+e.message); }
@@ -388,7 +410,7 @@ export default function App() {
   function plaidTxnToLocal(t, cm) {
     const plaidCat = (t.category||"").toLowerCase();
     const matched  = Object.values(cm).find(c=>plaidCat.includes(c.name.toLowerCase().split(" ")[0]));
-    return { id:t.transaction_id, plaidAccountId:t.account_id, accountId:"a"+t.account_id, date:t.date||t.authorized_date, merchant:t.merchant_name||t.name, name:"", amount:t.amount, categoryId:matched?.id||null, pending:t.pending };
+    return { id:t.transaction_id, plaidAccountId:t.account_id, accountId:"a"+t.account_id, date:t.date||t.authorized_date, merchant:t.merchant_name||t.name, name:"", amount:t.amount, categoryId:matched?.id||null, pending:t.pending, recurring:false, recurringDay:null };
   }
 
   async function disconnectItem(itemId) {
@@ -434,6 +456,18 @@ export default function App() {
   }
   function updateTxnAcct(id, val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
   function deleteTxn(id) { setTransactions(p=>p.filter(t=>t.id!==id)); showToast("Deleted"); }
+  function toggleRecurring(id) {
+    setTransactions(p=>p.map(t=>{
+      if (t.id!==id) return t;
+      const newRecurring = !t.recurring;
+      // Auto-set day from transaction date if available
+      const autoDay = t.date ? parseInt(t.date.split("-")[2]) : null;
+      return { ...t, recurring:newRecurring, recurringDay:newRecurring?(t.recurringDay||autoDay):null };
+    }));
+  }
+  function updateRecurringDay(id, day) {
+    setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null}:t));
+  }
 
   function openAddTxn() {
     setTxnForm({merchant:"",amount:"",date:today.toISOString().slice(0,10),categoryId:"",accountId:"",sign:"-1"});
@@ -441,9 +475,73 @@ export default function App() {
   }
   function saveManualTxn() {
     if (!txnForm.merchant.trim()||!txnForm.amount) return;
-    setTransactions(p=>[{ id:"m"+Date.now(), date:txnForm.date, merchant:txnForm.merchant.trim(), name:"", amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign), categoryId:txnForm.categoryId||null, accountId:txnForm.accountId||null },...p]);
+    setTransactions(p=>[{ id:"m"+Date.now(), date:txnForm.date, merchant:txnForm.merchant.trim(), name:"", amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign), categoryId:txnForm.categoryId||null, accountId:txnForm.accountId||null, recurring:false, recurringDay:null },...p]);
     setModal(null); showToast("Transaction added");
   }
+
+  /* ── Drill-down modal (shared between Dashboard and Budgets) ── */
+  const DrillDownModal = drillCat ? (
+    <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
+      <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
+            <div style={{fontSize:17,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.3px"}}>{drillCat.name}</div>
+          </div>
+          <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
+          {[
+            { label:"Spent",        value:fmt(spentByCat[drillCat.id]||0), color:drillCat.color },
+            { label:"Budget",       value:fmt(drillCat.limit),             color:"var(--t2)"    },
+            { label:"Remaining",    value:fmt(drillCat.limit-(spentByCat[drillCat.id]||0)), color:(spentByCat[drillCat.id]||0)<=drillCat.limit?"var(--green)":"var(--red)" },
+            { label:"Transactions", value:catTxns.length,                  color:"var(--t1)"    },
+          ].map(s=>(
+            <div key={s.label} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
+              <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{s.label}</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:600,color:s.color}}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginBottom:14,flexShrink:0}}>
+          <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+            <div style={{height:"100%",borderRadius:99,
+              background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
+              width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s ease"}}/>
+          </div>
+        </div>
+        <div style={{overflowY:"auto",flex:1}}>
+          {catTxns.length===0 ? (
+            <div style={{textAlign:"center",padding:"40px 0",color:"var(--t3)"}}>
+              <div style={{fontSize:24,marginBottom:8,opacity:0.3}}>◉</div>
+              No transactions in {monthLabel(selectedMonth)}
+            </div>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column"}}>
+              {catTxns.map((t,i)=>(
+                <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 4px",borderBottom:i<catTxns.length-1?"1px solid var(--border)":"none",flexWrap:"wrap"}}>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0}}>{t.date}</div>
+                  <div style={{flex:1,minWidth:80,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                  <select style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
+                    value={t.categoryId||""}
+                    onChange={e=>{ updateTxnCat(t.id,e.target.value); if(e.target.value!==drillCat.id) showToast("Transaction moved"); }}>
+                    {categories.map(c=><option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>)}
+                    <option value="">— Uncategorized —</option>
+                  </select>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0,minWidth:70,textAlign:"right"}}>
+                    {fmt(Math.abs(t.amount))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",flexShrink:0}}>
+          <button style={S.btn("ghost")} onClick={()=>setDrillCat(null)}>Close</button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   /* ─────────────────────────────────────────────────────────────────
      SCREENS
@@ -452,7 +550,6 @@ export default function App() {
   /* ── Dashboard ── */
   const Dashboard = (
     <div>
-      {/* Month bar */}
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>‹</button>
@@ -470,13 +567,12 @@ export default function App() {
         </div>
       </div>
 
-      {/* Stat cards */}
       <div className="ledgr-stat-grid" style={{...S.grid4,marginBottom:20}}>
         {[
-          { label:"Budget",       value:fmt(totalBudget), sub:`${categories.length} categories`,         color:"var(--t1)"    },
-          { label:"Spent",        value:fmt(totalSpent),  sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"   },
-          { label:"Income",       value:fmt(totalIncome), sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)" },
-          { label:"Transactions", value:monthTxns.length, sub:monthLabel(selectedMonth),                 color:"var(--t1)"    },
+          { label:"Budget",       value:fmt(totalBudget), sub:`${categories.length} categories`,   color:"var(--t1)"    },
+          { label:"Spent",        value:fmt(totalSpent),  sub:`${fmt(totalBudget-totalSpent)} left`, color:"var(--red)"   },
+          { label:"Income",       value:fmt(totalIncome), sub:`Net ${fmt(totalIncome-totalSpent)}`,  color:"var(--green)" },
+          { label:"Transactions", value:monthTxns.length, sub:monthLabel(selectedMonth),            color:"var(--t1)"    },
         ].map(s=>(
           <div key={s.label} style={S.stat}>
             <div style={S.statLabel}>{s.label}</div>
@@ -486,10 +582,7 @@ export default function App() {
         ))}
       </div>
 
-     {/* Budget progress + recent transactions — stacked on mobile, side by side on desktop */}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
-
-        {/* Budget Progress */}
         <div style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:12}}>
             <div style={S.cardTitle}>Budget Progress</div>
@@ -498,10 +591,9 @@ export default function App() {
           {categories.length===0
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
             : sortedCategories.slice(0,isMobile?5:8).map(cat=>{
-                const spent     = spentByCat[cat.id]||0;
-                const remaining = cat.limit - spent;
-                const pct       = Math.min((spent/cat.limit)*100,100);
-                const over      = pct>=100, warn = pct>=80&&!over;
+                const spent=spentByCat[cat.id]||0, remaining=cat.limit-spent;
+                const pct=Math.min((spent/cat.limit)*100,100);
+                const over=pct>=100, warn=pct>=80&&!over;
                 return (
                   <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
@@ -526,7 +618,6 @@ export default function App() {
           }
         </div>
 
-        {/* Recent Transactions */}
         <div style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:12}}>
             <div style={S.cardTitle}>Recent Transactions</div>
@@ -535,7 +626,10 @@ export default function App() {
           {filteredTxns.slice(0,8).map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
               <div style={{flex:1,minWidth:0,marginRight:10}}>
-                <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
+                  {t.name||t.merchant}
+                </div>
                 <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
               </div>
               <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
@@ -546,68 +640,9 @@ export default function App() {
           {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
         </div>
       </div>
-   {drillCat&&(
-        <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
-          <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
-                <div style={{fontSize:17,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.3px"}}>{drillCat.name}</div>
-              </div>
-              <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
-              {[
-                { label:"Spent",        value:fmt(spentByCat[drillCat.id]||0), color:drillCat.color },
-                { label:"Budget",       value:fmt(drillCat.limit),             color:"var(--t2)"    },
-                { label:"Remaining",    value:fmt(drillCat.limit-(spentByCat[drillCat.id]||0)), color:(spentByCat[drillCat.id]||0)<=drillCat.limit?"var(--green)":"var(--red)" },
-                { label:"Transactions", value:catTxns.length,                  color:"var(--t1)"    },
-              ].map(s=>(
-                <div key={s.label} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
-                  <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{s.label}</div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:600,color:s.color}}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{marginBottom:14,flexShrink:0}}>
-              <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                <div style={{height:"100%",borderRadius:99,
-                  background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
-                  width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s ease"}}/>
-              </div>
-            </div>
-            <div style={{overflowY:"auto",flex:1}}>
-              {catTxns.length===0 ? (
-                <div style={{textAlign:"center",padding:"40px 0",color:"var(--t3)"}}>
-                  <div style={{fontSize:24,marginBottom:8,opacity:0.3}}>◉</div>
-                  No transactions in {monthLabel(selectedMonth)}
-                </div>
-              ) : (
-                <div style={{display:"flex",flexDirection:"column"}}>
-                  {catTxns.map((t,i)=>(
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 4px",borderBottom:i<catTxns.length-1?"1px solid var(--border)":"none",flexWrap:"wrap"}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0}}>{t.date}</div>
-                      <div style={{flex:1,minWidth:80,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                      <select style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
-                        value={t.categoryId||""}
-                        onChange={e=>{ updateTxnCat(t.id,e.target.value); if(e.target.value!==drillCat.id) showToast("Transaction moved"); }}>
-                        {categories.map(c=><option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>)}
-                        <option value="">— Uncategorized —</option>
-                      </select>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0,minWidth:70,textAlign:"right"}}>
-                        {fmt(Math.abs(t.amount))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",flexShrink:0}}>
-              <button style={S.btn("ghost")} onClick={()=>setDrillCat(null)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )} </div>
+
+      {DrillDownModal}
+    </div>
   );
 
   /* ── Transactions ── */
@@ -645,7 +680,7 @@ export default function App() {
             <div style={{fontSize:28,marginBottom:10,opacity:0.3}}>⇅</div>No transactions found
           </div>}
           {filteredTxns.map(t=>(
-            <div key={t.id} style={{...S.card,padding:"14px 16px"}}>
+            <div key={t.id} style={{...S.card,padding:"14px 16px",borderLeft:t.recurring?`3px solid var(--amber)`:"3px solid transparent"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:10}}>
                   {editingId===t.id ? (
@@ -657,6 +692,7 @@ export default function App() {
                     </div>
                   ) : (
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      {t.recurring&&<span style={{color:"var(--amber)",fontSize:12,flexShrink:0}}>↻</span>}
                       <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</span>
                       <button onClick={()=>startRename(t)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px",flexShrink:0}}>✏</button>
                     </div>
@@ -672,7 +708,7 @@ export default function App() {
                   <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13}}>🗑</button>
                 </div>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
                 <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
                   <option value="">— Category —</option>
                   {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
@@ -681,6 +717,24 @@ export default function App() {
                   <option value="">— Account —</option>
                   {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
+              </div>
+              {/* Recurring toggle */}
+              <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:8,borderTop:"1px solid var(--border)"}}>
+                <button
+                  onClick={()=>toggleRecurring(t.id)}
+                  style={{...S.btn(t.recurring?"amber":"ghost",true),padding:"4px 10px",fontSize:11}}>
+                  {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
+                </button>
+                {t.recurring&&(
+                  <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--t2)"}}>
+                    Day:
+                    <input type="number" min="1" max="31"
+                      style={{...S.input,width:52,padding:"4px 8px",fontSize:12}}
+                      value={t.recurringDay||""}
+                      onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
+                    of month
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -694,17 +748,18 @@ export default function App() {
                 <th style={S.th}>Name / Merchant</th>
                 <th style={S.th}>Category</th>
                 <th style={S.th}>Account</th>
+                <th style={{...S.th,textAlign:"center"}}>Recurring</th>
                 <th style={{...S.th,textAlign:"right"}}>Amount</th>
                 <th style={S.th}/>
               </tr></thead>
               <tbody>
                 {filteredTxns.length===0&&(
-                  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>
+                  <tr><td colSpan={7} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>
                     <div style={{fontSize:28,marginBottom:10,opacity:0.3}}>⇅</div>No transactions found
                   </td></tr>
                 )}
                 {filteredTxns.map(t=>(
-                  <tr key={t.id}>
+                  <tr key={t.id} style={{background:t.recurring?"#fbbf2408":"transparent"}}>
                     <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{t.date}</td>
                     <td style={{...S.td,color:"var(--t1)",fontWeight:500}}>
                       {editingId===t.id ? (
@@ -717,6 +772,7 @@ export default function App() {
                         </div>
                       ) : (
                         <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          {t.recurring&&<span style={{color:"var(--amber)",fontSize:12}}>↻</span>}
                           <span>{t.name||t.merchant}</span>
                           {t.name&&<span style={{fontSize:10,color:"var(--t3)"}}>({t.merchant})</span>}
                           {t.pending&&<span style={{fontSize:10,color:"var(--amber)",border:"1px solid var(--amber)44",borderRadius:4,padding:"1px 5px"}}>pending</span>}
@@ -726,16 +782,33 @@ export default function App() {
                       )}
                     </td>
                     <td style={S.td}>
-                      <select style={{...S.select,width:140}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
+                      <select style={{...S.select,width:130}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
                         <option value="">— None —</option>
                         {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </td>
                     <td style={S.td}>
-                      <select style={{...S.select,width:140}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
+                      <select style={{...S.select,width:130}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
                         <option value="">— None —</option>
                         {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
                       </select>
+                    </td>
+                    <td style={{...S.td,textAlign:"center"}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                        <button
+                          onClick={()=>toggleRecurring(t.id)}
+                          title={t.recurring?"Remove recurring":"Mark as recurring"}
+                          style={{background:t.recurring?"var(--amber-dim)":"transparent",border:`1px solid ${t.recurring?"var(--amber)44":"var(--border2)"}`,borderRadius:6,cursor:"pointer",padding:"3px 8px",fontSize:12,color:t.recurring?"var(--amber)":"var(--t3)"}}>
+                          ↻
+                        </button>
+                        {t.recurring&&(
+                          <input type="number" min="1" max="31"
+                            title="Day of month"
+                            style={{...S.input,width:46,padding:"3px 6px",fontSize:11,textAlign:"center"}}
+                            value={t.recurringDay||""}
+                            onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
+                        )}
+                      </div>
                     </td>
                     <td style={{...S.td,textAlign:"right",fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
                       {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
@@ -760,20 +833,17 @@ export default function App() {
         <div style={S.sectionTitle}>Budget Categories</div>
         <button style={S.btn("primary",true)} onClick={openAddCat}>+ New Category</button>
       </div>
-
       {categories.length===0
         ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet. Create one to get started.</div>
         : <div style={{...S.card,padding:0,overflow:"hidden"}}>
             {sortedCategories.map((cat,i)=>{
-              const spent     = spentByCat[cat.id]||0;
-              const pct       = Math.min((spent/cat.limit)*100,100);
-              const over      = pct>=100, warn = pct>=80&&!over;
-              const barC      = over?"var(--red)":warn?"var(--amber)":cat.color;
-              const remaining = cat.limit - spent;
-              const txnCount  = monthTxns.filter(t=>t.categoryId===cat.id&&t.amount<0).length;
+              const spent=spentByCat[cat.id]||0, pct=Math.min((spent/cat.limit)*100,100);
+              const over=pct>=100, warn=pct>=80&&!over;
+              const barC=over?"var(--red)":warn?"var(--amber)":cat.color;
+              const remaining=cat.limit-spent;
+              const txnCount=monthTxns.filter(t=>t.categoryId===cat.id&&t.amount<0).length;
               return (
-                <div key={cat.id}
-                  onClick={()=>setDrillCat(cat)}
+                <div key={cat.id} onClick={()=>setDrillCat(cat)}
                   style={{padding:"14px 20px",borderBottom:i<sortedCategories.length-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"background 0.12s"}}
                   onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -797,86 +867,16 @@ export default function App() {
                     <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s ease"}}/>
                   </div>
                   <div style={{fontSize:11,color:"var(--t3)"}}>
-                    {over
-                      ? <span style={{color:"var(--red)"}}>Overspent. {fmt(spent)} of {fmt(cat.limit)}</span>
-                      : remaining===0
-                        ? <span>Fully spent. {fmt(spent)} of {fmt(cat.limit)}</span>
-                        : <span>{fmt(spent)} of {fmt(cat.limit)} · {txnCount} transaction{txnCount!==1?"s":""}</span>
-                    }
+                    {over ? <span style={{color:"var(--red)"}}>Overspent. {fmt(spent)} of {fmt(cat.limit)}</span>
+                          : remaining===0 ? <span>Fully spent. {fmt(spent)} of {fmt(cat.limit)}</span>
+                          : <span>{fmt(spent)} of {fmt(cat.limit)} · {txnCount} transaction{txnCount!==1?"s":""}</span>}
                   </div>
                 </div>
               );
             })}
           </div>
       }
-
-      {/* Category drill-down modal */}
-      {drillCat&&(
-        <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
-          <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
-                <div style={{fontSize:17,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.3px"}}>{drillCat.name}</div>
-              </div>
-              <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
-              {[
-                { label:"Spent",        value:fmt(spentByCat[drillCat.id]||0), color:drillCat.color },
-                { label:"Budget",       value:fmt(drillCat.limit),             color:"var(--t2)"    },
-                { label:"Remaining",    value:fmt(drillCat.limit-(spentByCat[drillCat.id]||0)), color:(spentByCat[drillCat.id]||0)<=drillCat.limit?"var(--green)":"var(--red)" },
-                { label:"Transactions", value:catTxns.length,                  color:"var(--t1)"    },
-              ].map(s=>(
-                <div key={s.label} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
-                  <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{s.label}</div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:600,color:s.color}}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{marginBottom:14,flexShrink:0}}>
-              <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                <div style={{height:"100%",borderRadius:99,
-                  background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
-                  width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s ease"}}/>
-              </div>
-            </div>
-
-            <div style={{overflowY:"auto",flex:1}}>
-              {catTxns.length===0 ? (
-                <div style={{textAlign:"center",padding:"40px 0",color:"var(--t3)"}}>
-                  <div style={{fontSize:24,marginBottom:8,opacity:0.3}}>◉</div>
-                  No transactions in {monthLabel(selectedMonth)}
-                </div>
-              ) : (
-                <div style={{display:"flex",flexDirection:"column"}}>
-                  {catTxns.map((t,i)=>(
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 4px",borderBottom:i<catTxns.length-1?"1px solid var(--border)":"none",flexWrap:"wrap"}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0}}>{t.date}</div>
-                      <div style={{flex:1,minWidth:80,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                      <select style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
-                        value={t.categoryId||""}
-                        onChange={e=>{ updateTxnCat(t.id,e.target.value); if(e.target.value!==drillCat.id) showToast("Transaction moved"); }}>
-                        {categories.map(c=><option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>)}
-                        <option value="">— Uncategorized —</option>
-                      </select>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0,minWidth:70,textAlign:"right"}}>
-                        {fmt(Math.abs(t.amount))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",flexShrink:0}}>
-              <button style={S.btn("ghost")} onClick={()=>setDrillCat(null)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {DrillDownModal}
     </div>
   );
 
@@ -893,7 +893,6 @@ export default function App() {
       <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>
         Projections show estimated spend needed through end of {today.toLocaleString("default",{month:"long"})} based on your daily rate.
       </div>
-
       {plaidItems.length>0&&(
         <div style={{...S.card,marginBottom:16}}>
           <div style={S.cardTitle}>Connected Banks</div>
@@ -908,17 +907,16 @@ export default function App() {
           </div>
         </div>
       )}
-
       {accounts.length===0
         ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
         : <div className="ledgr-acct-grid" style={S.grid2}>
             {accounts.map(acct=>{
-              const spent    = spentByAcct[acct.id]||0;
-              const income   = monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((a,t)=>a+t.amount,0);
-              const daily    = today.getDate()>0?spent/today.getDate():0;
-              const needed   = daily*daysLeft();
-              const tight    = needed>acct.balance;
-              const typeIcon = acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
+              const spent=spentByAcct[acct.id]||0;
+              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((a,t)=>a+t.amount,0);
+              const daily=today.getDate()>0?spent/today.getDate():0;
+              const needed=daily*daysLeft();
+              const tight=needed>acct.balance;
+              const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
               return (
                 <div key={acct.id} style={S.card}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -938,7 +936,7 @@ export default function App() {
                       ["Spent this month",    fmt(spent),         "var(--t1)"   ],
                       ["Income this month",   fmt(income),        "var(--green)"],
                       ["Daily avg spend",     `${fmt(daily)}/day`,"var(--t1)"   ],
-                      ["Projected month end", fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1)), "var(--t1)"],
+                      ["Projected month end", fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1)),"var(--t1)"],
                     ].map(([label,value,color])=>(
                       <div key={label} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--t2)",marginBottom:6}}>
                         <span>{label}</span><span style={{fontFamily:"var(--font-mono)",color}}>{value}</span>
@@ -947,7 +945,7 @@ export default function App() {
                     <div style={{marginTop:10,padding:"10px 12px",borderRadius:8,background:tight?"var(--red-dim)":"var(--green-dim)",border:`1px solid ${tight?"var(--red)":"var(--green)"}33`}}>
                       <div style={{fontSize:11,color:"var(--t2)",marginBottom:3}}>Est. needed · {daysLeft()} days left</div>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?18:20,fontWeight:700,color:tight?"var(--red)":"var(--green)"}}>{fmt(needed)}</div>
-                      <div style={{fontSize:11,color:"var(--t2)",marginTop:3}}>
+                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
                         {tight?`⚠ May fall short by ${fmt(needed-acct.balance)}`:`Comfortable — ${fmt(acct.balance-needed)} cushion`}
                       </div>
                     </div>
@@ -970,7 +968,6 @@ export default function App() {
       <p style={{fontSize:13,color:"var(--t2)",marginBottom:20,lineHeight:1.6}}>
         Rules automatically assign categories to new transactions when they sync. When you categorize a transaction manually, you'll be prompted to save it as a rule.
       </p>
-
       {rules.length===0 ? (
         <div style={{...S.card,textAlign:"center",padding:48}}>
           <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
@@ -1010,7 +1007,6 @@ export default function App() {
           })}
         </div>
       )}
-
       <div style={{marginTop:24,padding:"16px 20px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius-lg)"}}>
         <div style={{fontSize:12,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:10}}>Match Types</div>
         <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:13,color:"var(--t2)"}}>
@@ -1019,6 +1015,188 @@ export default function App() {
           <div><span style={{fontFamily:"var(--font-mono)",color:"var(--cyan)",marginRight:8}}>exact</span>Full name must match exactly. Best for unique names like "Netflix".</div>
         </div>
       </div>
+    </div>
+  );
+
+  /* ── Calendar ── */
+  const calYear  = parseInt(calendarMonth.split("-")[0]);
+  const calMonthN = parseInt(calendarMonth.split("-")[1]);
+  const firstDow = new Date(calYear, calMonthN-1, 1).getDay(); // 0=Sun
+  const daysInCal = daysInMonth(calYear, calMonthN);
+  const totalCells = Math.ceil((firstDow + daysInCal) / 7) * 7;
+
+  const Calendar = (
+    <div>
+      <div style={{...S.sectionHdr,marginBottom:16}}>
+        <div style={S.sectionTitle}>Recurring Calendar</div>
+        <div style={{fontSize:13,color:"var(--t2)"}}>{recurringTxns.length} recurring transaction{recurringTxns.length!==1?"s":""}</div>
+      </div>
+
+      {recurringTxns.length===0&&(
+        <div style={{...S.card,textAlign:"center",padding:32,marginBottom:20,background:"var(--surface)"}}>
+          <div style={{fontSize:24,marginBottom:8,opacity:0.3}}>◷</div>
+          <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:4}}>No recurring transactions yet</div>
+          <div style={{fontSize:12,color:"var(--t3)"}}>Go to Transactions and click ↻ on any transaction to mark it as recurring. It will then appear on this calendar.</div>
+        </div>
+      )}
+
+      {/* Month nav */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <button onClick={prevCalMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"6px 14px",fontSize:18,lineHeight:1.4}}>‹</button>
+        <div style={{fontFamily:"var(--font-disp)",fontSize:18,fontWeight:700,color:"var(--t1)"}}>{monthLabel(calendarMonth)}</div>
+        <button onClick={nextCalMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"6px 14px",fontSize:18,lineHeight:1.4}}>›</button>
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{...S.card,padding:0,overflow:"hidden"}}>
+        {/* Day of week headers */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:"1px solid var(--border)"}}>
+          {DAYS_OF_WEEK.map(d=>(
+            <div key={d} style={{textAlign:"center",padding:"10px 4px",fontSize:11,fontWeight:700,color:"var(--t3)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"1px"}}>
+              {isMobile?d[0]:d}
+            </div>
+          ))}
+        </div>
+
+        {/* Day cells */}
+        <div className="ledgr-cal-grid" style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,background:"var(--border)"}}>
+          {Array.from({length:totalCells}).map((_,i)=>{
+            const day = i - firstDow + 1;
+            const isValid = day >= 1 && day <= daysInCal;
+            const isToday = isValid && calYear===today.getFullYear() && calMonthN===today.getMonth()+1 && day===today.getDate();
+            const dayTxns = isValid ? (calendarTxnsByDay[day]||[]) : [];
+            return (
+              <div key={i}
+                className="ledgr-cal-cell"
+                onClick={()=>{ if(isValid&&dayTxns.length>0) setCalendarDay({day,txns:dayTxns}); }}
+                style={{
+                  background:"var(--card)", minHeight:80, padding:8,
+                  cursor:isValid&&dayTxns.length>0?"pointer":"default",
+                  opacity:isValid?1:0.3,
+                  transition:"background 0.12s",
+                  position:"relative",
+                }}
+                onMouseEnter={e=>{ if(isValid&&dayTxns.length>0) e.currentTarget.style.background="var(--surface)"; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background="var(--card)"; }}>
+
+                {/* Day number */}
+                <div style={{
+                  fontSize:13, fontWeight:isToday?700:500,
+                  color:isToday?"var(--cyan)":isValid?"var(--t1)":"var(--t3)",
+                  marginBottom:4,
+                  ...(isToday?{
+                    background:"var(--cyan-dim)",
+                    border:"1px solid var(--cyan)44",
+                    borderRadius:"50%",
+                    width:24,height:24,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    fontSize:12,
+                  }:{})
+                }}>
+                  {isValid?day:""}
+                </div>
+
+                {/* Recurring transaction pills */}
+                {dayTxns.slice(0,isMobile?2:3).map(t=>{
+                  const cat = catMap[t.categoryId];
+                  return (
+                    <div key={t.id} style={{
+                      fontSize:isMobile?9:10,
+                      color:"var(--bg)",
+                      background:cat?.color||"var(--cyan)",
+                      borderRadius:4,
+                      padding:"1px 5px",
+                      marginBottom:2,
+                      overflow:"hidden",
+                      textOverflow:"ellipsis",
+                      whiteSpace:"nowrap",
+                      fontWeight:600,
+                    }}>
+                      {isMobile?fmt(Math.abs(t.amount)):`${t.name||t.merchant}`}
+                    </div>
+                  );
+                })}
+                {dayTxns.length>( isMobile?2:3)&&(
+                  <div style={{fontSize:9,color:"var(--t3)"}}>+{dayTxns.length-(isMobile?2:3)} more</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Recurring transactions list */}
+      {recurringTxns.length>0&&(
+        <div style={{...S.card,marginTop:20}}>
+          <div style={S.cardTitle}>All Recurring Transactions</div>
+          {recurringTxns.sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+            const cat = catMap[t.categoryId];
+            return (
+              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,color:"var(--cyan)",flexShrink:0}}>
+                    {t.recurringDay||"?"}
+                  </div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                    <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>
+                      Day {t.recurringDay||"?"} of month
+                      {cat&&<> · <span style={{color:cat.color}}>{cat.name}</span></>}
+                    </div>
+                  </div>
+                </div>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:10}}>
+                  {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Day click modal */}
+      {calendarDay&&(
+        <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setCalendarDay(null)}>
+          <div style={{...S.modal,width:480}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+              <div>
+                <div style={S.modalTitle}>
+                  {new Date(calYear,calMonthN-1,calendarDay.day).toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}
+                </div>
+                <div style={{fontSize:12,color:"var(--t3)",marginTop:-14}}>{calendarDay.txns.length} recurring transaction{calendarDay.txns.length!==1?"s":""}</div>
+              </div>
+              <button onClick={()=>setCalendarDay(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {calendarDay.txns.map(t=>{
+                const cat=catMap[t.categoryId];
+                return (
+                  <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`3px solid ${cat?.color||"var(--cyan)"}`}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                        Recurring on day {t.recurringDay}
+                        {cat&&<> · <span style={{color:cat.color}}>{cat.name}</span></>}
+                      </div>
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:12}}>
+                      {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{marginTop:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:12,color:"var(--t3)"}}>
+                Total: <span style={{fontFamily:"var(--font-mono)",color:"var(--red)",fontWeight:600}}>
+                  {fmt(calendarDay.txns.filter(t=>t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0))}
+                </span>
+              </div>
+              <button style={S.btn("ghost")} onClick={()=>setCalendarDay(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1132,8 +1310,9 @@ export default function App() {
     { id:"budgets",      icon:"◉", label:"Budgets"      },
     { id:"accounts",     icon:"▣", label:"Accounts"     },
     { id:"rules",        icon:"◎", label:"Rules"        },
+    { id:"calendar",     icon:"▦", label:"Calendar"     },
   ];
-  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules };
+  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>

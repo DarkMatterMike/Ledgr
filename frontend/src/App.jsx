@@ -243,21 +243,27 @@ export default function App() {
         setPlaidItems(data.plaidItems     || []);
         setRules(data.rules               || []);
       } catch (e) { console.warn("Could not load data:", e.message); }
-      finally { setLoading(false); }
+      finally { setLoading(false);
+initialized.current = true;
+ }
     })();
   }, []);
 
   /* ── Auto-save to backend ── */
-  const saveTimeout = useRef(null);
-  function scheduleSave(patch) {
-    clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => api.saveData(patch), 600);
-  }
-  useEffect(() => { if (!loading) scheduleSave({ accounts });     }, [accounts,     loading]);
-  useEffect(() => { if (!loading) scheduleSave({ categories });   }, [categories,   loading]);
-  useEffect(() => { if (!loading) scheduleSave({ transactions }); }, [transactions, loading]);
-  useEffect(() => { if (!loading) scheduleSave({ plaidItems });   }, [plaidItems,   loading]);
-  useEffect(() => { if (!loading) scheduleSave({ rules });        }, [rules,        loading]);
+ const saveTimeout  = useRef(null);
+const initialized  = useRef(false);
+
+function scheduleSave(patch) {
+  if (!initialized.current) return;
+  clearTimeout(saveTimeout.current);
+  saveTimeout.current = setTimeout(() => api.saveData(patch), 800);
+}
+
+useEffect(() => { scheduleSave({ accounts });     }, [accounts]);
+useEffect(() => { scheduleSave({ categories });   }, [categories]);
+useEffect(() => { scheduleSave({ transactions }); }, [transactions]);
+useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems]);
+useEffect(() => { scheduleSave({ rules });        }, [rules]);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
 

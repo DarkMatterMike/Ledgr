@@ -739,53 +739,132 @@ export default function App() {
   );
 
   /* ── Budgets ── */
+  const [editingLimitId,  setEditingLimitId]  = useState(null);
+  const [editingLimitVal, setEditingLimitVal] = useState("");
+
+  function startEditLimit(cat, e) {
+    e.stopPropagation();
+    setEditingLimitId(cat.id);
+    setEditingLimitVal(String(cat.limit));
+  }
+  function saveLimit(id) {
+    const val = parseFloat(editingLimitVal);
+    if (!isNaN(val) && val > 0) {
+      setCategories(p=>p.map(c=>c.id===id?{...c,limit:val}:c));
+      showToast("Budget updated");
+    }
+    setEditingLimitId(null);
+  }
+
   const Budgets = (
     <div>
       <div style={{...S.sectionHdr,marginBottom:16}}>
         <div style={S.sectionTitle}>Budget Categories</div>
         <button style={S.btn("primary",true)} onClick={openAddCat}>+ New Category</button>
       </div>
-      {categories.length===0
-        ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet.</div>
-        : <div style={{...S.card,padding:0,overflow:"hidden"}}>
-            {sortedCategories.map((cat,i)=>{
-              const spent=spentByCat[cat.id]||0,pct=Math.min((spent/cat.limit)*100,100);
-              const over=pct>=100,warn=pct>=80&&!over,barC=over?"var(--red)":warn?"var(--amber)":cat.color;
-              const remaining=cat.limit-spent,txnCount=monthTxns.filter(t=>t.categoryId===cat.id&&t.amount<0).length;
-              return (
-                <div key={cat.id} onClick={()=>setDrillCat(cat)}
-                  style={{padding:"14px 20px",borderBottom:i<sortedCategories.length-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"background 0.12s"}}
-                  onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <span style={{width:9,height:9,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                    <span style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t2)",flexShrink:0}}>{fmt(spent)}</span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,flexShrink:0,
-                      color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",
-                      background:over?"var(--red-dim)":remaining===0?"var(--surface)":"var(--green-dim)",
-                      border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":"var(--green)"}33`,
-                      borderRadius:99,padding:"3px 10px",minWidth:65,textAlign:"center"}}>
-                      {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
+
+      {categories.length===0 ? (
+        <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet.</div>
+      ) : (
+        <div style={{...S.card,padding:0,overflow:"hidden",overflowX:"auto"}}>
+          {/* Table header */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",borderBottom:"2px solid var(--border)",padding:"10px 20px",background:"var(--surface)",minWidth:600}}>
+            {[["Category","left"],["Budgeted","right"],["Spent","right"],["Remaining","right"],["","right"]].map(([h,align])=>(
+              <div key={h} style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)",textAlign:align}}>
+                {h}
+              </div>
+            ))}
+          </div>
+
+          {sortedCategories.map((cat,i)=>{
+            const spent     = spentByCat[cat.id]||0;
+            const pct       = Math.min((spent/cat.limit)*100,100);
+            const over      = pct>=100, warn=pct>=80&&!over;
+            const barC      = over?"var(--red)":warn?"var(--amber)":cat.color;
+            const remaining = cat.limit-spent;
+            const isLast    = i===sortedCategories.length-1;
+            return (
+              <div key={cat.id} onClick={()=>setDrillCat(cat)}
+                style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"13px 20px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",alignItems:"center",transition:"background 0.12s",minWidth:600}}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+
+                {/* Col 1: Category */}
+                <div style={{minWidth:0,paddingRight:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                    <span style={{width:18,height:18,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,
+                      background:over?"var(--red-dim)":warn?"#fbbf2422":"var(--green-dim)",
+                      border:`1px solid ${over?"var(--red)":warn?"var(--amber)":"var(--green)"}55`,
+                      color:over?"var(--red)":warn?"var(--amber)":"var(--green)"}}>
+                      {over?"!":warn?"~":"✓"}
                     </span>
-                    <div style={{display:"flex",gap:4,flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                      <button style={{...S.btn("ghost",true),padding:"4px 8px",fontSize:11}} onClick={()=>openEditCat(cat)}>Edit</button>
-                      <button style={{...S.btn("danger",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
-                    </div>
+                    <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                    <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                    <span style={{fontSize:11,color:over?"var(--red)":warn?"var(--amber)":"var(--t3)",marginLeft:"auto",whiteSpace:"nowrap",flexShrink:0,paddingLeft:8}}>
+                      {over?`Overspent`:warn?`${pct.toFixed(0)}% used`:"Funded"}
+                    </span>
                   </div>
-                  <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:6}}>
+                  <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
                     <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s"}}/>
                   </div>
-                  <div style={{fontSize:11,color:"var(--t3)"}}>
-                    {over?<span style={{color:"var(--red)"}}>Overspent. {fmt(spent)} of {fmt(cat.limit)}</span>
-                         :remaining===0?<span>Fully spent.</span>
-                         :<span>{fmt(spent)} of {fmt(cat.limit)} · {txnCount} transaction{txnCount!==1?"s":""}</span>}
-                  </div>
                 </div>
-              );
-            })}
+
+                {/* Col 2: Budgeted (editable) */}
+                <div style={{textAlign:"right",paddingRight:16}} onClick={e=>e.stopPropagation()}>
+                  {editingLimitId===cat.id ? (
+                    <input type="number" autoFocus
+                      style={{...S.input,width:110,padding:"5px 8px",fontSize:13,textAlign:"right"}}
+                      value={editingLimitVal}
+                      onChange={e=>setEditingLimitVal(e.target.value)}
+                      onBlur={()=>saveLimit(cat.id)}
+                      onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}/>
+                  ) : (
+                    <span onClick={e=>startEditLimit(cat,e)} title="Click to edit"
+                      style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",cursor:"text",padding:"4px 8px",borderRadius:"var(--radius)",border:"1px solid transparent",transition:"border-color 0.15s",display:"inline-block"}}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border2)"}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
+                      {fmt(cat.limit)} <span style={{fontSize:10,opacity:0.4}}>✏</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Col 3: Spent */}
+                <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,color:spent>0?"var(--t1)":"var(--t3)"}}>
+                  {fmt(spent)}
+                </div>
+
+                {/* Col 4: Remaining */}
+                <div style={{textAlign:"right",paddingRight:16}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,display:"inline-block",padding:"4px 10px",borderRadius:6,
+                    color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",
+                    background:over?"var(--red-dim)":remaining===0?"var(--surface)":"var(--green-dim)",
+                    border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":"var(--green)"}33`}}>
+                    {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
+                  </span>
+                </div>
+
+                {/* Col 5: Actions */}
+                <div style={{display:"flex",gap:4,justifyContent:"flex-end"}} onClick={e=>e.stopPropagation()}>
+                  <button style={{...S.btn("danger",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Totals row */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"12px 20px",borderTop:"2px solid var(--border)",background:"var(--surface)",minWidth:600}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--t3)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.5px"}}>Totals</div>
+            <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalBudget)}</div>
+            <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div>
+            <div style={{textAlign:"right",paddingRight:16}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalBudget-totalSpent>=0?"var(--green)":"var(--red)"}}>
+                {fmt(totalBudget-totalSpent)}
+              </span>
+            </div>
+            <div/>
           </div>
-      }
+        </div>
+      )}
       {DrillDownModal}
     </div>
   );
@@ -852,7 +931,7 @@ export default function App() {
                     <div style={{marginTop:10,padding:"10px 12px",borderRadius:8,background:tight?"var(--red-dim)":"var(--green-dim)",border:`1px solid ${tight?"var(--red)":"var(--green)"}33`}}>
                       <div style={{fontSize:11,color:"var(--t2)",marginBottom:3}}>Est. needed · {daysLeft()} days left</div>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?18:20,fontWeight:700,color:tight?"var(--red)":"var(--green)"}}>{fmt(needed)}</div>
-                      <div style={{fontSize:11,color:"var(--t2)",marginTop:3}}>{tight?`⚠ May fall short by ${fmt(needed-acct.balance)}`:`Comfortable — ${fmt(acct.balance-needed)} cushion`}</div>
+                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{tight?`⚠ May fall short by ${fmt(needed-acct.balance)}`:`Comfortable — ${fmt(acct.balance-needed)} cushion`}</div>
                     </div>
                   </div>
                 </div>
@@ -1193,95 +1272,123 @@ export default function App() {
     </div>
   );
 
+  /* ── Shared sidebar content ── */
+  const SidebarContent = (onNav) => (
+    <>
+      <div style={{padding:"24px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+        <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>
+          ledgr<span style={{color:"var(--cyan)"}}>.</span>
+        </div>
+        <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>personal finance</div>
+      </div>
+      <nav style={{flex:1,padding:"12px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
+        {NAV.map(n=>(
+          <button key={n.id} onClick={()=>onNav(n.id)}
+            style={{
+              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
+              borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+              border:`1px solid ${view===n.id?"#00d4ff33":"transparent"}`,
+              background:view===n.id?"var(--cyan-dim)":"transparent",
+              color:view===n.id?"var(--cyan)":"var(--t2)",
+              width:"100%",textAlign:"left",transition:"all 0.15s",
+            }}>
+            <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+            <span>{n.label}</span>
+            {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
+          </button>
+        ))}
+      </nav>
+      <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0}}>
+        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+          onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
+          {syncing?"⟳ Syncing…":"⟳ Sync All"}
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div style={S.shell}>
-
-      {/* ── Top bar ── */}
-      <div style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)",zIndex:10}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          {/* Hamburger */}
-          <button onClick={()=>setDrawerOpen(p=>!p)}
-            style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
-            <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
-            <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
-            <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
-          </button>
-          {/* Logo */}
-          <div style={{fontFamily:"var(--font-disp)",fontSize:18,fontWeight:800,letterSpacing:"-0.5px"}}>
-            ledgr<span style={{color:"var(--cyan)"}}>.</span>
-          </div>
-          {/* Current page label */}
-          <span style={{fontSize:13,color:"var(--t3)",fontWeight:500}}>
-            {NAV.find(n=>n.id===view)?.label}
-          </span>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳</span>}
-          <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
-            {today.toLocaleDateString("en-US",{month:"short",day:"numeric"})} · {daysLeft()}d
-          </div>
-        </div>
-      </div>
-
-      {/* ── Body ── */}
-      <div style={{flex:1,display:"flex",overflow:"hidden",position:"relative"}}>
-
-        {/* Backdrop */}
-        {drawerOpen&&(
-          <div onClick={()=>setDrawerOpen(false)}
-            style={{position:"absolute",inset:0,background:"#00000055",zIndex:40}}/>
-        )}
-
-        {/* Slide-in drawer */}
-        <div style={{
-          position:"absolute",top:0,left:0,bottom:0,width:240,
-          background:"var(--surface)",borderRight:"1px solid var(--border)",
-          display:"flex",flexDirection:"column",
-          transform:drawerOpen?"translateX(0)":"translateX(-100%)",
-          transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
-          zIndex:50,
-          boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
-        }}>
-          {/* Drawer header */}
-          <div style={{padding:"20px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>
+    {isMobile ? (
+      /* ════════════════════════════════════
+         MOBILE — hamburger + overlay drawer
+         ════════════════════════════════════ */
+      <>
+        {/* Mobile top bar */}
+        <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <button onClick={()=>setDrawerOpen(p=>!p)}
+              style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
+              <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
+              <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
+              <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
+            </button>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,letterSpacing:"-0.5px"}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
-            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>personal finance</div>
+            <span style={{fontSize:12,color:"var(--t3)",fontWeight:500}}>{NAV.find(n=>n.id===view)?.label}</span>
           </div>
-
-          {/* Nav items */}
-          <nav style={{flex:1,padding:"12px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
-            {NAV.map(n=>(
-              <button key={n.id} onClick={()=>navigate(n.id)}
-                style={{
-                  display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-                  borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
-                  border:`1px solid ${view===n.id?"#00d4ff33":"transparent"}`,
-                  background:view===n.id?"var(--cyan-dim)":"transparent",
-                  color:view===n.id?"var(--cyan)":"var(--t2)",
-                  width:"100%",textAlign:"left",transition:"all 0.15s",
-                }}>
-                <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>{n.icon}</span>
-                <span>{n.label}</span>
-                {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
-              </button>
-            ))}
-          </nav>
-
-          {/* Drawer footer */}
-          <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0}}>
-            <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}} onClick={()=>{doSync();setDrawerOpen(false);}} disabled={syncing}>
-              {syncing?"⟳ Syncing…":"⟳ Sync All"}
-            </button>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳</span>}
+            <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)"}}>{daysLeft()}d left</div>
           </div>
         </div>
 
-        {/* Main content */}
-        <div style={{flex:1,overflowY:"auto"}} className="ledgr-content">
-          {VIEWS[view]}
+        {/* Mobile body */}
+        <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+          {/* Backdrop */}
+          {drawerOpen&&(
+            <div onClick={()=>setDrawerOpen(false)}
+              style={{position:"absolute",inset:0,background:"#00000055",zIndex:40}}/>
+          )}
+          {/* Overlay drawer */}
+          <div style={{
+            position:"absolute",top:0,left:0,bottom:0,width:240,
+            background:"var(--surface)",borderRight:"1px solid var(--border)",
+            display:"flex",flexDirection:"column",
+            transform:drawerOpen?"translateX(0)":"translateX(-100%)",
+            transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
+            zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
+          }}>
+            {SidebarContent(id=>{ setView(id); setDrawerOpen(false); })}
+          </div>
+          {/* Content */}
+          <div style={{height:"100%",overflowY:"auto"}} className="ledgr-content">
+            {VIEWS[view]}
+          </div>
         </div>
-      </div>
+      </>
+    ) : (
+      /* ════════════════════════════════════
+         DESKTOP — persistent sidebar
+         ════════════════════════════════════ */
+      <>
+        {/* Desktop top bar */}
+        <div style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t3)",letterSpacing:"-0.2px"}}>
+            {NAV.find(n=>n.id===view)?.label}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
+            <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
+              {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} · {daysLeft()}d left
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop body */}
+        <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+          {/* Persistent sidebar */}
+          <aside style={{width:220,flexShrink:0,background:"var(--surface)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
+            {SidebarContent(id=>setView(id))}
+          </aside>
+          {/* Content */}
+          <div style={{flex:1,overflowY:"auto"}} className="ledgr-content">
+            {VIEWS[view]}
+          </div>
+        </div>
+      </>
+    )}
 
       {/* ── Modals ── */}
       {(modal==="addCat"||modal==="editCat")   && CatModal}

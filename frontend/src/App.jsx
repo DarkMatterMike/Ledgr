@@ -1301,6 +1301,42 @@ export default function App() {
         </div>
       </div>
     </Modal>
+const EditRecurringModal = editTarget && modal==="editRecurring" ? (
+    <Modal title="Edit Recurring Transaction" onClose={()=>{ setModal(null); setEditTarget(null); }}
+      actions={<>
+        <button style={S.btn("ghost")} onClick={()=>{ setModal(null); setEditTarget(null); }}>Cancel</button>
+        <button style={S.btn("primary")} onClick={()=>{
+          setTransactions(p=>p.map(t=>t.id===editTarget.id?{
+            ...t,
+            name: editTarget.name,
+            recurringDay: editTarget.recurringDay,
+            categoryId: editTarget.categoryId||null,
+          }:t));
+          setModal(null); setEditTarget(null); showToast("Updated");
+        }}>Save</button>
+      </>}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{padding:"10px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",fontSize:12,color:"var(--t3)"}}>
+          Original merchant: <span style={{color:"var(--t1)",fontWeight:500}}>{editTarget.merchant}</span>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Display Name</label>
+          <input style={S.input} placeholder={editTarget.merchant} value={editTarget.name||""} onChange={e=>setEditTarget(p=>({...p,name:e.target.value}))}/>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Recurring Day of Month</label>
+          <input style={S.input} type="number" min="1" max="31" placeholder="e.g. 15" value={editTarget.recurringDay||""} onChange={e=>setEditTarget(p=>({...p,recurringDay:parseInt(e.target.value)||null}))}/>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Category</label>
+          <select style={{...S.input,padding:"9px 12px"}} value={editTarget.categoryId||""} onChange={e=>setEditTarget(p=>({...p,categoryId:e.target.value||null}))}>
+            <option value="">— None —</option>
+            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+      </div>
+    </Modal>
+  ) : null;
   );
 
   /* ─────────────────────────────────────────────────────────────────

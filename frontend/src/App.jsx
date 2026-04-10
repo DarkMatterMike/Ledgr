@@ -27,12 +27,12 @@ function useIsMobile() {
     @media (max-width: 767px) {
       .ledgr-sidebar    { display: none !important; }
       .ledgr-topbar     { padding: 0 16px !important; height: 52px !important; }
-      .ledgr-content    { padding: 16px !important; padding-bottom: 80px !important; }
+      .ledgr-content    { padding: 16px !important; padding-bottom: 90px !important; }
       .ledgr-bottomnav  {
         display: flex !important;
         position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
         background: var(--surface); border-top: 1px solid var(--border);
-        height: 64px; align-items: center; justify-content: space-around;
+        height: 68px; align-items: center; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom);
       }
       .ledgr-bottomnav-item {
         display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -515,10 +515,35 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
 
       <div className="ledgr-dash-grid" style={{...S.grid2,gap:16}}>
         <div style={S.card}>
-          <div style={S.cardTitle}>Budget Progress</div>
+          <div style={{...S.sectionHdr,marginBottom:12}}>
+            <div style={S.cardTitle}>Budget Progress</div>
+            <button style={S.btn("ghost",true)} onClick={()=>setView("budgets")}>All →</button>
+          </div>
           {categories.length===0
             ? <div style={{textAlign:"center",padding:"32px 0",color:"var(--t3)"}}>No categories yet</div>
-            : categories.map(cat=><ProgressBar key={cat.id} cat={cat} spent={spentByCat[cat.id]||0}/>)
+            : sortedCategories.slice(0,5).map(cat=>{
+                const spent     = spentByCat[cat.id]||0;
+                const remaining = cat.limit - spent;
+                const pct       = Math.min((spent/cat.limit)*100,100);
+                const over      = pct>=100, warn = pct>=80&&!over;
+                return (
+                  <div key={cat.id} style={{marginBottom:12}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                      <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
+                        <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                        <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                      </div>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8}}>
+                        {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
+                      </span>
+                    </div>
+                    <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s ease",
+                        background:over?"var(--red)":warn?"var(--amber)":cat.color}}/>
+                    </div>
+                  </div>
+                );
+              })
           }
         </div>
         <div style={S.card}>
@@ -779,37 +804,43 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
       {/* Category drill-down modal */}
       {drillCat&&(
         <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
-          <div style={{...S.modal,width:620,maxHeight:"80vh",display:"flex",flexDirection:"column",padding:24}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4,flexShrink:0}}>
+          <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
+
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{width:12,height:12,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
-                <div style={S.modalTitle}>{drillCat.name}</div>
+                <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
+                <div style={{fontSize:17,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.3px"}}>{drillCat.name}</div>
               </div>
-              <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1,padding:"4px 8px"}}>✕</button>
+              <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
             </div>
 
-            <div style={{display:"flex",gap:10,marginBottom:14,flexShrink:0,flexWrap:"wrap"}}>
+            {/* Stats row - 2x2 on mobile, 4 across on desktop */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
               {[
                 { label:"Spent",        value:fmt(spentByCat[drillCat.id]||0), color:drillCat.color },
                 { label:"Budget",       value:fmt(drillCat.limit),             color:"var(--t2)"    },
                 { label:"Remaining",    value:fmt(drillCat.limit-(spentByCat[drillCat.id]||0)), color:(spentByCat[drillCat.id]||0)<=drillCat.limit?"var(--green)":"var(--red)" },
                 { label:"Transactions", value:catTxns.length,                  color:"var(--t1)"    },
               ].map(s=>(
-                <div key={s.label} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"10px 14px",flex:1,minWidth:80}}>
+                <div key={s.label} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
                   <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{s.label}</div>
                   <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:600,color:s.color}}>{s.value}</div>
                 </div>
               ))}
             </div>
 
+            {/* Progress bar */}
             <div style={{marginBottom:14,flexShrink:0}}>
-              <div style={{height:6,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+              <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
                 <div style={{height:"100%",borderRadius:99,
                   background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
-                  width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s ease"}}/>
+                  width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,
+                  transition:"width 0.5s ease"}}/>
               </div>
             </div>
 
+            {/* Transaction list */}
             <div style={{overflowY:"auto",flex:1}}>
               {catTxns.length===0 ? (
                 <div style={{textAlign:"center",padding:"40px 0",color:"var(--t3)"}}>
@@ -817,48 +848,36 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
                   No transactions in {monthLabel(selectedMonth)}
                 </div>
               ) : (
-                <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <thead><tr>
-                    <th style={{...S.th,padding:"0 10px 10px"}}>Date</th>
-                    <th style={{...S.th,padding:"0 10px 10px"}}>Merchant</th>
-                    <th style={{...S.th,padding:"0 10px 10px"}}>Move to</th>
-                    <th style={{...S.th,padding:"0 10px 10px",textAlign:"right"}}>Amount</th>
-                  </tr></thead>
-                  <tbody>
-                    {catTxns.map(t=>(
-                      <tr key={t.id}>
-                        <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",padding:"10px 10px"}}>{t.date}</td>
-                        <td style={{...S.td,color:"var(--t1)",fontWeight:500,padding:"10px 10px"}}>
-                          <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>{t.name||t.merchant}</div>
-                        </td>
-                        <td style={{...S.td,padding:"10px 10px"}}>
-                          <select style={{...S.select,width:"100%",fontSize:11,padding:"5px 8px"}}
-                            value={t.categoryId||""}
-                            onChange={e=>{ updateTxnCat(t.id,e.target.value); if(e.target.value!==drillCat.id) showToast("Transaction moved"); }}>
-                            {categories.map(c=>(
-                              <option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>
-                            ))}
-                            <option value="">— Uncategorized —</option>
-                          </select>
-                        </td>
-                        <td style={{...S.td,textAlign:"right",fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",padding:"10px 10px"}}>
-                          {fmt(Math.abs(t.amount))}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  {catTxns.map((t,i)=>(
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 4px",borderBottom:i<catTxns.length-1?"1px solid var(--border)":"none",flexWrap:"wrap"}}>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0}}>{t.date}</div>
+                      <div style={{flex:1,minWidth:80,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <select
+                        style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
+                        value={t.categoryId||""}
+                        onChange={e=>{ updateTxnCat(t.id,e.target.value); if(e.target.value!==drillCat.id) showToast("Transaction moved"); }}>
+                        {categories.map(c=>(
+                          <option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>
+                        ))}
+                        <option value="">— Uncategorized —</option>
+                      </select>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0,minWidth:70,textAlign:"right"}}>
+                        {fmt(Math.abs(t.amount))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
+            {/* Footer */}
             <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",flexShrink:0}}>
               <button style={S.btn("ghost")} onClick={()=>setDrillCat(null)}>Close</button>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
 
   /* ── Accounts ── */
   const Accounts = (

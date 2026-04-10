@@ -217,7 +217,7 @@ export default function App() {
 
   const totalSpent  = Object.values(spentByCat).reduce((a,b)=>a+b,0);
   const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
-  const totalIncome = monthTxns.filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0);
+  const totalIncome = monthTxns.filter(t=>t.amount>0&&t.type==="income").reduce((a,t)=>a+t.amount,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
@@ -357,7 +357,8 @@ export default function App() {
     const matched=Object.values(cm).find(c=>pc.includes(c.name.toLowerCase().split(" ")[0]));
     return {id:t.transaction_id,plaidAccountId:t.account_id,accountId:"a"+t.account_id,
       date:t.date||t.authorized_date,merchant:t.merchant_name||t.name,name:"",
-      amount:t.amount,categoryId:matched?.id||null,pending:t.pending,recurring:false,recurringDay:null};
+      amount:t.amount,categoryId:matched?.id||null,pending:t.pending,recurring:false,recurringDay:null,
+      type:t.amount<0?"expense":"income"};
   }
   async function disconnectItem(itemId) {
     try { await api.deleteItem(itemId); setPlaidItems(p=>p.filter(i=>i.item_id!==itemId)); showToast("Disconnected"); }
@@ -396,6 +397,7 @@ export default function App() {
     setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant}:t));
     setEditingId(null); showToast("Name updated");
   }
+  function updateTxnType(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,type:val}:t)); }
   function updateTxnCat(id,val) {
     setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null}:t));
     if(val){const txn=transactions.find(t=>t.id===id);if(txn)promptSaveRule(txn,val);}
@@ -419,7 +421,8 @@ export default function App() {
     if(!txnForm.merchant.trim()||!txnForm.amount) return;
     setTransactions(p=>[{id:"m"+Date.now(),date:txnForm.date,merchant:txnForm.merchant.trim(),name:"",
       amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign),categoryId:txnForm.categoryId||null,
-      accountId:txnForm.accountId||null,recurring:false,recurringDay:null},...p]);
+      accountId:txnForm.accountId||null,recurring:false,recurringDay:null,
+      type:txnForm.sign==="-1"?"expense":"income"},...p]);
     setModal(null); showToast("Transaction added");
   }
 
@@ -638,10 +641,19 @@ export default function App() {
                 </div>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.type||(t.amount<0?"expense":"income")} onChange={e=>updateTxnType(t.id,e.target.value)}>
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                  <option value="refund">Refund</option>
+                  <option value="reimbursement">Reimbursement</option>
+                  <option value="transfer">Transfer</option>
+                </select>
                 <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
                   <option value="">— Category —</option>
                   {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div style={{marginBottom:8}}>
                 <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
                   <option value="">— Account —</option>
                   {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
@@ -667,6 +679,7 @@ export default function App() {
               <thead><tr>
                 <th style={S.th}>Date</th>
                 <th style={S.th}>Name / Merchant</th>
+                <th style={S.th}>Type</th>
                 <th style={S.th}>Category</th>
                 <th style={S.th}>Account</th>
                 <th style={{...S.th,textAlign:"center"}}>Recurring</th>
@@ -698,6 +711,15 @@ export default function App() {
                           <button onClick={()=>startRename(t)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 4px"}}>✏</button>
                         </div>
                       )}
+                    </td>
+                    <td style={S.td}>
+                      <select style={{...S.select,width:120}} value={t.type||(t.amount<0?"expense":"income")} onChange={e=>updateTxnType(t.id,e.target.value)}>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                        <option value="refund">Refund</option>
+                        <option value="reimbursement">Reimbursement</option>
+                        <option value="transfer">Transfer</option>
+                      </select>
                     </td>
                     <td style={S.td}>
                       <select style={{...S.select,width:130}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
@@ -945,7 +967,7 @@ export default function App() {
         : <div className="ledgr-acct-grid">
             {accounts.map(acct=>{
               const spent=spentByAcct[acct.id]||0;
-              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((a,t)=>a+t.amount,0);
+              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&t.type==="income").reduce((a,t)=>a+t.amount,0);
               const daily=today.getDate()>0?spent/today.getDate():0;
               const needed=daily*daysLeft(),tight=needed>acct.balance;
               const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";

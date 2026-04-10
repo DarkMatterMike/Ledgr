@@ -648,9 +648,11 @@ export default function App() {
                   <option value="reimbursement">Reimbursement</option>
                   <option value="transfer">Transfer</option>
                 </select>
-                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
+                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""}
+                  onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
                   <option value="">— Category —</option>
                   {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="__new__">＋ New Category…</option>
                 </select>
               </div>
               <div style={{marginBottom:8}}>
@@ -722,9 +724,11 @@ export default function App() {
                       </select>
                     </td>
                     <td style={S.td}>
-                      <select style={{...S.select,width:130}} value={t.categoryId||""} onChange={e=>updateTxnCat(t.id,e.target.value)}>
+                      <select style={{...S.select,width:130}} value={t.categoryId||""}
+                        onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
                         <option value="">— None —</option>
                         {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                        <option value="__new__">＋ New Category…</option>
                       </select>
                     </td>
                     <td style={S.td}>

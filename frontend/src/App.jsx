@@ -232,7 +232,7 @@ export default function App() {
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
   const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
 
-  /* ── Load from backend ── */
+/* ── Load from backend ── */
   useEffect(() => {
     (async () => {
       try {
@@ -243,14 +243,15 @@ export default function App() {
         setPlaidItems(data.plaidItems     || []);
         setRules(data.rules               || []);
       } catch (e) { console.warn("Could not load data:", e.message); }
-      finally { setLoading(false);
-initialized.current = true;
- }
+      finally {
+        setLoading(false);
+        initialized.current = true;
+      }
     })();
   }, []);
 
   /* ── Auto-save to backend ── */
- const saveTimeout  = useRef(null);
+const saveTimeout  = useRef(null);
 const initialized  = useRef(false);
 
 function scheduleSave(patch) {

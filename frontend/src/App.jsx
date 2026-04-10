@@ -32,7 +32,8 @@ function useIsMobile() {
         display: flex !important;
         position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
         background: var(--surface); border-top: 1px solid var(--border);
-        height: 68px; align-items: center; justify-content: space-around; padding-bottom: env(safe-area-inset-bottom);
+        height: 68px; align-items: center; justify-content: space-around;
+        padding-bottom: env(safe-area-inset-bottom);
       }
       .ledgr-bottomnav-item {
         display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -44,15 +45,14 @@ function useIsMobile() {
       .ledgr-bottomnav-item.active { color: var(--cyan); }
       .ledgr-bottomnav-item .nav-icon { font-size: 20px; line-height: 1; }
       .ledgr-stat-grid   { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-      .ledgr-dash-grid   { grid-template-columns: 1fr !important; gap: 14px !important; }
-      .ledgr-budget-grid { grid-template-columns: 1fr !important; }
-      .ledgr-acct-grid   { grid-template-columns: 1fr !important; }
-      .ledgr-monthbar    { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
-      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; }
       .ledgr-filter-row  { flex-direction: column !important; }
       .ledgr-filter-row > * { width: 100% !important; }
       .ledgr-section-hdr { flex-wrap: wrap; gap: 8px; }
       .ledgr-txn-actions { flex-wrap: wrap !important; gap: 6px !important; }
+      .ledgr-acct-grid   { grid-template-columns: 1fr !important; }
+      .ledgr-budget-grid { grid-template-columns: 1fr !important; }
+      .ledgr-monthbar    { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
+      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; }
     }
     @media (min-width: 768px) {
       .ledgr-bottomnav { display: none !important; }
@@ -101,52 +101,26 @@ const S = {
   modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:28, width:500, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:18, fontWeight:800, marginBottom:20, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:24, right:24, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"12px 18px", fontSize:13, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
+  toast:        { position:"fixed", bottom:80, right:16, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"12px 18px", fontSize:13, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
   monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 16px", display:"flex", alignItems:"center", gap:16, fontSize:12, color:"var(--t2)", marginBottom:20, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:16, fontWeight:700, letterSpacing:"-0.2px" },
   tableWrap:    { overflowX:"auto" },
-  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"14px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)" },
+  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"14px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
   td:           { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
 };
 
 /* ─── Constants ─────────────────────────────────────────────────── */
 const CAT_COLORS = ["#00d4ff","#00e676","#ff4d6d","#fbbf24","#a78bfa","#f97316","#06b6d4","#84cc16","#ec4899","#14b8a6","#8b5cf6","#ef4444","#22c55e","#3b82f6","#f59e0b"];
-const today       = new Date();
-const pad         = n => String(n).padStart(2,"0");
-const fmt         = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+const today        = new Date();
+const pad          = n => String(n).padStart(2,"0");
+const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
-function daysLeft()       { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
+function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
 
 /* ─── Sub-components ─────────────────────────────────────────────── */
-
-function ProgressBar({ cat, spent }) {
-  const pct  = Math.min((spent/cat.limit)*100, 100);
-  const over = pct >= 100, warn = pct >= 80 && !over;
-  return (
-    <div style={{marginBottom:18}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,fontWeight:500,color:"var(--t1)"}}>
-          <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-          {cat.name}
-        </div>
-        <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)"}}>
-          {fmt(spent)} / {fmt(cat.limit)}
-          <span style={{marginLeft:8,color:cat.limit-spent>=0?"var(--green)":"var(--red)"}}>
-            {cat.limit-spent>=0?`+${fmt(cat.limit-spent)}`:fmt(cat.limit-spent)}
-          </span>
-        </div>
-      </div>
-      <div style={{height:6,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-        <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.6s cubic-bezier(.4,0,.2,1)",
-          background:over?"var(--red)":warn?"var(--amber)":cat.color}}/>
-      </div>
-    </div>
-  );
-}
-
 function CategoryBadge({ cat }) {
   if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
   return <span style={S.badge(cat.color)}><span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>{cat.name}</span>;
@@ -172,22 +146,14 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState(null);
-
   const fetchToken = useCallback(async () => {
     setLoading(true); setError(null);
     try { const { link_token } = await api.createLinkToken(); setLinkToken(link_token); }
     catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
-
-  const { open, ready } = usePlaidLink({
-    token: linkToken,
-    onSuccess: (pt, meta) => onSuccess(pt, meta?.institution?.name),
-    onExit,
-  });
-
+  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
-
   return (
     <div>
       <button style={S.btn("primary")} onClick={fetchToken} disabled={loading}>
@@ -204,7 +170,7 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
 export default function App() {
   const isMobile = useIsMobile();
 
-  /* ── All state at top level — never inside JSX ── */
+  /* ── State — all hooks at top level ── */
   const [view,          setView]          = useState("dashboard");
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
@@ -212,27 +178,25 @@ export default function App() {
   const [plaidItems,    setPlaidItems]    = useState([]);
   const [rules,         setRules]         = useState([]);
   const [loading,       setLoading]       = useState(true);
-
   const [modal,         setModal]         = useState(null);
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
   const [syncing,       setSyncing]       = useState(false);
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
-
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [search,        setSearch]        = useState("");
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
   const [editingId,     setEditingId]     = useState(null);
   const [editingName,   setEditingName]   = useState("");
-
   const [catForm,  setCatForm]  = useState({ name:"", limit:"", color:CAT_COLORS[0] });
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
   const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
 
-/* ── Load from backend ── */
+  /* ── Load from backend ── */
+  const initialized = useRef(false);
   useEffect(() => {
     (async () => {
       try {
@@ -250,21 +214,18 @@ export default function App() {
     })();
   }, []);
 
-  /* ── Auto-save to backend ── */
-const saveTimeout  = useRef(null);
-const initialized  = useRef(false);
-
-function scheduleSave(patch) {
-  if (!initialized.current) return;
-  clearTimeout(saveTimeout.current);
-  saveTimeout.current = setTimeout(() => api.saveData(patch), 800);
-}
-
-useEffect(() => { scheduleSave({ accounts });     }, [accounts]);
-useEffect(() => { scheduleSave({ categories });   }, [categories]);
-useEffect(() => { scheduleSave({ transactions }); }, [transactions]);
-useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems]);
-useEffect(() => { scheduleSave({ rules });        }, [rules]);
+  /* ── Save to backend ── */
+  const saveTimeout = useRef(null);
+  function scheduleSave(patch) {
+    if (!initialized.current) return;
+    clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => api.saveData(patch), 800);
+  }
+  useEffect(() => { scheduleSave({ accounts });     }, [accounts]);
+  useEffect(() => { scheduleSave({ categories });   }, [categories]);
+  useEffect(() => { scheduleSave({ transactions }); }, [transactions]);
+  useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems]);
+  useEffect(() => { scheduleSave({ rules });        }, [rules]);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
 
@@ -274,13 +235,6 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   [transactions, selectedMonth]);
 
   const isCurrentMonth = selectedMonth === currentMonth;
-
-  const catTxns = useMemo(() =>
-    drillCat
-      ? monthTxns.filter(t => t.categoryId===drillCat.id && t.amount<0)
-                 .sort((a,b) => b.date.localeCompare(a.date))
-      : [],
-  [drillCat, monthTxns]);
 
   const spentByCat = useMemo(() => {
     const m = {};
@@ -311,6 +265,29 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
     }).sort((a,b) => b.date?.localeCompare(a.date)),
   [transactions, search, filterCat, filterAcct]);
 
+  /* Sorted categories — overspent first, then least remaining */
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const remA = a.limit - (spentByCat[a.id]||0);
+      const remB = b.limit - (spentByCat[b.id]||0);
+      const overA = remA < 0, overB = remB < 0;
+      const zeroA = remA === 0, zeroB = remB === 0;
+      if (overA && !overB) return -1;
+      if (!overA && overB) return 1;
+      if (overA && overB)  return remA - remB;
+      if (zeroA && !zeroB) return -1;
+      if (!zeroA && zeroB) return 1;
+      return remA - remB;
+    });
+  }, [categories, spentByCat]);
+
+  /* Category drill-down transactions */
+  const catTxns = useMemo(() =>
+    drillCat
+      ? monthTxns.filter(t=>t.categoryId===drillCat.id&&t.amount<0).sort((a,b)=>b.date.localeCompare(a.date))
+      : [],
+  [drillCat, monthTxns]);
+
   function prevMonth() {
     const [y,m] = selectedMonth.split("-").map(Number);
     const d = new Date(y,m-2,1);
@@ -327,7 +304,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
     return new Date(y,m-1,1).toLocaleString("default",{month:"long",year:"numeric"});
   }
 
-  /* ── Rules engine ── */
+  /* ── Rules ── */
   function applyRules(txns, currentRules) {
     if (!currentRules?.length) return txns;
     return txns.map(t => {
@@ -336,11 +313,8 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
         if (!rule.enabled) continue;
         const pattern = rule.pattern.toLowerCase().trim();
         if (!pattern) continue;
-        const match =
-          rule.matchType==="exact"  ? merchant===pattern :
-          rule.matchType==="starts" ? merchant.startsWith(pattern) :
-          merchant.includes(pattern);
-        if (match) return { ...t, categoryId: rule.categoryId||t.categoryId };
+        const match = rule.matchType==="exact" ? merchant===pattern : rule.matchType==="starts" ? merchant.startsWith(pattern) : merchant.includes(pattern);
+        if (match) return { ...t, categoryId:rule.categoryId||t.categoryId };
       }
       return t;
     });
@@ -391,12 +365,9 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
       setAccounts(prev => {
         const byId = Object.fromEntries(prev.map(a=>[a.plaidId,a]));
         return plaidAccts.map(pa=>({
-          id: byId[pa.account_id]?.id||"a"+pa.account_id,
-          plaidId: pa.account_id,
-          name: byId[pa.account_id]?.name||pa.name,
-          balance: pa.balance, available: pa.available,
-          type: capitalise(pa.subtype||pa.type),
-          institution: pa.institution,
+          id:byId[pa.account_id]?.id||"a"+pa.account_id, plaidId:pa.account_id,
+          name:byId[pa.account_id]?.name||pa.name, balance:pa.balance,
+          available:pa.available, type:capitalise(pa.subtype||pa.type), institution:pa.institution,
         }));
       });
       setTransactions(prev => {
@@ -412,11 +383,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   function plaidTxnToLocal(t, cm) {
     const plaidCat = (t.category||"").toLowerCase();
     const matched  = Object.values(cm).find(c=>plaidCat.includes(c.name.toLowerCase().split(" ")[0]));
-    return {
-      id:t.transaction_id, plaidAccountId:t.account_id, accountId:"a"+t.account_id,
-      date:t.date||t.authorized_date, merchant:t.merchant_name||t.name, name:"",
-      amount:t.amount, categoryId:matched?.id||null, pending:t.pending,
-    };
+    return { id:t.transaction_id, plaidAccountId:t.account_id, accountId:"a"+t.account_id, date:t.date||t.authorized_date, merchant:t.merchant_name||t.name, name:"", amount:t.amount, categoryId:matched?.id||null, pending:t.pending };
   }
 
   async function disconnectItem(itemId) {
@@ -458,7 +425,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   }
   function updateTxnCat(id, val) {
     setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null}:t));
-    if (val) { const txn=transactions.find(t=>t.id===id); if (txn) promptSaveRule(txn,val); }
+    if (val) { const txn=transactions.find(t=>t.id===id); if(txn) promptSaveRule(txn,val); }
   }
   function updateTxnAcct(id, val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
   function deleteTxn(id) { setTransactions(p=>p.filter(t=>t.id!==id)); showToast("Deleted"); }
@@ -469,8 +436,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   }
   function saveManualTxn() {
     if (!txnForm.merchant.trim()||!txnForm.amount) return;
-    setTransactions(p=>[{ id:"m"+Date.now(), date:txnForm.date, merchant:txnForm.merchant.trim(), name:"",
-      amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign), categoryId:txnForm.categoryId||null, accountId:txnForm.accountId||null },...p]);
+    setTransactions(p=>[{ id:"m"+Date.now(), date:txnForm.date, merchant:txnForm.merchant.trim(), name:"", amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign), categoryId:txnForm.categoryId||null, accountId:txnForm.accountId||null },...p]);
     setModal(null); showToast("Transaction added");
   }
 
@@ -481,6 +447,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   /* ── Dashboard ── */
   const Dashboard = (
     <div>
+      {/* Month bar */}
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>‹</button>
@@ -498,12 +465,13 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
         </div>
       </div>
 
+      {/* Stat cards */}
       <div className="ledgr-stat-grid" style={{...S.grid4,marginBottom:20}}>
         {[
-          { label:"Budget",       value:fmt(totalBudget), sub:`${categories.length} categories`,          color:"var(--t1)"    },
-          { label:"Spent",        value:fmt(totalSpent),  sub:`${fmt(totalBudget-totalSpent)} left`,       color:"var(--red)"   },
-          { label:"Income",       value:fmt(totalIncome), sub:`Net ${fmt(totalIncome-totalSpent)}`,        color:"var(--green)" },
-          { label:"Transactions", value:monthTxns.length, sub:monthLabel(selectedMonth),                  color:"var(--t1)"    },
+          { label:"Budget",       value:fmt(totalBudget), sub:`${categories.length} categories`,         color:"var(--t1)"    },
+          { label:"Spent",        value:fmt(totalSpent),  sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"   },
+          { label:"Income",       value:fmt(totalIncome), sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)" },
+          { label:"Transactions", value:monthTxns.length, sub:monthLabel(selectedMonth),                 color:"var(--t1)"    },
         ].map(s=>(
           <div key={s.label} style={S.stat}>
             <div style={S.statLabel}>{s.label}</div>
@@ -513,21 +481,24 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
         ))}
       </div>
 
-      <div className="ledgr-dash-grid" style={{...S.grid2,gap:16}}>
+      {/* Budget progress + recent transactions — stacked on mobile, side by side on desktop */}
+      <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+        {/* Budget Progress */}
         <div style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:12}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>setView("budgets")}>All →</button>
           </div>
           {categories.length===0
-            ? <div style={{textAlign:"center",padding:"32px 0",color:"var(--t3)"}}>No categories yet</div>
-            : sortedCategories.slice(0,5).map(cat=>{
+            ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+            : sortedCategories.slice(0,isMobile?5:8).map(cat=>{
                 const spent     = spentByCat[cat.id]||0;
                 const remaining = cat.limit - spent;
                 const pct       = Math.min((spent/cat.limit)*100,100);
                 const over      = pct>=100, warn = pct>=80&&!over;
                 return (
-                  <div key={cat.id} style={{marginBottom:12}}>
+                  <div key={cat.id} style={{marginBottom:14,cursor:"pointer"}} onClick={()=>{ setDrillCat(cat); setView("budgets"); }}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
                       <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
                         <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
@@ -538,20 +509,21 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
                       </span>
                     </div>
                     <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s ease",
-                        background:over?"var(--red)":warn?"var(--amber)":cat.color}}/>
+                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s ease",background:over?"var(--red)":warn?"var(--amber)":cat.color}}/>
                     </div>
                   </div>
                 );
               })
           }
         </div>
+
+        {/* Recent Transactions */}
         <div style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:12}}>
             <div style={S.cardTitle}>Recent Transactions</div>
             <button style={S.btn("ghost",true)} onClick={()=>setView("transactions")}>All →</button>
           </div>
-          {filteredTxns.slice(0,9).map(t=>(
+          {filteredTxns.slice(0,8).map(t=>(
             <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
               <div style={{flex:1,minWidth:0,marginRight:10}}>
                 <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
@@ -644,16 +616,16 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
           ))}
         </div>
       ) : (
-       <div style={{...S.card,padding:0,overflow:"hidden"}}>
+        <div style={{...S.card,padding:0,overflow:"hidden"}}>
           <div style={{...S.tableWrap,overflowY:"auto",maxHeight:"calc(100vh - 280px)"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Date</th>
-                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Name / Merchant</th>
-                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Category</th>
-                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}>Account</th>
-                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2,textAlign:"right"}}>Amount</th>
-                <th style={{...S.th,position:"sticky",top:0,background:"var(--card)",zIndex:2}}/>
+                <th style={S.th}>Date</th>
+                <th style={S.th}>Name / Merchant</th>
+                <th style={S.th}>Category</th>
+                <th style={S.th}>Account</th>
+                <th style={{...S.th,textAlign:"right"}}>Amount</th>
+                <th style={S.th}/>
               </tr></thead>
               <tbody>
                 {filteredTxns.length===0&&(
@@ -712,33 +684,6 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   );
 
   /* ── Budgets ── */
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => {
-      const spentA = spentByCat[a.id] || 0;
-      const spentB = spentByCat[b.id] || 0;
-      const remA   = a.limit - spentA;
-      const remB   = b.limit - spentB;
-      const overA  = remA < 0;
-      const overB  = remB < 0;
-      const zeroA  = remA === 0;
-      const zeroB  = remB === 0;
-
-      // Overspent always first
-      if (overA && !overB) return -1;
-      if (!overA && overB) return 1;
-
-      // Both overspent — most over first
-      if (overA && overB) return remA - remB;
-
-      // Zero remaining next
-      if (zeroA && !zeroB) return -1;
-      if (!zeroA && zeroB) return 1;
-
-      // Then sort by least remaining
-      return remA - remB;
-    });
-  }, [categories, spentByCat]);
-
   const Budgets = (
     <div>
       <div style={{...S.sectionHdr,marginBottom:16}}>
@@ -748,45 +693,39 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
 
       {categories.length===0
         ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet. Create one to get started.</div>
-       : <div style={{...S.card,padding:0,overflow:"hidden"}}>
+        : <div style={{...S.card,padding:0,overflow:"hidden"}}>
             {sortedCategories.map((cat,i)=>{
-              const spent    = spentByCat[cat.id]||0;
-              const pct      = Math.min((spent/cat.limit)*100,100);
-              const over     = pct>=100, warn = pct>=80&&!over;
-              const barC     = over?"var(--red)":warn?"var(--amber)":cat.color;
+              const spent     = spentByCat[cat.id]||0;
+              const pct       = Math.min((spent/cat.limit)*100,100);
+              const over      = pct>=100, warn = pct>=80&&!over;
+              const barC      = over?"var(--red)":warn?"var(--amber)":cat.color;
               const remaining = cat.limit - spent;
-              const txnCount = monthTxns.filter(t=>t.categoryId===cat.id&&t.amount<0).length;
+              const txnCount  = monthTxns.filter(t=>t.categoryId===cat.id&&t.amount<0).length;
               return (
                 <div key={cat.id}
                   onClick={()=>setDrillCat(cat)}
                   style={{padding:"14px 20px",borderBottom:i<sortedCategories.length-1?"1px solid var(--border)":"none",cursor:"pointer",transition:"background 0.12s"}}
                   onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
                   onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-
-                  {/* Row 1: name + spent + remaining */}
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
                     <span style={{width:9,height:9,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                    <span style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,color:"var(--t1)",flex:1}}>{cat.name}</span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t2)"}}>{fmt(spent)}</span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,
+                    <span style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t2)",flexShrink:0}}>{fmt(spent)}</span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,flexShrink:0,
                       color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",
                       background:over?"var(--red-dim)":remaining===0?"var(--surface)":"var(--green-dim)",
                       border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":"var(--green)"}33`,
-                      borderRadius:99,padding:"3px 10px",minWidth:70,textAlign:"center"}}>
+                      borderRadius:99,padding:"3px 10px",minWidth:65,textAlign:"center"}}>
                       {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
                     </span>
-                    <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
+                    <div style={{display:"flex",gap:4,flexShrink:0}} onClick={e=>e.stopPropagation()}>
                       <button style={{...S.btn("ghost",true),padding:"4px 8px",fontSize:11}} onClick={()=>openEditCat(cat)}>Edit</button>
                       <button style={{...S.btn("danger",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
                     </div>
                   </div>
-
-                  {/* Row 2: progress bar */}
                   <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:6}}>
                     <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s ease"}}/>
                   </div>
-
-                  {/* Row 3: status text */}
                   <div style={{fontSize:11,color:"var(--t3)"}}>
                     {over
                       ? <span style={{color:"var(--red)"}}>Overspent. {fmt(spent)} of {fmt(cat.limit)}</span>
@@ -805,8 +744,6 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
       {drillCat&&(
         <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
           <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
-
-            {/* Header */}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
@@ -815,7 +752,6 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
               <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1,padding:"4px 8px",flexShrink:0}}>✕</button>
             </div>
 
-            {/* Stats row - 2x2 on mobile, 4 across on desktop */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
               {[
                 { label:"Spent",        value:fmt(spentByCat[drillCat.id]||0), color:drillCat.color },
@@ -830,17 +766,14 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
               ))}
             </div>
 
-            {/* Progress bar */}
             <div style={{marginBottom:14,flexShrink:0}}>
               <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
                 <div style={{height:"100%",borderRadius:99,
                   background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
-                  width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,
-                  transition:"width 0.5s ease"}}/>
+                  width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s ease"}}/>
               </div>
             </div>
 
-            {/* Transaction list */}
             <div style={{overflowY:"auto",flex:1}}>
               {catTxns.length===0 ? (
                 <div style={{textAlign:"center",padding:"40px 0",color:"var(--t3)"}}>
@@ -848,18 +781,15 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
                   No transactions in {monthLabel(selectedMonth)}
                 </div>
               ) : (
-                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                <div style={{display:"flex",flexDirection:"column"}}>
                   {catTxns.map((t,i)=>(
                     <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 4px",borderBottom:i<catTxns.length-1?"1px solid var(--border)":"none",flexWrap:"wrap"}}>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0}}>{t.date}</div>
                       <div style={{flex:1,minWidth:80,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                      <select
-                        style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
+                      <select style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
                         value={t.categoryId||""}
                         onChange={e=>{ updateTxnCat(t.id,e.target.value); if(e.target.value!==drillCat.id) showToast("Transaction moved"); }}>
-                        {categories.map(c=>(
-                          <option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>
-                        ))}
+                        {categories.map(c=><option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>)}
                         <option value="">— Uncategorized —</option>
                       </select>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0,minWidth:70,textAlign:"right"}}>
@@ -871,13 +801,14 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
               )}
             </div>
 
-            {/* Footer */}
             <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",flexShrink:0}}>
               <button style={S.btn("ghost")} onClick={()=>setDrillCat(null)}>Close</button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
 
   /* ── Accounts ── */
   const Accounts = (
@@ -914,8 +845,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
             {accounts.map(acct=>{
               const spent    = spentByAcct[acct.id]||0;
               const income   = monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((a,t)=>a+t.amount,0);
-              const daysGone = today.getDate();
-              const daily    = daysGone>0?spent/daysGone:0;
+              const daily    = today.getDate()>0?spent/today.getDate():0;
               const needed   = daily*daysLeft();
               const tight    = needed>acct.balance;
               const typeIcon = acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
@@ -1025,7 +955,6 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   /* ─────────────────────────────────────────────────────────────────
      MODALS
   ───────────────────────────────────────────────────────────────── */
-
   const RuleModal = (
     <Modal title={modal==="addRule"?"New Rule":"Edit Rule"} onClose={()=>setModal(null)}
       actions={<>
@@ -1127,7 +1056,6 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
   /* ─────────────────────────────────────────────────────────────────
      NAV + RENDER
   ───────────────────────────────────────────────────────────────── */
-
   const NAV = [
     { id:"dashboard",    icon:"◈", label:"Dashboard"    },
     { id:"transactions", icon:"⇅", label:"Transactions" },
@@ -1195,7 +1123,7 @@ useEffect(() => { scheduleSave({ rules });        }, [rules]);
       {(modal==="addRule"||modal==="editRule") && RuleModal}
 
       {rulePrompt&&(
-        <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>
+        <div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>
           <div style={{flex:1,fontSize:13}}>
             <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Save as a rule?</div>
             <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; → <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>

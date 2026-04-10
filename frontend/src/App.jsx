@@ -967,7 +967,7 @@ export default function App() {
         : <div className="ledgr-acct-grid">
             {accounts.map(acct=>{
               const spent=spentByAcct[acct.id]||0;
-              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);&&t.accountId===acct.id&&t.type==="income").reduce((a,t)=>a+t.amount,0);
+              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
               const daily=today.getDate()>0?spent/today.getDate():0;
               const needed=daily*daysLeft(),tight=needed>acct.balance;
               const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";

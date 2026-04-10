@@ -771,8 +771,8 @@ export default function App() {
         <div style={{display:"flex",flexDirection:"column",gap:0,...S.card,padding:0,overflow:"hidden"}}>
           {sortedCategories.map((cat,i)=>{
             const spent=spentByCat[cat.id]||0,pct=Math.min((spent/cat.limit)*100,100);
-            const over=remaining<0,warn=pct>=80&&!over&&remaining!==0,barC=over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color;
             const remaining=cat.limit-spent,isLast=i===sortedCategories.length-1;
+            const over=remaining<0,warn=pct>=80&&!over&&remaining!==0,barC=over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color;
             return (
               <div key={cat.id} onClick={()=>setDrillCat(cat)}
                 style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",transition:"background 0.12s"}}
@@ -847,8 +847,8 @@ export default function App() {
           </div>
           {sortedCategories.map((cat,i)=>{
             const spent=spentByCat[cat.id]||0,pct=Math.min((spent/cat.limit)*100,100);
-            const over=remaining<0,warn=pct>=80&&!over&&remaining!==0,barC=over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color;
             const remaining=cat.limit-spent,isLast=i===sortedCategories.length-1;
+            const over=remaining<0,warn=pct>=80&&!over&&remaining!==0,barC=over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color;
             return (
               <div key={cat.id} onClick={()=>setDrillCat(cat)}
                 style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"13px 20px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",alignItems:"center",transition:"background 0.12s"}}

@@ -217,7 +217,7 @@ export default function App() {
 
   const totalSpent  = Object.values(spentByCat).reduce((a,b)=>a+b,0);
   const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
-  const totalIncome = monthTxns.filter(t=>t.amount>0&&t.type==="income").reduce((a,t)=>a+t.amount,0);
+  const totalIncome = monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
@@ -967,7 +967,7 @@ export default function App() {
         : <div className="ledgr-acct-grid">
             {accounts.map(acct=>{
               const spent=spentByAcct[acct.id]||0;
-              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&t.type==="income").reduce((a,t)=>a+t.amount,0);
+              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
               const daily=today.getDate()>0?spent/today.getDate():0;
               const needed=daily*daysLeft(),tight=needed>acct.balance;
               const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
@@ -1141,37 +1141,21 @@ export default function App() {
         const entries=Object.values(byAccount).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
         if (entries.length===0) return null;
         const totalRemaining=entries.reduce((a,e)=>a+e.total,0);
-        const label=isPastCalMonth?"Charged in":isCurrentCalMonth?"Remaining charges this":"Total charges in";
+        const label=isPastCalMonth?"Charged in":isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
         return (
-          <div style={{...S.card,marginBottom:20}}>
-            <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:14,paddingBottom:14,borderBottom:"1px solid var(--border)"}}>
-              <div>
-                <div style={S.cardTitle}>{label} {monthLabel(calendarMonth)}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,color:"var(--red)"}}>{fmt(totalRemaining)}</div>
-                <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>
-                  {isCurrentCalMonth?`from day ${today.getDate()} onwards · `:""}
-                  {entries.reduce((a,e)=>a+e.count,0)} charge{entries.reduce((a,e)=>a+e.count,0)!==1?"s":""} across {entries.length} account{entries.length!==1?"s":""}
-                </div>
-              </div>
+          <div style={{...S.card,marginBottom:20,padding:"14px 20px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)"}}>{label}</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(totalRemaining)} total</div>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {entries.map(e=>{
-                const pct=totalRemaining>0?(e.total/totalRemaining)*100:0;
-                return (
-                  <div key={e.name}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.name}</div>
-                        <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{e.count} charge{e.count!==1?"s":""}</div>
-                      </div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--red)",flexShrink:0,marginLeft:12}}>{fmt(e.total)}</div>
-                    </div>
-                    <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                      <div style={{height:"100%",borderRadius:99,background:"var(--red)",width:`${pct}%`,opacity:0.6,transition:"width 0.5s"}}/>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(entries.length,3)},1fr)`,gap:10}}>
+              {entries.map(e=>(
+                <div key={e.name} style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",borderTop:`2px solid var(--red)`}}>
+                  <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{e.name}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--red)"}}>{fmt(e.total)}</div>
+                  <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{e.count} charge{e.count!==1?"s":""}</div>
+                </div>
+              ))}
             </div>
           </div>
         );

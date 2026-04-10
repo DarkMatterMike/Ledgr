@@ -640,17 +640,20 @@ export default function App() {
           <div style={S.tableWrap}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                <th style={S.th}>Date</th>
-                <th style={S.th}>Name / Merchant</th>
-                <th style={S.th}>Category</th>
-                <th style={S.th}>Account</th>
-                <th style={{...S.th,textAlign:"right"}}>Amount</th>
-                <th style={S.th}/>
-              </tr></thead>
+  <th style={{...S.th,padding:"14px 12px"}}>Date</th>
+  <th style={{...S.th,padding:"14px 12px"}}>Name / Merchant</th>
+  <th style={{...S.th,padding:"14px 12px"}}>Category</th>
+  <th style={{...S.th,padding:"14px 12px"}}>Account</th>
+  <th style={{...S.th,padding:"14px 12px",textAlign:"right"}}>Amount</th>
+  <th style={{...S.th,padding:"14px 12px"}}/>
+</tr></thead>
               <tbody>
-                {filteredTxns.length===0&&(
-                  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:48,color:"var(--t3)"}}>No transactions found</td></tr>
-                )}
+               {filteredTxns.length===0&&(
+  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>
+    <div style={{fontSize:28,marginBottom:10,opacity:0.3}}>⇅</div>
+    No transactions found
+  </td></tr>
+)}
                 {filteredTxns.map(t=>(
                   <tr key={t.id} style={{background:"transparent"}}>
                     <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{t.date}</td>

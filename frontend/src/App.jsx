@@ -481,8 +481,8 @@ export default function App() {
         ))}
       </div>
 
-      {/* Budget progress + recent transactions — stacked on mobile, side by side on desktop */}
-      <div style={{display:"flex",flexDirection:"column",gap:16}}>
+     {/* Budget progress + recent transactions — stacked on mobile, side by side on desktop */}
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
 
         {/* Budget Progress */}
         <div style={S.card}>

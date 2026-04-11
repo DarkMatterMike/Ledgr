@@ -148,6 +148,7 @@ export default function App() {
   const [modal,         setModal]         = useState(null);
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
+  const [newTxnCount,   setNewTxnCount]   = useState(0);
   const [syncing,       setSyncing]       = useState(false);
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
@@ -199,6 +200,80 @@ export default function App() {
   useEffect(() => {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts]);
+
+  /* ── Poll for new transactions every 30 minutes ── */
+  const knownTxnIds = useRef(null);
+  useEffect(() => {
+    if (!initialized.current) return;
+    // Record the IDs we loaded with
+    if (knownTxnIds.current === null) {
+      knownTxnIds.current = new Set(transactions.map(t => t.id));
+    }
+  }, [initialized.current, transactions.length]);
+
+  useEffect(() => {
+    const POLL_MS = 30 * 60 * 1000; // 30 minutes
+    const interval = setInterval(async () => {
+      if (!initialized.current) return;
+      try {
+        const data = await api.loadData();
+        const incoming = data.transactions || [];
+        const known = knownTxnIds.current || new Set();
+        const brandNew = incoming.filter(t => !known.has(t.id));
+        if (brandNew.length > 0) {
+          // Merge new transactions into state without overwriting user edits
+          setTransactions(prev => {
+            const existingIds = new Set(prev.map(t => t.id));
+            const toAdd = brandNew.filter(t => !existingIds.has(t.id));
+            if (toAdd.length === 0) return prev;
+            return [...toAdd, ...prev];
+          });
+          brandNew.forEach(t => knownTxnIds.current.add(t.id));
+          setNewTxnCount(brandNew.length);
+        }
+      } catch (e) {
+        console.warn("Poll error:", e.message);
+      }
+    }, POLL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  /* ── Service worker + push notification subscription ── */
+  useEffect(() => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const VAPID_PUBLIC = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+    function urlBase64ToUint8Array(b64) {
+      const pad = "=".repeat((4 - b64.length % 4) % 4);
+      const raw = atob((b64 + pad).replace(/-/g,"+").replace(/_/g,"/"));
+      return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+    }
+    async function setup() {
+      try {
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") return;
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+          });
+        }
+        await fetch("https://ledgr-production-9e35.up.railway.app/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub),
+        });
+        navigator.serviceWorker.addEventListener("message", e => {
+          if (e.data?.type === "NEW_TRANSACTIONS") setView("transactions");
+        });
+      } catch (err) {
+        console.warn("Push setup:", err.message);
+      }
+    }
+    setup();
+  }, []);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
   const navigate  = id  => { setView(id); setDrawerOpen(false); };
@@ -1557,6 +1632,27 @@ export default function App() {
           </div>
           <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
           <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
+        </div>
+      )}
+
+      {newTxnCount>0&&(
+        <div style={{
+          position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
+          zIndex:300,background:"var(--cyan)",color:"#000",
+          borderRadius:12,padding:"12px 20px",
+          boxShadow:"0 8px 32px #00000080",
+          display:"flex",alignItems:"center",gap:14,
+          maxWidth:400,width:"90vw",cursor:"pointer",
+        }} onClick={()=>{ setView("transactions"); setNewTxnCount(0); }}>
+          <span style={{fontSize:18}}>⇅</span>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700,fontSize:14}}>
+              {newTxnCount} new transaction{newTxnCount!==1?"s":""} synced
+            </div>
+            <div style={{fontSize:12,opacity:0.7}}>Tap to view</div>
+          </div>
+          <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}}
+            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000",padding:"2px 6px"}}>✕</button>
         </div>
       )}
 

@@ -4,11 +4,12 @@
 
 "use strict";
 
-const express  = require("express");
-const cors     = require("cors");
-const dotenv   = require("dotenv");
-const { Pool } = require("pg");
-const cron     = require("node-cron");
+const express   = require("express");
+const cors      = require("cors");
+const dotenv    = require("dotenv");
+const { Pool }  = require("pg");
+const cron      = require("node-cron");
+const webpush   = require("web-push");
 const {
   PlaidApi,
   PlaidEnvironments,
@@ -23,6 +24,16 @@ const FRONTEND_URL  = process.env.FRONTEND_URL || "http://localhost:5173";
 const PLAID_ENV     = process.env.PLAID_ENV || "sandbox";
 const PRODUCTS      = (process.env.PLAID_PRODUCTS || "transactions").split(",").map(p => p.trim());
 const COUNTRY_CODES = (process.env.PLAID_COUNTRY_CODES || "US").split(",").map(c => c.trim());
+
+/* ── VAPID setup ─────────────────────────────────────────────────── */
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "FApjnt7VlZhG7Bw1t_wYv9BksoW0wFwz97bqGq-vSew";
+
+webpush.setVapidDetails(
+  "mailto:admin@ledgr.app",
+  VAPID_PUBLIC,
+  VAPID_PRIVATE
+);
 
 /* ── PostgreSQL ───────────────────────────────────────────────────── */
 const pool = new Pool({
@@ -46,6 +57,14 @@ async function initDB() {
       institution  TEXT,
       cursor       TEXT,
       created_at   BIGINT
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id         SERIAL PRIMARY KEY,
+      endpoint   TEXT UNIQUE NOT NULL,
+      subscription TEXT NOT NULL,
+      created_at BIGINT
     );
   `);
   console.log("  →  Database ready");
@@ -93,6 +112,42 @@ async function removeItem(itemId) {
 
 async function updateCursor(itemId, cursor) {
   await pool.query("UPDATE plaid_items SET cursor = $1 WHERE item_id = $2", [cursor, itemId]);
+}
+
+/* ── Push subscription helpers ───────────────────────────────────── */
+async function saveSubscription(sub) {
+  await pool.query(
+    `INSERT INTO push_subscriptions (endpoint, subscription, created_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (endpoint) DO UPDATE SET subscription = EXCLUDED.subscription`,
+    [sub.endpoint, JSON.stringify(sub), Date.now()]
+  );
+}
+
+async function getAllSubscriptions() {
+  const res = await pool.query("SELECT subscription FROM push_subscriptions");
+  return res.rows.map(r => JSON.parse(r.subscription));
+}
+
+async function removeSubscription(endpoint) {
+  await pool.query("DELETE FROM push_subscriptions WHERE endpoint = $1", [endpoint]);
+}
+
+async function sendPushToAll(payload) {
+  const subs = await getAllSubscriptions();
+  if (!subs.length) return;
+  const results = await Promise.allSettled(
+    subs.map(sub =>
+      webpush.sendNotification(sub, JSON.stringify(payload)).catch(async err => {
+        // 410 Gone = subscription expired, clean it up
+        if (err.statusCode === 410) await removeSubscription(sub.endpoint);
+        throw err;
+      })
+    )
+  );
+  const sent   = results.filter(r => r.status === "fulfilled").length;
+  const failed = results.filter(r => r.status === "rejected").length;
+  console.log(`[push] Sent: ${sent}, Failed: ${failed}`);
 }
 
 /* ── Plaid client ─────────────────────────────────────────────────── */
@@ -161,18 +216,12 @@ async function syncItemTransactions(targetItemId = null) {
   return { added: allAdded, modified: allModified, removed: allRemoved };
 }
 
-/**
- * Apply sync results directly to stored transactions in the DB.
- * Preserves user edits (custom names, categoryId, recurring flags, type).
- */
 async function applySyncResultsToDB(added, modified, removed) {
   const existing = (await getData("transactions")) || [];
 
-  // Remove deleted
   const removeIds = new Set(removed.map(r => r.transaction_id));
   let next = existing.filter(t => !removeIds.has(t.id));
 
-  // Apply modifications — only update Plaid-owned fields, preserve user edits
   const modMap = Object.fromEntries(modified.map(t => [t.transaction_id, t]));
   next = next.map(t => {
     if (!modMap[t.id]) return t;
@@ -180,7 +229,6 @@ async function applySyncResultsToDB(added, modified, removed) {
     return { ...t, date: m.date, pending: m.pending, amount: m.amount };
   });
 
-  // Merge new transactions, skip any already stored
   const existingIds = new Set(next.map(t => t.id));
   const newTxns = added
     .filter(t => !existingIds.has(t.transaction_id))
@@ -206,6 +254,7 @@ async function applySyncResultsToDB(added, modified, removed) {
     added:    newTxns.length,
     modified: modified.length,
     removed:  removed.length,
+    newTxns,
   };
 }
 
@@ -361,7 +410,6 @@ app.get("/api/plaid/accounts", async (_req, res) => {
   }
 });
 
-/* Manual sync endpoint — used by the frontend Sync button */
 app.post("/api/plaid/transactions/sync", async (req, res) => {
   const { item_id: targetItemId } = req.body;
   try {
@@ -372,7 +420,48 @@ app.post("/api/plaid/transactions/sync", async (req, res) => {
   }
 });
 
-/* ── Cron: background sync every 4 hours ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   PUSH NOTIFICATION ENDPOINTS
+═══════════════════════════════════════════════════════════════════ */
+
+app.post("/api/push/subscribe", async (req, res) => {
+  try {
+    const sub = req.body;
+    if (!sub || !sub.endpoint) return res.status(400).json({ error: "Invalid subscription" });
+    await saveSubscription(sub);
+    console.log("[push] New subscription saved:", sub.endpoint.slice(0, 50) + "...");
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("push/subscribe error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/push/unsubscribe", async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (endpoint) await removeSubscription(endpoint);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Test endpoint — trigger a push manually to verify setup
+app.post("/api/push/test", async (req, res) => {
+  try {
+    await sendPushToAll({
+      title: "ledgr. test",
+      body:  "Push notifications are working!",
+      url:   "/",
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ── Cron: background sync every 4 hours + push notification ─────── */
 cron.schedule("0 */4 * * *", async () => {
   const ts = new Date().toISOString();
   console.log(`[cron] ${ts} — starting scheduled sync`);
@@ -382,15 +471,30 @@ cron.schedule("0 */4 * * *", async () => {
       console.log("[cron] No Plaid items — skipping");
       return;
     }
+
     const { added, modified, removed } = await syncItemTransactions();
     const result = await applySyncResultsToDB(added, modified, removed);
+
     console.log(`[cron] Done — +${result.added} added, ${result.modified} modified, ${result.removed} removed`);
+
+    // Send push notification if new transactions were found
+    if (result.added > 0) {
+      const count    = result.added;
+      const examples = result.newTxns.slice(0, 2).map(t => t.merchant || t.name).join(", ");
+      await sendPushToAll({
+        title: `ledgr. — ${count} new transaction${count !== 1 ? "s" : ""}`,
+        body:  examples
+          ? `${examples}${count > 2 ? ` and ${count - 2} more` : ""}`
+          : `${count} new transaction${count !== 1 ? "s" : ""} synced`,
+        url: "/",
+      });
+    }
   } catch (err) {
     console.error("[cron] Sync failed:", err.message);
   }
 });
 
-console.log("[cron] Scheduled sync registered — runs every 4 hours (0:00, 4:00, 8:00, 12:00, 16:00, 20:00)");
+console.log("[cron] Scheduled sync registered — runs every 4 hours");
 
 /* ── Start ────────────────────────────────────────────────────────── */
 initDB().then(() => {
@@ -398,7 +502,8 @@ initDB().then(() => {
     console.log(`\n  🏦  Ledgr backend running`);
     console.log(`  →  http://localhost:${PORT}/api/health`);
     console.log(`  →  Plaid env: ${PLAID_ENV}`);
-    console.log(`  →  Auto-sync: every 4 hours\n`);
+    console.log(`  →  Auto-sync: every 4 hours`);
+    console.log(`  →  Push notifications: enabled\n`);
   });
 }).catch(err => {
   console.error("Failed to initialize database:", err.message);

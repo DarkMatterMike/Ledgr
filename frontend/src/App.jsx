@@ -158,6 +158,7 @@ export default function App() {
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
   const [editingId,     setEditingId]     = useState(null);
+  const [ellipsisId,    setEllipsisId]    = useState(null); // transaction id with open ⋯ menu
   const [editingName,   setEditingName]   = useState("");
   const [catForm,  setCatForm]  = useState({ name:"", limit:"", color:CAT_COLORS[0] });
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
@@ -628,7 +629,15 @@ export default function App() {
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       {t.recurring&&<span style={{color:"var(--amber)",fontSize:12,flexShrink:0}}>↻</span>}
                       <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</span>
-                      <button onClick={()=>startRename(t)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px",flexShrink:0}}>✏</button>
+                      <div style={{position:"relative",flexShrink:0}}>
+                        <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
+                        {ellipsisId===t.id&&(
+                          <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
+                            <button onClick={()=>{startRename(t);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+                            <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                   <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{t.date}{t.pending&&<span style={{marginLeft:6,color:"var(--amber)"}}>pending</span>}</div>
@@ -637,7 +646,7 @@ export default function App() {
                   <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)"}}>
                     {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
                   </span>
-                  <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13}}>🗑</button>
+                  <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 6px"}}>✕</button>
                 </div>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
@@ -686,8 +695,7 @@ export default function App() {
                 <th style={S.th}>Account</th>
                 <th style={{...S.th,textAlign:"center"}}>Recurring</th>
                 <th style={{...S.th,textAlign:"right"}}>Amount</th>
-                <th style={S.th}/>
-              </tr></thead>
+                  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>              </tr></thead>
               <tbody>
                 {filteredTxns.length===0&&(
                   <tr><td colSpan={7} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>
@@ -710,7 +718,15 @@ export default function App() {
                           <span>{t.name||t.merchant}</span>
                           {t.name&&<span style={{fontSize:10,color:"var(--t3)"}}>({t.merchant})</span>}
                           {t.pending&&<span style={{fontSize:10,color:"var(--amber)",border:"1px solid var(--amber)44",borderRadius:4,padding:"1px 5px"}}>pending</span>}
-                          <button onClick={()=>startRename(t)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 4px"}}>✏</button>
+                          <div style={{position:"relative",marginLeft:"auto",flexShrink:0}}>
+                            <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 6px",lineHeight:1}}>⋯</button>
+                            {ellipsisId===t.id&&(
+                              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
+                                <button onClick={()=>{startRename(t);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+                                <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </td>
@@ -750,9 +766,6 @@ export default function App() {
                     </td>
                     <td style={{...S.td,textAlign:"right",fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
                       {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                    </td>
-                    <td style={{...S.td,width:36}}>
-                      <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14}}>🗑</button>
                     </td>
                   </tr>
                 ))}
@@ -814,7 +827,7 @@ export default function App() {
                   </span>
                   <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                   <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                  <button style={{...S.btn("danger",true),padding:"3px 7px",fontSize:11}} onClick={e=>{e.stopPropagation();deleteCat(cat.id);}}>✕</button>
+                  <button style={{...S.btn("ghost",true),padding:"3px 7px",fontSize:11}} onClick={e=>{e.stopPropagation();deleteCat(cat.id);}}>✕</button>
                 </div>
                 {/* Progress bar */}
                 <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:10}}>
@@ -834,7 +847,7 @@ export default function App() {
                         onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}/>
                     ):(
                       <div onClick={e=>startEditLimit(cat,e)} style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",cursor:"text"}}>
-                        {fmt(cat.limit)} <span style={{fontSize:9,opacity:0.4}}>✏</span>
+                        {fmt(cat.limit)} <span style={{fontSize:9,opacity:0.4}}>⋯</span>
                       </div>
                     )}
                   </div>
@@ -909,7 +922,7 @@ export default function App() {
                       style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",cursor:"text",padding:"4px 8px",borderRadius:"var(--radius)",border:"1px solid transparent",transition:"border-color 0.15s",display:"inline-block"}}
                       onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border2)"}
                       onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
-                      {fmt(cat.limit)} <span style={{fontSize:10,opacity:0.4}}>✏</span>
+                      {fmt(cat.limit)} <span style={{fontSize:10,opacity:0.4}}>⋯</span>
                     </span>
                   )}
                 </div>
@@ -923,7 +936,7 @@ export default function App() {
                   </span>
                 </div>
                 <div style={{display:"flex",gap:4,justifyContent:"flex-end"}} onClick={e=>e.stopPropagation()}>
-                  <button style={{...S.btn("danger",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
+                  <button style={{...S.btn("ghost",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
                 </div>
               </div>
             );
@@ -986,7 +999,7 @@ export default function App() {
                     </div>
                     <div style={{display:"flex",gap:6}}>
                       <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
-                      <button style={S.btn("danger",true)} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                      <button style={S.btn("ghost",true)} onClick={()=>deleteAcct(acct.id)}>✕</button>
                     </div>
                   </div>
                   <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)"}}>
@@ -1050,7 +1063,7 @@ export default function App() {
                       {rule.enabled?"✓ On":"Off"}
                     </button>
                     <button style={S.btn("ghost",true)} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId,enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-                    <button style={S.btn("danger",true)} onClick={()=>deleteRule(rule.id)}>✕</button>
+                    <button style={S.btn("ghost",true)} onClick={()=>deleteRule(rule.id)}>✕</button>
                   </div>
                 </div>
               </div>
@@ -1136,13 +1149,19 @@ export default function App() {
           return true;
         });
         const byAccount = {};
+        // Seed all accounts at $0 first so they always appear
+        accounts.forEach(a=>{ byAccount[a.id]={name:a.name,total:0,count:0}; });
+        if (!byAccount["unassigned"]) byAccount["unassigned"]={name:"Unassigned",total:0,count:0};
         relevantTxns.forEach(t=>{
           const key=t.accountId||"unassigned";
           if (!byAccount[key]) byAccount[key]={name:acctMap[t.accountId]?.name||"Unassigned",total:0,count:0};
           byAccount[key].total+=Math.abs(t.amount);
           byAccount[key].count+=1;
         });
-        const entries=Object.values(byAccount).filter(e=>e.total>0).sort((a,b)=>b.total-a.total);
+        // Only show unassigned if it has charges; always show real accounts
+        const entries=Object.values(byAccount)
+          .filter(e=>e.name!=="Unassigned"||e.total>0)
+          .sort((a,b)=>b.total-a.total);
         if (entries.length===0) return null;
         const totalRemaining=entries.reduce((a,e)=>a+e.total,0);
         const label=isPastCalMonth?"Charged in":isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
@@ -1187,7 +1206,7 @@ export default function App() {
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginLeft:10}}>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>{t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}</span>
-                  <span style={{fontSize:11,color:"var(--t3)"}}>✏</span>
+                  <span style={{fontSize:11,color:"var(--t3)"}}>⋯</span>
                 </div>
               </div>
             );

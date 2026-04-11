@@ -1384,6 +1384,10 @@ export default function App() {
   const EditRecurringModal = editTarget && modal==="editRecurring" ? (
     <Modal title="Edit Recurring Transaction" onClose={()=>{setModal(null);setEditTarget(null);}}
       actions={<>
+        <button style={{...S.btn("ghost"),color:"var(--t3)"}} onClick={()=>{
+          toggleRecurring(editTarget.id);
+          setModal(null);setEditTarget(null);showToast("Removed from recurring");
+        }}>Remove Recurring</button>
         <button style={S.btn("ghost")} onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
         <button style={S.btn("primary")} onClick={()=>{
           setTransactions(p=>p.map(t=>t.id===editTarget.id?{...t,name:editTarget.name,recurringDay:editTarget.recurringDay,categoryId:editTarget.categoryId||null}:t));

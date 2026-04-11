@@ -986,7 +986,6 @@ export default function App() {
               const spent=spentByAcct[acct.id]||0;
               const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
               const daily=today.getDate()>0?spent/today.getDate():0;
-              const needed=daily*daysLeft(),tight=needed>acct.balance;
               const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
               return (
                 <div key={acct.id} style={S.card}>
@@ -1013,11 +1012,6 @@ export default function App() {
                         <span>{label}</span><span style={{fontFamily:"var(--font-mono)",color}}>{value}</span>
                       </div>
                     ))}
-                    <div style={{marginTop:10,padding:"10px 12px",borderRadius:8,background:tight?"var(--red-dim)":"var(--green-dim)",border:`1px solid ${tight?"var(--red)":"var(--green)"}33`}}>
-                      <div style={{fontSize:11,color:"var(--t2)",marginBottom:3}}>Est. needed · {daysLeft()} days left</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?18:20,fontWeight:700,color:tight?"var(--red)":"var(--green)"}}>{fmt(needed)}</div>
-                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{tight?`⚠ May fall short by ${fmt(needed-acct.balance)}`:`Comfortable — ${fmt(acct.balance-needed)} cushion`}</div>
-                    </div>
                   </div>
                 </div>
               );
@@ -1148,20 +1142,16 @@ export default function App() {
           if (isCurrentCalMonth) return (t.recurringDay||0)>=today.getDate();
           return true;
         });
-        const byAccount = {};
-        // Seed all accounts at $0 first so they always appear
+        // Seed only real accounts at $0 so they always appear
         accounts.forEach(a=>{ byAccount[a.id]={name:a.name,total:0,count:0}; });
-        if (!byAccount["unassigned"]) byAccount["unassigned"]={name:"Unassigned",total:0,count:0};
         relevantTxns.forEach(t=>{
-          const key=t.accountId||"unassigned";
-          if (!byAccount[key]) byAccount[key]={name:acctMap[t.accountId]?.name||"Unassigned",total:0,count:0};
+          const key=t.accountId||"__none__";
+          if (key==="__none__") return; // skip unassigned
+          if (!byAccount[key]) byAccount[key]={name:acctMap[t.accountId]?.name||"Unknown",total:0,count:0};
           byAccount[key].total+=Math.abs(t.amount);
           byAccount[key].count+=1;
         });
-        // Only show unassigned if it has charges; always show real accounts
-        const entries=Object.values(byAccount)
-          .filter(e=>e.name!=="Unassigned"||e.total>0)
-          .sort((a,b)=>b.total-a.total);
+        const entries=Object.values(byAccount).sort((a,b)=>b.total-a.total);
         if (entries.length===0) return null;
         const totalRemaining=entries.reduce((a,e)=>a+e.total,0);
         const label=isPastCalMonth?"Charged in":isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;

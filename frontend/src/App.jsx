@@ -666,7 +666,8 @@ export default function App() {
   /* ── Transactions ── */
   const Transactions = (
     <div>
-      <div style={{...S.sectionHdr,marginBottom:16}}>
+      {/* Title row */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={S.sectionTitle}>Transactions</div>
           {transactions.filter(t=>!t.categoryId).length>0&&(
@@ -675,12 +676,14 @@ export default function App() {
             </span>
           )}
         </div>
-        <div className="ledgr-txn-actions" style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
-          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
-          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>⟳ Sync</button>}
-          <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
-        </div>
+        {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
+      </div>
+
+      {/* Action buttons row */}
+      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
+        <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
+        {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>⟳ Sync</button>}
+        <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
       </div>
 
       <div className="ledgr-filter-row" style={S.filterRow}>

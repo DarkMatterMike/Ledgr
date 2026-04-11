@@ -1573,7 +1573,7 @@ export default function App() {
       <>
         {/* Mobile top bar */}
         <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,flex:1,justifyContent:"center"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>

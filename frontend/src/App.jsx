@@ -178,6 +178,7 @@ export default function App() {
         setTransactions(data.transactions || []);
         setPlaidItems(data.plaidItems     || []);
         setRules(data.rules               || []);
+        setCalendarAccounts(data.calendarAccounts || null);
       } catch (e) { console.warn("Load error:", e.message); }
       finally { setLoading(false); initialized.current = true; }
     })();
@@ -194,7 +195,8 @@ export default function App() {
   useEffect(() => { scheduleSave({ categories });   }, [categories]);
   useEffect(() => { scheduleSave({ transactions }); }, [transactions]);
   useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems]);
-  useEffect(() => { scheduleSave({ rules });        }, [rules]);
+  useEffect(() => { scheduleSave({ rules });            }, [rules]);
+  useEffect(() => { scheduleSave({ calendarAccounts }); }, [calendarAccounts]);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
   const navigate  = id  => { setView(id); setDrawerOpen(false); };

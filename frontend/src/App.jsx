@@ -1525,11 +1525,41 @@ export default function App() {
           </button>
         ))}
       </nav>
-      <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0}}>
+      <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:8}}>
         <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
           onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
           {syncing?"⟳ Syncing…":"⟳ Sync All"}
         </button>
+        {"Notification" in window && Notification.permission !== "granted" && (
+          <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+            onClick={async ()=>{
+              try {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                  const reg = await navigator.serviceWorker.ready;
+                  const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+                  const toUint8 = b64 => {
+                    const pad = "=".repeat((4-b64.length%4)%4);
+                    const raw = atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/"));
+                    return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+                  };
+                  const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: toUint8(VAPID),
+                  });
+                  await fetch("https://ledgr-production-9e35.up.railway.app/api/push/subscribe",{
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body:JSON.stringify(sub),
+                  });
+                  showToast("Notifications enabled!");
+                }
+              } catch(e) { console.warn("Notification setup:",e.message); }
+              onNav(view);
+            }}>
+            🔔 Enable Notifications
+          </button>
+        )}
       </div>
     </>
   );

@@ -256,7 +256,7 @@ app.patch("/api/data", async (req, res) => {
     if (accounts         !== undefined) ops.push(setData("accounts",         accounts));
     if (plaidItems       !== undefined) ops.push(setData("plaidItems",       plaidItems));
     if (rules            !== undefined) ops.push(setData("rules",            rules));
-    if (calendarAccounts !== undefined) ops.push(setData("calendarAccounts", calendarAccounts));
+    if (Array.isArray(calendarAccounts)) ops.push(setData("calendarAccounts", calendarAccounts));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) {

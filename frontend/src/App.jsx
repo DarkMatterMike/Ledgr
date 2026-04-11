@@ -278,6 +278,10 @@ export default function App() {
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
   const navigate  = id  => { setView(id); setDrawerOpen(false); };
 
+  // A transaction needs review if it has no category AND hasn't been marked reviewed
+  // Income, transfer, reimbursement auto-reviewed when type set
+  const needsReview = t => !t.reviewed && !t.categoryId && (t.type==="expense" || t.type==="refund" || !t.type);
+
   /* ── Computed ── */
   const monthTxns = useMemo(() =>
     transactions.filter(t => t.date?.startsWith(selectedMonth)),
@@ -479,9 +483,15 @@ export default function App() {
     setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant}:t));
     setEditingId(null); showToast("Name updated");
   }
-  function updateTxnType(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,type:val}:t)); }
+  function updateTxnType(id,val) {
+    setTransactions(p=>p.map(t=>{
+      if (t.id!==id) return t;
+      const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
+      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed};
+    }));
+  }
   function updateTxnCat(id,val) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null}:t));
+    setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null,reviewed:val?true:t.reviewed}:t));
     if(val){const txn=transactions.find(t=>t.id===id);if(txn)promptSaveRule(txn,val);}
   }
   function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
@@ -670,9 +680,9 @@ export default function App() {
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={S.sectionTitle}>Transactions</div>
-          {transactions.filter(t=>!t.categoryId).length>0&&(
+          {transactions.filter(t=>needsReview(t)).length>0&&(
             <span style={{fontSize:11,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:99,padding:"2px 9px"}}>
-              {transactions.filter(t=>!t.categoryId).length} to review
+              {transactions.filter(t=>needsReview(t)).length} to review
             </span>
           )}
         </div>
@@ -706,7 +716,7 @@ export default function App() {
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {filteredTxns.length===0&&<div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No transactions found</div>}
           {filteredTxns.map(t=>(
-            <div key={t.id} style={{...S.card,padding:"14px 16px",borderLeft:t.recurring?"3px solid var(--amber)":!t.categoryId?"3px solid var(--cyan)":"3px solid transparent"}}>
+            <div key={t.id} style={{...S.card,padding:"14px 16px",borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:10}}>
                   {editingId===t.id?(
@@ -748,12 +758,18 @@ export default function App() {
                   <option value="reimbursement">Reimbursement</option>
                   <option value="transfer">Transfer</option>
                 </select>
-                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""}
-                  onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
-                  <option value="">— Category —</option>
-                  {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                  <option value="__new__">＋ New Category…</option>
-                </select>
+                {["income","transfer","reimbursement"].includes(t.type||(t.amount<0?"expense":"income")) ? (
+                  <div style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12,color:"var(--t3)",display:"flex",alignItems:"center"}}>
+                    No category needed
+                  </div>
+                ) : (
+                  <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""}
+                    onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
+                    <option value="">— Category —</option>
+                    {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                    <option value="__new__">＋ New Category…</option>
+                  </select>
+                )}
               </div>
               <div style={{marginBottom:8}}>
                 <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
@@ -792,7 +808,7 @@ export default function App() {
                   <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>
                 )}
                 {filteredTxns.map(t=>(
-                  <tr key={t.id} style={{background:t.recurring?"#fbbf2408":!t.categoryId?"#00d4ff06":"transparent",borderLeft:!t.categoryId&&!t.recurring?"2px solid var(--cyan)":"none"}}>
+                  <tr key={t.id} style={{background:t.recurring?"#fbbf2408":needsReview(t)?"#00d4ff06":"transparent",borderLeft:needsReview(t)&&!t.recurring?"2px solid var(--cyan)":"none"}}>
                     <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{t.date}</td>
                     <td style={{...S.td,color:"var(--t1)",fontWeight:500}}>
                       {editingId===t.id?(
@@ -808,7 +824,7 @@ export default function App() {
                           {t.recurring&&<span style={{color:"var(--amber)",fontSize:12}}>↻</span>}
                           <span>{t.name||t.merchant}</span>
                           {t.name&&<span style={{fontSize:10,color:"var(--t3)"}}>({t.merchant})</span>}
-                          {!t.categoryId&&<span style={{fontSize:9,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:4,padding:"1px 5px",letterSpacing:"0.5px"}}>REVIEW</span>}
+                          {needsReview(t)&&<span style={{fontSize:9,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:4,padding:"1px 5px",letterSpacing:"0.5px"}}>REVIEW</span>}
                           {t.pending&&<span style={{fontSize:10,color:"var(--amber)",border:"1px solid var(--amber)44",borderRadius:4,padding:"1px 5px"}}>pending</span>}
                           <div style={{position:"relative",marginLeft:"auto",flexShrink:0}}>
                             <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 6px",lineHeight:1}}>⋯</button>
@@ -832,12 +848,16 @@ export default function App() {
                       </select>
                     </td>
                     <td style={S.td}>
-                      <select style={{...S.select,width:130}} value={t.categoryId||""}
-                        onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
-                        <option value="">— None —</option>
-                        {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                        <option value="__new__">＋ New Category…</option>
+                      {["income","transfer","reimbursement"].includes(t.type||(t.amount<0?"expense":"income")) ? (
+                        <span style={{fontSize:12,color:"var(--t3)",fontStyle:"italic"}}>n/a</span>
+                      ) : (
+                        <select style={{...S.select,width:130}} value={t.categoryId||""}
+                          onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
+                          <option value="">— None —</option>
+                          {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                          <option value="__new__">＋ New Category…</option>
                       </select>
+                      )}
                     </td>
                     <td style={S.td}>
                       <select style={{...S.select,width:130}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>

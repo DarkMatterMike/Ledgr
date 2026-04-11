@@ -37,8 +37,8 @@ function useIsMobile() {
       .ledgr-filter-row > * { width: 100% !important; }
       .ledgr-txn-actions { flex-wrap: wrap !important; gap: 6px !important; }
       .ledgr-acct-grid  { grid-template-columns: 1fr !important; }
-      .ledgr-monthbar   { flex-direction: column !important; gap: 10px !important; align-items: flex-start !important; }
-      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; }
+      .ledgr-monthbar   { flex-direction: column !important; gap: 10px !important; align-items: center !important; }
+      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; justify-content: center !important; }
       .ledgr-cal-cell  { min-height: 54px !important; padding: 4px !important; }
     }
     @media (min-width: 768px) {
@@ -571,8 +571,8 @@ export default function App() {
   /* ── Dashboard ── */
   const Dashboard = (
     <div>
-      <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"center",flexDirection:"column",alignItems:"center",gap:12}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
+      <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
           <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>‹</button>
           <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:isMobile?90:180,textAlign:"center"}}>
             📅 {monthLabel(selectedMonth)}
@@ -580,7 +580,7 @@ export default function App() {
           </span>
           <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>›</button>
         </div>
-       <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",flex:1}}>
+        <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
           {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
           <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
           <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
@@ -667,7 +667,14 @@ export default function App() {
   const Transactions = (
     <div>
       <div style={{...S.sectionHdr,marginBottom:16}}>
-        <div style={S.sectionTitle}>Transactions</div>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={S.sectionTitle}>Transactions</div>
+          {transactions.filter(t=>!t.categoryId).length>0&&(
+            <span style={{fontSize:11,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:99,padding:"2px 9px"}}>
+              {transactions.filter(t=>!t.categoryId).length} to review
+            </span>
+          )}
+        </div>
         <div className="ledgr-txn-actions" style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
           <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
@@ -696,7 +703,7 @@ export default function App() {
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {filteredTxns.length===0&&<div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No transactions found</div>}
           {filteredTxns.map(t=>(
-            <div key={t.id} style={{...S.card,padding:"14px 16px",borderLeft:t.recurring?"3px solid var(--amber)":"3px solid transparent"}}>
+            <div key={t.id} style={{...S.card,padding:"14px 16px",borderLeft:t.recurring?"3px solid var(--amber)":!t.categoryId?"3px solid var(--cyan)":"3px solid transparent"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:10}}>
                   {editingId===t.id?(
@@ -782,7 +789,7 @@ export default function App() {
                   <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>
                 )}
                 {filteredTxns.map(t=>(
-                  <tr key={t.id} style={{background:t.recurring?"#fbbf2408":"transparent"}}>
+                  <tr key={t.id} style={{background:t.recurring?"#fbbf2408":!t.categoryId?"#00d4ff06":"transparent",borderLeft:!t.categoryId&&!t.recurring?"2px solid var(--cyan)":"none"}}>
                     <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{t.date}</td>
                     <td style={{...S.td,color:"var(--t1)",fontWeight:500}}>
                       {editingId===t.id?(
@@ -798,6 +805,7 @@ export default function App() {
                           {t.recurring&&<span style={{color:"var(--amber)",fontSize:12}}>↻</span>}
                           <span>{t.name||t.merchant}</span>
                           {t.name&&<span style={{fontSize:10,color:"var(--t3)"}}>({t.merchant})</span>}
+                          {!t.categoryId&&<span style={{fontSize:9,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:4,padding:"1px 5px",letterSpacing:"0.5px"}}>REVIEW</span>}
                           {t.pending&&<span style={{fontSize:10,color:"var(--amber)",border:"1px solid var(--amber)44",borderRadius:4,padding:"1px 5px"}}>pending</span>}
                           <div style={{position:"relative",marginLeft:"auto",flexShrink:0}}>
                             <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 6px",lineHeight:1}}>⋯</button>
@@ -1573,7 +1581,7 @@ export default function App() {
       <>
         {/* Mobile top bar */}
         <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>

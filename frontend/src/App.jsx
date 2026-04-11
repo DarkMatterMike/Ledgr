@@ -571,7 +571,7 @@ export default function App() {
   /* ── Dashboard ── */
   const Dashboard = (
     <div>
-      <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
+      <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"center",flexDirection:"column",alignItems:"center",gap:12}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>‹</button>
           <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:isMobile?90:180,textAlign:"center"}}>
@@ -580,7 +580,7 @@ export default function App() {
           </span>
           <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>›</button>
         </div>
-        <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)"}}>
+       <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",flex:1}}>
           {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
           <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
           <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
@@ -1573,7 +1573,7 @@ export default function App() {
       <>
         {/* Mobile top bar */}
         <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,flex:1,justifyContent:"center"}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>

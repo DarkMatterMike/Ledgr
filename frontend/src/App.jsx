@@ -79,7 +79,7 @@ const S = {
   monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 16px", display:"flex", alignItems:"center", gap:16, fontSize:12, color:"var(--t2)", marginBottom:20, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:16, fontWeight:700, letterSpacing:"-0.2px" },
- th: { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"10px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
+  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"10px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
   td:           { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
 };
@@ -195,8 +195,10 @@ export default function App() {
   useEffect(() => { scheduleSave({ categories });   }, [categories]);
   useEffect(() => { scheduleSave({ transactions }); }, [transactions]);
   useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems]);
-  useEffect(() => { scheduleSave({ rules });            }, [rules]);
-  useEffect(() => { scheduleSave({ calendarAccounts }); }, [calendarAccounts]);
+  useEffect(() => { scheduleSave({ rules }); }, [rules]);
+  useEffect(() => {
+    if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
+  }, [calendarAccounts]);
 
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
   const navigate  = id  => { setView(id); setDrawerOpen(false); };
@@ -699,10 +701,10 @@ export default function App() {
                 <th style={S.th}>Account</th>
                 <th style={{...S.th,textAlign:"center"}}>Recurring</th>
                 <th style={{...S.th,textAlign:"right"}}>Amount</th>
-                  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>              </tr></thead>
+              </tr></thead>
               <tbody>
                 {filteredTxns.length===0&&(
-                  <tr><td colSpan={7} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>
+                  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>
                 )}
                 {filteredTxns.map(t=>(
                   <tr key={t.id} style={{background:t.recurring?"#fbbf2408":"transparent"}}>

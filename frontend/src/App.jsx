@@ -151,9 +151,11 @@ export default function App() {
   const [syncing,       setSyncing]       = useState(false);
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
-  const [calendarDay,   setCalendarDay]   = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [calendarMonth, setCalendarMonth] = useState(currentMonth);
+  const [calendarDay,      setCalendarDay]      = useState(null);
+  const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
+  const [calendarMonth,    setCalendarMonth]    = useState(currentMonth);
+  const [calendarAccounts, setCalendarAccounts] = useState(null); // null = show all
+  const [editingCalAccts,  setEditingCalAccts]  = useState(false);
   const [search,        setSearch]        = useState("");
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
@@ -1142,14 +1144,13 @@ export default function App() {
           if (isCurrentCalMonth) return (t.recurringDay||0)>=today.getDate();
           return true;
         });
-        // Seed only real accounts at $0 so they always appear
-        accounts.forEach(a=>{ byAccount[a.id]={name:a.name,total:0,count:0}; });
+        const shownIds = calendarAccounts || accounts.map(a=>a.id);
+        const byAccount = {};
+        shownIds.forEach(id=>{ const a=acctMap[id]; if(a) byAccount[id]={name:a.name,total:0,count:0}; });
         relevantTxns.forEach(t=>{
-          const key=t.accountId||"__none__";
-          if (key==="__none__") return; // skip unassigned
-          if (!byAccount[key]) byAccount[key]={name:acctMap[t.accountId]?.name||"Unknown",total:0,count:0};
-          byAccount[key].total+=Math.abs(t.amount);
-          byAccount[key].count+=1;
+          if (!t.accountId||!byAccount[t.accountId]) return;
+          byAccount[t.accountId].total+=Math.abs(t.amount);
+          byAccount[t.accountId].count+=1;
         });
         const entries=Object.values(byAccount).sort((a,b)=>b.total-a.total);
         if (entries.length===0) return null;
@@ -1157,13 +1158,40 @@ export default function App() {
         const label=isPastCalMonth?"Charged in":isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
         return (
           <div style={{...S.card,marginBottom:20,padding:"14px 20px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:editingCalAccts?12:12}}>
               <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)"}}>{label}</div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(totalRemaining)} total</div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(totalRemaining)}</div>
+                <button onClick={()=>setEditingCalAccts(p=>!p)}
+                  style={{...S.btn("ghost",true),padding:"3px 8px",fontSize:11,color:editingCalAccts?"var(--cyan)":"var(--t3)",borderColor:editingCalAccts?"var(--cyan)44":"var(--border2)"}}>
+                  {editingCalAccts?"Done":"Edit"}
+                </button>
+              </div>
             </div>
+            {editingCalAccts&&(
+              <div style={{marginBottom:14,paddingBottom:14,borderBottom:"1px solid var(--border)"}}>
+                <div style={{fontSize:11,color:"var(--t3)",marginBottom:8}}>Select which accounts to show:</div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {accounts.map(a=>{
+                    const curIds=calendarAccounts||accounts.map(x=>x.id);
+                    const selected=curIds.includes(a.id);
+                    return (
+                      <label key={a.id} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"8px 12px",borderRadius:"var(--radius)",background:selected?"var(--cyan-dim)":"var(--surface)",border:`1px solid ${selected?"var(--cyan)33":"var(--border2)"}`}}>
+                        <input type="checkbox" checked={selected} onChange={()=>{
+                          const cur=calendarAccounts||accounts.map(x=>x.id);
+                          setCalendarAccounts(selected?cur.filter(id=>id!==a.id):[...cur,a.id]);
+                        }} style={{accentColor:"var(--cyan)",width:14,height:14,flexShrink:0}}/>
+                        <span style={{fontSize:13,color:selected?"var(--cyan)":"var(--t1)",fontWeight:selected?600:400,flex:1}}>{a.name}</span>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)"}}>{fmt(byAccount[a.id]?.total||0)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(entries.length,3)},1fr)`,gap:10}}>
               {entries.map(e=>(
-                <div key={e.name} style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",borderTop:`2px solid var(--red)`}}>
+                <div key={e.name} style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",borderTop:"2px solid var(--red)"}}>
                   <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{e.name}</div>
                   <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--red)"}}>{fmt(e.total)}</div>
                   <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{e.count} charge{e.count!==1?"s":""}</div>

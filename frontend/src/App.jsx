@@ -281,9 +281,10 @@ function AppInner() {
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
   const [calendarDay,      setCalendarDay]      = useState(null);
+  const [calendarAcctPopup,setCalendarAcctPopup]= useState(null);
   const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
   const [calendarMonth,    setCalendarMonth]    = useState(currentMonth);
-  const [calendarAccounts, setCalendarAccounts] = useState(null); // null = show all
+  const [calendarAccounts, setCalendarAccounts] = useState(null);
   const [editingCalAccts,  setEditingCalAccts]  = useState(false);
   const [search,        setSearch]        = useState("");
   const [filterCat,     setFilterCat]     = useState("all");
@@ -1503,12 +1504,13 @@ function AppInner() {
         });
         const shownIds = calendarAccounts || accounts.map(a=>a.id);
         const byAccount = {};
-        shownIds.forEach(id=>{ const a=acctMap[id]; if(a) byAccount[id]={name:a.name,total:0,count:0}; });
+        shownIds.forEach(id=>{ const a=acctMap[id]; if(a) byAccount[id]={name:a.name,total:0,count:0,txns:[]}; });
         relevantTxns.forEach(t=>{
           if (!t.accountId||!byAccount[t.accountId]) return;
           if (t.amount>=0) return; // skip income/credits
           byAccount[t.accountId].total+=Math.abs(t.amount);
           byAccount[t.accountId].count+=1;
+          byAccount[t.accountId].txns.push(t);
         });
         const entries=Object.values(byAccount).sort((a,b)=>b.total-a.total);
         if (entries.length===0) return null;
@@ -1549,7 +1551,10 @@ function AppInner() {
             )}
             <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(entries.length,3)},1fr)`,gap:10}}>
               {entries.map(e=>(
-                <div key={e.name} style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",borderTop:"2px solid var(--red)"}}>
+                <div key={e.name} onClick={()=>e.txns.length>0&&setCalendarAcctPopup(e)}
+                  style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",borderTop:"2px solid var(--red)",cursor:e.txns.length>0?"pointer":"default",transition:"background 0.12s"}}
+                  onMouseEnter={e2=>{if(e.txns.length>0)e2.currentTarget.style.background="var(--border)";}}
+                  onMouseLeave={e2=>{e2.currentTarget.style.background="var(--surface)";}}>
                   <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{e.name}</div>
                   <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--red)"}}>{fmt(e.total)}</div>
                   <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{e.count} charge{e.count!==1?"s":""}</div>
@@ -1634,6 +1639,49 @@ function AppInner() {
             <div style={{marginTop:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:12,color:"var(--t3)"}}>Total: <span style={{fontFamily:"var(--font-mono)",color:"var(--red)",fontWeight:600}}>{fmt(calendarDay.txns.filter(t=>t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0))}</span></div>
               <button style={S.btn("ghost")} onClick={()=>setCalendarDay(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Account charges popup */}
+      {calendarAcctPopup&&(
+        <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setCalendarAcctPopup(null)}>
+          <div style={{...S.modal,width:480}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+              <div>
+                <div style={S.modalTitle}>{calendarAcctPopup.name}</div>
+                <div style={{fontSize:12,color:"var(--t3)",marginTop:-14}}>
+                  {calendarAcctPopup.count} charge{calendarAcctPopup.count!==1?"s":" "} · {fmt(calendarAcctPopup.total)} total
+                </div>
+              </div>
+              <button onClick={()=>setCalendarAcctPopup(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {[...calendarAcctPopup.txns]
+                .sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0))
+                .map(t=>{
+                  const cat = catMap[t.categoryId];
+                  const freq = t.recurringFreq||"monthly";
+                  const freqLabel = freq==="biweekly"?"Bi-weekly":freq==="weekly"?"Weekly":freq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
+                  return (
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`3px solid ${cat?.color||"var(--cyan)"}`}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                        <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                          {freqLabel}
+                          {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
+                        </div>
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--red)",flexShrink:0}}>
+                        {fmt(Math.abs(t.amount))}
+                      </div>
+                    </div>
+                  );
+              })}
+            </div>
+            <div style={{marginTop:20,display:"flex",justifyContent:"flex-end"}}>
+              <button style={S.btn("ghost")} onClick={()=>setCalendarAcctPopup(null)}>Close</button>
             </div>
           </div>
         </div>

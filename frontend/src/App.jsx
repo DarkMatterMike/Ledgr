@@ -1178,8 +1178,6 @@ function AppInner() {
     </div>
   );
 
-  );
-
   /* ── Accounts ── */
   const Accounts = (
     <div>

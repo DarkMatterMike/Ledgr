@@ -288,6 +288,7 @@ function AppInner() {
   const [search,        setSearch]        = useState("");
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
+  const [filterReview,  setFilterReview]  = useState(false);
   const [editingId,     setEditingId]     = useState(null);
   const [ellipsisId,    setEllipsisId]    = useState(null);
   const [expandedTxnId, setExpandedTxnId] = useState(null);
@@ -472,11 +473,12 @@ function AppInner() {
     transactions.filter(t => {
       const label = (t.name||t.merchant||"").toLowerCase();
       if (search && !label.includes(search.toLowerCase())) return false;
-      if (filterCat  !== "all" && t.categoryId !== filterCat)  return false;
-      if (filterAcct !== "all" && t.accountId  !== filterAcct) return false;
+      if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
+      if (filterAcct   !== "all" && t.accountId  !== filterAcct) return false;
+      if (filterReview && !needsReview(t)) return false;
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
-  [transactions, search, filterCat, filterAcct]);
+  [transactions, search, filterCat, filterAcct, filterReview]);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a,b) => {
@@ -998,9 +1000,9 @@ function AppInner() {
             <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
               <span style={{color:"var(--cyan)",fontWeight:700}}>{toReview}</span> transactions need review
             </span>
-            <button onClick={()=>{setFilterCat(""); setSearch("");}}
-              style={{background:"none",border:"none",cursor:"pointer",color:"var(--cyan)",fontSize:13,fontWeight:600}}>
-              Review ›
+            <button onClick={()=>{ setFilterReview(p=>!p); setSearch(""); setFilterCat("all"); }}
+              style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:filterReview?"none":"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
+              {filterReview?"✕ Clear":"Review ›"}
             </button>
           </div>
         )}

@@ -1262,42 +1262,44 @@ function AppInner() {
       ) : (
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
           {rules.map((rule,i)=>{
-            const cat = catMap[rule.categoryId];
+            const cat    = catMap[rule.categoryId];
             const isLast = i===rules.length-1;
             return (
               <div key={rule.id}
                 style={{
                   padding:"13px 16px",
                   borderBottom:isLast?"none":"1px solid var(--border)",
+                  borderLeft:rule.enabled
+                    ? `3px solid ${cat?.color||"var(--cyan)"}`
+                    : "3px solid var(--border2)",
                   opacity:rule.enabled?1:0.45,
                   transition:"background 0.12s",
                 }}
                 onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
 
-                {/* Top row: color dot + pattern → category + actions */}
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                  {/* Category color dot */}
-                  <span style={{width:8,height:8,borderRadius:"50%",background:cat?.color||"var(--border2)",flexShrink:0,display:"inline-block"}}/>
-
-                  {/* Pattern pill */}
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"3px 9px",borderRadius:"var(--radius)",flexShrink:0}}>
+                {/* Row 1: pattern pill → category name */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"nowrap",overflow:"hidden"}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"3px 9px",borderRadius:"var(--radius)",flexShrink:0,maxWidth:"50%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                     {rule.matchType==="exact"?"=":rule.matchType==="starts"?"^":"~"} {rule.pattern}
                   </span>
-
                   <span style={{fontSize:12,color:"var(--t3)",flexShrink:0}}>→</span>
-
-                  {/* Category badge using dot + name instead of colored pill */}
                   {cat ? (
-                    <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:500,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
                       <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                       {cat.name}
                     </span>
                   ) : (
                     <span style={{fontSize:12,color:"var(--t3)",flex:1}}>Unknown category</span>
                   )}
+                </div>
 
-                  {/* Actions */}
+                {/* Row 2: meta left, actions right — never wrap over each other */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                  <div style={{fontSize:11,color:"var(--t3)",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <span style={{color:"var(--t2)",fontWeight:500,textTransform:"capitalize"}}>{rule.matchType}</span>
+                    {rule.createdAt&&<span style={{marginLeft:8}}>· {new Date(rule.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
+                  </div>
                   <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
                     <button onClick={()=>toggleRule(rule.id)}
                       style={{...S.btn("ghost",true),
@@ -1311,12 +1313,6 @@ function AppInner() {
                     </button>
                     <button style={S.btn("ghost",true)} onClick={()=>deleteRule(rule.id)}>✕</button>
                   </div>
-                </div>
-
-                {/* Bottom row: meta */}
-                <div style={{fontSize:11,color:"var(--t3)",paddingLeft:18}}>
-                  Match type: <span style={{color:"var(--t2)",fontWeight:500}}>{rule.matchType}</span>
-                  {rule.createdAt&&<span style={{marginLeft:10}}>· Added {new Date(rule.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
                 </div>
               </div>
             );

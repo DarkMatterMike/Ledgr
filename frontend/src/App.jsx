@@ -1506,6 +1506,7 @@ function AppInner() {
         shownIds.forEach(id=>{ const a=acctMap[id]; if(a) byAccount[id]={name:a.name,total:0,count:0}; });
         relevantTxns.forEach(t=>{
           if (!t.accountId||!byAccount[t.accountId]) return;
+          if (t.amount>=0) return; // skip income/credits
           byAccount[t.accountId].total+=Math.abs(t.amount);
           byAccount[t.accountId].count+=1;
         });

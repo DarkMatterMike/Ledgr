@@ -367,6 +367,36 @@ function AppInner() {
     return () => clearInterval(interval);
   }, []);
 
+  /* ── Swipe gesture to open/close drawer on mobile ── */
+  useEffect(() => {
+    if (!isMobile) return;
+    let startX = 0, startY = 0;
+    const EDGE_ZONE  = 30;  // px from left edge to trigger open swipe
+    const MIN_SWIPE  = 50;  // minimum horizontal distance to count as swipe
+    const MAX_VERTICAL = 60; // max vertical drift before ignoring
+
+    function onTouchStart(e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+    function onTouchEnd(e) {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = Math.abs(e.changedTouches[0].clientY - startY);
+      if (dy > MAX_VERTICAL) return; // too vertical — scroll, not swipe
+      if (dx > MIN_SWIPE && startX < EDGE_ZONE) {
+        setDrawerOpen(true);  // swipe right from left edge
+      } else if (dx < -MIN_SWIPE && drawerOpen) {
+        setDrawerOpen(false); // swipe left to close
+      }
+    }
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchend",   onTouchEnd,   { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchend",   onTouchEnd);
+    };
+  }, [isMobile, drawerOpen]);
+
   /* ── Service worker + push notification subscription ── */
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
@@ -847,57 +877,43 @@ function AppInner() {
 
       return (
         <div style={{borderBottom:"1px solid var(--border)"}}>
-          {/* Main row */}
+          {/* Single line row */}
           <div onClick={()=>setExpandedTxnId(expanded?null:t.id)}
-            style={{padding:"11px 0",cursor:"pointer",display:"flex",flexDirection:"column",gap:5,
+            style={{padding:"10px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
               borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
               paddingLeft:t.recurring||needsReview(t)?10:0,
               transition:"background 0.1s",
-            }}>
-            {/* Top row: name + amount */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-              <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
-                {t.name||t.merchant}
-              </span>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,
-                color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
-                {t.amount<0?"-":"+"}{ fmt(Math.abs(t.amount))}
-              </span>
-            </div>
-            {/* Bottom row: status + meta */}
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{
-                width:16,height:16,borderRadius:"50%",flexShrink:0,
-                display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:9,fontWeight:800,
-                background:reviewed?"var(--green-dim)":"var(--cyan-dim)",
-                border:`1px solid ${reviewed?"var(--green)":"var(--cyan)"}44`,
-                color:reviewed?"var(--green)":"var(--cyan)",
-              }}>
-                {reviewed?"✓":"!"}
-              </span>
-              <span style={{fontSize:11,color:"var(--t3)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                {t.pending&&<span style={{color:"var(--amber)",marginRight:4}}>pending ·</span>}
-                {t.recurring&&<span style={{color:"var(--amber)",marginRight:4}}>↻ ·</span>}
-                <span style={{textTransform:"capitalize"}}>{typeVal}</span>
-                {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
-                {acct&&<span> · {acct.name}</span>}
-              </span>
-              {/* Ellipsis menu */}
-              <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-                <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
-                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
-                {ellipsisId===t.id&&(
-                  <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
-                    border:"1px solid var(--border2)",borderRadius:"var(--radius)",
-                    boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
-                    <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
-                      style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
-                    <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
-                      style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
-                  </div>
-                )}
-              </div>
+                        }}>
+            {/* Status dot */}
+            <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)"}}/>
+            {/* Name */}
+            <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
+              {t.name||t.merchant}
+            </span>
+            {/* Category or type */}
+            {cat ? (
+              <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
+            ) : (
+              <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0,textTransform:"capitalize"}}>{typeVal}</span>
+            )}
+            {/* Amount */}
+            <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+              {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+            </span>
+            {/* Ellipsis menu */}
+            <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+              <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
+              {ellipsisId===t.id&&(
+                <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
+                  border:"1px solid var(--border2)",borderRadius:"var(--radius)",
+                  boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
+                  <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
+                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+                  <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
+                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1080,7 +1096,7 @@ function AppInner() {
       ) : (
         <>
           {/* Category list — same layout on mobile and desktop */}
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginBottom:16}}>
             {sortedCategories.map(cat=>{
               const spent     = spentByCat[cat.id]||0;
               const pct       = Math.min((spent/cat.limit)*100,100);
@@ -1260,15 +1276,14 @@ function AppInner() {
           <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
         </div>
       ) : (
-        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
-          {rules.map((rule,i)=>{
-            const cat    = catMap[rule.categoryId];
-            const isLast = i===rules.length-1;
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
+          {rules.map((rule)=>{
+            const cat = catMap[rule.categoryId];
             return (
               <div key={rule.id}
                 style={{
-                  padding:"13px 16px",
-                  borderBottom:isLast?"none":"1px solid var(--border)",
+                  background:"var(--card)",border:"1px solid var(--border)",
+                  borderRadius:"var(--radius)",padding:"13px 16px",
                   borderLeft:rule.enabled
                     ? `3px solid ${cat?.color||"var(--cyan)"}`
                     : "3px solid var(--border2)",
@@ -1276,11 +1291,11 @@ function AppInner() {
                   transition:"background 0.12s",
                 }}
                 onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}>
 
-                {/* Row 1: pattern pill → category name */}
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"nowrap",overflow:"hidden"}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"3px 9px",borderRadius:"var(--radius)",flexShrink:0,maxWidth:"50%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {/* Row 1: pattern pill → category */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,overflow:"hidden"}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"3px 9px",borderRadius:"var(--radius)",flexShrink:0,maxWidth:"55%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                     {rule.matchType==="exact"?"=":rule.matchType==="starts"?"^":"~"} {rule.pattern}
                   </span>
                   <span style={{fontSize:12,color:"var(--t3)",flexShrink:0}}>→</span>
@@ -1290,21 +1305,19 @@ function AppInner() {
                       {cat.name}
                     </span>
                   ) : (
-                    <span style={{fontSize:12,color:"var(--t3)",flex:1}}>Unknown category</span>
+                    <span style={{fontSize:12,color:"var(--t3)",flex:1}}>Unknown</span>
                   )}
                 </div>
 
-                {/* Row 2: meta left, actions right — never wrap over each other */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                  <div style={{fontSize:11,color:"var(--t3)",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {/* Row 2: meta + actions */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                  <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
                     <span style={{color:"var(--t2)",fontWeight:500,textTransform:"capitalize"}}>{rule.matchType}</span>
-                    {rule.createdAt&&<span style={{marginLeft:8}}>· {new Date(rule.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
+                    {rule.createdAt&&<span style={{marginLeft:6}}>· {new Date(rule.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>}
                   </div>
-                  <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                  <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
                     <button onClick={()=>toggleRule(rule.id)}
-                      style={{...S.btn("ghost",true),
-                        color:rule.enabled?"var(--green)":"var(--t3)",
-                        borderColor:rule.enabled?"var(--green)44":"var(--border2)"}}>
+                      style={{...S.btn("ghost",true),color:rule.enabled?"var(--green)":"var(--t3)",borderColor:rule.enabled?"var(--green)44":"var(--border2)"}}>
                       {rule.enabled?"On":"Off"}
                     </button>
                     <button style={S.btn("ghost",true)}

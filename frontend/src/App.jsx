@@ -133,7 +133,136 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
 /* ═══════════════════════════════════════════════════════════════════
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   PASSWORD GATE
+═══════════════════════════════════════════════════════════════════ */
+const APP_PASSWORD  = import.meta.env.VITE_APP_PASSWORD || "";
+const AUTH_KEY      = "ledgr_auth";
+const REMEMBER_DAYS = 30;
+
+function isAuthValid() {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return false;
+    const { expiry } = JSON.parse(raw);
+    return expiry && Date.now() < expiry;
+  } catch { return false; }
+}
+
+function PasswordGate({ onAuth }) {
+  const [password,    setPassword]    = useState("");
+  const [remember,    setRemember]    = useState(true);
+  const [error,       setError]       = useState("");
+  const [shake,       setShake]       = useState(false);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (password === APP_PASSWORD) {
+      if (remember) {
+        localStorage.setItem(AUTH_KEY, JSON.stringify({
+          expiry: Date.now() + REMEMBER_DAYS * 24 * 60 * 60 * 1000,
+        }));
+      }
+      onAuth();
+    } else {
+      setError("Incorrect password");
+      setShake(true);
+      setPassword("");
+      setTimeout(() => setShake(false), 600);
+    }
+  }
+
+  return (
+    <div style={{
+      display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:"var(--bg)", flexDirection:"column", gap:24,
+      fontFamily:"var(--font-body)",
+    }}>
+      <style>{`
+        @keyframes shake {
+          0%,100%{transform:translateX(0)}
+          20%{transform:translateX(-8px)}
+          40%{transform:translateX(8px)}
+          60%{transform:translateX(-6px)}
+          80%{transform:translateX(6px)}
+        }
+        .shake { animation: shake 0.5s ease; }
+      `}</style>
+
+      {/* Logo */}
+      <div style={{fontFamily:"var(--font-disp)",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)"}}>
+        ledgr<span style={{color:"var(--cyan)"}}>.</span>
+      </div>
+      <div style={{fontSize:13,color:"var(--t3)",marginTop:-16}}>personal finance</div>
+
+      {/* Card */}
+      <div className={shake?"shake":""} style={{
+        background:"var(--card)", border:"1px solid var(--border2)",
+        borderRadius:"var(--radius-lg)", padding:"32px 28px",
+        width:340, maxWidth:"90vw",
+        boxShadow:"0 8px 40px #00000060",
+      }}>
+        <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:6}}>Welcome back</div>
+        <div style={{fontSize:13,color:"var(--t3)",marginBottom:24}}>Enter your password to continue</div>
+
+        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:16}}>
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e=>{ setPassword(e.target.value); setError(""); }}
+              autoFocus
+              style={{
+                background:"var(--surface)", border:`1px solid ${error?"var(--red)":"var(--border2)"}`,
+                borderRadius:"var(--radius)", padding:"11px 14px",
+                fontSize:14, color:"var(--t1)", outline:"none", width:"100%",
+                transition:"border-color 0.15s",
+              }}
+            />
+            {error&&<div style={{fontSize:12,color:"var(--red)",marginTop:6}}>{error}</div>}
+          </div>
+
+          {/* Remember me */}
+          <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
+            <div onClick={()=>setRemember(p=>!p)} style={{
+              width:18, height:18, borderRadius:5, flexShrink:0,
+              background:remember?"var(--cyan)":"transparent",
+              border:`2px solid ${remember?"var(--cyan)":"var(--border2)"}`,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              transition:"all 0.15s",
+            }}>
+              {remember&&<span style={{color:"#000",fontSize:12,fontWeight:700,lineHeight:1}}>✓</span>}
+            </div>
+            <span style={{fontSize:13,color:"var(--t2)"}}>Remember this device for {REMEMBER_DAYS} days</span>
+          </label>
+
+          <button type="submit" style={{
+            background:"var(--cyan)", color:"#000", border:"none",
+            borderRadius:"var(--radius)", padding:"12px",
+            fontSize:14, fontWeight:700, cursor:"pointer",
+            transition:"opacity 0.15s",
+          }}
+            onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
+            onMouseLeave={e=>e.currentTarget.style.opacity="1"}
+          >
+            Unlock
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  const [authed, setAuthed] = useState(() => !APP_PASSWORD || isAuthValid());
+
+  if (!authed) return <PasswordGate onAuth={()=>setAuthed(true)}/>;
+
+  return <AppInner/>;
+}
+
+function AppInner() {
   const isMobile = useIsMobile();
 
   /* ── State ── */

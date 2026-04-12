@@ -289,7 +289,8 @@ function AppInner() {
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
   const [editingId,     setEditingId]     = useState(null);
-  const [ellipsisId,    setEllipsisId]    = useState(null); // transaction id with open ⋯ menu
+  const [ellipsisId,    setEllipsisId]    = useState(null);
+  const [expandedTxnId, setExpandedTxnId] = useState(null);
   const [editingName,   setEditingName]   = useState("");
   const [catForm,  setCatForm]  = useState({ name:"", limit:"", color:CAT_COLORS[0] });
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
@@ -823,96 +824,112 @@ function AppInner() {
   );
 
   /* ── Transactions ── */
-  const Transactions = (
-    <div>
-      {/* Title row */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={S.sectionTitle}>Transactions</div>
-          {transactions.filter(t=>needsReview(t)).length>0&&(
-            <span style={{fontSize:11,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:99,padding:"2px 9px"}}>
-              {transactions.filter(t=>needsReview(t)).length} to review
-            </span>
-          )}
-        </div>
-        {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
-      </div>
+  const Transactions = (()=>{
+    // Group filtered transactions by date
+    const grouped = filteredTxns.reduce((acc, t) => {
+      const d = t.date || "Unknown";
+      if (!acc[d]) acc[d] = [];
+      acc[d].push(t);
+      return acc;
+    }, {});
+    const dates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
 
-      {/* Action buttons row */}
-      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:16,flexWrap:"wrap"}}>
-        <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
-        {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>⟳ Sync</button>}
-        <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
-      </div>
+    const toReview = transactions.filter(t=>needsReview(t)).length;
+    const totalBalance = accounts.reduce((a,b)=>a+(b.balance||0),0);
 
-      <div className="ledgr-filter-row" style={S.filterRow}>
-        <div style={{position:"relative",flex:1,minWidth:160}}>
-          <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:14}}>🔍</span>
-          <input style={{...S.input,paddingLeft:36}} placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
-        </div>
-        <select style={{...S.select,padding:"9px 10px"}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
-          <option value="all">All Categories</option>
-          {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-          <option value="">Uncategorized</option>
-        </select>
-        <select style={{...S.select,padding:"9px 10px"}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
-          <option value="all">All Accounts</option>
-          {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-      </div>
+    function TxnRow({ t }) {
+      const expanded   = expandedTxnId === t.id;
+      const reviewed   = !needsReview(t);
+      const typeVal    = t.type||(t.amount<0?"expense":"income");
+      const noCategory = ["income","transfer","reimbursement"].includes(typeVal);
+      const cat        = catMap[t.categoryId];
+      const acct       = acctMap[t.accountId];
 
-      {isMobile ? (
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {filteredTxns.length===0&&<div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No transactions found</div>}
-          {filteredTxns.map(t=>(
-            <div key={t.id} style={{...S.card,padding:"14px 16px",borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                <div style={{flex:1,minWidth:0,marginRight:10}}>
-                  {editingId===t.id?(
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                      <input style={{background:"var(--surface)",border:"1px solid var(--cyan)",borderRadius:6,padding:"4px 8px",fontSize:13,color:"var(--t1)",outline:"none",flex:1}}
-                        value={editingName} onChange={e=>setEditingName(e.target.value)}
-                        onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
-                      <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
-                    </div>
-                  ):(
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      {t.recurring&&<span style={{color:"var(--amber)",fontSize:12,flexShrink:0}}>↻</span>}
-                      <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</span>
-                      <div style={{position:"relative",flexShrink:0}}>
-                        <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
-                        {ellipsisId===t.id&&(
-                          <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
-                            <button onClick={()=>{startRename(t);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
-                            <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{t.date}{t.pending&&<span style={{marginLeft:6,color:"var(--amber)"}}>pending</span>}</div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)"}}>
-                    {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                  </span>
-                  <button onClick={()=>deleteTxn(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 6px"}}>✕</button>
-                </div>
+      return (
+        <div style={{borderBottom:"1px solid var(--border)"}}>
+          {/* Main row */}
+          <div onClick={()=>setExpandedTxnId(expanded?null:t.id)}
+            style={{padding:"11px 0",cursor:"pointer",display:"flex",flexDirection:"column",gap:5,
+              borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
+              paddingLeft:t.recurring||needsReview(t)?10:0,
+              transition:"background 0.1s",
+            }}>
+            {/* Top row: name + amount */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+              <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
+                {t.name||t.merchant}
+              </span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,
+                color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+                {t.amount<0?"-":"+"}{ fmt(Math.abs(t.amount))}
+              </span>
+            </div>
+            {/* Bottom row: status + meta */}
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {/* Status icon */}
+              <span style={{
+                width:16,height:16,borderRadius:"50%",flexShrink:0,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:9,fontWeight:800,
+                background:reviewed?"var(--green-dim)":"var(--cyan-dim)",
+                border:`1px solid ${reviewed?"var(--green)":"var(--cyan)"}44`,
+                color:reviewed?"var(--green)":"var(--cyan)",
+              }}>
+                {reviewed?"✓":"!"}
+              </span>
+              <span style={{fontSize:11,color:"var(--t3)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {t.pending&&<span style={{color:"var(--amber)",marginRight:4}}>pending ·</span>}
+                {t.recurring&&<span style={{color:"var(--amber)",marginRight:4}}>↻ ·</span>}
+                <span style={{textTransform:"capitalize"}}>{typeVal}</span>
+                {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
+                {acct&&<span> · {acct.name}</span>}
+              </span>
+              {/* Ellipsis menu */}
+              <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+                <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
+                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
+                {ellipsisId===t.id&&(
+                  <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
+                    border:"1px solid var(--border2)",borderRadius:"var(--radius)",
+                    boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
+                    <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
+                      style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+                    <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
+                      style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+                  </div>
+                )}
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.type||(t.amount<0?"expense":"income")} onChange={e=>updateTxnType(t.id,e.target.value)}>
+            </div>
+          </div>
+
+          {/* Expanded edit panel */}
+          {expanded&&(
+            <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+              {/* Rename if editing */}
+              {editingId===t.id&&(
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <input style={{...S.input,flex:1,fontSize:13}}
+                    value={editingName} onChange={e=>setEditingName(e.target.value)}
+                    onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
+                  <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
+                  <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
+                </div>
+              )}
+              {/* Selects row */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
+                  value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
                   <option value="expense">Expense</option>
                   <option value="income">Income</option>
                   <option value="refund">Refund</option>
                   <option value="reimbursement">Reimbursement</option>
                   <option value="transfer">Transfer</option>
                 </select>
-                {["income","transfer","reimbursement"].includes(t.type||(t.amount<0?"expense":"income")) ? (
-                  <div style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12,color:"var(--t3)",display:"flex",alignItems:"center"}}>
-                    No category needed
-                  </div>
+                {noCategory ? (
+                  <div style={{...S.select,padding:"7px 10px",fontSize:12,color:"var(--t3)"}}>No category needed</div>
                 ) : (
-                  <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.categoryId||""}
+                  <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
+                    value={t.categoryId||""}
                     onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
                     <option value="">— Category —</option>
                     {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
@@ -920,123 +937,119 @@ function AppInner() {
                   </select>
                 )}
               </div>
-              <div style={{marginBottom:8}}>
-                <select style={{...S.select,width:"100%",padding:"8px 10px",fontSize:12}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
-                  <option value="">— Account —</option>
-                  {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:8,borderTop:"1px solid var(--border)"}}>
-                <button onClick={()=>toggleRecurring(t.id)} style={{...S.btn(t.recurring?"amber":"ghost",true),padding:"4px 10px",fontSize:11}}>
+              <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
+                value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
+                <option value="">— Account —</option>
+                {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+              {/* Recurring toggle */}
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <button onClick={()=>toggleRecurring(t.id)}
+                  style={{...S.btn(t.recurring?"amber":"ghost",true),padding:"4px 10px",fontSize:11}}>
                   {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
                 </button>
                 {t.recurring&&(
                   <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--t2)"}}>
-                    Day: <input type="number" min="1" max="31" style={{...S.input,width:52,padding:"4px 8px",fontSize:12}} value={t.recurringDay||""} onChange={e=>updateRecurringDay(t.id,e.target.value)}/> of month
+                    Day: <input type="number" min="1" max="31"
+                      style={{...S.input,width:52,padding:"4px 8px",fontSize:12}}
+                      value={t.recurringDay||""} onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
                   </div>
                 )}
+                <button onClick={()=>setExpandedTxnId(null)}
+                  style={{...S.btn("ghost",true),padding:"4px 8px",fontSize:11,marginLeft:"auto"}}>Done</button>
               </div>
             </div>
-          ))}
+          )}
         </div>
-      ) : (
-        <div style={{...S.card,padding:0,overflow:"hidden"}}>
-          <div style={{overflowX:"auto",overflowY:"auto",maxHeight:"calc(100vh - 280px)"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead><tr>
-                <th style={S.th}>Date</th>
-                <th style={S.th}>Name / Merchant</th>
-                <th style={S.th}>Type</th>
-                <th style={S.th}>Category</th>
-                <th style={S.th}>Account</th>
-                <th style={{...S.th,textAlign:"center"}}>Recurring</th>
-                <th style={{...S.th,textAlign:"right"}}>Amount</th>
-              </tr></thead>
-              <tbody>
-                {filteredTxns.length===0&&(
-                  <tr><td colSpan={6} style={{...S.td,textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</td></tr>
-                )}
-                {filteredTxns.map(t=>(
-                  <tr key={t.id} style={{background:t.recurring?"#fbbf2408":needsReview(t)?"#00d4ff06":"transparent",borderLeft:needsReview(t)&&!t.recurring?"2px solid var(--cyan)":"none"}}>
-                    <td style={{...S.td,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{t.date}</td>
-                    <td style={{...S.td,color:"var(--t1)",fontWeight:500}}>
-                      {editingId===t.id?(
-                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                          <input style={{background:"var(--surface)",border:"1px solid var(--cyan)",borderRadius:6,padding:"4px 8px",fontSize:13,color:"var(--t1)",outline:"none",width:170}}
-                            value={editingName} onChange={e=>setEditingName(e.target.value)}
-                            onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
-                          <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
-                          <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
-                        </div>
-                      ):(
-                        <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          {t.recurring&&<span style={{color:"var(--amber)",fontSize:12}}>↻</span>}
-                          <span>{t.name||t.merchant}</span>
-                          {t.name&&<span style={{fontSize:10,color:"var(--t3)"}}>({t.merchant})</span>}
-                          {needsReview(t)&&<span style={{fontSize:9,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:4,padding:"1px 5px",letterSpacing:"0.5px"}}>REVIEW</span>}
-                          {t.pending&&<span style={{fontSize:10,color:"var(--amber)",border:"1px solid var(--amber)44",borderRadius:4,padding:"1px 5px"}}>pending</span>}
-                          <div style={{position:"relative",marginLeft:"auto",flexShrink:0}}>
-                            <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 6px",lineHeight:1}}>⋯</button>
-                            {ellipsisId===t.id&&(
-                              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
-                                <button onClick={()=>{startRename(t);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
-                                <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td style={S.td}>
-                      <select style={{...S.select,width:120}} value={t.type||(t.amount<0?"expense":"income")} onChange={e=>updateTxnType(t.id,e.target.value)}>
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
-                        <option value="refund">Refund</option>
-                        <option value="reimbursement">Reimbursement</option>
-                        <option value="transfer">Transfer</option>
-                      </select>
-                    </td>
-                    <td style={S.td}>
-                      {["income","transfer","reimbursement"].includes(t.type||(t.amount<0?"expense":"income")) ? (
-                        <span style={{fontSize:12,color:"var(--t3)",fontStyle:"italic"}}>n/a</span>
-                      ) : (
-                        <select style={{...S.select,width:130}} value={t.categoryId||""}
-                          onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
-                          <option value="">— None —</option>
-                          {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                          <option value="__new__">＋ New Category…</option>
-                      </select>
-                      )}
-                    </td>
-                    <td style={S.td}>
-                      <select style={{...S.select,width:130}} value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
-                        <option value="">— None —</option>
-                        {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-                      </select>
-                    </td>
-                    <td style={{...S.td,textAlign:"center"}}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                        <button onClick={()=>toggleRecurring(t.id)}
-                          style={{background:t.recurring?"#fbbf2422":"transparent",border:`1px solid ${t.recurring?"#fbbf2444":"var(--border2)"}`,borderRadius:6,cursor:"pointer",padding:"3px 8px",fontSize:12,color:t.recurring?"var(--amber)":"var(--t3)"}}>↻</button>
-                        {t.recurring&&(
-                          <input type="number" min="1" max="31"
-                            style={{...S.input,width:46,padding:"3px 6px",fontSize:11,textAlign:"center"}}
-                            value={t.recurringDay||""} onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{...S.td,textAlign:"right",fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)"}}>
-                      {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      );
+    }
+
+    return (
+      <div>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
+          <div style={S.sectionTitle}>All Transactions</div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
+            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Total Balance</div>
           </div>
         </div>
-      )}
-    </div>
-  );
+
+        {/* Review banner */}
+        {toReview>0&&(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+            background:"var(--cyan-dim)",borderLeft:"3px solid var(--cyan)",
+            borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:12}}>
+            <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
+              <span style={{color:"var(--cyan)",fontWeight:700}}>{toReview}</span> transactions need review
+            </span>
+            <button onClick={()=>{setFilterCat(""); setSearch("");}}
+              style={{background:"none",border:"none",cursor:"pointer",color:"var(--cyan)",fontSize:13,fontWeight:600}}>
+              Review ›
+            </button>
+          </div>
+        )}
+
+        {/* Action bar */}
+        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
+          <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
+          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"⟳ Syncing…":"⟳ Sync"}</button>}
+        </div>
+
+        {/* Filter row */}
+        <div className="ledgr-filter-row" style={{...S.filterRow,marginBottom:14}}>
+          <div style={{position:"relative",flex:1,minWidth:140}}>
+            <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:13}}>🔍</span>
+            <input style={{...S.input,paddingLeft:32,fontSize:13}} placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
+          </div>
+          <select style={{...S.select,padding:"8px 10px"}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+            <option value="all">All Categories</option>
+            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="">Uncategorized</option>
+          </select>
+          <select style={{...S.select,padding:"8px 10px"}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
+            <option value="all">All Accounts</option>
+            {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+
+        {/* Grouped transaction list */}
+        {filteredTxns.length===0 ? (
+          <div style={{textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</div>
+        ) : (
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
+            {dates.map((date,di)=>{
+              const txns    = grouped[date];
+              const dayTotal = txns.reduce((a,t)=>a+t.amount,0);
+              return (
+                <div key={date}>
+                  {/* Date header */}
+                  <div style={{
+                    display:"flex",alignItems:"center",justifyContent:"space-between",
+                    padding:"8px 16px",
+                    background:"var(--surface)",
+                    borderTop: di>0?"1px solid var(--border)":"none",
+                  }}>
+                    <span style={{fontSize:11,fontWeight:700,color:"var(--t3)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.8px"}}>
+                      {new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+                    </span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:dayTotal>=0?"var(--green)":"var(--t3)"}}>
+                      {dayTotal>=0?"+":""}{fmt(dayTotal)}
+                    </span>
+                  </div>
+                  {/* Transactions for this date */}
+                  <div style={{padding:"0 16px"}}>
+                    {txns.map(t=><TxnRow key={t.id} t={t}/>)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  })();
 
   /* ── Budgets ── */
   const [editingLimitId,  setEditingLimitId]  = useState(null);
@@ -1065,154 +1078,106 @@ function AppInner() {
 
       {categories.length===0 ? (
         <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet.</div>
-      ) : isMobile ? (
-
-        /* ── Mobile: card list ── */
-        <div style={{display:"flex",flexDirection:"column",gap:0,...S.card,padding:0,overflow:"hidden"}}>
-          {sortedCategories.map((cat,i)=>{
-            const spent=spentByCat[cat.id]||0,pct=Math.min((spent/cat.limit)*100,100);
-            const remaining=cat.limit-spent,isLast=i===sortedCategories.length-1;
-            const over=remaining<0,warn=pct>=80&&!over&&remaining!==0,barC=over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color;
-            return (
-              <div key={cat.id} onClick={()=>setDrillCat(cat)}
-                style={{padding:"14px 16px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",transition:"background 0.12s"}}
-                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                {/* Name row */}
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                  <span style={{width:16,height:16,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:800,
-                    background:over?"var(--red-dim)":remaining===0?"var(--surface)":warn?"#fbbf2422":"var(--green-dim)",
-                    border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":warn?"var(--amber)":"var(--green)"}55`,
-                    color:over?"var(--red)":remaining===0?"var(--t3)":warn?"var(--amber)":"var(--green)"}}>
-                    {over?"!":remaining===0?"○":warn?"~":"✓"}
-                  </span>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                  <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                  <button style={{...S.btn("ghost",true),padding:"3px 7px",fontSize:11}} onClick={e=>{e.stopPropagation();deleteCat(cat.id);}}>✕</button>
-                </div>
-                {/* Progress bar */}
-                <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:10}}>
-                  <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s"}}/>
-                </div>
-                {/* Stats row */}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                  {/* Budgeted */}
-                  <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"8px 10px"}} onClick={e=>e.stopPropagation()}>
-                    <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Budgeted</div>
-                    {editingLimitId===cat.id ? (
-                      <input type="number" autoFocus
-                        style={{background:"none",border:"none",borderBottom:"1px solid var(--cyan)",fontSize:13,color:"var(--t1)",outline:"none",width:"100%",fontFamily:"var(--font-mono)",padding:"2px 0"}}
-                        value={editingLimitVal}
-                        onChange={e=>setEditingLimitVal(e.target.value)}
-                        onBlur={()=>saveLimit(cat.id)}
-                        onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}/>
-                    ):(
-                      <div onClick={e=>startEditLimit(cat,e)} style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",cursor:"text"}}>
-                        {fmt(cat.limit)} <span style={{fontSize:9,opacity:0.4}}>⋯</span>
-                      </div>
-                    )}
-                  </div>
-                  {/* Spent */}
-                  <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"8px 10px"}}>
-                    <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Spent</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:13,color:spent>0?"var(--t1)":"var(--t3)"}}>{fmt(spent)}</div>
-                  </div>
-                  {/* Remaining */}
-                  <div style={{background:over?"var(--red-dim)":remaining===0?"var(--surface)":"var(--green-dim)",border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":"var(--green)"}33`,borderRadius:"var(--radius)",padding:"8px 10px"}}>
-                    <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Left</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)"}}>
-                      {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {/* Mobile totals */}
-          <div style={{padding:"12px 16px",borderTop:"2px solid var(--border)",background:"var(--surface)",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-            <div><div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Budgeted</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalBudget)}</div></div>
-            <div><div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div></div>
-            <div><div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4,fontFamily:"var(--font-disp)"}}>Left</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalBudget-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalBudget-totalSpent)}</div></div>
-          </div>
-        </div>
-
       ) : (
+        <>
+          {/* Category list — same layout on mobile and desktop */}
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {sortedCategories.map(cat=>{
+              const spent     = spentByCat[cat.id]||0;
+              const pct       = Math.min((spent/cat.limit)*100,100);
+              const remaining = cat.limit-spent;
+              const over      = remaining<0;
+              const warn      = pct>=80&&!over&&remaining!==0;
+              const zero      = remaining===0&&!over;
+              const barC      = over?"var(--red)":warn?"var(--amber)":zero?"var(--t3)":cat.color;
+              const remColor  = over?"var(--red)":zero?"var(--t3)":"var(--green)";
+              const remBg     = over?"var(--red-dim)":zero?"var(--surface)":"var(--green-dim)";
 
-        /* ── Desktop: table ── */
-        <div style={{...S.card,padding:0,overflow:"hidden"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",borderBottom:"2px solid var(--border)",padding:"10px 20px",background:"var(--surface)"}}>
-            {[["Category","left"],["Budgeted","right"],["Spent","right"],["Remaining","right"],["","right"]].map(([h,align])=>(
-              <div key={h} style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)",textAlign:align}}>{h}</div>
-            ))}
-          </div>
-          {sortedCategories.map((cat,i)=>{
-            const spent=spentByCat[cat.id]||0,pct=Math.min((spent/cat.limit)*100,100);
-            const remaining=cat.limit-spent,isLast=i===sortedCategories.length-1;
-            const over=remaining<0,warn=pct>=80&&!over&&remaining!==0,barC=over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color;
-            return (
-              <div key={cat.id} onClick={()=>setDrillCat(cat)}
-                style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"13px 20px",borderBottom:isLast?"none":"1px solid var(--border)",cursor:"pointer",alignItems:"center",transition:"background 0.12s"}}
-                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <div style={{minWidth:0,paddingRight:16}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                    <span style={{width:18,height:18,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,
-                      background:over?"var(--red-dim)":remaining===0?"var(--surface)":warn?"#fbbf2422":"var(--green-dim)",
-                      border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":warn?"var(--amber)":"var(--green)"}55`,
-                      color:over?"var(--red)":remaining===0?"var(--t3)":warn?"var(--amber)":"var(--green)"}}>
-                      {over?"!":remaining===0?"○":warn?"~":"✓"}
+              return (
+                <div key={cat.id} onClick={()=>setDrillCat(cat)}
+                  style={{
+                    background:"var(--card)", border:"1px solid var(--border)",
+                    borderRadius:"var(--radius)", padding:"14px 16px",
+                    cursor:"pointer", transition:"background 0.12s",
+                  }}
+                  onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}>
+
+                  {/* Row 1: dot + name + remaining pill + delete */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <span style={{width:9,height:9,borderRadius:"50%",background:cat.color,flexShrink:0,display:"inline-block"}}/>
+                    <span style={{fontSize:15,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+
+                    {/* Remaining pill */}
+                    <span style={{
+                      fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,
+                      color:remColor, background:remBg,
+                      border:`1px solid ${remColor}33`,
+                      borderRadius:6, padding:"3px 10px", flexShrink:0,
+                    }}>
+                      {over?`-${fmt(Math.abs(remaining))}`:fmt(remaining)}
                     </span>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                    <span style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                    <span style={{fontSize:11,color:over?"var(--red)":warn?"var(--amber)":"var(--t3)",marginLeft:"auto",whiteSpace:"nowrap",flexShrink:0,paddingLeft:8}}>
-                      {over?"Overspent":remaining===0?"Fully spent":warn?`${pct.toFixed(0)}% used`:"Funded"}
-                    </span>
+
+                    <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px",flexShrink:0}}
+                      onClick={e=>{e.stopPropagation();deleteCat(cat.id);}}>✕</button>
                   </div>
-                  <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+
+                  {/* Row 2: progress bar */}
+                  <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:7}}>
                     <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s"}}/>
                   </div>
-                </div>
-                <div style={{textAlign:"right",paddingRight:16}} onClick={e=>e.stopPropagation()}>
-                  {editingLimitId===cat.id ? (
-                    <input type="number" autoFocus style={{...S.input,width:110,padding:"5px 8px",fontSize:13,textAlign:"right"}}
-                      value={editingLimitVal} onChange={e=>setEditingLimitVal(e.target.value)}
-                      onBlur={()=>saveLimit(cat.id)}
-                      onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}/>
-                  ):(
-                    <span onClick={e=>startEditLimit(cat,e)} title="Click to edit"
-                      style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",cursor:"text",padding:"4px 8px",borderRadius:"var(--radius)",border:"1px solid transparent",transition:"border-color 0.15s",display:"inline-block"}}
-                      onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border2)"}
-                      onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
-                      {fmt(cat.limit)} <span style={{fontSize:10,opacity:0.4}}>⋯</span>
+
+                  {/* Row 3: spent / budget + status + edit budget */}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontSize:12,color:over?"var(--red)":warn?"var(--amber)":"var(--t3)"}}>
+                      {over&&<span style={{fontWeight:600,marginRight:4}}>Overspent ·</span>}
+                      {zero&&<span style={{marginRight:4}}>Fully spent ·</span>}
+                      Spent {fmt(spent)} /{" "}
+                      {/* Inline budget edit */}
+                      {editingLimitId===cat.id ? (
+                        <input type="number" autoFocus
+                          style={{background:"none",border:"none",borderBottom:"1px solid var(--cyan)",fontSize:12,color:"var(--t1)",outline:"none",width:70,fontFamily:"var(--font-mono)"}}
+                          value={editingLimitVal}
+                          onChange={e=>setEditingLimitVal(e.target.value)}
+                          onBlur={()=>saveLimit(cat.id)}
+                          onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}
+                          onClick={e=>e.stopPropagation()}/>
+                      ):(
+                        <span onClick={e=>startEditLimit(cat,e)} style={{cursor:"text",color:"var(--t3)",textDecoration:"underline dotted",textUnderlineOffset:2}}>
+                          {fmt(cat.limit)}
+                        </span>
+                      )}
                     </span>
-                  )}
+                    <button style={{...S.btn("ghost",true),padding:"3px 8px",fontSize:11}} onClick={e=>{e.stopPropagation();openEditCat(cat);}}>Edit</button>
+                  </div>
                 </div>
-                <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,color:spent>0?"var(--t1)":"var(--t3)"}}>{fmt(spent)}</div>
-                <div style={{textAlign:"right",paddingRight:16}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,display:"inline-block",padding:"4px 10px",borderRadius:6,
-                    color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",
-                    background:over?"var(--red-dim)":remaining===0?"var(--surface)":"var(--green-dim)",
-                    border:`1px solid ${over?"var(--red)":remaining===0?"var(--border2)":"var(--green)"}33`}}>
-                    {over?`−${fmt(Math.abs(remaining))}`:fmt(remaining)}
-                  </span>
-                </div>
-                <div style={{display:"flex",gap:4,justifyContent:"flex-end"}} onClick={e=>e.stopPropagation()}>
-                  <button style={{...S.btn("ghost",true),padding:"4px 8px",fontSize:11}} onClick={()=>deleteCat(cat.id)}>✕</button>
-                </div>
-              </div>
-            );
-          })}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 150px 130px 150px 76px",padding:"12px 20px",borderTop:"2px solid var(--border)",background:"var(--surface)"}}>
-            <div style={{fontSize:12,fontWeight:700,color:"var(--t3)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.5px"}}>Totals</div>
-            <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalBudget)}</div>
-            <div style={{textAlign:"right",paddingRight:16,fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div>
-            <div style={{textAlign:"right",paddingRight:16}}><span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalBudget-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalBudget-totalSpent)}</span></div>
-            <div/>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Totals bar */}
+          <div style={{
+            background:"var(--card)",border:"1px solid var(--border)",
+            borderRadius:"var(--radius)",padding:"12px 16px",
+            display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,
+          }}>
+            {[
+              ["Budgeted", fmt(totalBudget), "var(--t1)"],
+              ["Spent",    fmt(totalSpent),  "var(--t1)"],
+              ["Left",     fmt(totalBudget-totalSpent), totalBudget-totalSpent>=0?"var(--green)":"var(--red)"],
+            ].map(([label,value,color])=>(
+              <div key={label}>
+                <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4,fontFamily:"var(--font-disp)"}}>{label}</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color}}>{value}</div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
       {DrillDownModal}
     </div>
+  );
+
   );
 
   /* ── Accounts ── */

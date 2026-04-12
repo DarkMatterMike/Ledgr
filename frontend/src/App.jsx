@@ -471,33 +471,63 @@ function AppInner() {
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
-  // Detect pending transactions that likely have a matching posted transaction
-  const likelyDuplicatePending = useMemo(() => {
-    const pending = transactions.filter(t=>t.pending);
+  // Smart pending reconciliation — match on merchant + date only, ignore amount
+  const [dismissedPairs,  setDismissedPairs]  = useState(()=>{ try{return JSON.parse(localStorage.getItem("ledgr_dismissed_pairs")||"[]")}catch{return[]} });
+  const [showReconcile,   setShowReconcile]   = useState(false);
+
+  function dismissPair(pendingId) {
+    const next = [...dismissedPairs, pendingId];
+    setDismissedPairs(next);
+    localStorage.setItem("ledgr_dismissed_pairs", JSON.stringify(next));
+  }
+
+  function confirmPair(pendingId, postedId) {
+    const pending = transactions.find(t=>t.id===pendingId);
+    const posted  = transactions.find(t=>t.id===postedId);
+    if (!pending||!posted) return;
+    setTransactions(p=>p
+      .filter(t=>t.id!==pendingId)
+      .map(t=>t.id!==postedId?t:{
+        ...t,
+        name:          pending.name||t.name,
+        categoryId:    pending.categoryId||t.categoryId,
+        recurring:     pending.recurring||t.recurring,
+        recurringDay:  pending.recurringDay||t.recurringDay,
+        recurringFreq: pending.recurringFreq||t.recurringFreq,
+        recurringStart:pending.recurringStart||t.recurringStart,
+        reviewed:      pending.reviewed||t.reviewed,
+        type:          pending.type||t.type,
+      })
+    );
+    showToast("Merged — metadata copied to posted transaction");
+  }
+
+  const pendingPairs = useMemo(() => {
+    const pending = transactions.filter(t=>t.pending && !dismissedPairs.includes(t.id));
     const posted  = transactions.filter(t=>!t.pending);
-    const dupeIds = new Set();
+    const pairs   = [];
+    const usedPostedIds = new Set();
     pending.forEach(p=>{
-      const pAmount  = Math.abs(p.amount);
-      const pMer     = (p.merchant||p.name||"").toLowerCase().trim();
-      const pDate    = new Date(p.date);
-      const matched  = posted.some(t=>{
-        const tDate = new Date(t.date);
+      const pMer  = (p.merchant||p.name||"").toLowerCase().trim();
+      const pDate = new Date(p.date+"T12:00:00");
+      const match = posted.find(t=>{
+        if (usedPostedIds.has(t.id)) return false;
+        const tDate   = new Date(t.date+"T12:00:00");
         const dayDiff = Math.abs((tDate-pDate)/(1000*60*60*24));
-        const sameMer = (t.merchant||t.name||"").toLowerCase().trim()===pMer;
-        const sameAmt = Math.abs(Math.abs(t.amount)-pAmount)<0.01;
-        return dayDiff<=5 && sameMer && sameAmt;
+        const tMer    = (t.merchant||t.name||"").toLowerCase().trim();
+        return dayDiff<=7 && tMer===pMer;
       });
-      if (matched) dupeIds.add(p.id);
+      if (match) { usedPostedIds.add(match.id); pairs.push({pending:p, posted:match}); }
     });
-    return dupeIds;
-  }, [transactions]);
+    return pairs;
+  }, [transactions, dismissedPairs]);
 
   const [showDuplicates, setShowDuplicates] = useState(false);
 
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
       const label = (t.name||t.merchant||"").toLowerCase();
-      if (!showDuplicates && likelyDuplicatePending.has(t.id)) return false;
+      if (!showDuplicates && pendingPairs.some(p=>p.pending.id===t.id)) return false;
       if (search && !label.includes(search.toLowerCase())) return false;
       if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
       if (filterAcct   !== "all" && t.accountId  !== filterAcct) return false;
@@ -1083,18 +1113,60 @@ function AppInner() {
           </div>
         )}
 
-        {/* Pending duplicates banner */}
-        {likelyDuplicatePending.size>0&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-            background:"#fbbf2412",borderLeft:"3px solid var(--amber)",
+        {/* Pending reconciliation banner */}
+        {pendingPairs.length>0&&(
+          <div style={{background:"#fbbf2412",borderLeft:"3px solid var(--amber)",
             borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
-            <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-              <span style={{color:"var(--amber)",fontWeight:700}}>{likelyDuplicatePending.size}</span> pending transaction{likelyDuplicatePending.size!==1?"s":""} may have posted — hidden
-            </span>
-            <button onClick={()=>setShowDuplicates(p=>!p)}
-              style={{background:"none",border:"none",cursor:"pointer",color:"var(--amber)",fontSize:13,fontWeight:600}}>
-              {showDuplicates?"Hide":"Show"}
-            </button>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
+                <span style={{color:"var(--amber)",fontWeight:700}}>{pendingPairs.length}</span> pending transaction{pendingPairs.length!==1?"s":""} may have posted
+              </span>
+              <button onClick={()=>setShowReconcile(p=>!p)}
+                style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
+                {showReconcile?"✕ Close":"Review ›"}
+              </button>
+            </div>
+            {showReconcile&&(
+              <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
+                {pendingPairs.map(({pending:p,posted:po})=>{
+                  const pCat = catMap[p.categoryId];
+                  return (
+                    <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
+                      {/* Pending row */}
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>PENDING</div>
+                          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name||p.merchant}</div>
+                          <div style={{fontSize:11,color:"var(--t3)"}}>{p.date}{pCat&&<span style={{color:pCat.color}}> · {pCat.name}</span>}{p.recurring&&<span style={{color:"var(--amber)"}}> · ↻</span>}</div>
+                        </div>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t3)",flexShrink:0,marginLeft:10}}>{fmt(Math.abs(p.amount))}</span>
+                      </div>
+                      {/* Arrow */}
+                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>↓ matches posted transaction</div>
+                      {/* Posted row */}
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>POSTED</div>
+                          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{po.name||po.merchant}</div>
+                          <div style={{fontSize:11,color:"var(--t3)"}}>{po.date}</div>
+                        </div>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:po.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:10}}>{po.amount<0?"-":"+"}{fmt(Math.abs(po.amount))}</span>
+                      </div>
+                      {/* Actions */}
+                      <div style={{display:"flex",gap:8}}>
+                        <button style={{...S.btn("primary",true),flex:1,justifyContent:"center"}}
+                          onClick={()=>{ confirmPair(p.id,po.id); setShowReconcile(pendingPairs.length>1); }}>
+                          ✓ Confirm — copy metadata &amp; remove pending
+                        </button>
+                        <button style={S.btn("ghost",true)} onClick={()=>dismissPair(p.id)}>
+                          Not a match
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

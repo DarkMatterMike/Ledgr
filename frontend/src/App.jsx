@@ -260,11 +260,7 @@ export default function App() {
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
           });
         }
-        await fetch("https://ledgr-production-9e35.up.railway.app/api/push/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(sub),
-        });
+        await api.subscribePush(sub);
         navigator.serviceWorker.addEventListener("message", e => {
           if (e.data?.type === "NEW_TRANSACTIONS") setView("transactions");
         });
@@ -1582,11 +1578,7 @@ export default function App() {
                     userVisibleOnly: true,
                     applicationServerKey: toUint8(VAPID),
                   });
-                  await fetch("https://ledgr-production-9e35.up.railway.app/api/push/subscribe",{
-                    method:"POST",
-                    headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify(sub),
-                  });
+                  await api.subscribePush(sub);
                   showToast("Notifications enabled!");
                 }
               } catch(e) { console.warn("Notification setup:",e.message); }

@@ -25,7 +25,7 @@ html, body, #root { height: 100%; background: #06090f; }
   --font-body: 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius:    4px;
-  --radius-lg: 8px;
+  --radius-lg: 4px;
 }
 
 body { font-family: var(--font-body); color: var(--t1); overflow-x: hidden; }

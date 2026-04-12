@@ -850,8 +850,6 @@ function AppInner() {
           {/* Main row */}
           <div onClick={()=>setExpandedTxnId(expanded?null:t.id)}
             style={{padding:"11px 0",cursor:"pointer",display:"flex",flexDirection:"column",gap:5,
-              borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
-              paddingLeft:t.recurring||needsReview(t)?10:0,
               transition:"background 0.1s",
             }}>
             {/* Top row: name + amount */}
@@ -866,17 +864,11 @@ function AppInner() {
             </div>
             {/* Bottom row: status + meta */}
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {/* Status icon */}
+              {/* Status dot */}
               <span style={{
-                width:16,height:16,borderRadius:"50%",flexShrink:0,
-                display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:9,fontWeight:800,
-                background:reviewed?"var(--green-dim)":"var(--cyan-dim)",
-                border:`1px solid ${reviewed?"var(--green)":"var(--cyan)"}44`,
-                color:reviewed?"var(--green)":"var(--cyan)",
-              }}>
-                {reviewed?"✓":"!"}
-              </span>
+                width:7,height:7,borderRadius:"50%",flexShrink:0,display:"inline-block",
+                background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)",
+              }}/>
               <span style={{fontSize:11,color:"var(--t3)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {t.pending&&<span style={{color:"var(--amber)",marginRight:4}}>pending ·</span>}
                 {t.recurring&&<span style={{color:"var(--amber)",marginRight:4}}>↻ ·</span>}
@@ -1248,41 +1240,76 @@ function AppInner() {
   /* ── Rules ── */
   const Rules = (
     <div>
-      <div style={{...S.sectionHdr,marginBottom:8}}>
+      <div style={{...S.sectionHdr,marginBottom:6}}>
         <div style={S.sectionTitle}>Auto-Categorization Rules</div>
         <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
       </div>
-      <p style={{fontSize:13,color:"var(--t2)",marginBottom:20,lineHeight:1.6}}>Rules automatically assign categories to new transactions when they sync.</p>
-      {rules.length===0?(
+      <p style={{fontSize:12,color:"var(--t3)",marginBottom:16,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync.</p>
+
+      {rules.length===0 ? (
         <div style={{...S.card,textAlign:"center",padding:48}}>
           <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
           <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
           <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
         </div>
-      ):(
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {rules.map(rule=>{
-            const cat=catMap[rule.categoryId];
+      ) : (
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
+          {rules.map((rule,i)=>{
+            const cat = catMap[rule.categoryId];
+            const isLast = i===rules.length-1;
             return (
-              <div key={rule.id} style={{...S.card,padding:"16px 20px",opacity:rule.enabled?1:0.5,borderLeft:`3px solid ${cat?.color||"var(--border2)"}`}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:6}}>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"2px 10px",borderRadius:6}}>
-                        {rule.matchType==="exact"?"=":rule.matchType==="starts"?"starts:":"~"} {rule.pattern}
-                      </span>
-                      <span style={{fontSize:13,color:"var(--t3)"}}>→</span>
-                      {cat?<span style={S.badge(cat.color)}>{cat.name}</span>:<span style={{fontSize:12,color:"var(--t3)"}}>Unknown category</span>}
-                    </div>
-                    <div style={{fontSize:11,color:"var(--t3)"}}>Match: <strong style={{color:"var(--t2)"}}>{rule.matchType}</strong>{rule.createdAt&&` · ${new Date(rule.createdAt).toLocaleDateString()}`}</div>
-                  </div>
-                  <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-                    <button onClick={()=>toggleRule(rule.id)} style={{...S.btn("ghost",true),color:rule.enabled?"var(--green)":"var(--t3)",borderColor:rule.enabled?"var(--green)44":"var(--border2)"}}>
-                      {rule.enabled?"✓ On":"Off"}
+              <div key={rule.id}
+                style={{
+                  padding:"13px 16px",
+                  borderBottom:isLast?"none":"1px solid var(--border)",
+                  opacity:rule.enabled?1:0.45,
+                  transition:"background 0.12s",
+                }}
+                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+
+                {/* Top row: color dot + pattern → category + actions */}
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  {/* Category color dot */}
+                  <span style={{width:8,height:8,borderRadius:"50%",background:cat?.color||"var(--border2)",flexShrink:0,display:"inline-block"}}/>
+
+                  {/* Pattern pill */}
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"3px 9px",borderRadius:"var(--radius)",flexShrink:0}}>
+                    {rule.matchType==="exact"?"=":rule.matchType==="starts"?"^":"~"} {rule.pattern}
+                  </span>
+
+                  <span style={{fontSize:12,color:"var(--t3)",flexShrink:0}}>→</span>
+
+                  {/* Category badge using dot + name instead of colored pill */}
+                  {cat ? (
+                    <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:500,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                      {cat.name}
+                    </span>
+                  ) : (
+                    <span style={{fontSize:12,color:"var(--t3)",flex:1}}>Unknown category</span>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                    <button onClick={()=>toggleRule(rule.id)}
+                      style={{...S.btn("ghost",true),
+                        color:rule.enabled?"var(--green)":"var(--t3)",
+                        borderColor:rule.enabled?"var(--green)44":"var(--border2)"}}>
+                      {rule.enabled?"On":"Off"}
                     </button>
-                    <button style={S.btn("ghost",true)} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId,enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+                    <button style={S.btn("ghost",true)}
+                      onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId,enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>
+                      Edit
+                    </button>
                     <button style={S.btn("ghost",true)} onClick={()=>deleteRule(rule.id)}>✕</button>
                   </div>
+                </div>
+
+                {/* Bottom row: meta */}
+                <div style={{fontSize:11,color:"var(--t3)",paddingLeft:18}}>
+                  Match type: <span style={{color:"var(--t2)",fontWeight:500}}>{rule.matchType}</span>
+                  {rule.createdAt&&<span style={{marginLeft:10}}>· Added {new Date(rule.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
                 </div>
               </div>
             );
@@ -1475,12 +1502,13 @@ function AppInner() {
               {calendarDay.txns.map(t=>{
                 const cat=catMap[t.categoryId];
                 return (
-                  <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`3px solid ${cat?.color||"var(--cyan)"}`}}>
+                  <div key={t.id} style={{display:"flex",alignItems:"center",gap:12,justifyContent:"space-between",padding:"12px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)"}}>
+                    <span style={{width:8,height:8,borderRadius:"50%",background:cat?.color||"var(--cyan)",flexShrink:0,display:"inline-block"}}/>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                       <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>Day {t.recurringDay}{cat&&<> · <span style={{color:cat.color}}>{cat.name}</span></>}</div>
                     </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:12}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
                       {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
                     </div>
                   </div>

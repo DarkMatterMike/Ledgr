@@ -1154,11 +1154,11 @@ function AppInner() {
                       </div>
                       {/* Actions */}
                       <div style={{display:"flex",gap:8}}>
-                        <button style={{...S.btn("primary",true),flex:1,justifyContent:"center"}}
+                        <button style={{...S.btn("primary",true),flex:1,justifyContent:"center",fontSize:12}}
                           onClick={()=>{ confirmPair(p.id,po.id); setShowReconcile(pendingPairs.length>1); }}>
-                          ✓ Confirm — copy metadata &amp; remove pending
+                          ✓ Confirm &amp; remove pending
                         </button>
-                        <button style={S.btn("ghost",true)} onClick={()=>dismissPair(p.id)}>
+                        <button style={{...S.btn("ghost",true),flexShrink:0,fontSize:12}} onClick={()=>dismissPair(p.id)}>
                           Not a match
                         </button>
                       </div>

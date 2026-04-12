@@ -520,12 +520,58 @@ function AppInner() {
     drillCat ? monthTxns.filter(t=>t.categoryId===drillCat.id&&t.amount<0).sort((a,b)=>b.date.localeCompare(a.date)) : [],
   [drillCat, monthTxns]);
 
-  const recurringTxns     = useMemo(() => transactions.filter(t=>t.recurring&&t.recurringDay), [transactions]);
+  const recurringTxns = useMemo(() => transactions.filter(t=>t.recurring), [transactions]);
+
   const calendarTxnsByDay = useMemo(() => {
     const map = {};
-    recurringTxns.forEach(t => { const d=parseInt(t.recurringDay); if(!map[d]) map[d]=[]; map[d].push(t); });
+    const [calY, calM] = calendarMonth.split("-").map(Number);
+    const daysInCalMonth = daysInMonth(calY, calM);
+
+    recurringTxns.forEach(t => {
+      const freq  = t.recurringFreq || "monthly";
+      const start = t.recurringStart ? new Date(t.recurringStart + "T12:00:00") : null;
+
+      function addDay(d) {
+        if (d < 1 || d > daysInCalMonth) return;
+        if (!map[d]) map[d] = [];
+        map[d].push(t);
+      }
+
+      if (freq === "monthly") {
+        if (t.recurringDay) addDay(parseInt(t.recurringDay));
+
+      } else if (freq === "annual") {
+        // Show only if start date month matches calendar month
+        if (start && start.getMonth()+1 === calM) {
+          addDay(start.getDate());
+        }
+
+      } else if (freq === "weekly" || freq === "biweekly") {
+        // Need a start date to calculate weekly/biweekly occurrences
+        if (!start) {
+          // Fallback: use recurringDay as day-of-month if no start date
+          if (t.recurringDay) addDay(parseInt(t.recurringDay));
+          return;
+        }
+        const intervalDays = freq === "weekly" ? 7 : 14;
+        // Walk from start date forward, finding all occurrences in this calendar month
+        let current = new Date(start);
+        // Move start back if needed to find earliest occurrence before the month
+        while (current > new Date(calY, calM-1, 1)) {
+          current = new Date(current.getTime() - intervalDays*24*60*60*1000);
+        }
+        // Now walk forward through the month
+        for (let i = 0; i < 60; i++) {
+          if (current.getFullYear() === calY && current.getMonth()+1 === calM) {
+            addDay(current.getDate());
+          }
+          if (current.getFullYear() > calY || (current.getFullYear() === calY && current.getMonth()+1 > calM)) break;
+          current = new Date(current.getTime() + intervalDays*24*60*60*1000);
+        }
+      }
+    });
     return map;
-  }, [recurringTxns]);
+  }, [recurringTxns, calendarMonth]);
 
   function prevMonth() {
     const [y,m]=selectedMonth.split("-").map(Number);
@@ -1516,7 +1562,14 @@ function AppInner() {
       {recurringTxns.length>0&&(
         <div style={S.card}>
           <div style={S.cardTitle}>All Recurring Transactions</div>
-          {recurringTxns.sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+          {[...recurringTxns].sort((a,b)=>{
+            // Sort by frequency label then by day/start
+            const freqOrder = {weekly:0,biweekly:1,monthly:2,annual:3};
+            const fa = freqOrder[a.recurringFreq||"monthly"]??2;
+            const fb = freqOrder[b.recurringFreq||"monthly"]??2;
+            if (fa!==fb) return fa-fb;
+            return (a.recurringDay||0)-(b.recurringDay||0);
+          }).map(t=>{
             const cat=catMap[t.categoryId];
             return (
               <div key={t.id}

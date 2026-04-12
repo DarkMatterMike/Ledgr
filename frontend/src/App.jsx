@@ -61,7 +61,7 @@ const S = {
   statValue:    { fontFamily:"var(--font-mono)", fontSize:26, fontWeight:600 },
   statSub:      { fontSize:12, color:"var(--t2)", marginTop:4 },
   btn: (variant="ghost", sm=false) => {
-    const base = { display:"inline-flex", alignItems:"center", gap:7, padding:sm?"6px 12px":"9px 16px", borderRadius:"var(--radius)", fontSize:sm?12:13, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none" };
+    const base = { display:"inline-flex", alignItems:"center", gap:6, padding:sm?"5px 12px":"8px 16px", borderRadius:"var(--radius)", fontSize:13, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none", lineHeight:"1.4", whiteSpace:"nowrap" };
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"#ff4d6d44" };
     if (variant==="amber")   return { ...base, background:"#fbbf2422", color:"var(--amber)", borderColor:"#fbbf2444" };
@@ -239,7 +239,7 @@ function PasswordGate({ onAuth }) {
 
           <button type="submit" disabled={loading} style={{
             background:"var(--cyan)", color:"#000", border:"none",
-            borderRadius:"var(--radius)", padding:"12px",
+            borderRadius:"var(--radius)", padding:"8px 16px",
             fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
             opacity:loading?0.7:1, transition:"opacity 0.15s",
           }}>
@@ -733,12 +733,12 @@ function AppInner() {
     <div>
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
-          <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>‹</button>
+          <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
           <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:isMobile?90:180,textAlign:"center"}}>
             📅 {monthLabel(selectedMonth)}
             {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
           </span>
-          <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 12px",fontSize:18,lineHeight:1.4}}>›</button>
+          <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
         </div>
         <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
           {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
@@ -945,18 +945,18 @@ function AppInner() {
               {/* Recurring toggle */}
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <button onClick={()=>toggleRecurring(t.id)}
-                  style={{...S.btn(t.recurring?"amber":"ghost",true),padding:"4px 10px",fontSize:11}}>
+                  style={{...S.btn(t.recurring?"amber":"ghost",true)}}>
                   {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
                 </button>
                 {t.recurring&&(
                   <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--t2)"}}>
                     Day: <input type="number" min="1" max="31"
-                      style={{...S.input,width:52,padding:"4px 8px",fontSize:12}}
+                      style={{...S.input,width:52}}
                       value={t.recurringDay||""} onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
                   </div>
                 )}
                 <button onClick={()=>setExpandedTxnId(null)}
-                  style={{...S.btn("ghost",true),padding:"4px 8px",fontSize:11,marginLeft:"auto"}}>Done</button>
+                  style={{...S.btn("ghost",true),marginLeft:"auto"}}>Done</button>
               </div>
             </div>
           )}
@@ -1148,7 +1148,7 @@ function AppInner() {
                         </span>
                       )}
                     </span>
-                    <button style={{...S.btn("ghost",true),padding:"3px 8px",fontSize:11}} onClick={e=>{e.stopPropagation();openEditCat(cat);}}>Edit</button>
+                    <button style={{...S.btn("ghost",true)}} onClick={e=>{e.stopPropagation();openEditCat(cat);}}>Edit</button>
                   </div>
                 </div>
               );
@@ -1313,9 +1313,9 @@ function AppInner() {
       )}
 
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-        <button onClick={prevCalMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"6px 14px",fontSize:18,lineHeight:1.4}}>‹</button>
+        <button onClick={prevCalMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
         <div style={{fontFamily:"var(--font-disp)",fontSize:18,fontWeight:700}}>{monthLabel(calendarMonth)}</div>
-        <button onClick={nextCalMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:6,color:"var(--t2)",cursor:"pointer",padding:"6px 14px",fontSize:18,lineHeight:1.4}}>›</button>
+        <button onClick={nextCalMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
       </div>
 
       <div style={{...S.card,padding:0,overflow:"hidden",marginBottom:20}}>
@@ -1385,7 +1385,7 @@ function AppInner() {
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(totalRemaining)}</div>
                 <button onClick={()=>setEditingCalAccts(p=>!p)}
-                  style={{...S.btn("ghost",true),padding:"3px 8px",fontSize:11,color:editingCalAccts?"var(--cyan)":"var(--t3)",borderColor:editingCalAccts?"var(--cyan)44":"var(--border2)"}}>
+                  style={{...S.btn("ghost",true),color:editingCalAccts?"var(--cyan)":"var(--t3)",borderColor:editingCalAccts?"var(--cyan)44":"var(--border2)"}}>
                   {editingCalAccts?"Done":"Edit"}
                 </button>
               </div>
@@ -1856,7 +1856,7 @@ function AppInner() {
             <div style={{fontSize:12,opacity:0.7}}>Tap to view</div>
           </div>
           <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}}
-            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000",padding:"2px 6px"}}>✕</button>
+            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000"}}>✕</button>
         </div>
       )}
 
@@ -1867,7 +1867,7 @@ function AppInner() {
           display:"flex",alignItems:"center",gap:14,maxWidth:380,width:"90vw"}}>
           <span style={{fontSize:13,color:"var(--t1)",flex:1}}>{undoAction.label}</span>
           <button onClick={()=>{ undoAction.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}
-            style={{...S.btn("primary",true),padding:"6px 14px",fontSize:12,flexShrink:0}}>
+            style={{...S.btn("primary",true),flexShrink:0}}>
             Undo
           </button>
           <button onClick={()=>setUndoAction(null)}

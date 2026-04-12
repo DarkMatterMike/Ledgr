@@ -538,12 +538,12 @@ function AppInner() {
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a,b) => {
-      const remA=a.limit-(spentByCat[a.id]||0), remB=b.limit-(spentByCat[b.id]||0);
-      const overA=remA<0, overB=remB<0, zeroA=remA===0, zeroB=remB===0;
-      if (overA&&!overB) return -1; if (!overA&&overB) return 1;
-      if (overA&&overB)  return remA-remB;
-      if (zeroA&&!zeroB) return -1; if (!zeroA&&zeroB) return 1;
-      return remA-remB;
+      const remA = a.limit-(spentByCat[a.id]||0);
+      const remB = b.limit-(spentByCat[b.id]||0);
+      const groupA = remA<0 ? 0 : remA===0 ? 2 : 1; // 0=overspent, 1=in progress, 2=fully spent
+      const groupB = remB<0 ? 0 : remB===0 ? 2 : 1;
+      if (groupA!==groupB) return groupA-groupB;
+      return a.name.localeCompare(b.name); // alphabetize within each group
     });
   }, [categories, spentByCat]);
 

@@ -240,6 +240,44 @@ async function applySyncResultsToDB(added, modified, removed) {
     }));
   next = [...newTxns, ...next];
   await setData("transactions", next);
+
+  // Refresh account balances, preserving custom names
+  try {
+    const items = await getAllItems();
+    const allAccounts = [];
+    for (const item of items) {
+      try {
+        const r = await plaidClient.accountsGet({ access_token: item.access_token });
+        allAccounts.push(...r.data.accounts.map(a => ({
+          plaidId:     a.account_id,
+          institution: item.institution,
+          type:        a.type,
+          subtype:     a.subtype,
+          balance:     a.balances.current,
+          available:   a.balances.available,
+        })));
+      } catch (e) {
+        console.error(`[cron] accountsGet failed for ${item.item_id}:`, e.message);
+      }
+    }
+    if (allAccounts.length > 0) {
+      const saved   = (await getData("accounts")) || [];
+      const byPlaid = Object.fromEntries(saved.map(a => [a.plaidId, a]));
+      const updated = allAccounts.map(pa => ({
+        ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
+        plaidId:     pa.plaidId,
+        balance:     pa.balance,
+        available:   pa.available,
+        institution: pa.institution,
+        type:        pa.subtype || pa.type,
+      }));
+      await setData("accounts", updated);
+      console.log(`[cron] Updated balances for ${updated.length} accounts`);
+    }
+  } catch (e) {
+    console.error("[cron] Balance refresh failed:", e.message);
+  }
+
   return { added: newTxns.length, modified: modified.length, removed: removed.length, newTxns };
 }
 

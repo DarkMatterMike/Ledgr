@@ -275,6 +275,8 @@ function AppInner() {
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
   const [newTxnCount,   setNewTxnCount]   = useState(0);
+  const [undoAction,    setUndoAction]    = useState(null); // {label, fn}
+  const undoTimer = useRef(null);
   const [syncing,       setSyncing]       = useState(false);
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
@@ -400,6 +402,12 @@ function AppInner() {
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
   const navigate  = id  => { setView(id); setDrawerOpen(false); };
 
+  function showUndoToast(label, undoFn) {
+    clearTimeout(undoTimer.current);
+    setUndoAction({ label, fn: undoFn });
+    undoTimer.current = setTimeout(() => setUndoAction(null), 4000);
+  }
+
   // A transaction needs review if it has no category AND hasn't been marked reviewed
   // Income, transfer, reimbursement auto-reviewed when type set
   const needsReview = t => !t.reviewed && !t.categoryId && (t.type==="expense" || t.type==="refund" || !t.type);
@@ -513,7 +521,11 @@ function AppInner() {
     setRulePrompt(null); showToast("Rule saved");
   }
   function saveRule(rule)  { setRules(p=>[...p.filter(r=>r.id!==rule.id),rule]); showToast("Rule saved"); }
-  function deleteRule(id)  { setRules(p=>p.filter(r=>r.id!==id)); showToast("Rule deleted"); }
+  function deleteRule(id)  {
+    const rule = rules.find(r=>r.id===id);
+    setRules(p=>p.filter(r=>r.id!==id));
+    showUndoToast("Rule deleted", ()=>setRules(p=>[...p,rule]));
+  }
   function toggleRule(id)  { setRules(p=>p.map(r=>r.id===id?{...r,enabled:!r.enabled}:r)); }
 
   /* ── Plaid ── */
@@ -583,9 +595,14 @@ function AppInner() {
     setModal(null); showToast("Category saved");
   }
   function deleteCat(id) {
+    const cat  = categories.find(c=>c.id===id);
+    const affected = transactions.filter(t=>t.categoryId===id);
     setCategories(p=>p.filter(c=>c.id!==id));
     setTransactions(p=>p.map(t=>t.categoryId===id?{...t,categoryId:null}:t));
-    showToast("Category removed");
+    showUndoToast("Category deleted", ()=>{
+      setCategories(p=>[...p,cat]);
+      setTransactions(p=>p.map(t=>affected.find(a=>a.id===t.id)?{...t,categoryId:id}:t));
+    });
   }
 
   /* ── Account CRUD ── */
@@ -597,7 +614,11 @@ function AppInner() {
     else setAccounts(p=>p.map(a=>a.id===editTarget.id?{...a,...acctForm,balance:parseFloat(acctForm.balance)||0}:a));
     setModal(null); showToast("Account saved");
   }
-  function deleteAcct(id) { setAccounts(p=>p.filter(a=>a.id!==id)); showToast("Account removed"); }
+  function deleteAcct(id) {
+    const acct = accounts.find(a=>a.id===id);
+    setAccounts(p=>p.filter(a=>a.id!==id));
+    showUndoToast("Account deleted", ()=>setAccounts(p=>[...p,acct]));
+  }
 
   /* ── Transaction CRUD ── */
   function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }
@@ -617,13 +638,19 @@ function AppInner() {
     if(val){const txn=transactions.find(t=>t.id===id);if(txn)promptSaveRule(txn,val);}
   }
   function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
-  function deleteTxn(id)  { setTransactions(p=>p.filter(t=>t.id!==id)); showToast("Deleted"); }
+  function deleteTxn(id) {
+    const txn = transactions.find(t=>t.id===id);
+    setTransactions(p=>p.filter(t=>t.id!==id));
+    showUndoToast("Transaction deleted", ()=>setTransactions(p=>[txn,...p]));
+  }
   function toggleRecurring(id) {
     setTransactions(p=>p.map(t=>{
       if(t.id!==id) return t;
       const on=!t.recurring;
       const autoDay=t.date?parseInt(t.date.split("-")[2]):null;
-      return {...t,recurring:on,recurringDay:on?(t.recurringDay||autoDay):null};
+      return {...t, recurring:on, recurringDay:on?(t.recurringDay||autoDay):null,
+        recurringFreq: on?(t.recurringFreq||"monthly"):null,
+        recurringStart: on?(t.recurringStart||t.date||null):null};
     }));
   }
   function updateRecurringDay(id,day) { setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null}:t)); }
@@ -1451,7 +1478,14 @@ function AppInner() {
                   </div>
                   <div style={{minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                    <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Day {t.recurringDay||"?"} of month{cat&&<> · <span style={{color:cat.color}}>{cat.name}</span></>}</div>
+                    <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>
+                      {t.recurringFreq==="weekly"?"Weekly":
+                       t.recurringFreq==="biweekly"?"Bi-weekly":
+                       t.recurringFreq==="annual"?"Annual":
+                       `Day ${t.recurringDay||"?"} of month`}
+                      {t.recurringStart&&<span style={{marginLeft:6,color:"var(--t3)"}}>· from {t.recurringStart}</span>}
+                      {cat&&<> · <span style={{color:cat.color}}>{cat.name}</span></>}
+                    </div>
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginLeft:10}}>
@@ -1512,7 +1546,14 @@ function AppInner() {
         }}>Remove Recurring</button>
         <button style={S.btn("ghost")} onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
         <button style={S.btn("primary")} onClick={()=>{
-          setTransactions(p=>p.map(t=>t.id===editTarget.id?{...t,name:editTarget.name,recurringDay:editTarget.recurringDay,categoryId:editTarget.categoryId||null}:t));
+          setTransactions(p=>p.map(t=>t.id===editTarget.id?{
+            ...t,
+            name:           editTarget.name,
+            recurringDay:   editTarget.recurringDay,
+            recurringFreq:  editTarget.recurringFreq||"monthly",
+            recurringStart: editTarget.recurringStart||null,
+            categoryId:     editTarget.categoryId||null,
+          }:t));
           setModal(null);setEditTarget(null);showToast("Updated");
         }}>Save</button>
       </>}>
@@ -1525,8 +1566,25 @@ function AppInner() {
           <input style={S.input} placeholder={editTarget.merchant} value={editTarget.name||""} onChange={e=>setEditTarget(p=>({...p,name:e.target.value}))}/>
         </div>
         <div style={S.field}>
-          <label style={S.label}>Recurring Day of Month</label>
-          <input style={S.input} type="number" min="1" max="31" value={editTarget.recurringDay||""} onChange={e=>setEditTarget(p=>({...p,recurringDay:parseInt(e.target.value)||null}))}/>
+          <label style={S.label}>Frequency</label>
+          <select style={{...S.input,padding:"9px 12px"}} value={editTarget.recurringFreq||"monthly"} onChange={e=>setEditTarget(p=>({...p,recurringFreq:e.target.value}))}>
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Bi-weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="annual">Annual</option>
+          </select>
+        </div>
+        {(editTarget.recurringFreq==="monthly"||!editTarget.recurringFreq)&&(
+          <div style={S.field}>
+            <label style={S.label}>Day of Month</label>
+            <input style={S.input} type="number" min="1" max="31" placeholder="e.g. 15"
+              value={editTarget.recurringDay||""} onChange={e=>setEditTarget(p=>({...p,recurringDay:parseInt(e.target.value)||null}))}/>
+          </div>
+        )}
+        <div style={S.field}>
+          <label style={S.label}>Start Date</label>
+          <input style={S.input} type="date" value={editTarget.recurringStart||""}
+            onChange={e=>setEditTarget(p=>({...p,recurringStart:e.target.value||null}))}/>
         </div>
         <div style={S.field}>
           <label style={S.label}>Category</label>
@@ -1836,6 +1894,21 @@ function AppInner() {
           </div>
           <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}}
             style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000",padding:"2px 6px"}}>✕</button>
+        </div>
+      )}
+
+      {undoAction&&(
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:500,
+          background:"var(--card)",border:"1px solid var(--border2)",borderRadius:12,
+          padding:"12px 16px",boxShadow:"0 8px 32px #00000080",
+          display:"flex",alignItems:"center",gap:14,maxWidth:380,width:"90vw"}}>
+          <span style={{fontSize:13,color:"var(--t1)",flex:1}}>{undoAction.label}</span>
+          <button onClick={()=>{ undoAction.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}
+            style={{...S.btn("primary",true),padding:"6px 14px",fontSize:12,flexShrink:0}}>
+            Undo
+          </button>
+          <button onClick={()=>setUndoAction(null)}
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px"}}>✕</button>
         </div>
       )}
 

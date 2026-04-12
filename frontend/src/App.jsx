@@ -443,6 +443,7 @@ function AppInner() {
   // A transaction needs review if it has no category AND hasn't been marked reviewed
   // Income, transfer, reimbursement auto-reviewed when type set
   const needsReview = t => !t.reviewed && !t.categoryId && (t.type==="expense" || t.type==="refund" || !t.type);
+  function markReviewed(id) { setTransactions(p=>p.map(t=>t.id===id?{...t,reviewed:!t.reviewed}:t)); }
 
   /* ── Computed ── */
   const monthTxns = useMemo(() =>
@@ -469,9 +470,33 @@ function AppInner() {
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
+  // Detect pending transactions that likely have a matching posted transaction
+  const likelyDuplicatePending = useMemo(() => {
+    const pending = transactions.filter(t=>t.pending);
+    const posted  = transactions.filter(t=>!t.pending);
+    const dupeIds = new Set();
+    pending.forEach(p=>{
+      const pAmount  = Math.abs(p.amount);
+      const pMer     = (p.merchant||p.name||"").toLowerCase().trim();
+      const pDate    = new Date(p.date);
+      const matched  = posted.some(t=>{
+        const tDate = new Date(t.date);
+        const dayDiff = Math.abs((tDate-pDate)/(1000*60*60*24));
+        const sameMer = (t.merchant||t.name||"").toLowerCase().trim()===pMer;
+        const sameAmt = Math.abs(Math.abs(t.amount)-pAmount)<0.01;
+        return dayDiff<=5 && sameMer && sameAmt;
+      });
+      if (matched) dupeIds.add(p.id);
+    });
+    return dupeIds;
+  }, [transactions]);
+
+  const [showDuplicates, setShowDuplicates] = useState(false);
+
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
       const label = (t.name||t.merchant||"").toLowerCase();
+      if (!showDuplicates && likelyDuplicatePending.has(t.id)) return false;
       if (search && !label.includes(search.toLowerCase())) return false;
       if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
       if (filterAcct   !== "all" && t.accountId  !== filterAcct) return false;
@@ -909,7 +934,11 @@ function AppInner() {
               {ellipsisId===t.id&&(
                 <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
                   border:"1px solid var(--border2)",borderRadius:"var(--radius)",
-                  boxShadow:"0 4px 16px #00000060",minWidth:130,overflow:"hidden"}}>
+                  boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
+                  <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
+                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
+                    {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}
+                  </button>
                   <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
                     style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
                   <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
@@ -996,13 +1025,28 @@ function AppInner() {
         {toReview>0&&(
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
             background:"var(--cyan-dim)",borderLeft:"3px solid var(--cyan)",
-            borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:12}}>
+            borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
             <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
               <span style={{color:"var(--cyan)",fontWeight:700}}>{toReview}</span> transactions need review
             </span>
             <button onClick={()=>{ setFilterReview(p=>!p); setSearch(""); setFilterCat("all"); }}
-              style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:filterReview?"none":"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
+              style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
               {filterReview?"✕ Clear":"Review ›"}
+            </button>
+          </div>
+        )}
+
+        {/* Pending duplicates banner */}
+        {likelyDuplicatePending.size>0&&(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+            background:"#fbbf2412",borderLeft:"3px solid var(--amber)",
+            borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
+            <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
+              <span style={{color:"var(--amber)",fontWeight:700}}>{likelyDuplicatePending.size}</span> pending transaction{likelyDuplicatePending.size!==1?"s":""} may have posted — hidden
+            </span>
+            <button onClick={()=>setShowDuplicates(p=>!p)}
+              style={{background:"none",border:"none",cursor:"pointer",color:"var(--amber)",fontSize:13,fontWeight:600}}>
+              {showDuplicates?"Hide":"Show"}
             </button>
           </div>
         )}

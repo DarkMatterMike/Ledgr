@@ -1260,10 +1260,38 @@ function AppInner() {
         <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet.</div>
       ) : (
         <>
-          {/* Category list — same layout on mobile and desktop */}
-          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginBottom:16}}>
-            {sortedCategories.map(cat=>{
-              const spent     = spentByCat[cat.id]||0;
+          {/* Group categories into sections */}
+          {(()=>{
+            const sections = [
+              { key:"over",     label:"Overspent",    cats: sortedCategories.filter(c=>(c.limit-(spentByCat[c.id]||0))<0) },
+              { key:"progress", label:"In Progress",  cats: sortedCategories.filter(c=>{ const r=c.limit-(spentByCat[c.id]||0); return r>0; }) },
+              { key:"done",     label:"Fully Spent",  cats: sortedCategories.filter(c=>(c.limit-(spentByCat[c.id]||0))===0) },
+            ].filter(s=>s.cats.length>0);
+
+            return (
+              <div style={{display:"flex",flexDirection:"column",gap:0,marginBottom:16}}>
+                {sections.map((section,si)=>(
+                  <div key={section.key}>
+                    {/* Section divider — matches transactions date header */}
+                    <div style={{
+                      display:"flex",alignItems:"center",justifyContent:"space-between",
+                      padding:"7px 0",
+                      borderTop: si>0?"1px solid var(--border)":"none",
+                      marginTop: si>0?8:0,
+                      marginBottom:8,
+                    }}>
+                      <span style={{fontSize:11,fontWeight:700,color:section.key==="over"?"var(--red)":section.key==="done"?"var(--t3)":"var(--t2)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.8px"}}>
+                        {section.label}
+                      </span>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
+                        {section.cats.length} {section.cats.length===1?"category":"categories"}
+                      </span>
+                    </div>
+
+                    {/* Cards grid for this section */}
+                    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
+                      {section.cats.map(cat=>{
+                        const spent     = spentByCat[cat.id]||0;
               const pct       = Math.min((spent/cat.limit)*100,100);
               const remaining = cat.limit-spent;
               const over      = remaining<0;
@@ -1333,7 +1361,12 @@ function AppInner() {
                 </div>
               );
             })}
+            </div>{/* end section cards grid */}
           </div>
+        ))}{/* end sections.map */}
+      </div>
+    );
+  })()}{/* end IIFE */}
 
           {/* Totals bar */}
           <div style={{

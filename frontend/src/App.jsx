@@ -850,6 +850,8 @@ function AppInner() {
           {/* Main row */}
           <div onClick={()=>setExpandedTxnId(expanded?null:t.id)}
             style={{padding:"11px 0",cursor:"pointer",display:"flex",flexDirection:"column",gap:5,
+              borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
+              paddingLeft:t.recurring||needsReview(t)?10:0,
               transition:"background 0.1s",
             }}>
             {/* Top row: name + amount */}
@@ -864,11 +866,16 @@ function AppInner() {
             </div>
             {/* Bottom row: status + meta */}
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {/* Status dot */}
               <span style={{
-                width:7,height:7,borderRadius:"50%",flexShrink:0,display:"inline-block",
-                background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)",
-              }}/>
+                width:16,height:16,borderRadius:"50%",flexShrink:0,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:9,fontWeight:800,
+                background:reviewed?"var(--green-dim)":"var(--cyan-dim)",
+                border:`1px solid ${reviewed?"var(--green)":"var(--cyan)"}44`,
+                color:reviewed?"var(--green)":"var(--cyan)",
+              }}>
+                {reviewed?"✓":"!"}
+              </span>
               <span style={{fontSize:11,color:"var(--t3)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                 {t.pending&&<span style={{color:"var(--amber)",marginRight:4}}>pending ·</span>}
                 {t.recurring&&<span style={{color:"var(--amber)",marginRight:4}}>↻ ·</span>}

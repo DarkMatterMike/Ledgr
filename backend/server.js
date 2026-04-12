@@ -499,6 +499,30 @@ app.post("/api/push/test", async (req, res) => {
   }
 });
 
+/* ── One-time migration: encrypt any plaintext Plaid tokens ───────── */
+app.post("/api/admin/encrypt-tokens", async (req, res) => {
+  if (!ENCRYPT_KEY) return res.status(500).json({ error: "ENCRYPT_KEY not set" });
+  try {
+    const { rows } = await pool.query("SELECT item_id, access_token FROM plaid_items");
+    let migrated = 0, skipped = 0;
+    for (const row of rows) {
+      // Already encrypted if it contains ":"
+      if (row.access_token.includes(":")) {
+        skipped++;
+        continue;
+      }
+      const encrypted = encrypt(row.access_token);
+      await pool.query("UPDATE plaid_items SET access_token = $1 WHERE item_id = $2", [encrypted, row.item_id]);
+      migrated++;
+    }
+    console.log(`[migrate] Encrypted ${migrated} tokens, skipped ${skipped} already encrypted`);
+    res.json({ ok: true, migrated, skipped });
+  } catch (err) {
+    console.error("Migration error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ── Cron: sync every 4 hours ─────────────────────────────────────── */
 cron.schedule("0 */4 * * *", async () => {
   console.log(`[cron] ${new Date().toISOString()} — starting sync`);

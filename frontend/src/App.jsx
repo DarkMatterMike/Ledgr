@@ -1269,16 +1269,15 @@ function AppInner() {
             ].filter(s=>s.cats.length>0);
 
             return (
-              <div style={{display:"flex",flexDirection:"column",gap:0,marginBottom:16}}>
+              <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
                 {sections.map((section,si)=>(
-                  <div key={section.key}>
-                    {/* Section divider — matches transactions date header */}
+                  <div key={section.key} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
+                    {/* Section header — matches transactions date header style */}
                     <div style={{
                       display:"flex",alignItems:"center",justifyContent:"space-between",
-                      padding:"7px 0",
-                      borderTop: si>0?"1px solid var(--border)":"none",
-                      marginTop: si>0?8:0,
-                      marginBottom:8,
+                      padding:"8px 16px",
+                      background:"var(--surface)",
+                      borderBottom:"1px solid var(--border)",
                     }}>
                       <span style={{fontSize:11,fontWeight:700,color:section.key==="over"?"var(--red)":section.key==="done"?"var(--t3)":"var(--t2)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.8px"}}>
                         {section.label}
@@ -1289,7 +1288,7 @@ function AppInner() {
                     </div>
 
                     {/* Cards grid for this section */}
-                    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
+                    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,padding:8}}>
                       {section.cats.map(cat=>{
                         const spent     = spentByCat[cat.id]||0;
               const pct       = Math.min((spent/cat.limit)*100,100);

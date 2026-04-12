@@ -1,28 +1,68 @@
 /**
  * ledgr – frontend/src/api.js
- * All backend communication goes through here.
  */
 
-const BASE = import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app";
+const BASE    = "https://ledgr-production-9e35.up.railway.app";
+const TOKEN_KEY = "ledgr_token";
 
-const HEADERS = {
-  "Content-Type": "application/json",
-  "x-api-key":    import.meta.env.VITE_API_SECRET || "",
-};
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY) || "";
+}
+
+export function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function authHeaders() {
+  const token = getToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+  };
+}
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     ...options,
-    headers: { ...HEADERS, ...(options.headers || {}) },
+    headers: { ...authHeaders(), ...(options.headers || {}) },
   });
+
+  if (res.status === 401) {
+    // Token expired or invalid — clear it so the login screen shows
+    clearToken();
+    window.location.reload();
+    return;
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `Request failed: ${res.status}`);
   }
+
   return res.json();
 }
 
-/* ── App data ────────────────────────────────────────────────────── */
+/* ── Auth ─────────────────────────────────────────────────────────── */
+export async function login(password) {
+  const res = await fetch(`${BASE}/api/auth/login`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Login failed" }));
+    throw new Error(err.error || "Login failed");
+  }
+  const { token } = await res.json();
+  setToken(token);
+  return token;
+}
+
+/* ── App data ─────────────────────────────────────────────────────── */
 export function loadData() {
   return request("/api/data");
 }
@@ -34,7 +74,7 @@ export function saveData(patch) {
   });
 }
 
-/* ── Plaid ───────────────────────────────────────────────────────── */
+/* ── Plaid ────────────────────────────────────────────────────────── */
 export function createLinkToken() {
   return request("/api/plaid/create_link_token", { method: "POST" });
 }
@@ -61,7 +101,7 @@ export function deleteItem(itemId) {
   return request(`/api/plaid/items/${itemId}`, { method: "DELETE" });
 }
 
-/* ── Push ────────────────────────────────────────────────────────── */
+/* ── Push ─────────────────────────────────────────────────────────── */
 export function subscribePush(subscription) {
   return request("/api/push/subscribe", {
     method: "POST",

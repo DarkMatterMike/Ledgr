@@ -136,39 +136,41 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
 /* ═══════════════════════════════════════════════════════════════════
    PASSWORD GATE
 ═══════════════════════════════════════════════════════════════════ */
-const APP_PASSWORD  = import.meta.env.VITE_APP_PASSWORD || "";
-const AUTH_KEY      = "ledgr_auth";
 const REMEMBER_DAYS = 30;
+const EXPIRY_KEY    = "ledgr_expiry";
 
 function isAuthValid() {
   try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    if (!raw) return false;
-    const { expiry } = JSON.parse(raw);
-    return expiry && Date.now() < expiry;
+    const token  = api.getToken();
+    const expiry = localStorage.getItem(EXPIRY_KEY);
+    return !!token && !!expiry && Date.now() < parseInt(expiry);
   } catch { return false; }
 }
 
 function PasswordGate({ onAuth }) {
-  const [password,    setPassword]    = useState("");
-  const [remember,    setRemember]    = useState(true);
-  const [error,       setError]       = useState("");
-  const [shake,       setShake]       = useState(false);
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [shake,    setShake]    = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (password === APP_PASSWORD) {
+    setLoading(true);
+    setError("");
+    try {
+      await api.login(password);
       if (remember) {
-        localStorage.setItem(AUTH_KEY, JSON.stringify({
-          expiry: Date.now() + REMEMBER_DAYS * 24 * 60 * 60 * 1000,
-        }));
+        localStorage.setItem(EXPIRY_KEY, String(Date.now() + REMEMBER_DAYS * 24 * 60 * 60 * 1000));
       }
       onAuth();
-    } else {
-      setError("Incorrect password");
+    } catch (err) {
+      setError(err.message === "Incorrect password" ? "Incorrect password" : "Login failed, try again");
       setShake(true);
       setPassword("");
       setTimeout(() => setShake(false), 600);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -189,13 +191,11 @@ function PasswordGate({ onAuth }) {
         .shake { animation: shake 0.5s ease; }
       `}</style>
 
-      {/* Logo */}
       <div style={{fontFamily:"var(--font-disp)",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)"}}>
         ledgr<span style={{color:"var(--cyan)"}}>.</span>
       </div>
       <div style={{fontSize:13,color:"var(--t3)",marginTop:-16}}>personal finance</div>
 
-      {/* Card */}
       <div className={shake?"shake":""} style={{
         background:"var(--card)", border:"1px solid var(--border2)",
         borderRadius:"var(--radius-lg)", padding:"32px 28px",
@@ -214,7 +214,8 @@ function PasswordGate({ onAuth }) {
               onChange={e=>{ setPassword(e.target.value); setError(""); }}
               autoFocus
               style={{
-                background:"var(--surface)", border:`1px solid ${error?"var(--red)":"var(--border2)"}`,
+                background:"var(--surface)",
+                border:`1px solid ${error?"var(--red)":"var(--border2)"}`,
                 borderRadius:"var(--radius)", padding:"11px 14px",
                 fontSize:14, color:"var(--t1)", outline:"none", width:"100%",
                 transition:"border-color 0.15s",
@@ -223,7 +224,6 @@ function PasswordGate({ onAuth }) {
             {error&&<div style={{fontSize:12,color:"var(--red)",marginTop:6}}>{error}</div>}
           </div>
 
-          {/* Remember me */}
           <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
             <div onClick={()=>setRemember(p=>!p)} style={{
               width:18, height:18, borderRadius:5, flexShrink:0,
@@ -237,16 +237,13 @@ function PasswordGate({ onAuth }) {
             <span style={{fontSize:13,color:"var(--t2)"}}>Remember this device for {REMEMBER_DAYS} days</span>
           </label>
 
-          <button type="submit" style={{
+          <button type="submit" disabled={loading} style={{
             background:"var(--cyan)", color:"#000", border:"none",
             borderRadius:"var(--radius)", padding:"12px",
-            fontSize:14, fontWeight:700, cursor:"pointer",
-            transition:"opacity 0.15s",
-          }}
-            onMouseEnter={e=>e.currentTarget.style.opacity="0.85"}
-            onMouseLeave={e=>e.currentTarget.style.opacity="1"}
-          >
-            Unlock
+            fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
+            opacity:loading?0.7:1, transition:"opacity 0.15s",
+          }}>
+            {loading?"Verifying…":"Unlock"}
           </button>
         </form>
       </div>
@@ -255,7 +252,7 @@ function PasswordGate({ onAuth }) {
 }
 
 export default function App() {
-  const [authed, setAuthed] = useState(() => !APP_PASSWORD || isAuthValid());
+  const [authed, setAuthed] = useState(() => isAuthValid());
 
   if (!authed) return <PasswordGate onAuth={()=>setAuthed(true)}/>;
 

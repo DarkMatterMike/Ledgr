@@ -11,6 +11,7 @@ const { Pool }  = require("pg");
 const cron      = require("node-cron");
 const webpush   = require("web-push");
 const crypto    = require("crypto");
+const jwt       = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 const {
   PlaidApi,
@@ -26,13 +27,15 @@ const FRONTEND_URL  = process.env.FRONTEND_URL || "http://localhost:5173";
 const PLAID_ENV     = process.env.PLAID_ENV || "sandbox";
 const PRODUCTS      = (process.env.PLAID_PRODUCTS || "transactions").split(",").map(p => p.trim());
 const COUNTRY_CODES = (process.env.PLAID_COUNTRY_CODES || "US").split(",").map(c => c.trim());
-const API_SECRET    = process.env.API_SECRET;
-const ENCRYPT_KEY   = process.env.ENCRYPT_KEY; // 32-char hex string for AES-256
+const APP_PASSWORD  = process.env.APP_PASSWORD;
+const JWT_SECRET    = process.env.JWT_SECRET;
+const ENCRYPT_KEY   = process.env.ENCRYPT_KEY;
 
-if (!API_SECRET) console.warn("⚠  API_SECRET not set — endpoints are unprotected");
-if (!ENCRYPT_KEY) console.warn("⚠  ENCRYPT_KEY not set — Plaid tokens stored in plaintext");
+if (!APP_PASSWORD) console.warn("⚠  APP_PASSWORD not set");
+if (!JWT_SECRET)   console.warn("⚠  JWT_SECRET not set");
+if (!ENCRYPT_KEY)  console.warn("⚠  ENCRYPT_KEY not set");
 
-/* ── Plaid token encryption ───────────────────────────────────────── */
+/* ── Encryption ───────────────────────────────────────────────────── */
 function encrypt(text) {
   if (!ENCRYPT_KEY || !text) return text;
   const key = Buffer.from(ENCRYPT_KEY, "hex");
@@ -44,24 +47,19 @@ function encrypt(text) {
 
 function decrypt(text) {
   if (!ENCRYPT_KEY || !text) return text;
-  // If not encrypted (legacy plaintext), return as-is
   if (!text.includes(":")) return text;
   try {
     const [ivHex, encHex] = text.split(":");
-    const key = Buffer.from(ENCRYPT_KEY, "hex");
-    const iv  = Buffer.from(ivHex, "hex");
+    const key    = Buffer.from(ENCRYPT_KEY, "hex");
+    const iv     = Buffer.from(ivHex, "hex");
     const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
     return Buffer.concat([decipher.update(Buffer.from(encHex, "hex")), decipher.final()]).toString("utf8");
-  } catch {
-    // Fallback for legacy unencrypted tokens
-    return text;
-  }
+  } catch { return text; }
 }
 
-/* ── VAPID setup ─────────────────────────────────────────────────── */
+/* ── VAPID ────────────────────────────────────────────────────────── */
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "FApjnt7VlZhG7Bw1t_wYv9BksoW0wFwz97bqGq-vSew";
-
 webpush.setVapidDetails("mailto:admin@ledgr.app", VAPID_PUBLIC, VAPID_PRIVATE);
 
 /* ── PostgreSQL ───────────────────────────────────────────────────── */
@@ -73,27 +71,17 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS app_data (
-      key   TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-  `);
+  await pool.query(`CREATE TABLE IF NOT EXISTS app_data (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS plaid_items (
-      item_id      TEXT PRIMARY KEY,
-      access_token TEXT NOT NULL,
-      institution  TEXT,
-      cursor       TEXT,
-      created_at   BIGINT
+      item_id TEXT PRIMARY KEY, access_token TEXT NOT NULL,
+      institution TEXT, cursor TEXT, created_at BIGINT
     );
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id           SERIAL PRIMARY KEY,
-      endpoint     TEXT UNIQUE NOT NULL,
-      subscription TEXT NOT NULL,
-      created_at   BIGINT
+      id SERIAL PRIMARY KEY, endpoint TEXT UNIQUE NOT NULL,
+      subscription TEXT NOT NULL, created_at BIGINT
     );
   `);
   console.log("  →  Database ready");
@@ -196,14 +184,10 @@ async function syncItemTransactions(targetItemId = null) {
   const items = targetItemId
     ? [await getItem(targetItemId)].filter(Boolean)
     : await getAllItems();
-
   if (!items.length) return { added: [], modified: [], removed: [] };
-
   const allAdded = [], allModified = [], allRemoved = [];
-
   for (const item of items) {
-    let cursor  = item.cursor || undefined;
-    let hasMore = true;
+    let cursor = item.cursor || undefined, hasMore = true;
     while (hasMore) {
       try {
         const syncRes = await plaidClient.transactionsSync({
@@ -211,25 +195,18 @@ async function syncItemTransactions(targetItemId = null) {
         });
         const { added, modified, removed, next_cursor, has_more } = syncRes.data;
         const mapTxn = t => ({
-          transaction_id:  t.transaction_id,
-          account_id:      t.account_id,
-          item_id:         item.item_id,
-          institution:     item.institution,
-          date:            t.date,
-          authorized_date: t.authorized_date,
-          name:            t.name,
-          merchant_name:   t.merchant_name || t.name,
-          amount:          -t.amount,
-          category:        t.personal_finance_category?.primary || (t.category?.[0] || null),
-          pending:         t.pending,
-          currency:        t.iso_currency_code,
-          logo_url:        t.logo_url || null,
+          transaction_id: t.transaction_id, account_id: t.account_id,
+          item_id: item.item_id, institution: item.institution,
+          date: t.date, authorized_date: t.authorized_date,
+          name: t.name, merchant_name: t.merchant_name || t.name,
+          amount: -t.amount,
+          category: t.personal_finance_category?.primary || (t.category?.[0] || null),
+          pending: t.pending, currency: t.iso_currency_code, logo_url: t.logo_url || null,
         });
         allAdded.push(...added.map(mapTxn));
         allModified.push(...modified.map(mapTxn));
         allRemoved.push(...removed.map(t => ({ transaction_id: t.transaction_id })));
-        cursor  = next_cursor;
-        hasMore = has_more;
+        cursor = next_cursor; hasMore = has_more;
         await updateCursor(item.item_id, cursor);
       } catch (err) {
         console.error(`sync error for item ${item.item_id}:`, err.response?.data || err.message);
@@ -254,18 +231,12 @@ async function applySyncResultsToDB(added, modified, removed) {
   const newTxns = added
     .filter(t => !existingIds.has(t.transaction_id))
     .map(t => ({
-      id:             t.transaction_id,
-      plaidAccountId: t.account_id,
-      accountId:      "a" + t.account_id,
-      date:           t.date || t.authorized_date,
-      merchant:       t.merchant_name || t.name,
-      name:           "",
-      amount:         t.amount,
-      categoryId:     null,
-      pending:        t.pending,
-      type:           t.amount < 0 ? "expense" : "income",
-      recurring:      false,
-      recurringDay:   null,
+      id: t.transaction_id, plaidAccountId: t.account_id,
+      accountId: "a" + t.account_id, date: t.date || t.authorized_date,
+      merchant: t.merchant_name || t.name, name: "", amount: t.amount,
+      categoryId: null, pending: t.pending,
+      type: t.amount < 0 ? "expense" : "income",
+      recurring: false, recurringDay: null,
     }));
   next = [...newTxns, ...next];
   await setData("transactions", next);
@@ -279,37 +250,63 @@ app.use(express.json({ limit: "10mb" }));
 
 /* ── Rate limiting ────────────────────────────────────────────────── */
 app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,                  // max requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
 }));
 
-// Stricter limit on sync endpoints to avoid Plaid API abuse
 const syncLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   max: 20,
   message: { error: "Sync rate limit exceeded." },
 });
 
-/* ── API key authentication ───────────────────────────────────────── */
-app.use((req, res, next) => {
-  // Always allow health check
-  if (req.path === "/api/health") return next();
-  // If no API_SECRET set, warn but allow (dev mode)
-  if (!API_SECRET) return next();
-  const key = req.headers["x-api-key"];
-  if (key !== API_SECRET) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // max 10 login attempts per 15 minutes
+  message: { error: "Too many login attempts, please try again later." },
 });
 
-/* ── Health ──────────────────────────────────────────────────────── */
+/* ── JWT auth middleware ──────────────────────────────────────────── */
+function requireAuth(req, res, next) {
+  // Skip auth if JWT_SECRET not configured (dev mode)
+  if (!JWT_SECRET) return next();
+
+  const auth = req.headers["authorization"];
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  try {
+    const token = auth.slice(7);
+    jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+/* ── Health (public) ─────────────────────────────────────────────── */
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, env: PLAID_ENV, products: PRODUCTS });
+  res.json({ ok: true, env: PLAID_ENV, auth: !!JWT_SECRET });
 });
+
+/* ── Login (public) ──────────────────────────────────────────────── */
+app.post("/api/auth/login", loginLimiter, (req, res) => {
+  const { password } = req.body;
+  if (!APP_PASSWORD || !JWT_SECRET) {
+    return res.status(500).json({ error: "Auth not configured on server" });
+  }
+  if (password !== APP_PASSWORD) {
+    return res.status(401).json({ error: "Incorrect password" });
+  }
+  const token = jwt.sign({ ledgr: true }, JWT_SECRET, { expiresIn: "30d" });
+  res.json({ token });
+});
+
+/* ── All routes below require auth ───────────────────────────────── */
+app.use(requireAuth);
 
 /* ═══════════════════════════════════════════════════════════════════
    APP DATA
@@ -318,12 +315,8 @@ app.get("/api/health", (_req, res) => {
 app.get("/api/data", async (_req, res) => {
   try {
     const [transactions, categories, accounts, plaidItems, rules, calendarAccounts] = await Promise.all([
-      getData("transactions"),
-      getData("categories"),
-      getData("accounts"),
-      getData("plaidItems"),
-      getData("rules"),
-      getData("calendarAccounts"),
+      getData("transactions"), getData("categories"), getData("accounts"),
+      getData("plaidItems"), getData("rules"), getData("calendarAccounts"),
     ]);
     res.json({
       transactions:     transactions     || [],
@@ -364,12 +357,9 @@ app.patch("/api/data", async (req, res) => {
 app.post("/api/plaid/create_link_token", async (req, res) => {
   try {
     const response = await plaidClient.linkTokenCreate({
-      user:          { client_user_id: "ledgr-user" },
-      client_name:   "Ledgr Finance",
-      products:      PRODUCTS,
-      country_codes: COUNTRY_CODES,
-      language:      "en",
-      redirect_uri:  process.env.FRONTEND_URL,
+      user: { client_user_id: "ledgr-user" }, client_name: "Ledgr Finance",
+      products: PRODUCTS, country_codes: COUNTRY_CODES, language: "en",
+      redirect_uri: process.env.FRONTEND_URL,
     });
     res.json({ link_token: response.data.link_token });
   } catch (err) {
@@ -384,11 +374,7 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
   try {
     const exchangeRes = await plaidClient.itemPublicTokenExchange({ public_token });
     const { access_token, item_id } = exchangeRes.data;
-    await saveItem(item_id, {
-      access_token,  // encrypted inside saveItem()
-      institution: institution_name || "Unknown Bank",
-      created_at:  Date.now(),
-    });
+    await saveItem(item_id, { access_token, institution: institution_name || "Unknown Bank", created_at: Date.now() });
     res.json({ item_id, institution: institution_name });
   } catch (err) {
     console.error("exchange_public_token error:", err.response?.data || err.message);
@@ -398,9 +384,7 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
 
 app.get("/api/plaid/items", async (_req, res) => {
   try {
-    const items = (await getAllItems()).map(({ item_id, institution, created_at }) => ({
-      item_id, institution, created_at,
-    }));
+    const items = (await getAllItems()).map(({ item_id, institution, created_at }) => ({ item_id, institution, created_at }));
     res.json({ items });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -412,11 +396,8 @@ app.delete("/api/plaid/items/:itemId", async (req, res) => {
   try {
     const item = await getItem(itemId);
     if (!item) return res.status(404).json({ error: "Item not found" });
-    try {
-      await plaidClient.itemRemove({ access_token: item.access_token });
-    } catch (e) {
-      console.warn("Plaid itemRemove failed (continuing):", e.message);
-    }
+    try { await plaidClient.itemRemove({ access_token: item.access_token }); }
+    catch (e) { console.warn("Plaid itemRemove failed:", e.message); }
     await removeItem(itemId);
     res.json({ ok: true });
   } catch (err) {
@@ -432,16 +413,9 @@ app.get("/api/plaid/accounts", async (_req, res) => {
       try {
         const r = await plaidClient.accountsGet({ access_token: item.access_token });
         allAccounts.push(...r.data.accounts.map(a => ({
-          account_id:  a.account_id,
-          item_id:     item.item_id,
-          institution: item.institution,
-          name:        a.name,
-          official:    a.official_name,
-          type:        a.type,
-          subtype:     a.subtype,
-          balance:     a.balances.current,
-          available:   a.balances.available,
-          currency:    a.balances.iso_currency_code,
+          account_id: a.account_id, item_id: item.item_id, institution: item.institution,
+          name: a.name, official: a.official_name, type: a.type, subtype: a.subtype,
+          balance: a.balances.current, available: a.balances.available, currency: a.balances.iso_currency_code,
         })));
       } catch (err) {
         console.error(`accountsGet error for item ${item.item_id}:`, err.response?.data || err.message);
@@ -464,7 +438,7 @@ app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
 });
 
 /* ═══════════════════════════════════════════════════════════════════
-   PUSH NOTIFICATIONS
+   PUSH
 ═══════════════════════════════════════════════════════════════════ */
 
 app.post("/api/push/subscribe", async (req, res) => {
@@ -472,10 +446,8 @@ app.post("/api/push/subscribe", async (req, res) => {
     const sub = req.body;
     if (!sub || !sub.endpoint) return res.status(400).json({ error: "Invalid subscription" });
     await saveSubscription(sub);
-    console.log("[push] Subscription saved:", sub.endpoint.slice(0, 50) + "...");
     res.json({ ok: true });
   } catch (err) {
-    console.error("push/subscribe error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -499,26 +471,20 @@ app.post("/api/push/test", async (req, res) => {
   }
 });
 
-/* ── One-time migration: encrypt any plaintext Plaid tokens ───────── */
+/* ── Admin: migrate plaintext tokens ─────────────────────────────── */
 app.post("/api/admin/encrypt-tokens", async (req, res) => {
   if (!ENCRYPT_KEY) return res.status(500).json({ error: "ENCRYPT_KEY not set" });
   try {
     const { rows } = await pool.query("SELECT item_id, access_token FROM plaid_items");
     let migrated = 0, skipped = 0;
     for (const row of rows) {
-      // Already encrypted if it contains ":"
-      if (row.access_token.includes(":")) {
-        skipped++;
-        continue;
-      }
-      const encrypted = encrypt(row.access_token);
-      await pool.query("UPDATE plaid_items SET access_token = $1 WHERE item_id = $2", [encrypted, row.item_id]);
+      if (row.access_token.includes(":")) { skipped++; continue; }
+      await pool.query("UPDATE plaid_items SET access_token = $1 WHERE item_id = $2",
+        [encrypt(row.access_token), row.item_id]);
       migrated++;
     }
-    console.log(`[migrate] Encrypted ${migrated} tokens, skipped ${skipped} already encrypted`);
     res.json({ ok: true, migrated, skipped });
   } catch (err) {
-    console.error("Migration error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -546,17 +512,14 @@ cron.schedule("0 */4 * * *", async () => {
   }
 });
 
-console.log("[cron] Registered — runs every 4 hours");
-
 /* ── Start ────────────────────────────────────────────────────────── */
 initDB().then(() => {
   app.listen(PORT, () => {
     console.log(`\n  🏦  Ledgr backend`);
     console.log(`  →  http://localhost:${PORT}/api/health`);
-    console.log(`  →  Plaid env:    ${PLAID_ENV}`);
-    console.log(`  →  Auth:         ${API_SECRET ? "enabled" : "DISABLED"}`);
-    console.log(`  →  Encryption:   ${ENCRYPT_KEY ? "enabled" : "DISABLED"}`);
-    console.log(`  →  Auto-sync:    every 4 hours\n`);
+    console.log(`  →  Plaid env:  ${PLAID_ENV}`);
+    console.log(`  →  Auth:       ${JWT_SECRET ? "enabled" : "DISABLED"}`);
+    console.log(`  →  Encryption: ${ENCRYPT_KEY ? "enabled" : "DISABLED"}\n`);
   });
 }).catch(err => {
   console.error("DB init failed:", err.message);

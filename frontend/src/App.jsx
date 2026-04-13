@@ -1786,35 +1786,73 @@ function AppInner() {
                     );
                   })()}
 
-                  <div
-                    style={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius)",
-                      padding: "12px 16px",
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
-                      gap: 8,
-                    }}
-                  >
-                    {[
-                      ["Budgeted", fmt(totalBudget), "var(--t1)"],
-                      ["Spent", fmt(totalSpent), "var(--t1)"],
-                      ["Left", fmt(totalBudget - totalSpent), totalBudget - totalSpent >= 0 ? "var(--green)" : "var(--red)"],
-                    ].map(([label, value, color]) => (
-                      <div key={label}>
-                        <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 4, fontFamily: "var(--font-disp)" }}>
-                          {label}
-                        </div>
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color }}>
-                          {value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                 
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+{/* Budget Summary */}
+<div
+  style={{
+    background: "var(--card)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-lg)",
+    padding: "16px 18px",
+  }}
+>
+  <div
+    style={{
+      fontSize: 11,
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: "1.2px",
+      color: "var(--t3)",
+      fontFamily: "var(--font-disp)",
+      marginBottom: 10,
+    }}
+  >
+    Summary
+  </div>
+
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr 1fr",
+      gap: 10,
+    }}
+  >
+    {[
+      ["Budgeted", fmt(totalBudget), "var(--t1)"],
+      ["Spent", fmt(totalSpent), "var(--t1)"],
+      ["Left", fmt(totalBudget - totalSpent), totalBudget - totalSpent >= 0 ? "var(--green)" : "var(--red)"],
+    ].map(([label, value, color]) => (
+      <div key={label}>
+        <div
+          style={{
+            fontSize: 10,
+            color: "var(--t3)",
+            textTransform: "uppercase",
+            letterSpacing: "1px",
+            marginBottom: 4,
+            fontFamily: "var(--font-disp)",
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 16,
+            fontWeight: 800,
+            color,
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
                   <div style={{ ...S.card, padding: 18 }}>
                     <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                       <div style={S.sectionTitle}>Spending Breakdown</div>

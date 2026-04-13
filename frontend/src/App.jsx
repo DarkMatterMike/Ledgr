@@ -1565,7 +1565,7 @@ function AppInner() {
   const daysInCal = daysInMonth(calYear, calMonthN);
   const totalCells = Math.ceil((firstDow + daysInCal) / 7) * 7;
 
-  const Calendar = (() => {
+    const Calendar = (() => {
     const isCurrentCalMonth =
       calYear === today.getFullYear() && calMonthN === today.getMonth() + 1;
 
@@ -1609,12 +1609,11 @@ function AppInner() {
 
     const selectedDayDateLabel = calendarDay?.day
       ? new Date(calYear, calMonthN - 1, calendarDay.day).toLocaleDateString("en-US", {
-          weekday: "long",
-          month: "long",
+          weekday: "short",
+          month: "short",
           day: "numeric",
-          year: "numeric",
         })
-      : "Select a day";
+      : "No day selected";
 
     const selectedDayTotal = selectedDayTxns.reduce(
       (sum, t) => sum + (t.amount < 0 ? Math.abs(t.amount) : 0),
@@ -1640,20 +1639,429 @@ function AppInner() {
       }, {})
     ).sort((a, b) => b.total - a.total);
 
-    function selectCalendarDay(day, txns) {
-      setCalendarDay({ day, txns });
-    }
+    const MobileCalendarView = (
+      <div>
+        <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
+          <div style={S.sectionTitle}>Recurring Calendar</div>
+          <div style={{ fontSize: 13, color: "var(--t2)" }}>{recurringTxns.length} recurring</div>
+        </div>
 
-    return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <button
+            onClick={prevCalMonth}
+            style={{
+              background: "none",
+              border: "1px solid var(--border2)",
+              borderRadius: "var(--radius)",
+              color: "var(--t2)",
+              cursor: "pointer",
+              padding: "6px 12px",
+              fontSize: 16,
+              lineHeight: "1",
+            }}
+          >
+            ‹
+          </button>
+
+          <div style={{ fontFamily: "var(--font-disp)", fontSize: 17, fontWeight: 700 }}>
+            {monthLabel(calendarMonth)}
+          </div>
+
+          <button
+            onClick={nextCalMonth}
+            style={{
+              background: "none",
+              border: "1px solid var(--border2)",
+              borderRadius: "var(--radius)",
+              color: "var(--t2)",
+              cursor: "pointer",
+              padding: "6px 12px",
+              fontSize: 16,
+              lineHeight: "1",
+            }}
+          >
+            ›
+          </button>
+        </div>
+
+        <div style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7,minmax(0,1fr))",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            {DAYS_OF_WEEK.map((d) => (
+              <div
+                key={d}
+                style={{
+                  textAlign: "center",
+                  padding: "8px 4px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--t3)",
+                  fontFamily: "var(--font-disp)",
+                  textTransform: "uppercase",
+                  letterSpacing: "1px",
+                }}
+              >
+                {d[0]}
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7,minmax(0,1fr))",
+              gap: 1,
+              background: "var(--border)",
+            }}
+          >
+            {Array.from({ length: totalCells }).map((_, i) => {
+              const day = i - firstDow + 1;
+              const isValid = day >= 1 && day <= daysInCal;
+              const isToday =
+                isValid &&
+                calYear === today.getFullYear() &&
+                calMonthN === today.getMonth() + 1 &&
+                day === today.getDate();
+              const dayTxns = isValid ? calendarTxnsByDay[day] || [] : [];
+              const isSelected = calendarDay?.day === day;
+
+              return (
+                <div
+                  key={i}
+                  onClick={() => {
+                    if (isValid) setCalendarDay(dayTxns.length > 0 ? { day, txns: dayTxns } : null);
+                  }}
+                  style={{
+                    background: isSelected
+                      ? "var(--cyan-dim)"
+                      : isToday
+                      ? "var(--surface)"
+                      : "var(--card)",
+                    border: isSelected ? "1px solid var(--cyan)44" : "1px solid transparent",
+                    minHeight: 54,
+                    padding: 4,
+                    cursor: isValid ? "pointer" : "default",
+                    opacity: isValid ? 1 : 0.25,
+                    transition: "background 0.1s",
+                    overflow: "hidden",
+                    minWidth: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: isToday || isSelected ? 700 : 400,
+                      color: isSelected ? "var(--cyan)" : isToday ? "var(--cyan)" : "var(--t2)",
+                      marginBottom: 3,
+                      ...(isToday
+                        ? {
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            background: "var(--cyan)",
+                            color: "#000",
+                            fontSize: 10,
+                          }
+                        : {}),
+                    }}
+                  >
+                    {isValid ? day : ""}
+                  </div>
+
+                  {dayTxns.slice(0, 1).map((t) => {
+                    const cat = catMap[t.categoryId];
+                    return (
+                      <div
+                        key={t.id}
+                        style={{
+                          fontSize: 9,
+                          color: "var(--bg)",
+                          background: cat?.color || "var(--cyan)",
+                          borderRadius: 3,
+                          padding: "1px 4px",
+                          marginBottom: 2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontWeight: 600,
+                          display: "block",
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        {t.name || t.merchant}
+                      </div>
+                    );
+                  })}
+
+                  {dayTxns.length > 1 && (
+                    <div style={{ fontSize: 8, color: "var(--t3)" }}>
+                      +{dayTxns.length - 1} more
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {acctEntries.length > 0 && (
+          <div style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "1.2px",
+                  color: "var(--t3)",
+                  fontFamily: "var(--font-disp)",
+                }}
+              >
+                {acctLabel}
+              </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--red)",
+                }}
+              >
+                {fmt(acctTotal)}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {acctEntries.slice(0, 3).map((acct) => (
+                <div
+                  key={acct.id}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius)",
+                    padding: "10px 12px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "var(--t1)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {acct.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--t3)" }}>
+                      {acct.count} charges
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "var(--red)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {fmt(acct.total)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {calendarDay?.day && selectedDayTxns.length > 0 && (
+          <div style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>
+                {selectedDayDateLabel}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 3 }}>
+                {selectedDayTxns.length} charges · {fmt(selectedDayTotal)}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {selectedDayTxns.map((t) => {
+                const acct = acctMap[t.accountId];
+                const cat = catMap[t.categoryId];
+                return (
+                  <div
+                    key={t.id}
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--radius)",
+                      padding: "10px 12px",
+                      display: "grid",
+                      gridTemplateColumns: "1fr auto",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--t1)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t.name || t.merchant}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>
+                        {acct?.name || "No account"}
+                      </div>
+                      <div style={{ fontSize: 11, color: cat?.color || "var(--t3)", marginTop: 2 }}>
+                        {cat?.name || "Uncategorized"}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: t.amount < 0 ? "var(--red)" : "var(--green)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.amount < 0 ? "-" : "+"}
+                      {fmt(Math.abs(t.amount))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "12px 16px",
+              borderBottom: "1px solid var(--border)",
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "1.2px",
+              color: "var(--t3)",
+              fontFamily: "var(--font-disp)",
+            }}
+          >
+            All Recurring Transactions
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {recurringTxns.length === 0 ? (
+              <div style={{ padding: 20, color: "var(--t3)", textAlign: "center" }}>
+                No recurring transactions yet
+              </div>
+            ) : (
+              recurringTxns
+                .slice()
+                .sort((a, b) => (a.recurringDay || 0) - (b.recurringDay || 0))
+                .map((t, idx) => {
+                  const cat = catMap[t.categoryId];
+                  return (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "32px 1fr auto",
+                        gap: 10,
+                        alignItems: "center",
+                        padding: "12px 16px",
+                        borderTop: idx === 0 ? "none" : "1px solid var(--border)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          border: "1px solid var(--border2)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: "var(--cyan)",
+                          background: "var(--surface)",
+                        }}
+                      >
+                        {t.recurringDay || "—"}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--t1)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {t.name || t.merchant}
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>
+                          {t.recurringFreq || "monthly"}
+                          {cat ? <span style={{ color: cat.color }}> · {cat.name}</span> : null}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: t.amount < 0 ? "var(--red)" : "var(--green)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t.amount < 0 ? "-" : "+"}
+                        {fmt(Math.abs(t.amount))}
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        </div>
+      </div>
+    );
+
+    const DesktopCalendarView = (
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        {/* Header */}
         <div
           style={{
             display: "flex",
-            alignItems: isMobile ? "flex-start" : "center",
+            alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
-            flexDirection: isMobile ? "column" : "row",
           }}
         >
           <div>
@@ -1665,26 +2073,22 @@ function AppInner() {
             </div>
           </div>
 
-          {!isMobile && (
-            <div style={{ fontSize: 12, color: "var(--t3)" }}>
-              {acctLabel}{" "}
-              <span style={{ color: "var(--red)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
-                {fmt(acctTotal)}
-              </span>
-            </div>
-          )}
+          <div style={{ fontSize: 12, color: "var(--t3)" }}>
+            {acctLabel}{" "}
+            <span style={{ color: "var(--red)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
+              {fmt(acctTotal)}
+            </span>
+          </div>
         </div>
 
-        {/* Main layout */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 340px",
+            gridTemplateColumns: "minmax(0, 1fr) 340px",
             gap: 16,
             alignItems: "start",
           }}
         >
-          {/* LEFT CALENDAR */}
           <div
             style={{
               background: "var(--card)",
@@ -1694,7 +2098,6 @@ function AppInner() {
               minWidth: 0,
             }}
           >
-            {/* Calendar top bar */}
             <div
               style={{
                 display: "grid",
@@ -1723,7 +2126,7 @@ function AppInner() {
                 <div
                   style={{
                     fontFamily: "var(--font-disp)",
-                    fontSize: isMobile ? 20 : 28,
+                    fontSize: 28,
                     fontWeight: 800,
                     color: "var(--t1)",
                     letterSpacing: "-0.5px",
@@ -1748,7 +2151,6 @@ function AppInner() {
               </button>
             </div>
 
-            {/* Weekday header */}
             <div
               style={{
                 display: "grid",
@@ -1776,7 +2178,6 @@ function AppInner() {
               ))}
             </div>
 
-            {/* Calendar cells */}
             <div
               style={{
                 display: "grid",
@@ -1807,23 +2208,21 @@ function AppInner() {
                     key={i}
                     onClick={() => {
                       if (!isValid) return;
-                      selectCalendarDay(day, dayTxns);
+                      setCalendarDay({ day, txns: dayTxns });
                     }}
                     style={{
-                      minHeight: isMobile ? 116 : 154,
+                      minHeight: 154,
                       background: !isValid
                         ? "rgba(255,255,255,0.015)"
                         : isSelected
                         ? "rgba(59,130,246,0.10)"
                         : "var(--card)",
-                      padding: isMobile ? 8 : 10,
+                      padding: 10,
                       cursor: isValid ? "pointer" : "default",
                       opacity: isValid ? 1 : 0.45,
-                      border:
-                        isSelected
-                          ? "1px solid rgba(96,165,250,0.45)"
-                          : "1px solid transparent",
-                      position: "relative",
+                      border: isSelected
+                        ? "1px solid rgba(96,165,250,0.45)"
+                        : "1px solid transparent",
                       overflow: "hidden",
                     }}
                   >
@@ -1870,14 +2269,8 @@ function AppInner() {
                           )}
                         </div>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 5,
-                          }}
-                        >
-                          {dayTxns.slice(0, isMobile ? 2 : 4).map((t) => {
+                        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                          {dayTxns.slice(0, 4).map((t) => {
                             const cat = catMap[t.categoryId];
                             return (
                               <div
@@ -1927,7 +2320,7 @@ function AppInner() {
                             );
                           })}
 
-                          {dayTxns.length > (isMobile ? 2 : 4) && (
+                          {dayTxns.length > 4 && (
                             <div
                               style={{
                                 marginTop: 2,
@@ -1936,7 +2329,7 @@ function AppInner() {
                                 fontWeight: 600,
                               }}
                             >
-                              +{dayTxns.length - (isMobile ? 2 : 4)} more
+                              +{dayTxns.length - 4} more
                             </div>
                           )}
                         </div>
@@ -1948,16 +2341,7 @@ function AppInner() {
             </div>
           </div>
 
-          {/* RIGHT DETAIL PANEL */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
-              minWidth: 0,
-            }}
-          >
-            {/* Monthly summary card */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div
               style={{
                 background: "var(--card)",
@@ -2001,10 +2385,7 @@ function AppInner() {
                   </div>
                 </div>
 
-                <button
-                  onClick={openAddTxn}
-                  style={S.btn("ghost", true)}
-                >
+                <button onClick={openAddTxn} style={S.btn("ghost", true)}>
                   Add
                 </button>
               </div>
@@ -2057,7 +2438,6 @@ function AppInner() {
               </div>
             </div>
 
-            {/* Selected day card */}
             <div
               style={{
                 background: "var(--card)",
@@ -2094,7 +2474,6 @@ function AppInner() {
 
               {calendarDay?.day && selectedDayTxns.length > 0 ? (
                 <>
-                  {/* Category breakdown */}
                   <div style={{ marginBottom: 16 }}>
                     <div
                       style={{
@@ -2126,14 +2505,7 @@ function AppInner() {
                               fontSize: 13,
                             }}
                           >
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                minWidth: 0,
-                              }}
-                            >
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                               <span
                                 style={{
                                   width: 7,
@@ -2165,16 +2537,13 @@ function AppInner() {
                               {fmt(cat.total)}
                             </span>
 
-                            <span style={{ color: "var(--t3)", fontSize: 12 }}>
-                              {pct}%
-                            </span>
+                            <span style={{ color: "var(--t3)", fontSize: 12 }}>{pct}%</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Transactions */}
                   <div>
                     <div
                       style={{
@@ -2276,6 +2645,8 @@ function AppInner() {
         </div>
       </div>
     );
+
+    return isMobile ? MobileCalendarView : DesktopCalendarView;
   })();
 
   /* ─────────────────────────────────────────────────────────────────

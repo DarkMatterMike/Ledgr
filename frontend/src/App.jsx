@@ -280,6 +280,7 @@ function AppInner() {
   const [syncing,       setSyncing]       = useState(false);
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
+  const [budgetExpandedCatId, setBudgetExpandedCatId] = useState(null);
   const [calendarDay,      setCalendarDay]      = useState(null);
   const [calendarAcctPopup,setCalendarAcctPopup]= useState(null);
   const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
@@ -803,7 +804,8 @@ function AppInner() {
   }
 
   /* ── Drill-down modal ── */
-  const DrillDownModal = drillCat ? (
+  const showDrillModal = drillCat && (view !== "budgets" || isMobile);
+  const DrillDownModal = showDrillModal ? (
     <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
       <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
@@ -897,62 +899,137 @@ function AppInner() {
         ))}
       </div>
 
-      <div className="ledgr-dash-cards">
-        <div style={S.card}>
-          <div style={{...S.sectionHdr,marginBottom:12}}>
-            <div style={S.cardTitle}>Budget Progress</div>
-            <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
-          </div>
-          {categories.length===0
-            ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-            : sortedCategories.slice(0,6).map(cat=>{
-                const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                return (
-                  <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                      <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
-                        <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                        <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                      </div>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                        {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
-                      </span>
-                    </div>
-                    <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
-                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
-                    </div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                      <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
-                    </div>
-                  </div>
-                );
-              })
-          }
-        </div>
-
-        <div style={S.card}>
-          <div style={{...S.sectionHdr,marginBottom:12}}>
-            <div style={S.cardTitle}>Recent Transactions</div>
-            <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
-          </div>
-          {filteredTxns.slice(0,8).map(t=>(
-            <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
-              <div style={{flex:1,minWidth:0,marginRight:10}}>
-                <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                  {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
-                  {t.name||t.merchant}
-                </div>
-                <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
-              </div>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
-                {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-              </span>
+      {isMobile ? (
+        <div className="ledgr-dash-cards">
+          <div style={S.card}>
+            <div style={{...S.sectionHdr,marginBottom:12}}>
+              <div style={S.cardTitle}>Budget Progress</div>
+              <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
             </div>
-          ))}
-          {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
+            {categories.length===0
+              ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+              : sortedCategories.slice(0,6).map(cat=>{
+                  const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                  const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                  return (
+                    <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                        <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
+                          <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                          <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                        </div>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                          {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
+                        </span>
+                      </div>
+                      <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
+                        <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                        <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
+                      </div>
+                    </div>
+                  );
+                })
+            }
+          </div>
+
+          <div style={S.card}>
+            <div style={{...S.sectionHdr,marginBottom:12}}>
+              <div style={S.cardTitle}>Recent Transactions</div>
+              <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
+            </div>
+            {filteredTxns.slice(0,8).map(t=>(
+              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+                <div style={{flex:1,minWidth:0,marginRight:10}}>
+                  <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
+                    {t.name||t.merchant}
+                  </div>
+                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
+                </div>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+                  {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                </span>
+              </div>
+            ))}
+            {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            {BudgetSummaryCard}
+            {SpendingBreakdownCard}
+            {CashFlowCard}
+            {OverspendingHighlightsCard}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0, 1fr) 340px",gap:16,alignItems:"start"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
+            <div style={S.card}>
+              <div style={{...S.sectionHdr,marginBottom:12}}>
+                <div style={S.cardTitle}>Budget Progress</div>
+                <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
+              </div>
+              {categories.length===0
+                ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+                : sortedCategories.slice(0,6).map(cat=>{
+                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                    return (
+                      <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                          <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
+                            <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                            <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                          </div>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                            {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
+                          </span>
+                        </div>
+                        <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
+                          <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                          <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
+                        </div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+
+            <div style={S.card}>
+              <div style={{...S.sectionHdr,marginBottom:12}}>
+                <div style={S.cardTitle}>Recent Transactions</div>
+                <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
+              </div>
+              {filteredTxns.slice(0,8).map(t=>(
+                <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+                  <div style={{flex:1,minWidth:0,marginRight:10}}>
+                    <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
+                      {t.name||t.merchant}
+                    </div>
+                    <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
+                  </div>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+                    {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                  </span>
+                </div>
+              ))}
+              {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
+            </div>
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
+            {BudgetSummaryCard}
+            {SpendingBreakdownCard}
+            {CashFlowCard}
+            {OverspendingHighlightsCard}
+          </div>
+        </div>
+      )}
       {DrillDownModal}
     </div>
   );
@@ -1603,6 +1680,7 @@ function AppInner() {
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                         </div>
+
                         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, padding: 8 }}>
                           {section.cats.map((cat) => {
                             const spent = spentByCat[cat.id] || 0;
@@ -1615,7 +1693,7 @@ function AppInner() {
                             const remColor = over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
                             const remBg = over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
                             return (
-                              <div key={cat.id} onClick={() => setDrillCat(cat)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "14px 16px", cursor: "pointer" }}>
+                              <div key={cat.id} onClick={() => setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "14px 16px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                                   <span style={{ width: 9, height: 9, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                   {editingCatNameId === cat.id ? (
@@ -1642,8 +1720,31 @@ function AppInner() {
                                       <span onClick={(e) => startEditLimit(cat, e)} style={{ cursor: "text", color: "var(--t3)", textDecoration: "underline dotted", textUnderlineOffset: 2 }}>{fmt(cat.limit)}</span>
                                     )}
                                   </span>
-                                  <button style={{ ...S.btn("ghost", true) }} onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}>Edit</button>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <button style={{ ...S.btn("ghost", true) }} onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}>Edit</button>
+                                    <span style={{ color: "var(--t3)", fontSize: 12 }}>{budgetExpandedCatId === cat.id ? "▲" : "▼"}</span>
+                                  </div>
                                 </div>
+
+                                {budgetExpandedCatId === cat.id && (
+                                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+                                    {(monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date))).length === 0 ? (
+                                      <div style={{ fontSize: 12, color: "var(--t3)" }}>No transactions in {monthLabel(selectedMonth)}</div>
+                                    ) : (
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                        {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).map((t) => (
+                                          <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "start", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px" }}>
+                                            <div style={{ minWidth: 0 }}>
+                                              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
+                                              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{t.date}</div>
+                                            </div>
+                                            <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", whiteSpace: "nowrap" }}>-{fmt(Math.abs(t.amount))}</div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -1654,7 +1755,7 @@ function AppInner() {
                 );
               })()}
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {BudgetSummaryCard}
                 {SpendingBreakdownCard}
                 {CashFlowCard}
@@ -1672,7 +1773,7 @@ function AppInner() {
                   ].filter(s => s.cats.length > 0);
 
                   return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {sections.map((section) => (
                         <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
@@ -1731,11 +1832,47 @@ function AppInner() {
                 })()}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {BudgetSummaryCard}
-                {SpendingBreakdownCard}
-                {CashFlowCard}
-                {OverspendingHighlightsCard}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+                <div style={{ ...S.card, padding: 18 }}>
+                  <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
+                    <div style={S.sectionTitle}>{drillCat ? `${drillCat.name} Transactions` : 'Category Transactions'}</div>
+                  </div>
+                  {drillCat ? (
+                    <>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,paddingBottom:12,borderBottom:"1px solid var(--border)"}}>
+                        <div>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                            <span style={{width:9,height:9,borderRadius:"50%",background:drillCat.color,display:"inline-block"}} />
+                            <span style={{fontSize:14,fontWeight:700,color:"var(--t1)"}}>{drillCat.name}</span>
+                          </div>
+                          <div style={{fontSize:12,color:"var(--t3)"}}>{catTxns.length} transaction{catTxns.length!==1?"s":""} this month</div>
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:800,color:(spentByCat[drillCat.id]||0)>drillCat.limit?"var(--red)":"var(--t1)"}}>{fmt(spentByCat[drillCat.id]||0)}</div>
+                          <div style={{fontSize:11,color:"var(--t3)"}}>of {fmt(drillCat.limit)}</div>
+                        </div>
+                      </div>
+                      {catTxns.length === 0 ? (
+                        <div style={{ color: "var(--t3)", padding: "24px 0", textAlign:"center" }}>No transactions assigned this month.</div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "70vh", overflowY: "auto", paddingRight: 2 }}>
+                          {catTxns.map((t) => (
+                            <div key={t.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "start" }}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
+                                <div style={{ fontSize: 12, color: "var(--t3)" }}>{t.date}</div>
+                                <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acctMap[t.accountId]?.name || 'No account'}</div>
+                              </div>
+                              <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: t.amount < 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap" }}>{t.amount < 0 ? "-" : "+"}{fmt(Math.abs(t.amount))}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{border:"1px dashed var(--border2)",borderRadius:"var(--radius)",padding:24,color:"var(--t3)",textAlign:"center",fontSize:13}}>Click a budget category to view its transactions here.</div>
+                  )}
+                </div>
               </div>
             </div>
           )}

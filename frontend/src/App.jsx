@@ -1261,7 +1261,7 @@ function AppInner() {
   }
 
   const Budgets = (
-    <div>
+    <div style={{maxWidth:860,margin:"0 auto"}}>
       <div style={{...S.sectionHdr,marginBottom:16}}>
         <div style={S.sectionTitle}>Budget Categories</div>
         <button style={S.btn("primary",true)} onClick={openAddCat}>+ New Category</button>
@@ -1418,7 +1418,7 @@ function AppInner() {
 
   /* ── Accounts ── */
   const Accounts = (
-    <div>
+    <div style={{maxWidth:860,margin:"0 auto"}}>
       <div style={{...S.sectionHdr,marginBottom:8}}>
         <div style={S.sectionTitle}>Accounts</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -1485,7 +1485,7 @@ function AppInner() {
 
   /* ── Rules ── */
   const Rules = (
-    <div>
+    <div style={{maxWidth:860,margin:"0 auto"}}>
       <div style={{...S.sectionHdr,marginBottom:6}}>
         <div style={S.sectionTitle}>Auto-Categorization Rules</div>
         <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
@@ -1566,7 +1566,7 @@ function AppInner() {
   const totalCells=Math.ceil((firstDow+daysInCal)/7)*7;
 
   const Calendar = (
-    <div>
+    <div style={{maxWidth:860,margin:"0 auto"}}>
       <div style={{...S.sectionHdr,marginBottom:16}}>
         <div style={S.sectionTitle}>Recurring Calendar</div>
         <div style={{fontSize:13,color:"var(--t2)"}}>{recurringTxns.length} recurring</div>

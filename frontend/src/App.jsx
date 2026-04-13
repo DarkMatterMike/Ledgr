@@ -1232,8 +1232,19 @@ function AppInner() {
   })();
 
   /* ── Budgets ── */
-  const [editingLimitId,  setEditingLimitId]  = useState(null);
-  const [editingLimitVal, setEditingLimitVal] = useState("");
+  const [editingLimitId,   setEditingLimitId]   = useState(null);
+  const [editingLimitVal,  setEditingLimitVal]  = useState("");
+  const [editingCatNameId, setEditingCatNameId] = useState(null);
+  const [editingCatName,   setEditingCatName]   = useState("");
+
+  function saveCatName(id) {
+    const trimmed = editingCatName.trim();
+    if (trimmed) {
+      setCategories(p=>p.map(c=>c.id===id?{...c,name:trimmed}:c));
+      showToast("Category renamed");
+    }
+    setEditingCatNameId(null);
+  }
 
   function startEditLimit(cat, e) {
     e.stopPropagation();
@@ -1313,7 +1324,22 @@ function AppInner() {
                   {/* Row 1: dot + name + remaining pill + delete */}
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                     <span style={{width:9,height:9,borderRadius:"50%",background:cat.color,flexShrink:0,display:"inline-block"}}/>
-                    <span style={{fontSize:15,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                    {editingCatNameId===cat.id ? (
+                      <div style={{display:"flex",gap:6,alignItems:"center",flex:1}} onClick={e=>e.stopPropagation()}>
+                        <input autoFocus style={{...S.input,fontSize:14,fontWeight:600,padding:"3px 8px",flex:1}}
+                          value={editingCatName}
+                          onChange={e=>setEditingCatName(e.target.value)}
+                          onBlur={()=>saveCatName(cat.id)}
+                          onKeyDown={e=>{if(e.key==="Enter")saveCatName(cat.id);if(e.key==="Escape")setEditingCatNameId(null);}}/>
+                      </div>
+                    ) : (
+                      <span
+                        onClick={e=>{e.stopPropagation();setEditingCatNameId(cat.id);setEditingCatName(cat.name);}}
+                        title="Tap to rename"
+                        style={{fontSize:15,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"text"}}>
+                        {cat.name}
+                      </span>
+                    )}
 
                     {/* Remaining pill */}
                     <span style={{

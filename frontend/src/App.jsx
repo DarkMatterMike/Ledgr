@@ -1901,7 +1901,7 @@ function AppInner() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-             {selectedDayTxns.map((t) => {
+            {selectedDayTxns.map((t) => {
   const acct = acctMap[t.accountId];
   const cat = catMap[t.categoryId];
 
@@ -1922,7 +1922,7 @@ function AppInner() {
         gap: 8,
         alignItems: "start",
         cursor: "pointer",
-        transition: "background 0.12s, border-color 0.12s",
+        transition: "background 0.12s",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.background = "var(--surface)";

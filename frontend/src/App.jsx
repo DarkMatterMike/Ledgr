@@ -310,7 +310,7 @@ function AppInner() {
         const loadedTxns = data.transactions || [];
         setAccounts(data.accounts         || []);
         setCategories(data.categories     || []);
-        setTransactions(applyRules(loadedTxns, loadedRules));
+        setTransactions(applyRules(loadedTxns, loadedRules, { onlyUncategorized: true }));
         setPlaidItems(data.plaidItems     || []);
         setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);

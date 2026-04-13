@@ -335,33 +335,47 @@ function AppInner() {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts]);
 
-  /* ── Background Plaid sync ───────────────────────────────────── */
+  /* ── Poll for new transactions every 30 minutes ── */
+  const knownTxnIds = useRef(null);
   useEffect(() => {
-    if (!initialized.current || plaidItems.length === 0) return;
+    if (!initialized.current) return;
+    // Record the IDs we loaded with
+    if (knownTxnIds.current === null) {
+      knownTxnIds.current = new Set(transactions.map(t => t.id));
+    }
+  }, [initialized.current, transactions.length]);
 
-    let cancelled = false;
-
-    const runSilentSync = async () => {
+  useEffect(() => {
+    const POLL_MS = 30 * 60 * 1000; // 30 minutes
+    const interval = setInterval(async () => {
+      if (!initialized.current) return;
       try {
-        await doSync(undefined, { silent: true });
+        const data = await api.loadData();
+        const incoming = data.transactions || [];
+        const known = knownTxnIds.current || new Set();
+        const brandNew = incoming.filter(t => !known.has(t.id));
+        if (brandNew.length > 0) {
+          // Merge new transactions into state without overwriting user edits
+          setTransactions(prev => {
+            const existingIds = new Set(prev.map(t => t.id));
+            const toAdd = applyRules(
+              brandNew.filter(t => !existingIds.has(t.id)),
+              rules,
+              { onlyUncategorized: true }
+            );
+            if (toAdd.length === 0) return prev;
+            return [...toAdd, ...prev];
+          });
+          brandNew.forEach(t => knownTxnIds.current.add(t.id));
+          setNewTxnCount(brandNew.length);
+        }
       } catch (e) {
-        if (!cancelled) console.warn("Background sync error:", e.message);
+        console.warn("Poll error:", e.message);
       }
-    };
+    }, POLL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
-    // Kick off one silent refresh shortly after data and Plaid items are available.
-    const initialTimer = setTimeout(runSilentSync, 1500);
-
-    // Then keep syncing quietly in the background.
-    const POLL_MS = 10 * 60 * 1000; // 10 minutes
-    const interval = setInterval(runSilentSync, POLL_MS);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(initialTimer);
-      clearInterval(interval);
-    };
-  }, [plaidItems.length]);
   /* ── Swipe gesture to open/close drawer on mobile ── */
   useEffect(() => {
     if (!isMobile) return;
@@ -463,11 +477,6 @@ function AppInner() {
   const totalIncome = monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
-
-  const rulesRef = useRef(rules);
-  useEffect(() => { rulesRef.current = rules; }, [rules]);
-  const catMapRef = useRef(catMap);
-  useEffect(() => { catMapRef.current = catMap; }, [catMap]);
 
   // Smart pending reconciliation — match on merchant + date only, ignore amount
   const [dismissedPairs,  setDismissedPairs]  = useState(()=>{ try{return JSON.parse(localStorage.getItem("ledgr_dismissed_pairs")||"[]")}catch{return[]} });
@@ -678,13 +687,9 @@ function AppInner() {
     } catch(e) { showToast("Connection failed: "+e.message); }
   }, []);
 
-  async function doSync(itemId, options = {}) {
-    const { silent = false } = options;
-    if (!silent) setSyncing(true);
+  async function doSync(itemId) {
+    setSyncing(true);
     try {
-      const currentRules = rulesRef.current;
-      const currentCatMap = catMapRef.current;
-
       const {added,modified,removed} = await api.syncTransactions(itemId);
       setTransactions(prev => {
         let next=[...prev];
@@ -693,17 +698,17 @@ function AppInner() {
         const modMap=Object.fromEntries(modified.map(t=>[t.transaction_id,t]));
         next=next.map(t=>{
           if (!modMap[t.id]) return t;
-          const updated = plaidTxnToLocal(modMap[t.id], currentCatMap);
+          const updated = plaidTxnToLocal(modMap[t.id],catMap);
           const merged = {
             ...t,
             ...updated,
             categoryId: t.categoryId || updated.categoryId || null,
           };
-          return applyRules([merged], currentRules, { onlyUncategorized: true })[0];
+          return applyRules([merged], rules, { onlyUncategorized: true })[0];
         });
         const existing=new Set(next.map(t=>t.id));
-        const rawNew=added.filter(t=>!existing.has(t.transaction_id)).map(t=>plaidTxnToLocal(t, currentCatMap));
-        return [...applyRules(rawNew, currentRules, { onlyUncategorized: true }),...next];
+        const rawNew=added.filter(t=>!existing.has(t.transaction_id)).map(t=>plaidTxnToLocal(t,catMap));
+        return [...applyRules(rawNew, rules, { onlyUncategorized: true }),...next];
       });
       const {accounts:plaidAccts} = await api.getAccounts();
       setAccounts(prev => {
@@ -721,14 +726,9 @@ function AppInner() {
         plaidAccts.forEach(pa=>{map[pa.account_id]="a"+pa.account_id;});
         return prev.map(t=>t.plaidAccountId?{...t,accountId:map[t.plaidAccountId]||t.accountId}:t);
       });
-      if (!silent) showToast(`Synced: +${added.length} transactions`);
-    } catch(e) {
-      if (!silent) showToast("Sync error: "+e.message);
-      else console.warn("Silent sync error:", e.message);
-    }
-    finally {
-      if (!silent) setSyncing(false);
-    }
+      showToast(`Synced: +${added.length} transactions`);
+    } catch(e) { showToast("Sync error: "+e.message); }
+    finally { setSyncing(false); }
   }
   function plaidTxnToLocal(t,cm) {
     const pc=(t.category||"").toLowerCase();
@@ -1761,6 +1761,16 @@ function AppInner() {
                                             <div style={{ minWidth: 0 }}>
                                               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                               <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{t.date}</div>
+                                              <div style={{ marginTop: 8 }}>
+                                                <select
+                                                  style={{ ...S.select, width: "100%", fontSize: 12, padding: "7px 10px" }}
+                                                  value={t.categoryId || ""}
+                                                  onChange={(e) => updateTxnCat(t.id, e.target.value)}
+                                                >
+                                                  <option value="">— Uncategorized —</option>
+                                                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                </select>
+                                              </div>
                                             </div>
                                             <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", whiteSpace: "nowrap" }}>-{fmt(Math.abs(t.amount))}</div>
                                           </div>
@@ -1886,6 +1896,16 @@ function AppInner() {
                                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{t.date}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acctMap[t.accountId]?.name || 'No account'}</div>
+                                <div style={{ marginTop: 8 }}>
+                                  <select
+                                    style={{ ...S.select, width: "100%", fontSize: 12, padding: "7px 10px" }}
+                                    value={t.categoryId || ""}
+                                    onChange={(e) => updateTxnCat(t.id, e.target.value)}
+                                  >
+                                    <option value="">— Uncategorized —</option>
+                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                  </select>
+                                </div>
                               </div>
                               <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: t.amount < 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap" }}>{t.amount < 0 ? "-" : "+"}{fmt(Math.abs(t.amount))}</div>
                             </div>

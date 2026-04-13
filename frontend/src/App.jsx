@@ -306,11 +306,13 @@ function AppInner() {
     (async () => {
       try {
         const data = await api.loadData();
+        const loadedRules = data.rules || [];
+        const loadedTxns = data.transactions || [];
         setAccounts(data.accounts         || []);
         setCategories(data.categories     || []);
-        setTransactions(data.transactions || []);
+        setTransactions(applyRules(loadedTxns, loadedRules));
         setPlaidItems(data.plaidItems     || []);
-        setRules(data.rules               || []);
+        setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);
       } catch (e) { console.warn("Load error:", e.message); }
       finally { setLoading(false); initialized.current = true; }
@@ -356,7 +358,11 @@ function AppInner() {
           // Merge new transactions into state without overwriting user edits
           setTransactions(prev => {
             const existingIds = new Set(prev.map(t => t.id));
-            const toAdd = brandNew.filter(t => !existingIds.has(t.id));
+            const toAdd = applyRules(
+              brandNew.filter(t => !existingIds.has(t.id)),
+              rules,
+              { onlyUncategorized: true }
+            );
             if (toAdd.length === 0) return prev;
             return [...toAdd, ...prev];
           });
@@ -632,9 +638,11 @@ function AppInner() {
   }
 
   /* ── Rules ── */
-  function applyRules(txns, rs) {
+  function applyRules(txns, rs, opts = {}) {
     if (!rs?.length) return txns;
+    const { onlyUncategorized = false } = opts;
     return txns.map(t => {
+      if (onlyUncategorized && t.categoryId) return t;
       const mer=(t.merchant||t.name||"").toLowerCase().trim();
       for (const r of rs) {
         if (!r.enabled) continue;
@@ -664,6 +672,11 @@ function AppInner() {
   }
   function toggleRule(id)  { setRules(p=>p.map(r=>r.id===id?{...r,enabled:!r.enabled}:r)); }
 
+  useEffect(() => {
+    if (!initialized.current || !rules.length) return;
+    setTransactions(prev => applyRules(prev, rules, { onlyUncategorized: true }));
+  }, [rules]);
+
   /* ── Plaid ── */
   const handlePlaidSuccess = useCallback(async (publicToken, institutionName) => {
     try {
@@ -683,10 +696,19 @@ function AppInner() {
         const removeIds=new Set(removed.map(r=>r.transaction_id));
         next=next.filter(t=>!removeIds.has(t.id));
         const modMap=Object.fromEntries(modified.map(t=>[t.transaction_id,t]));
-        next=next.map(t=>modMap[t.id]?plaidTxnToLocal(modMap[t.id],catMap):t);
+        next=next.map(t=>{
+          if (!modMap[t.id]) return t;
+          const updated = plaidTxnToLocal(modMap[t.id],catMap);
+          const merged = {
+            ...t,
+            ...updated,
+            categoryId: t.categoryId || updated.categoryId || null,
+          };
+          return applyRules([merged], rules, { onlyUncategorized: true })[0];
+        });
         const existing=new Set(next.map(t=>t.id));
         const rawNew=added.filter(t=>!existing.has(t.transaction_id)).map(t=>plaidTxnToLocal(t,catMap));
-        return [...applyRules(rawNew,rules),...next];
+        return [...applyRules(rawNew, rules, { onlyUncategorized: true }),...next];
       });
       const {accounts:plaidAccts} = await api.getAccounts();
       setAccounts(prev => {

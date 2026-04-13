@@ -2054,7 +2054,7 @@ function AppInner() {
       </div>
     );
 
-    const DesktopCalendarView = (
+        const DesktopCalendarView = (
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <div
           style={{
@@ -2081,6 +2081,7 @@ function AppInner() {
           </div>
         </div>
 
+        {/* Top desktop layout */}
         <div
           style={{
             display: "grid",
@@ -2643,6 +2644,116 @@ function AppInner() {
             </div>
           </div>
         </div>
+
+        {/* Desktop master recurring list restored */}
+        {recurringTxns.length > 0 && (
+          <div style={{ ...S.card, marginTop: 2 }}>
+            <div style={S.cardTitle}>All Recurring Transactions</div>
+
+            {[...recurringTxns]
+              .sort((a, b) => {
+                const freqOrder = { weekly: 0, biweekly: 1, monthly: 2, annual: 3 };
+                const fa = freqOrder[a.recurringFreq || "monthly"] ?? 2;
+                const fb = freqOrder[b.recurringFreq || "monthly"] ?? 2;
+                if (fa !== fb) return fa - fb;
+                return (a.recurringDay || 0) - (b.recurringDay || 0);
+              })
+              .map((t) => {
+                const cat = catMap[t.categoryId];
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => {
+                      setEditTarget(t);
+                      setModal("editRecurring");
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 8px",
+                      margin: "0 -8px 2px",
+                      borderBottom: "1px solid var(--border)",
+                      cursor: "pointer",
+                      borderRadius: 6,
+                      transition: "background 0.12s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          background: "var(--surface)",
+                          border: "1px solid var(--border2)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "var(--cyan)",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {t.recurringDay || "?"}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: "var(--t1)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {t.name || t.merchant}
+                        </div>
+
+                        <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>
+                          {t.recurringFreq === "weekly"
+                            ? "Weekly"
+                            : t.recurringFreq === "biweekly"
+                            ? "Bi-weekly"
+                            : t.recurringFreq === "annual"
+                            ? "Annual"
+                            : `Day ${t.recurringDay || "?"} of month`}
+                          {t.recurringStart && <span style={{ marginLeft: 6 }}>· from {t.recurringStart}</span>}
+                          {cat && (
+                            <>
+                              {" "}
+                              · <span style={{ color: cat.color }}>{cat.name}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 10 }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: t.amount < 0 ? "var(--red)" : "var(--green)",
+                        }}
+                      >
+                        {t.amount < 0 ? "−" : "+"}
+                        {fmt(Math.abs(t.amount))}
+                      </span>
+                      <span style={{ fontSize: 11, color: "var(--t3)" }}>⋯</span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
       </div>
     );
 

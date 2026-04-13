@@ -1260,158 +1260,790 @@ function AppInner() {
     setEditingLimitId(null);
   }
 
+  const budgetAnalytics = useMemo(() => {
+    const spentCats = categories
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        color: c.color,
+        spent: spentByCat[c.id] || 0,
+        limit: c.limit || 0,
+      }))
+      .filter((c) => c.spent > 0)
+      .sort((a, b) => b.spent - a.spent);
+
+    const totalSpentForBreakdown = spentCats.reduce((sum, c) => sum + c.spent, 0);
+    const topBreakdownCats = spentCats.slice(0, 5);
+
+    const monthlyMap = {};
+    transactions.forEach((t) => {
+      if (!t.date) return;
+      const ym = t.date.slice(0, 7);
+      if (!monthlyMap[ym]) monthlyMap[ym] = { income: 0, spending: 0 };
+      if (t.amount > 0) monthlyMap[ym].income += t.amount;
+      if (t.amount < 0) monthlyMap[ym].spending += Math.abs(t.amount);
+    });
+
+    const [selY, selM] = selectedMonth.split("-").map(Number);
+    const monthKeys = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(selY, selM - 1 - i, 1);
+      monthKeys.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
+    }
+
+    const cashFlowSeries = monthKeys.map((ym) => {
+      const row = monthlyMap[ym] || { income: 0, spending: 0 };
+      const [y, m] = ym.split("-").map(Number);
+      return {
+        key: ym,
+        label: new Date(y, m - 1, 1).toLocaleDateString("en-US", {
+          month: "short",
+          year: "2-digit",
+        }),
+        income: row.income,
+        spending: row.spending,
+      };
+    });
+
+    const avgDelta =
+      cashFlowSeries.length > 0
+        ? cashFlowSeries.reduce((sum, m) => sum + (m.spending - m.income), 0) / cashFlowSeries.length
+        : 0;
+
+    const topOverspent = categories
+      .map((c) => {
+        const spent = spentByCat[c.id] || 0;
+        const remaining = (c.limit || 0) - spent;
+        return {
+          id: c.id,
+          name: c.name,
+          color: c.color,
+          spent,
+          limit: c.limit || 0,
+          overBy: remaining < 0 ? Math.abs(remaining) : 0,
+          remaining,
+        };
+      })
+      .filter((c) => c.overBy > 0)
+      .sort((a, b) => b.overBy - a.overBy)
+      .slice(0, 4);
+
+    return {
+      spentCats,
+      topBreakdownCats,
+      totalSpentForBreakdown,
+      cashFlowSeries,
+      avgDelta,
+      topOverspent,
+    };
+  }, [categories, spentByCat, transactions, selectedMonth]);
+
   const Budgets = (
-    <div style={{maxWidth:860}}>
-      <div style={{...S.sectionHdr,marginBottom:16}}>
+    <div>
+      <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
         <div style={S.sectionTitle}>Budget Categories</div>
-        <button style={S.btn("primary",true)} onClick={openAddCat}>+ New Category</button>
+        <button style={S.btn("primary", true)} onClick={openAddCat}>
+          + New Category
+        </button>
       </div>
 
-      {categories.length===0 ? (
-        <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No categories yet.</div>
+      {categories.length === 0 ? (
+        <div style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>
+          No categories yet.
+        </div>
       ) : (
         <>
-          {/* Group categories into sections */}
-          {(()=>{
-            const sections = [
-              { key:"over",     label:"Overspent",    cats: sortedCategories.filter(c=>(c.limit-(spentByCat[c.id]||0))<0) },
-              { key:"progress", label:"In Progress",  cats: sortedCategories.filter(c=>{ const r=c.limit-(spentByCat[c.id]||0); return r>0; }) },
-              { key:"done",     label:"Fully Spent",  cats: sortedCategories.filter(c=>(c.limit-(spentByCat[c.id]||0))===0) },
-            ].filter(s=>s.cats.length>0);
+          {isMobile ? (
+            <>
+              {(() => {
+                const sections = [
+                  { key: "over", label: "Overspent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) < 0) },
+                  { key: "progress", label: "In Progress", cats: sortedCategories.filter(c => { const r = c.limit - (spentByCat[c.id] || 0); return r > 0; }) },
+                  { key: "done", label: "Fully Spent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) === 0) },
+                ].filter(s => s.cats.length > 0);
 
-            return (
-              <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
-                {sections.map((section,si)=>(
-                  <div key={section.key} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
-                    {/* Section header — matches transactions date header style */}
-                    <div style={{
-                      display:"flex",alignItems:"center",justifyContent:"space-between",
-                      padding:"8px 16px",
-                      background:"var(--surface)",
-                      borderBottom:"1px solid var(--border)",
-                    }}>
-                      <span style={{fontSize:11,fontWeight:700,color:section.key==="over"?"var(--red)":section.key==="done"?"var(--t3)":"var(--t2)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.8px"}}>
-                        {section.label}
-                      </span>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
-                        {section.cats.length} {section.cats.length===1?"category":"categories"}
-                      </span>
-                    </div>
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+                    {sections.map((section) => (
+                      <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "8px 16px",
+                            background: "var(--surface)",
+                            borderBottom: "1px solid var(--border)",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)",
+                              fontFamily: "var(--font-disp)",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.8px",
+                            }}
+                          >
+                            {section.label}
+                          </span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>
+                            {section.cats.length} {section.cats.length === 1 ? "category" : "categories"}
+                          </span>
+                        </div>
 
-                    {/* Cards grid for this section */}
-                    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,padding:8}}>
-                      {section.cats.map(cat=>{
-                        const spent     = spentByCat[cat.id]||0;
-              const pct       = Math.min((spent/cat.limit)*100,100);
-              const remaining = cat.limit-spent;
-              const over      = remaining<0;
-              const warn      = pct>=80&&!over&&remaining!==0;
-              const zero      = remaining===0&&!over;
-              const barC      = over?"var(--red)":warn?"var(--amber)":zero?"var(--t3)":cat.color;
-              const remColor  = over?"var(--red)":zero?"var(--t3)":"var(--green)";
-              const remBg     = over?"var(--red-dim)":zero?"var(--surface)":"var(--green-dim)";
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, padding: 8 }}>
+                          {section.cats.map((cat) => {
+                            const spent = spentByCat[cat.id] || 0;
+                            const pct = Math.min((spent / cat.limit) * 100, 100);
+                            const remaining = cat.limit - spent;
+                            const over = remaining < 0;
+                            const warn = pct >= 80 && !over && remaining !== 0;
+                            const zero = remaining === 0 && !over;
+                            const barC = over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                            const remColor = over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
+                            const remBg = over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
 
-              return (
-                <div key={cat.id} onClick={()=>setDrillCat(cat)}
-                  style={{
-                    background:"var(--card)", border:"1px solid var(--border)",
-                    borderRadius:"var(--radius)", padding:"14px 16px",
-                    cursor:"pointer", transition:"background 0.12s",
-                  }}
-                  onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                  onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}>
+                            return (
+                              <div
+                                key={cat.id}
+                                onClick={() => setDrillCat(cat)}
+                                style={{
+                                  background: "var(--card)",
+                                  border: "1px solid var(--border)",
+                                  borderRadius: "var(--radius)",
+                                  padding: "14px 16px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
+                                  {editingCatNameId === cat.id ? (
+                                    <div style={{ display: "flex", gap: 6, alignItems: "center", flex: 1 }} onClick={(e) => e.stopPropagation()}>
+                                      <input
+                                        autoFocus
+                                        style={{ ...S.input, fontSize: 14, fontWeight: 600, padding: "3px 8px", flex: 1 }}
+                                        value={editingCatName}
+                                        onChange={(e) => setEditingCatName(e.target.value)}
+                                        onBlur={() => saveCatName(cat.id)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") saveCatName(cat.id);
+                                          if (e.key === "Escape") setEditingCatNameId(null);
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingCatNameId(cat.id);
+                                        setEditingCatName(cat.name);
+                                      }}
+                                      title="Tap to rename"
+                                      style={{
+                                        fontSize: 15,
+                                        fontWeight: 600,
+                                        color: "var(--t1)",
+                                        flex: 1,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        cursor: "text",
+                                      }}
+                                    >
+                                      {cat.name}
+                                    </span>
+                                  )}
 
-                  {/* Row 1: dot + name + remaining pill + delete */}
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                    <span style={{width:9,height:9,borderRadius:"50%",background:cat.color,flexShrink:0,display:"inline-block"}}/>
-                    {editingCatNameId===cat.id ? (
-                      <div style={{display:"flex",gap:6,alignItems:"center",flex:1}} onClick={e=>e.stopPropagation()}>
-                        <input autoFocus style={{...S.input,fontSize:14,fontWeight:600,padding:"3px 8px",flex:1}}
-                          value={editingCatName}
-                          onChange={e=>setEditingCatName(e.target.value)}
-                          onBlur={()=>saveCatName(cat.id)}
-                          onKeyDown={e=>{if(e.key==="Enter")saveCatName(cat.id);if(e.key==="Escape")setEditingCatNameId(null);}}/>
+                                  <span
+                                    style={{
+                                      fontFamily: "var(--font-mono)",
+                                      fontSize: 13,
+                                      fontWeight: 700,
+                                      color: remColor,
+                                      background: remBg,
+                                      border: `1px solid ${remColor}33`,
+                                      borderRadius: 6,
+                                      padding: "3px 10px",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
+                                  </span>
+
+                                  <button
+                                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 14, padding: "2px 4px", flexShrink: 0 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteCat(cat.id);
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+
+                                <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 7 }}>
+                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${pct}%`, transition: "width 0.5s" }} />
+                                </div>
+
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
+                                    {over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
+                                    {zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
+                                    Spent {fmt(spent)} /{" "}
+                                    {editingLimitId === cat.id ? (
+                                      <input
+                                        type="number"
+                                        autoFocus
+                                        style={{
+                                          background: "none",
+                                          border: "none",
+                                          borderBottom: "1px solid var(--cyan)",
+                                          fontSize: 12,
+                                          color: "var(--t1)",
+                                          outline: "none",
+                                          width: 70,
+                                          fontFamily: "var(--font-mono)",
+                                        }}
+                                        value={editingLimitVal}
+                                        onChange={(e) => setEditingLimitVal(e.target.value)}
+                                        onBlur={() => saveLimit(cat.id)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") saveLimit(cat.id);
+                                          if (e.key === "Escape") setEditingLimitId(null);
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    ) : (
+                                      <span
+                                        onClick={(e) => startEditLimit(cat, e)}
+                                        style={{
+                                          cursor: "text",
+                                          color: "var(--t3)",
+                                          textDecoration: "underline dotted",
+                                          textUnderlineOffset: 2,
+                                        }}
+                                      >
+                                        {fmt(cat.limit)}
+                                      </span>
+                                    )}
+                                  </span>
+
+                                  <button
+                                    style={{ ...S.btn("ghost", true) }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditCat(cat);
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    ) : (
-                      <span
-                        onClick={e=>{e.stopPropagation();setEditingCatNameId(cat.id);setEditingCatName(cat.name);}}
-                        title="Tap to rename"
-                        style={{fontSize:15,fontWeight:600,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"text"}}>
-                        {cat.name}
-                      </span>
-                    )}
-
-                    {/* Remaining pill */}
-                    <span style={{
-                      fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,
-                      color:remColor, background:remBg,
-                      border:`1px solid ${remColor}33`,
-                      borderRadius:6, padding:"3px 10px", flexShrink:0,
-                    }}>
-                      {over?`-${fmt(Math.abs(remaining))}`:fmt(remaining)}
-                    </span>
-
-                    <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px",flexShrink:0}}
-                      onClick={e=>{e.stopPropagation();deleteCat(cat.id);}}>✕</button>
+                    ))}
                   </div>
+                );
+              })()}
 
-                  {/* Row 2: progress bar */}
-                  <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:7}}>
-                    <div style={{height:"100%",borderRadius:99,background:barC,width:`${pct}%`,transition:"width 0.5s"}}/>
+              <div
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  padding: "12px 16px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: 8,
+                }}
+              >
+                {[
+                  ["Budgeted", fmt(totalBudget), "var(--t1)"],
+                  ["Spent", fmt(totalSpent), "var(--t1)"],
+                  ["Left", fmt(totalBudget - totalSpent), totalBudget - totalSpent >= 0 ? "var(--green)" : "var(--red)"],
+                ].map(([label, value, color]) => (
+                  <div key={label}>
+                    <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 4, fontFamily: "var(--font-disp)" }}>
+                      {label}
+                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color }}>
+                      {value}
+                    </div>
                   </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 1fr) 360px",
+                  gap: 16,
+                  alignItems: "start",
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  {(() => {
+                    const sections = [
+                      { key: "over", label: "Overspent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) < 0) },
+                      { key: "progress", label: "In Progress", cats: sortedCategories.filter(c => { const r = c.limit - (spentByCat[c.id] || 0); return r > 0; }) },
+                      { key: "done", label: "Fully Spent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) === 0) },
+                    ].filter(s => s.cats.length > 0);
 
-                  {/* Row 3: spent / budget + status + edit budget */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontSize:12,color:over?"var(--red)":warn?"var(--amber)":"var(--t3)"}}>
-                      {over&&<span style={{fontWeight:600,marginRight:4}}>Overspent ·</span>}
-                      {zero&&<span style={{marginRight:4}}>Fully spent ·</span>}
-                      Spent {fmt(spent)} /{" "}
-                      {/* Inline budget edit */}
-                      {editingLimitId===cat.id ? (
-                        <input type="number" autoFocus
-                          style={{background:"none",border:"none",borderBottom:"1px solid var(--cyan)",fontSize:12,color:"var(--t1)",outline:"none",width:70,fontFamily:"var(--font-mono)"}}
-                          value={editingLimitVal}
-                          onChange={e=>setEditingLimitVal(e.target.value)}
-                          onBlur={()=>saveLimit(cat.id)}
-                          onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}
-                          onClick={e=>e.stopPropagation()}/>
-                      ):(
-                        <span onClick={e=>startEditLimit(cat,e)} style={{cursor:"text",color:"var(--t3)",textDecoration:"underline dotted",textUnderlineOffset:2}}>
-                          {fmt(cat.limit)}
-                        </span>
-                      )}
-                    </span>
-                    <button style={{...S.btn("ghost",true)}} onClick={e=>{e.stopPropagation();openEditCat(cat);}}>Edit</button>
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+                        {sections.map((section) => (
+                          <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "8px 16px",
+                                background: "var(--surface)",
+                                borderBottom: "1px solid var(--border)",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)",
+                                  fontFamily: "var(--font-disp)",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.8px",
+                                }}
+                              >
+                                {section.label}
+                              </span>
+                              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>
+                                {section.cats.length} {section.cats.length === 1 ? "category" : "categories"}
+                              </span>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: 8 }}>
+                              {section.cats.map((cat) => {
+                                const spent = spentByCat[cat.id] || 0;
+                                const pct = Math.min((spent / cat.limit) * 100, 100);
+                                const remaining = cat.limit - spent;
+                                const over = remaining < 0;
+                                const warn = pct >= 80 && !over && remaining !== 0;
+                                const zero = remaining === 0 && !over;
+                                const barC = over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                                const remColor = over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
+                                const remBg = over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+
+                                return (
+                                  <div
+                                    key={cat.id}
+                                    onClick={() => setDrillCat(cat)}
+                                    style={{
+                                      background: "var(--card)",
+                                      border: "1px solid var(--border)",
+                                      borderRadius: "var(--radius)",
+                                      padding: "14px 16px",
+                                      cursor: "pointer",
+                                      transition: "background 0.12s",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}
+                                  >
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                                      <span style={{ width: 9, height: 9, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
+                                      {editingCatNameId === cat.id ? (
+                                        <div style={{ display: "flex", gap: 6, alignItems: "center", flex: 1 }} onClick={(e) => e.stopPropagation()}>
+                                          <input
+                                            autoFocus
+                                            style={{ ...S.input, fontSize: 14, fontWeight: 600, padding: "3px 8px", flex: 1 }}
+                                            value={editingCatName}
+                                            onChange={(e) => setEditingCatName(e.target.value)}
+                                            onBlur={() => saveCatName(cat.id)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") saveCatName(cat.id);
+                                              if (e.key === "Escape") setEditingCatNameId(null);
+                                            }}
+                                          />
+                                        </div>
+                                      ) : (
+                                        <span
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingCatNameId(cat.id);
+                                            setEditingCatName(cat.name);
+                                          }}
+                                          title="Click to rename"
+                                          style={{
+                                            fontSize: 15,
+                                            fontWeight: 600,
+                                            color: "var(--t1)",
+                                            flex: 1,
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                            cursor: "text",
+                                          }}
+                                        >
+                                          {cat.name}
+                                        </span>
+                                      )}
+
+                                      <span
+                                        style={{
+                                          fontFamily: "var(--font-mono)",
+                                          fontSize: 13,
+                                          fontWeight: 700,
+                                          color: remColor,
+                                          background: remBg,
+                                          border: `1px solid ${remColor}33`,
+                                          borderRadius: 6,
+                                          padding: "3px 10px",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        {over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}
+                                      </span>
+
+                                      <button
+                                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 14, padding: "2px 4px", flexShrink: 0 }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteCat(cat.id);
+                                        }}
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+
+                                    <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 7 }}>
+                                      <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${pct}%`, transition: "width 0.5s" }} />
+                                    </div>
+
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                      <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
+                                        {over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
+                                        {zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
+                                        Spent {fmt(spent)} /{" "}
+                                        {editingLimitId === cat.id ? (
+                                          <input
+                                            type="number"
+                                            autoFocus
+                                            style={{
+                                              background: "none",
+                                              border: "none",
+                                              borderBottom: "1px solid var(--cyan)",
+                                              fontSize: 12,
+                                              color: "var(--t1)",
+                                              outline: "none",
+                                              width: 70,
+                                              fontFamily: "var(--font-mono)",
+                                            }}
+                                            value={editingLimitVal}
+                                            onChange={(e) => setEditingLimitVal(e.target.value)}
+                                            onBlur={() => saveLimit(cat.id)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") saveLimit(cat.id);
+                                              if (e.key === "Escape") setEditingLimitId(null);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                          />
+                                        ) : (
+                                          <span
+                                            onClick={(e) => startEditLimit(cat, e)}
+                                            style={{
+                                              cursor: "text",
+                                              color: "var(--t3)",
+                                              textDecoration: "underline dotted",
+                                              textUnderlineOffset: 2,
+                                            }}
+                                          >
+                                            {fmt(cat.limit)}
+                                          </span>
+                                        )}
+                                      </span>
+
+                                      <button
+                                        style={{ ...S.btn("ghost", true) }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openEditCat(cat);
+                                        }}
+                                      >
+                                        Edit
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  <div
+                    style={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--radius)",
+                      padding: "12px 16px",
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gap: 8,
+                    }}
+                  >
+                    {[
+                      ["Budgeted", fmt(totalBudget), "var(--t1)"],
+                      ["Spent", fmt(totalSpent), "var(--t1)"],
+                      ["Left", fmt(totalBudget - totalSpent), totalBudget - totalSpent >= 0 ? "var(--green)" : "var(--red)"],
+                    ].map(([label, value, color]) => (
+                      <div key={label}>
+                        <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 4, fontFamily: "var(--font-disp)" }}>
+                          {label}
+                        </div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color }}>
+                          {value}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-            </div>{/* end section cards grid */}
-          </div>
-        ))}{/* end sections.map */}
-      </div>
-    );
-  })()}{/* end IIFE */}
 
-          {/* Totals bar */}
-          <div style={{
-            background:"var(--card)",border:"1px solid var(--border)",
-            borderRadius:"var(--radius)",padding:"12px 16px",
-            display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,
-          }}>
-            {[
-              ["Budgeted", fmt(totalBudget), "var(--t1)"],
-              ["Spent",    fmt(totalSpent),  "var(--t1)"],
-              ["Left",     fmt(totalBudget-totalSpent), totalBudget-totalSpent>=0?"var(--green)":"var(--red)"],
-            ].map(([label,value,color])=>(
-              <div key={label}>
-                <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4,fontFamily:"var(--font-disp)"}}>{label}</div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color}}>{value}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ ...S.card, padding: 18 }}>
+                    <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
+                      <div style={S.sectionTitle}>Spending Breakdown</div>
+                    </div>
+
+                    {budgetAnalytics.totalSpentForBreakdown > 0 ? (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 14px" }}>
+                          {(() => {
+                            const size = 180;
+                            const stroke = 18;
+                            const radius = (size - stroke) / 2;
+                            const circumference = 2 * Math.PI * radius;
+
+                            let offsetAcc = 0;
+                            return (
+                              <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                                <circle
+                                  cx={size / 2}
+                                  cy={size / 2}
+                                  r={radius}
+                                  fill="none"
+                                  stroke="rgba(255,255,255,0.08)"
+                                  strokeWidth={stroke}
+                                />
+                                {budgetAnalytics.topBreakdownCats.map((cat) => {
+                                  const fraction = cat.spent / budgetAnalytics.totalSpentForBreakdown;
+                                  const dash = fraction * circumference;
+                                  const gap = circumference - dash;
+                                  const circle = (
+                                    <circle
+                                      key={cat.id}
+                                      cx={size / 2}
+                                      cy={size / 2}
+                                      r={radius}
+                                      fill="none"
+                                      stroke={cat.color}
+                                      strokeWidth={stroke}
+                                      strokeLinecap="round"
+                                      strokeDasharray={`${dash} ${gap}`}
+                                      strokeDashoffset={-offsetAcc}
+                                      transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                                    />
+                                  );
+                                  offsetAcc += dash;
+                                  return circle;
+                                })}
+
+                                <text
+                                  x="50%"
+                                  y="47%"
+                                  textAnchor="middle"
+                                  fill="var(--t1)"
+                                  style={{ fontSize: "12px", fontWeight: 700, fontFamily: "var(--font-mono)" }}
+                                >
+                                  {fmt(budgetAnalytics.totalSpentForBreakdown)}
+                                </text>
+                                <text
+                                  x="50%"
+                                  y="58%"
+                                  textAnchor="middle"
+                                  fill="var(--t3)"
+                                  style={{ fontSize: "10px" }}
+                                >
+                                  Total
+                                </text>
+                              </svg>
+                            );
+                          })()}
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+                          {budgetAnalytics.topBreakdownCats.map((cat) => (
+                            <div key={cat.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                                <span style={{ width: 10, height: 10, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
+                                <span style={{ color: "var(--t2)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {cat.name}
+                                </span>
+                              </div>
+                              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--t1)" }}>
+                                {fmt(cat.spent)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ color: "var(--t3)", padding: "12px 0" }}>No spending data for this month.</div>
+                    )}
+                  </div>
+
+                  <div style={{ ...S.card, padding: 18 }}>
+                    <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
+                      <div style={S.sectionTitle}>Cash Flow</div>
+                    </div>
+
+                    <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 14 }}>
+                      On average, spending{" "}
+                      <span style={{ color: budgetAnalytics.avgDelta > 0 ? "var(--red)" : "var(--green)", fontWeight: 700 }}>
+                        {fmt(Math.abs(budgetAnalytics.avgDelta))}/month
+                      </span>{" "}
+                      {budgetAnalytics.avgDelta > 0 ? "more than earning" : "less than earnings"}
+                    </div>
+
+                    {(() => {
+                      const maxVal = Math.max(
+                        1,
+                        ...budgetAnalytics.cashFlowSeries.flatMap((m) => [m.income, m.spending])
+                      );
+
+                      return (
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: 14, marginBottom: 10, fontSize: 12, color: "var(--t2)" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
+                              Income
+                            </span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#7c95ff" }} />
+                              Spending
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              height: 220,
+                              display: "flex",
+                              alignItems: "flex-end",
+                              gap: 12,
+                              padding: "10px 4px 0",
+                              borderTop: "1px solid var(--border)",
+                            }}
+                          >
+                            {budgetAnalytics.cashFlowSeries.map((m) => {
+                              const incomeH = Math.max(6, (m.income / maxVal) * 180);
+                              const spendingH = Math.max(6, (m.spending / maxVal) * 180);
+
+                              return (
+                                <div
+                                  key={m.key}
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "flex-end",
+                                    gap: 8,
+                                  }}
+                                >
+                                  <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 180 }}>
+                                    <div
+                                      title={`Income: ${fmt(m.income)}`}
+                                      style={{
+                                        width: 16,
+                                        height: incomeH,
+                                        borderRadius: "8px 8px 0 0",
+                                        background: "var(--green)",
+                                      }}
+                                    />
+                                    <div
+                                      title={`Spending: ${fmt(m.spending)}`}
+                                      style={{
+                                        width: 16,
+                                        height: spendingH,
+                                        borderRadius: "8px 8px 0 0",
+                                        background: "#7c95ff",
+                                      }}
+                                    />
+                                  </div>
+                                  <div style={{ fontSize: 12, color: "var(--t3)", whiteSpace: "nowrap" }}>{m.label}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div style={{ ...S.card, padding: 18 }}>
+                    <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
+                      <div style={S.sectionTitle}>Overspending Highlights</div>
+                    </div>
+
+                    {budgetAnalytics.topOverspent.length === 0 ? (
+                      <div style={{ color: "var(--green)", fontSize: 13 }}>
+                        No categories are over budget right now.
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {budgetAnalytics.topOverspent.map((cat) => (
+                          <div
+                            key={cat.id}
+                            style={{
+                              background: "var(--surface)",
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius)",
+                              padding: "12px 12px",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                                <span style={{ width: 9, height: 9, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {cat.name}
+                                </span>
+                              </div>
+                              <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>
+                                +{fmt(cat.overBy)}
+                              </span>
+                            </div>
+
+                            <div style={{ fontSize: 12, color: "var(--t3)" }}>
+                              Spent {fmt(cat.spent)} of {fmt(cat.limit)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </>
       )}
+
       {DrillDownModal}
     </div>
   );

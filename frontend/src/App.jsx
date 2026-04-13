@@ -731,12 +731,31 @@ function AppInner() {
     finally { setSyncing(false); }
   }
   function plaidTxnToLocal(t,cm) {
-    const pc=(t.category||"").toLowerCase();
+    const rawCategory = Array.isArray(t.category) ? t.category.join(" • ") : (t.category || "");
+    const pc=rawCategory.toLowerCase();
     const matched=Object.values(cm).find(c=>pc.includes(c.name.toLowerCase().split(" ")[0]));
-    return {id:t.transaction_id,plaidAccountId:t.account_id,accountId:"a"+t.account_id,
-      date:t.date||t.authorized_date,merchant:t.merchant_name||t.name,name:"",
-      amount:t.amount,categoryId:matched?.id||null,pending:t.pending,recurring:false,recurringDay:null,
-      type:t.amount<0?"expense":"income"};
+    const personalFinanceCategory = typeof t.personal_finance_category === "string"
+      ? t.personal_finance_category
+      : (t.personal_finance_category?.detailed || t.personal_finance_category?.primary || "");
+    return {
+      id:t.transaction_id,
+      plaidAccountId:t.account_id,
+      accountId:"a"+t.account_id,
+      date:t.date||t.authorized_date,
+      authorizedDate:t.authorized_date||null,
+      merchant:t.merchant_name||t.name,
+      plaidName:t.name||"",
+      name:"",
+      amount:t.amount,
+      categoryId:matched?.id||null,
+      plaidCategory:rawCategory,
+      personalFinanceCategory,
+      paymentChannel:t.payment_channel||"",
+      pending:t.pending,
+      recurring:false,
+      recurringDay:null,
+      type:t.amount<0?"expense":"income"
+    };
   }
   async function disconnectItem(itemId) {
     try { await api.deleteItem(itemId); setPlaidItems(p=>p.filter(i=>i.item_id!==itemId)); showToast("Disconnected"); }
@@ -1393,6 +1412,18 @@ function AppInner() {
       const noCategory = ["income","transfer","reimbursement"].includes(typeVal);
       const cat        = catMap[t.categoryId];
       const acct       = acctMap[t.accountId];
+      const statusText = t.pending ? "Pending" : "Posted";
+      const detailRows = [
+        ["Account", acct?.name || "—"],
+        ["Status", statusText],
+        ["Merchant", t.merchant || "—"],
+        ["Original Plaid name", t.plaidName || "—"],
+        ["Posted date", t.date || "—"],
+        ["Authorized date", t.authorizedDate || "—"],
+        ["Plaid category", t.plaidCategory || "—"],
+        ["Finance category", t.personalFinanceCategory || "—"],
+        ["Payment channel", t.paymentChannel || "—"],
+      ].filter(([, value], idx) => !(idx > 0 && value === "—"));
 
       return (
         <div style={{borderBottom:"1px solid var(--border)"}}>
@@ -1480,6 +1511,15 @@ function AppInner() {
                 <option value="">— Account —</option>
                 {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
+
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
+                {detailRows.map(([label, value]) => (
+                  <div key={label} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"8px 10px",minWidth:0}}>
+                    <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4,fontFamily:"var(--font-disp)"}}>{label}</div>
+                    <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={String(value)}>{value}</div>
+                  </div>
+                ))}
+              </div>
               {/* Recurring toggle */}
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <button onClick={()=>toggleRecurring(t.id)}
@@ -1761,16 +1801,6 @@ function AppInner() {
                                             <div style={{ minWidth: 0 }}>
                                               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                               <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{t.date}</div>
-                                              <div style={{ marginTop: 8 }}>
-                                                <select
-                                                  style={{ ...S.select, width: "100%", fontSize: 12, padding: "7px 10px" }}
-                                                  value={t.categoryId || ""}
-                                                  onChange={(e) => updateTxnCat(t.id, e.target.value)}
-                                                >
-                                                  <option value="">— Uncategorized —</option>
-                                                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                                </select>
-                                              </div>
                                             </div>
                                             <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", whiteSpace: "nowrap" }}>-{fmt(Math.abs(t.amount))}</div>
                                           </div>
@@ -1896,16 +1926,6 @@ function AppInner() {
                                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{t.date}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acctMap[t.accountId]?.name || 'No account'}</div>
-                                <div style={{ marginTop: 8 }}>
-                                  <select
-                                    style={{ ...S.select, width: "100%", fontSize: 12, padding: "7px 10px" }}
-                                    value={t.categoryId || ""}
-                                    onChange={(e) => updateTxnCat(t.id, e.target.value)}
-                                  >
-                                    <option value="">— Uncategorized —</option>
-                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                  </select>
-                                </div>
                               </div>
                               <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: t.amount < 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap" }}>{t.amount < 0 ? "-" : "+"}{fmt(Math.abs(t.amount))}</div>
                             </div>

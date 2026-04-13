@@ -1901,22 +1901,81 @@ function AppInner() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {selectedDayTxns.map((t) => {
-                const acct = acctMap[t.accountId];
-                const cat = catMap[t.categoryId];
-                return (
-                  <div
-                    key={t.id}
-                    style={{
-                      background: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius)",
-                      padding: "10px 12px",
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 8,
-                    }}
-                  >
+             {selectedDayTxns.map((t) => {
+  const acct = acctMap[t.accountId];
+  const cat = catMap[t.categoryId];
+
+  return (
+    <div
+      key={t.id}
+      onClick={() => {
+        setEditTarget(t);
+        setModal("editRecurring");
+      }}
+      style={{
+        background: "rgba(255,255,255,0.02)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius)",
+        padding: "12px 12px",
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        gap: 8,
+        alignItems: "start",
+        cursor: "pointer",
+        transition: "background 0.12s, border-color 0.12s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--surface)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: "var(--t1)",
+            marginBottom: 4,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {t.name || t.merchant}
+        </div>
+
+        <div style={{ fontSize: 12, color: "var(--t3)" }}>
+          {acct?.name || "No account"}
+        </div>
+
+        <div
+          style={{
+            fontSize: 12,
+            color: cat?.color || "var(--t3)",
+            marginTop: 2,
+          }}
+        >
+          {cat?.name || "Uncategorized"}
+        </div>
+      </div>
+
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 20,
+          fontWeight: 800,
+          color: t.amount < 0 ? "var(--red)" : "var(--green)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {t.amount < 0 ? "-" : "+"}
+        {fmt(Math.abs(t.amount))}
+      </div>
+    </div>
+  );
+})}
                     <div style={{ minWidth: 0 }}>
                       <div
                         style={{

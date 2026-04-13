@@ -1582,7 +1582,7 @@ function AppInner() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(0, 1fr) 360px",
+                  gridTemplateColumns: "minmax(0, 1fr) 340px",
                   gap: 16,
                   alignItems: "start",
                 }}

@@ -2054,7 +2054,7 @@ function AppInner() {
       </div>
     );
 
-        const DesktopCalendarView = (
+           const DesktopCalendarView = (
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <div
           style={{
@@ -2081,7 +2081,6 @@ function AppInner() {
           </div>
         </div>
 
-        {/* Top desktop layout */}
         <div
           style={{
             display: "grid",
@@ -2090,258 +2089,373 @@ function AppInner() {
             alignItems: "start",
           }}
         >
-          <div
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-lg)",
-              overflow: "hidden",
-              minWidth: 0,
-            }}
-          >
+          {/* LEFT COLUMN: calendar + recurring list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+            {/* Calendar card */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "48px 1fr 48px",
-                alignItems: "center",
-                padding: "14px 16px",
-                borderBottom: "1px solid var(--border)",
-                background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))",
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-lg)",
+                overflow: "hidden",
+                minWidth: 0,
               }}
             >
-              <button
-                onClick={prevCalMonth}
+              <div
                 style={{
-                  ...S.btn("ghost", true),
-                  width: 36,
-                  height: 36,
-                  padding: 0,
-                  justifyContent: "center",
-                  justifySelf: "start",
+                  display: "grid",
+                  gridTemplateColumns: "48px 1fr 48px",
+                  alignItems: "center",
+                  padding: "14px 16px",
+                  borderBottom: "1px solid var(--border)",
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))",
                 }}
               >
-                ‹
-              </button>
-
-              <div style={{ textAlign: "center" }}>
-                <div
+                <button
+                  onClick={prevCalMonth}
                   style={{
-                    fontFamily: "var(--font-disp)",
-                    fontSize: 28,
-                    fontWeight: 800,
-                    color: "var(--t1)",
-                    letterSpacing: "-0.5px",
+                    ...S.btn("ghost", true),
+                    width: 36,
+                    height: 36,
+                    padding: 0,
+                    justifyContent: "center",
+                    justifySelf: "start",
                   }}
                 >
-                  {monthLabel(calendarMonth)}
-                </div>
-              </div>
+                  ‹
+                </button>
 
-              <button
-                onClick={nextCalMonth}
-                style={{
-                  ...S.btn("ghost", true),
-                  width: 36,
-                  height: 36,
-                  padding: 0,
-                  justifyContent: "center",
-                  justifySelf: "end",
-                }}
-              >
-                ›
-              </button>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                borderBottom: "1px solid var(--border)",
-                background: "rgba(255,255,255,0.015)",
-              }}
-            >
-              {DAYS_OF_WEEK.map((d) => (
-                <div
-                  key={d}
-                  style={{
-                    textAlign: "center",
-                    padding: "12px 6px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "var(--t3)",
-                    fontFamily: "var(--font-disp)",
-                    textTransform: "uppercase",
-                    letterSpacing: "1.2px",
-                  }}
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                background: "var(--border)",
-                gap: 1,
-              }}
-            >
-              {Array.from({ length: totalCells }).map((_, i) => {
-                const day = i - firstDow + 1;
-                const isValid = day >= 1 && day <= daysInCal;
-                const isToday =
-                  isValid &&
-                  calYear === today.getFullYear() &&
-                  calMonthN === today.getMonth() + 1 &&
-                  day === today.getDate();
-
-                const dayTxns = isValid ? calendarTxnsByDay[day] || [] : [];
-                const isSelected = calendarDay?.day === day;
-
-                const dayTotal = dayTxns.reduce(
-                  (sum, t) => sum + (t.amount < 0 ? Math.abs(t.amount) : 0),
-                  0
-                );
-
-                return (
+                <div style={{ textAlign: "center" }}>
                   <div
-                    key={i}
-                    onClick={() => {
-                      if (!isValid) return;
-                      setCalendarDay({ day, txns: dayTxns });
-                    }}
                     style={{
-                      minHeight: 154,
-                      background: !isValid
-                        ? "rgba(255,255,255,0.015)"
-                        : isSelected
-                        ? "rgba(59,130,246,0.10)"
-                        : "var(--card)",
-                      padding: 10,
-                      cursor: isValid ? "pointer" : "default",
-                      opacity: isValid ? 1 : 0.45,
-                      border: isSelected
-                        ? "1px solid rgba(96,165,250,0.45)"
-                        : "1px solid transparent",
-                      overflow: "hidden",
+                      fontFamily: "var(--font-disp)",
+                      fontSize: 28,
+                      fontWeight: 800,
+                      color: "var(--t1)",
+                      letterSpacing: "-0.5px",
                     }}
                   >
-                    {isValid && (
-                      <>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            marginBottom: 8,
-                          }}
-                        >
+                    {monthLabel(calendarMonth)}
+                  </div>
+                </div>
+
+                <button
+                  onClick={nextCalMonth}
+                  style={{
+                    ...S.btn("ghost", true),
+                    width: 36,
+                    height: 36,
+                    padding: 0,
+                    justifyContent: "center",
+                    justifySelf: "end",
+                  }}
+                >
+                  ›
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                  borderBottom: "1px solid var(--border)",
+                  background: "rgba(255,255,255,0.015)",
+                }}
+              >
+                {DAYS_OF_WEEK.map((d) => (
+                  <div
+                    key={d}
+                    style={{
+                      textAlign: "center",
+                      padding: "12px 6px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "var(--t3)",
+                      fontFamily: "var(--font-disp)",
+                      textTransform: "uppercase",
+                      letterSpacing: "1.2px",
+                    }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+                  background: "var(--border)",
+                  gap: 1,
+                }}
+              >
+                {Array.from({ length: totalCells }).map((_, i) => {
+                  const day = i - firstDow + 1;
+                  const isValid = day >= 1 && day <= daysInCal;
+                  const isToday =
+                    isValid &&
+                    calYear === today.getFullYear() &&
+                    calMonthN === today.getMonth() + 1 &&
+                    day === today.getDate();
+
+                  const dayTxns = isValid ? calendarTxnsByDay[day] || [] : [];
+                  const isSelected = calendarDay?.day === day;
+
+                  const dayTotal = dayTxns.reduce(
+                    (sum, t) => sum + (t.amount < 0 ? Math.abs(t.amount) : 0),
+                    0
+                  );
+
+                  return (
+                    <div
+                      key={i}
+                      onClick={() => {
+                        if (!isValid) return;
+                        setCalendarDay({ day, txns: dayTxns });
+                      }}
+                      style={{
+                        minHeight: 154,
+                        background: !isValid
+                          ? "rgba(255,255,255,0.015)"
+                          : isSelected
+                          ? "rgba(59,130,246,0.10)"
+                          : "var(--card)",
+                        padding: 10,
+                        cursor: isValid ? "pointer" : "default",
+                        opacity: isValid ? 1 : 0.45,
+                        border: isSelected
+                          ? "1px solid rgba(96,165,250,0.45)"
+                          : "1px solid transparent",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {isValid && (
+                        <>
                           <div
                             style={{
-                              fontSize: 14,
-                              fontWeight: 700,
-                              color: isToday ? "#08111f" : "var(--t1)",
-                              background: isToday ? "var(--cyan)" : "transparent",
-                              borderRadius: 999,
-                              minWidth: isToday ? 26 : "auto",
-                              height: isToday ? 26 : "auto",
-                              display: "inline-flex",
+                              display: "flex",
                               alignItems: "center",
-                              justifyContent: "center",
-                              padding: isToday ? "0 8px" : 0,
+                              justifyContent: "space-between",
+                              marginBottom: 8,
                             }}
                           >
-                            {day}
-                          </div>
-
-                          {dayTotal > 0 && (
                             <div
                               style={{
-                                fontFamily: "var(--font-mono)",
-                                fontSize: 11,
+                                fontSize: 14,
                                 fontWeight: 700,
-                                color: "var(--red)",
+                                color: isToday ? "#08111f" : "var(--t1)",
+                                background: isToday ? "var(--cyan)" : "transparent",
+                                borderRadius: 999,
+                                minWidth: isToday ? 26 : "auto",
+                                height: isToday ? 26 : "auto",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: isToday ? "0 8px" : 0,
+                              }}
+                            >
+                              {day}
+                            </div>
+
+                            {dayTotal > 0 && (
+                              <div
+                                style={{
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: "var(--red)",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                -{fmt(dayTotal).replace("$", "")}
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                            {dayTxns.slice(0, 4).map((t) => {
+                              const cat = catMap[t.categoryId];
+                              return (
+                                <div
+                                  key={t.id}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    minWidth: 0,
+                                    fontSize: 11,
+                                    lineHeight: 1.2,
+                                    color: "var(--t1)",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 6,
+                                      height: 6,
+                                      borderRadius: 999,
+                                      background: cat?.color || "var(--cyan)",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <span
+                                    style={{
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                      color: "var(--t1)",
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {t.name || t.merchant}
+                                  </span>
+                                  <span
+                                    style={{
+                                      marginLeft: "auto",
+                                      fontFamily: "var(--font-mono)",
+                                      color: t.amount < 0 ? "var(--red)" : "var(--green)",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {t.amount < 0 ? "-" : "+"}
+                                    {fmt(Math.abs(t.amount)).replace("$", "")}
+                                  </span>
+                                </div>
+                              );
+                            })}
+
+                            {dayTxns.length > 4 && (
+                              <div
+                                style={{
+                                  marginTop: 2,
+                                  fontSize: 11,
+                                  color: "var(--t3)",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                +{dayTxns.length - 4} more
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Recurring list card now matches calendar width */}
+            {recurringTxns.length > 0 && (
+              <div style={{ ...S.card, minWidth: 0 }}>
+                <div style={S.cardTitle}>All Recurring Transactions</div>
+
+                {[...recurringTxns]
+                  .sort((a, b) => {
+                    const freqOrder = { weekly: 0, biweekly: 1, monthly: 2, annual: 3 };
+                    const fa = freqOrder[a.recurringFreq || "monthly"] ?? 2;
+                    const fb = freqOrder[b.recurringFreq || "monthly"] ?? 2;
+                    if (fa !== fb) return fa - fb;
+                    return (a.recurringDay || 0) - (b.recurringDay || 0);
+                  })
+                  .map((t) => {
+                    const cat = catMap[t.categoryId];
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => {
+                          setEditTarget(t);
+                          setModal("editRecurring");
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 8px",
+                          margin: "0 -8px 2px",
+                          borderBottom: "1px solid var(--border)",
+                          cursor: "pointer",
+                          borderRadius: 6,
+                          transition: "background 0.12s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: 8,
+                              background: "var(--surface)",
+                              border: "1px solid var(--border2)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: "var(--cyan)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {t.recurringDay || "?"}
+                          </div>
+
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 600,
+                                color: "var(--t1)",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
                               }}
                             >
-                              -{fmt(dayTotal).replace("$", "")}
+                              {t.name || t.merchant}
                             </div>
-                          )}
+
+                            <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>
+                              {t.recurringFreq === "weekly"
+                                ? "Weekly"
+                                : t.recurringFreq === "biweekly"
+                                ? "Bi-weekly"
+                                : t.recurringFreq === "annual"
+                                ? "Annual"
+                                : `Day ${t.recurringDay || "?"} of month`}
+                              {t.recurringStart && <span style={{ marginLeft: 6 }}>· from {t.recurringStart}</span>}
+                              {cat && (
+                                <>
+                                  {" "}
+                                  · <span style={{ color: cat.color }}>{cat.name}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                          {dayTxns.slice(0, 4).map((t) => {
-                            const cat = catMap[t.categoryId];
-                            return (
-                              <div
-                                key={t.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                  minWidth: 0,
-                                  fontSize: 11,
-                                  lineHeight: 1.2,
-                                  color: "var(--t1)",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    width: 6,
-                                    height: 6,
-                                    borderRadius: 999,
-                                    background: cat?.color || "var(--cyan)",
-                                    flexShrink: 0,
-                                  }}
-                                />
-                                <span
-                                  style={{
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    color: "var(--t1)",
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  {t.name || t.merchant}
-                                </span>
-                                <span
-                                  style={{
-                                    marginLeft: "auto",
-                                    fontFamily: "var(--font-mono)",
-                                    color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {t.amount < 0 ? "-" : "+"}
-                                  {fmt(Math.abs(t.amount)).replace("$", "")}
-                                </span>
-                              </div>
-                            );
-                          })}
-
-                          {dayTxns.length > 4 && (
-                            <div
-                              style={{
-                                marginTop: 2,
-                                fontSize: 11,
-                                color: "var(--t3)",
-                                fontWeight: 600,
-                              }}
-                            >
-                              +{dayTxns.length - 4} more
-                            </div>
-                          )}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 10 }}>
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: t.amount < 0 ? "var(--red)" : "var(--green)",
+                            }}
+                          >
+                            {t.amount < 0 ? "−" : "+"}
+                            {fmt(Math.abs(t.amount))}
+                          </span>
+                          <span style={{ fontSize: 11, color: "var(--t3)" }}>⋯</span>
                         </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
 
+          {/* RIGHT COLUMN: sidebar */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div
               style={{
@@ -2644,116 +2758,6 @@ function AppInner() {
             </div>
           </div>
         </div>
-
-        {/* Desktop master recurring list restored */}
-        {recurringTxns.length > 0 && (
-          <div style={{ ...S.card, marginTop: 2 }}>
-            <div style={S.cardTitle}>All Recurring Transactions</div>
-
-            {[...recurringTxns]
-              .sort((a, b) => {
-                const freqOrder = { weekly: 0, biweekly: 1, monthly: 2, annual: 3 };
-                const fa = freqOrder[a.recurringFreq || "monthly"] ?? 2;
-                const fb = freqOrder[b.recurringFreq || "monthly"] ?? 2;
-                if (fa !== fb) return fa - fb;
-                return (a.recurringDay || 0) - (b.recurringDay || 0);
-              })
-              .map((t) => {
-                const cat = catMap[t.categoryId];
-                return (
-                  <div
-                    key={t.id}
-                    onClick={() => {
-                      setEditTarget(t);
-                      setModal("editRecurring");
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "10px 8px",
-                      margin: "0 -8px 2px",
-                      borderBottom: "1px solid var(--border)",
-                      cursor: "pointer",
-                      borderRadius: 6,
-                      transition: "background 0.12s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          width: 30,
-                          height: 30,
-                          borderRadius: 8,
-                          background: "var(--surface)",
-                          border: "1px solid var(--border2)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "var(--cyan)",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {t.recurringDay || "?"}
-                      </div>
-
-                      <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 600,
-                            color: "var(--t1)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {t.name || t.merchant}
-                        </div>
-
-                        <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>
-                          {t.recurringFreq === "weekly"
-                            ? "Weekly"
-                            : t.recurringFreq === "biweekly"
-                            ? "Bi-weekly"
-                            : t.recurringFreq === "annual"
-                            ? "Annual"
-                            : `Day ${t.recurringDay || "?"} of month`}
-                          {t.recurringStart && <span style={{ marginLeft: 6 }}>· from {t.recurringStart}</span>}
-                          {cat && (
-                            <>
-                              {" "}
-                              · <span style={{ color: cat.color }}>{cat.name}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 10 }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                        }}
-                      >
-                        {t.amount < 0 ? "−" : "+"}
-                        {fmt(Math.abs(t.amount))}
-                      </span>
-                      <span style={{ fontSize: 11, color: "var(--t3)" }}>⋯</span>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        )}
       </div>
     );
 

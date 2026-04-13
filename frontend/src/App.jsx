@@ -1088,7 +1088,7 @@ function AppInner() {
     }
 
     return (
-      <div style={{maxWidth:860,margin:"0 auto"}}>
+      <div style={{maxWidth:860}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
           <div style={S.sectionTitle}>All Transactions</div>
@@ -1261,7 +1261,7 @@ function AppInner() {
   }
 
   const Budgets = (
-    <div style={{maxWidth:860,margin:"0 auto"}}>
+    <div style={{maxWidth:860}}>
       <div style={{...S.sectionHdr,marginBottom:16}}>
         <div style={S.sectionTitle}>Budget Categories</div>
         <button style={S.btn("primary",true)} onClick={openAddCat}>+ New Category</button>
@@ -1418,7 +1418,7 @@ function AppInner() {
 
   /* ── Accounts ── */
   const Accounts = (
-    <div style={{maxWidth:860,margin:"0 auto"}}>
+    <div style={{maxWidth:860}}>
       <div style={{...S.sectionHdr,marginBottom:8}}>
         <div style={S.sectionTitle}>Accounts</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -1485,7 +1485,7 @@ function AppInner() {
 
   /* ── Rules ── */
   const Rules = (
-    <div style={{maxWidth:860,margin:"0 auto"}}>
+    <div style={{maxWidth:860}}>
       <div style={{...S.sectionHdr,marginBottom:6}}>
         <div style={S.sectionTitle}>Auto-Categorization Rules</div>
         <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
@@ -1566,7 +1566,7 @@ function AppInner() {
   const totalCells=Math.ceil((firstDow+daysInCal)/7)*7;
 
   const Calendar = (
-    <div style={{maxWidth:860,margin:"0 auto"}}>
+    <div style={{maxWidth:860}}>
       <div style={{...S.sectionHdr,marginBottom:16}}>
         <div style={S.sectionTitle}>Recurring Calendar</div>
         <div style={{fontSize:13,color:"var(--t2)"}}>{recurringTxns.length} recurring</div>
@@ -1592,7 +1592,7 @@ function AppInner() {
             </div>
           ))}
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,background:"var(--border)"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,minmax(0,1fr))",gap:1,background:"var(--border)"}}>
           {Array.from({length:totalCells}).map((_,i)=>{
             const day=i-firstDow+1;
             const isValid=day>=1&&day<=daysInCal;
@@ -1601,7 +1601,7 @@ function AppInner() {
             return (
               <div key={i} className="ledgr-cal-cell"
                 onClick={()=>{if(isValid&&dayTxns.length>0)setCalendarDay({day,txns:dayTxns});}}
-                style={{background:"var(--card)",minHeight:80,padding:8,cursor:isValid&&dayTxns.length>0?"pointer":"default",opacity:isValid?1:0.3,transition:"background 0.12s"}}
+                style={{background:"var(--card)",minHeight:80,padding:8,cursor:isValid&&dayTxns.length>0?"pointer":"default",opacity:isValid?1:0.3,transition:"background 0.12s",overflow:"hidden",minWidth:0}}
                 onMouseEnter={e=>{if(isValid&&dayTxns.length>0)e.currentTarget.style.background="var(--surface)";}}
                 onMouseLeave={e=>{e.currentTarget.style.background="var(--card)";}}>
                 <div style={{fontSize:13,fontWeight:isToday?700:500,color:isToday?"var(--cyan)":isValid?"var(--t1)":"var(--t3)",marginBottom:4,
@@ -1611,7 +1611,7 @@ function AppInner() {
                 {dayTxns.slice(0,isMobile?1:2).map(t=>{
                   const cat=catMap[t.categoryId];
                   return (
-                    <div key={t.id} style={{fontSize:isMobile?9:10,color:"var(--bg)",background:cat?.color||"var(--cyan)",borderRadius:4,padding:"1px 5px",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>
+                    <div key={t.id} style={{fontSize:isMobile?9:10,color:"var(--bg)",background:cat?.color||"var(--cyan)",borderRadius:4,padding:"1px 5px",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600,display:"block",width:"100%",boxSizing:"border-box"}}>
                       {isMobile?fmt(Math.abs(t.amount)):(t.name||t.merchant)}
                     </div>
                   );

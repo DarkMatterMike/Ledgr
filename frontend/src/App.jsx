@@ -865,245 +865,6 @@ function AppInner() {
   ───────────────────────────────────────────────────────────────── */
 
   /* ── Dashboard ── */
-  const BudgetSummaryCard = (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius-lg)",
-        padding: "16px 18px",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "1.2px",
-          color: "var(--t3)",
-          fontFamily: "var(--font-disp)",
-          marginBottom: 10,
-        }}
-      >
-        Summary
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-        {[
-          ["Budgeted", fmt(totalBudget), "var(--t1)"],
-          ["Spent", fmt(totalSpent), "var(--t1)"],
-          ["Left", fmt(totalBudget - totalSpent), totalBudget - totalSpent >= 0 ? "var(--green)" : "var(--red)"],
-        ].map(([label, value, color]) => (
-          <div key={label}>
-            <div
-              style={{
-                fontSize: 10,
-                color: "var(--t3)",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                marginBottom: 4,
-                fontFamily: "var(--font-disp)",
-              }}
-            >
-              {label}
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 800, color }}>
-              {value}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const SpendingBreakdownCard = (
-    <div style={{ ...S.card, padding: 18 }}>
-      <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
-        <div style={S.sectionTitle}>Spending Breakdown</div>
-      </div>
-
-      {budgetAnalytics.totalSpentForBreakdown > 0 ? (
-        <>
-          <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 14px" }}>
-            {(() => {
-              const size = 180;
-              const stroke = 18;
-              const radius = (size - stroke) / 2;
-              const circumference = 2 * Math.PI * radius;
-              let offsetAcc = 0;
-              return (
-                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                  <circle
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.08)"
-                    strokeWidth={stroke}
-                  />
-                  {budgetAnalytics.topBreakdownCats.map((cat) => {
-                    const fraction = cat.spent / budgetAnalytics.totalSpentForBreakdown;
-                    const dash = fraction * circumference;
-                    const gap = circumference - dash;
-                    const circle = (
-                      <circle
-                        key={cat.id}
-                        cx={size / 2}
-                        cy={size / 2}
-                        r={radius}
-                        fill="none"
-                        stroke={cat.color}
-                        strokeWidth={stroke}
-                        strokeLinecap="round"
-                        strokeDasharray={`${dash} ${gap}`}
-                        strokeDashoffset={-offsetAcc}
-                        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                      />
-                    );
-                    offsetAcc += dash;
-                    return circle;
-                  })}
-                  <text
-                    x="50%"
-                    y="47%"
-                    textAnchor="middle"
-                    fill="var(--t1)"
-                    style={{ fontSize: "12px", fontWeight: 700, fontFamily: "var(--font-mono)" }}
-                  >
-                    {fmt(budgetAnalytics.totalSpentForBreakdown)}
-                  </text>
-                  <text x="50%" y="58%" textAnchor="middle" fill="var(--t3)" style={{ fontSize: "10px" }}>
-                    Total
-                  </text>
-                </svg>
-              );
-            })()}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
-            {budgetAnalytics.topBreakdownCats.map((cat) => (
-              <div key={cat.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
-                  <span style={{ color: "var(--t2)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {cat.name}
-                  </span>
-                </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--t1)" }}>
-                  {fmt(cat.spent)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div style={{ color: "var(--t3)", padding: "12px 0" }}>No spending data for this month.</div>
-      )}
-    </div>
-  );
-
-  const CashFlowCard = (
-    <div style={{ ...S.card, padding: 18 }}>
-      <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
-        <div style={S.sectionTitle}>Cash Flow</div>
-      </div>
-
-      <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 14 }}>
-        On average, spending{" "}
-        <span style={{ color: budgetAnalytics.avgDelta > 0 ? "var(--red)" : "var(--green)", fontWeight: 700 }}>
-          {fmt(Math.abs(budgetAnalytics.avgDelta))}/month
-        </span>{" "}
-        {budgetAnalytics.avgDelta > 0 ? "more than earning" : "less than earnings"}
-      </div>
-
-      {(() => {
-        const maxVal = Math.max(1, ...budgetAnalytics.cashFlowSeries.flatMap((m) => [m.income, m.spending]));
-        return (
-          <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 14, marginBottom: 10, fontSize: 12, color: "var(--t2)" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
-                Income
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#7c95ff" }} />
-                Spending
-              </span>
-            </div>
-
-            <div
-              style={{
-                height: 220,
-                display: "flex",
-                alignItems: "flex-end",
-                gap: 12,
-                padding: "10px 4px 0",
-                borderTop: "1px solid var(--border)",
-                overflowX: isMobile ? "auto" : "visible",
-              }}
-            >
-              {budgetAnalytics.cashFlowSeries.map((m) => {
-                const incomeH = Math.max(6, (m.income / maxVal) * 180);
-                const spendingH = Math.max(6, (m.spending / maxVal) * 180);
-                return (
-                  <div
-                    key={m.key}
-                    style={{
-                      flex: isMobile ? "0 0 auto" : 1,
-                      minWidth: isMobile ? 40 : 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "flex-end",
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 180 }}>
-                      <div title={`Income: ${fmt(m.income)}`} style={{ width: 16, height: incomeH, borderRadius: "8px 8px 0 0", background: "var(--green)" }} />
-                      <div title={`Spending: ${fmt(m.spending)}`} style={{ width: 16, height: spendingH, borderRadius: "8px 8px 0 0", background: "#7c95ff" }} />
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--t3)", whiteSpace: "nowrap" }}>{m.label}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
-    </div>
-  );
-
-  const OverspendingHighlightsCard = (
-    <div style={{ ...S.card, padding: 18 }}>
-      <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
-        <div style={S.sectionTitle}>Overspending Highlights</div>
-      </div>
-
-      {budgetAnalytics.topOverspent.length === 0 ? (
-        <div style={{ color: "var(--green)", fontSize: 13 }}>No categories are over budget right now.</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {budgetAnalytics.topOverspent.map((cat) => (
-            <div key={cat.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {cat.name}
-                  </span>
-                </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>
-                  +{fmt(cat.overBy)}
-                </span>
-              </div>
-              <div style={{ fontSize: 12, color: "var(--t3)" }}>Spent {fmt(cat.spent)} of {fmt(cat.limit)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-
   const Dashboard = (
     <div>
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
@@ -1576,6 +1337,246 @@ function AppInner() {
     }
     setEditingLimitId(null);
   }
+
+  const BudgetSummaryCard = (
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-lg)",
+        padding: "16px 18px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "1.2px",
+          color: "var(--t3)",
+          fontFamily: "var(--font-disp)",
+          marginBottom: 10,
+        }}
+      >
+        Summary
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        {[
+          ["Budgeted", fmt(totalBudget), "var(--t1)"],
+          ["Spent", fmt(totalSpent), "var(--t1)"],
+          ["Left", fmt(totalBudget - totalSpent), totalBudget - totalSpent >= 0 ? "var(--green)" : "var(--red)"],
+        ].map(([label, value, color]) => (
+          <div key={label}>
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--t3)",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginBottom: 4,
+                fontFamily: "var(--font-disp)",
+              }}
+            >
+              {label}
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 800, color }}>
+              {value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const SpendingBreakdownCard = (
+    <div style={{ ...S.card, padding: 18 }}>
+      <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
+        <div style={S.sectionTitle}>Spending Breakdown</div>
+      </div>
+
+      {budgetAnalytics.totalSpentForBreakdown > 0 ? (
+        <>
+          <div style={{ display: "flex", justifyContent: "center", margin: "6px 0 14px" }}>
+            {(() => {
+              const size = 180;
+              const stroke = 18;
+              const radius = (size - stroke) / 2;
+              const circumference = 2 * Math.PI * radius;
+              let offsetAcc = 0;
+              return (
+                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                  <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth={stroke}
+                  />
+                  {budgetAnalytics.topBreakdownCats.map((cat) => {
+                    const fraction = cat.spent / budgetAnalytics.totalSpentForBreakdown;
+                    const dash = fraction * circumference;
+                    const gap = circumference - dash;
+                    const circle = (
+                      <circle
+                        key={cat.id}
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={radius}
+                        fill="none"
+                        stroke={cat.color}
+                        strokeWidth={stroke}
+                        strokeLinecap="round"
+                        strokeDasharray={`${dash} ${gap}`}
+                        strokeDashoffset={-offsetAcc}
+                        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                      />
+                    );
+                    offsetAcc += dash;
+                    return circle;
+                  })}
+                  <text
+                    x="50%"
+                    y="47%"
+                    textAnchor="middle"
+                    fill="var(--t1)"
+                    style={{ fontSize: "12px", fontWeight: 700, fontFamily: "var(--font-mono)" }}
+                  >
+                    {fmt(budgetAnalytics.totalSpentForBreakdown)}
+                  </text>
+                  <text x="50%" y="58%" textAnchor="middle" fill="var(--t3)" style={{ fontSize: "10px" }}>
+                    Total
+                  </text>
+                </svg>
+              );
+            })()}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+            {budgetAnalytics.topBreakdownCats.map((cat) => (
+              <div key={cat.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
+                  <span style={{ color: "var(--t2)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {cat.name}
+                  </span>
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--t1)" }}>
+                  {fmt(cat.spent)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div style={{ color: "var(--t3)", padding: "12px 0" }}>No spending data for this month.</div>
+      )}
+    </div>
+  );
+
+  const CashFlowCard = (
+    <div style={{ ...S.card, padding: 18 }}>
+      <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
+        <div style={S.sectionTitle}>Cash Flow</div>
+      </div>
+
+      <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 14 }}>
+        On average, spending{" "}
+        <span style={{ color: budgetAnalytics.avgDelta > 0 ? "var(--red)" : "var(--green)", fontWeight: 700 }}>
+          {fmt(Math.abs(budgetAnalytics.avgDelta))}/month
+        </span>{" "}
+        {budgetAnalytics.avgDelta > 0 ? "more than earning" : "less than earnings"}
+      </div>
+
+      {(() => {
+        const maxVal = Math.max(1, ...budgetAnalytics.cashFlowSeries.flatMap((m) => [m.income, m.spending]));
+        return (
+          <div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 14, marginBottom: 10, fontSize: 12, color: "var(--t2)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
+                Income
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#7c95ff" }} />
+                Spending
+              </span>
+            </div>
+
+            <div
+              style={{
+                height: 220,
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 12,
+                padding: "10px 4px 0",
+                borderTop: "1px solid var(--border)",
+                overflowX: isMobile ? "auto" : "visible",
+              }}
+            >
+              {budgetAnalytics.cashFlowSeries.map((m) => {
+                const incomeH = Math.max(6, (m.income / maxVal) * 180);
+                const spendingH = Math.max(6, (m.spending / maxVal) * 180);
+                return (
+                  <div
+                    key={m.key}
+                    style={{
+                      flex: isMobile ? "0 0 auto" : 1,
+                      minWidth: isMobile ? 40 : 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 180 }}>
+                      <div title={`Income: ${fmt(m.income)}`} style={{ width: 16, height: incomeH, borderRadius: "8px 8px 0 0", background: "var(--green)" }} />
+                      <div title={`Spending: ${fmt(m.spending)}`} style={{ width: 16, height: spendingH, borderRadius: "8px 8px 0 0", background: "#7c95ff" }} />
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--t3)", whiteSpace: "nowrap" }}>{m.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+
+  const OverspendingHighlightsCard = (
+    <div style={{ ...S.card, padding: 18 }}>
+      <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
+        <div style={S.sectionTitle}>Overspending Highlights</div>
+      </div>
+
+      {budgetAnalytics.topOverspent.length === 0 ? (
+        <div style={{ color: "var(--green)", fontSize: 13 }}>No categories are over budget right now.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {budgetAnalytics.topOverspent.map((cat) => (
+            <div key={cat.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {cat.name}
+                  </span>
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>
+                  +{fmt(cat.overBy)}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--t3)" }}>Spent {fmt(cat.spent)} of {fmt(cat.limit)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+
 
   const budgetAnalytics = useMemo(() => {
     const spentCats = categories

@@ -1770,6 +1770,18 @@ function AppInner() {
                                             <div style={{ minWidth: 0 }}>
                                               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                               <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{t.date}</div>
+                                              <div style={{ marginTop: 8 }}>
+                                                <select
+                                                  style={{ ...S.select, width: "100%", padding: "7px 10px", fontSize: 12 }}
+                                                  value={t.categoryId || ""}
+                                                  onChange={(e) => updateTxnCat(t.id, e.target.value)}
+                                                >
+                                                  <option value="">— Uncategorized —</option>
+                                                  {categories.map((c) => (
+                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                  ))}
+                                                </select>
+                                              </div>
                                             </div>
                                             <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", whiteSpace: "nowrap" }}>-{fmt(Math.abs(t.amount))}</div>
                                           </div>
@@ -1895,6 +1907,18 @@ function AppInner() {
                                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{t.date}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acctMap[t.accountId]?.name || 'No account'}</div>
+                                <div style={{ marginTop: 8 }}>
+                                  <select
+                                    style={{ ...S.select, width: "100%", padding: "7px 10px", fontSize: 12 }}
+                                    value={t.categoryId || ""}
+                                    onChange={(e) => updateTxnCat(t.id, e.target.value)}
+                                  >
+                                    <option value="">— Uncategorized —</option>
+                                    {categories.map((c) => (
+                                      <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
                               </div>
                               <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: t.amount < 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap" }}>{t.amount < 0 ? "-" : "+"}{fmt(Math.abs(t.amount))}</div>
                             </div>

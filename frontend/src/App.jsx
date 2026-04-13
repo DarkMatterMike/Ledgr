@@ -1088,7 +1088,7 @@ function AppInner() {
     }
 
     return (
-      <div>
+      <div style={{maxWidth:860,margin:"0 auto"}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
           <div style={S.sectionTitle}>All Transactions</div>
@@ -1153,13 +1153,13 @@ function AppInner() {
                         <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:po.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:10}}>{po.amount<0?"-":"+"}{fmt(Math.abs(po.amount))}</span>
                       </div>
                       {/* Actions */}
-                      <div style={{display:"flex",gap:8}}>
-                        <button style={{...S.btn("primary",true),flex:1,justifyContent:"center",fontSize:12}}
+                      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                        <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>dismissPair(p.id)}>
+                          Not a match
+                        </button>
+                        <button style={{...S.btn("primary",true),fontSize:12}}
                           onClick={()=>{ confirmPair(p.id,po.id); setShowReconcile(pendingPairs.length>1); }}>
                           ✓ Confirm &amp; remove pending
-                        </button>
-                        <button style={{...S.btn("ghost",true),flexShrink:0,fontSize:12}} onClick={()=>dismissPair(p.id)}>
-                          Not a match
                         </button>
                       </div>
                     </div>

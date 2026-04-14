@@ -1849,7 +1849,7 @@ function PageLayout({ left, right = null }) {
           </div>
         )}
       </div>
-      )} />
+    )} />
     );
   })();
 
@@ -2197,7 +2197,7 @@ function PageLayout({ left, right = null }) {
           </div>
       }
     </div>
-    )} />
+  )} />
   );
 
   /* ── Rules ── */
@@ -2274,6 +2274,7 @@ function PageLayout({ left, right = null }) {
         </div>
       )}
     </div>
+  )} />
   );
 
   /* ── Calendar ── */

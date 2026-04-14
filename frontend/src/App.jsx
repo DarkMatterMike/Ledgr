@@ -491,6 +491,7 @@ function AppInner() {
   const [dismissedPairs,  setDismissedPairs]  = useState(()=>{ try{return JSON.parse(localStorage.getItem("ledgr_dismissed_pairs")||"[]")}catch{return[]} });
   const [showReconcile,   setShowReconcile]   = useState(false);
   const [duplicatePairs,  setDuplicatePairs]  = useState([]);
+  const [duplicateScanActive, setDuplicateScanActive] = useState(false);
 
   function normalizeMerchantLabel(t) {
     return ((t.merchant || t.name || ""))
@@ -550,6 +551,7 @@ function AppInner() {
 
     nextPairs.sort((x, y) => String(y.posted.date || y.pending.date).localeCompare(String(x.posted.date || x.pending.date)));
     setDuplicatePairs(nextPairs);
+    setDuplicateScanActive(nextPairs.length > 0);
     setShowReconcile(nextPairs.length > 0);
     showToast(nextPairs.length > 0 ? `Found ${nextPairs.length} possible duplicate${nextPairs.length === 1 ? "" : "s"}` : "No duplicates found");
   }
@@ -586,7 +588,11 @@ function AppInner() {
     const next = [...dismissedPairs, pairKey];
     setDismissedPairs(next);
     localStorage.setItem("ledgr_dismissed_pairs", JSON.stringify(next));
-    setDuplicatePairs(prev => prev.filter(pair => [pair.pending.id, pair.posted.id].sort().join("__") !== pairKey));
+    setDuplicatePairs(prev => {
+      const remaining = prev.filter(pair => [pair.pending.id, pair.posted.id].sort().join("__") !== pairKey);
+      setShowReconcile(remaining.length > 0);
+      return remaining;
+    });
   }
 
   function confirmDuplicateRemoval(removeId, keepId) {
@@ -623,6 +629,8 @@ function AppInner() {
   }, [transactions, dismissedPairs]);
 
   const [showDuplicates, setShowDuplicates] = useState(false);
+
+  const activeDuplicatePairs = duplicateScanActive ? duplicatePairs : pendingPairs;
 
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
@@ -1622,22 +1630,25 @@ function AppInner() {
         )}
 
         {/* Pending reconciliation banner */}
-        {(duplicatePairs.length>0 || pendingPairs.length>0)&&(
+        {(activeDuplicatePairs.length>0)&&(
           <div style={{background:"#fbbf2412",borderLeft:"3px solid var(--amber)",
             borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-                <span style={{color:"var(--amber)",fontWeight:700}}>{(duplicatePairs.length || pendingPairs.length)}</span> possible duplicate transaction{(duplicatePairs.length || pendingPairs.length)!==1?"s":""} found
+                <span style={{color:"var(--amber)",fontWeight:700}}>{activeDuplicatePairs.length}</span> possible duplicate transaction{activeDuplicatePairs.length!==1?"s":""} found
               </span>
-              <button onClick={()=>setShowReconcile(p=>!p)}
+              <button onClick={()=>{
+                if (showReconcile && duplicateScanActive) setDuplicateScanActive(false);
+                setShowReconcile(p=>!p);
+              }}
                 style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
                 {showReconcile?"✕ Close":"Review ›"}
               </button>
             </div>
             {showReconcile&&(
               <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-{(duplicatePairs.length ? duplicatePairs : pendingPairs).map(({pending:p,posted:po})=>{
-                  const isScannedDuplicate = duplicatePairs.length > 0;
+{activeDuplicatePairs.map(({pending:p,posted:po})=>{
+                  const isScannedDuplicate = duplicateScanActive;
                   const pCat = catMap[p.categoryId];
                   return (
                     <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
@@ -1682,6 +1693,7 @@ function AppInner() {
                                 (pair.pending.id===p.id && pair.posted.id===po.id) ||
                                 (pair.pending.id===po.id && pair.posted.id===p.id)
                               ));
+                              if (remaining.length === 0) setDuplicateScanActive(false);
                               setShowReconcile(remaining.length > 0);
                             } else {
                               confirmPair(p.id,po.id);

@@ -487,9 +487,72 @@ function AppInner() {
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
-  // Smart duplicate reconciliation — scan current-month pending vs posted by merchant + total
+  // Smart pending reconciliation — match on merchant + date only, ignore amount
   const [dismissedPairs,  setDismissedPairs]  = useState(()=>{ try{return JSON.parse(localStorage.getItem("ledgr_dismissed_pairs")||"[]")}catch{return[]} });
   const [showReconcile,   setShowReconcile]   = useState(false);
+  const [duplicatePairs,  setDuplicatePairs]  = useState([]);
+
+  function normalizeMerchantLabel(t) {
+    return ((t.merchant || t.name || ""))
+      .toLowerCase()
+      .replace(/[#*]/g, " ")
+      .replace(/\b(?:debit|credit|purchase|pos|checkcard|card|visa|mc|mastercard|pending|payment|online|auth|authorized|store|location|ticket|txn)\b/g, " ")
+      .replace(/\d+/g, " ")
+      .replace(/[^a-z]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function scanForDuplicates() {
+    const candidates = monthTxns.filter(t => {
+      if (!t.date) return false;
+      if (t.amount >= 0) return false;
+      const label = normalizeMerchantLabel(t);
+      return !!label;
+    });
+
+    const groups = new Map();
+    candidates.forEach(t => {
+      const key = `${normalizeMerchantLabel(t)}__${Math.abs(Number(t.amount || 0)).toFixed(2)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
+    });
+
+    const nextPairs = [];
+    const seen = new Set();
+
+    for (const txns of groups.values()) {
+      if (txns.length < 2) continue;
+
+      txns.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+      for (let i = 0; i < txns.length; i++) {
+        for (let j = i + 1; j < txns.length; j++) {
+          const a = txns[i];
+          const b = txns[j];
+          const pairKey = [a.id, b.id].sort().join("__");
+          if (seen.has(pairKey)) continue;
+
+          const aDate = new Date(`${a.date}T12:00:00`);
+          const bDate = new Date(`${b.date}T12:00:00`);
+          const dayDiff = Math.abs((bDate - aDate) / (1000 * 60 * 60 * 24));
+
+          if (dayDiff > 14) continue;
+
+          const pending = a.pending ? a : (b.pending ? b : a);
+          const posted  = pending.id === a.id ? b : a;
+
+          nextPairs.push({ pending, posted });
+          seen.add(pairKey);
+        }
+      }
+    }
+
+    nextPairs.sort((x, y) => String(y.posted.date || y.pending.date).localeCompare(String(x.posted.date || x.pending.date)));
+    setDuplicatePairs(nextPairs);
+    setShowReconcile(nextPairs.length > 0);
+    showToast(nextPairs.length > 0 ? `Found ${nextPairs.length} possible duplicate${nextPairs.length === 1 ? "" : "s"}` : "No duplicates found");
+  }
 
   function dismissPair(pendingId) {
     const next = [...dismissedPairs, pendingId];
@@ -518,94 +581,39 @@ function AppInner() {
     showToast("Merged — metadata copied to posted transaction");
   }
 
-  const normalizeMerchant = useCallback((value) => {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/[#*]/g, " ")
-      .replace(/(?:store|location|debit|credit|purchase|pos|auth|pending)/g, " ")
-      .replace(/\d+/g, " ")
-      .replace(/[^a-z\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }, []);
-
-  const duplicatePairs = useMemo(() => {
-    const currentMonthTxns = transactions
-      .filter(t => t.date?.startsWith(currentMonth))
-      .filter(t => !dismissedPairs.includes(t.id));
-
-    const groups = new Map();
-    currentMonthTxns.forEach(t => {
-      const mer = normalizeMerchant(t.merchant || t.name || "");
-      const amt = Math.round(Math.abs(Number(t.amount) || 0) * 100) / 100;
-      if (!mer || !amt) return;
-      const key = `${mer}__${amt.toFixed(2)}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(t);
-    });
-
-    const pairs = [];
-    const seen = new Set();
-
-    for (const txns of groups.values()) {
-      if (txns.length < 2) continue;
-      const sorted = [...txns].sort((a, b) => {
-        if (!!a.pending !== !!b.pending) return a.pending ? -1 : 1;
-        return (b.date || "").localeCompare(a.date || "");
+  const pendingPairs = useMemo(() => {
+    const pending = transactions.filter(t=>t.pending && !dismissedPairs.includes(t.id));
+    const posted  = transactions.filter(t=>!t.pending);
+    const pairs   = [];
+    const usedPostedIds = new Set();
+    pending.forEach(p=>{
+      const pMer  = (p.merchant||p.name||"").toLowerCase().trim();
+      const pDate = new Date(p.date+"T12:00:00");
+      const match = posted.find(t=>{
+        if (usedPostedIds.has(t.id)) return false;
+        const tDate   = new Date(t.date+"T12:00:00");
+        const dayDiff = Math.abs((tDate-pDate)/(1000*60*60*24));
+        const tMer    = (t.merchant||t.name||"").toLowerCase().trim();
+        return dayDiff<=7 && tMer===pMer;
       });
-
-      for (let i = 0; i < sorted.length; i++) {
-        for (let j = i + 1; j < sorted.length; j++) {
-          const a = sorted[i];
-          const b = sorted[j];
-          const pairKey = [a.id, b.id].sort().join('__');
-          if (seen.has(pairKey)) continue;
-
-          const dateDiff = Math.abs(
-            (new Date(`${a.date}T12:00:00`) - new Date(`${b.date}T12:00:00`)) / (1000 * 60 * 60 * 24)
-          );
-          if (dateDiff > 14) continue;
-
-          let duplicate = a;
-          let keep = b;
-          let duplicateLabel = a.pending ? 'PENDING' : 'DUPLICATE CANDIDATE';
-          let keepLabel = b.pending ? 'PENDING' : 'POSTED / KEEP';
-
-          if (!a.pending && b.pending) {
-            duplicate = b;
-            keep = a;
-            duplicateLabel = 'PENDING';
-            keepLabel = 'POSTED / KEEP';
-          } else if (!a.pending && !b.pending) {
-            duplicate = a;
-            keep = b;
-            duplicateLabel = 'DUPLICATE CANDIDATE';
-            keepLabel = 'KEEP';
-          }
-
-          seen.add(pairKey);
-          pairs.push({ pending: duplicate, posted: keep, pendingLabel: duplicateLabel, postedLabel: keepLabel });
-          break;
-        }
-      }
-    }
-
+      if (match) { usedPostedIds.add(match.id); pairs.push({pending:p, posted:match}); }
+    });
     return pairs;
-  }, [transactions, dismissedPairs, normalizeMerchant]);
+  }, [transactions, dismissedPairs]);
 
   const [showDuplicates, setShowDuplicates] = useState(false);
 
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
       const label = (t.name||t.merchant||"").toLowerCase();
-      if (!showDuplicates && duplicatePairs.some(p=>p.pending.id===t.id)) return false;
+      if (!showDuplicates && pendingPairs.some(p=>p.pending.id===t.id)) return false;
       if (search && !label.includes(search.toLowerCase())) return false;
       if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
       if (filterAcct   !== "all" && t.accountId  !== filterAcct) return false;
       if (filterReview && !needsReview(t)) return false;
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
-  [transactions, search, filterCat, filterAcct, filterReview, showDuplicates, duplicatePairs]);
+  [transactions, search, filterCat, filterAcct, filterReview]);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a,b) => {
@@ -1593,39 +1601,39 @@ function AppInner() {
         )}
 
         {/* Pending reconciliation banner */}
-        {duplicatePairs.length>0 && showDuplicates && (
+        {(duplicatePairs.length>0 || pendingPairs.length>0)&&(
           <div style={{background:"#fbbf2412",borderLeft:"3px solid var(--amber)",
             borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-                <span style={{color:"var(--amber)",fontWeight:700}}>{duplicatePairs.length}</span> possible duplicate charge{duplicatePairs.length!==1?"s":""} found this month
+                <span style={{color:"var(--amber)",fontWeight:700}}>{(duplicatePairs.length || pendingPairs.length)}</span> possible duplicate transaction{(duplicatePairs.length || pendingPairs.length)!==1?"s":""} found
               </span>
               <button onClick={()=>setShowReconcile(p=>!p)}
                 style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
-                {showReconcile?"✕ Close":"Review Candidates ›"}
+                {showReconcile?"✕ Close":"Review ›"}
               </button>
             </div>
             {showReconcile&&(
               <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-                {duplicatePairs.map((pair)=>{ const p = pair.pending; const po = pair.posted;
+{(duplicatePairs.length ? duplicatePairs : pendingPairs).map(({pending:p,posted:po})=>{
                   const pCat = catMap[p.categoryId];
                   return (
                     <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
                       {/* Pending row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>{pair.pendingLabel || 'PENDING'}</div>
+                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>PENDING</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name||p.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{p.date}{pCat&&<span style={{color:pCat.color}}> · {pCat.name}</span>}{p.recurring&&<span style={{color:"var(--amber)"}}> · ↻</span>}</div>
                         </div>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t3)",flexShrink:0,marginLeft:10}}>{fmt(Math.abs(p.amount))}</span>
                       </div>
                       {/* Arrow */}
-                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>↓ possible duplicate match</div>
+                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>↓ matches posted transaction</div>
                       {/* Posted row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>{pair.postedLabel || 'POSTED'}</div>
+                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>POSTED</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{po.name||po.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{po.date}</div>
                         </div>
@@ -1637,7 +1645,7 @@ function AppInner() {
                           Not a match
                         </button>
                         <button style={{...S.btn("primary",true),fontSize:12}}
-                          onClick={()=>{ confirmPair(p.id,po.id); setShowReconcile(duplicatePairs.length>1); }}>
+                          onClick={()=>{ confirmPair(p.id,po.id); const activePairs = duplicatePairs.length ? duplicatePairs : pendingPairs; setShowReconcile(activePairs.length>1); if (duplicatePairs.length) { setDuplicatePairs(prev => prev.filter(pair => !(pair.pending.id===p.id && pair.posted.id===po.id))); } }}>
                           ✓ Confirm &amp; remove pending
                         </button>
                       </div>
@@ -1652,19 +1660,7 @@ function AppInner() {
         {/* Action bar */}
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
           <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
-          <button
-            style={S.btn(showDuplicates ? "amber" : "ghost", true)}
-            onClick={() => {
-              if (duplicatePairs.length === 0) {
-                showToast("No duplicate candidates found for this month");
-                return;
-              }
-              setShowDuplicates(p => !p);
-              setShowReconcile(p => !showDuplicates);
-            }}
-          >
-            {showDuplicates ? "Hide Duplicates" : "Scan Duplicates"}
-          </button>
+          <button style={S.btn("ghost",true)} onClick={scanForDuplicates}>Scan Duplicates</button>
           {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"⟳ Syncing…":"⟳ Sync"}</button>}
         </div>
 

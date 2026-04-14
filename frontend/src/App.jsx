@@ -52,7 +52,7 @@ function useIsMobile() {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"none", borderRadius:"var(--radius-lg)", padding:20 },
+  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:20 },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:16 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 },
@@ -1539,7 +1539,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                         <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                           <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
                         </div>
-                      </div>
+                      </button>
                     );
                   })
               }
@@ -3117,10 +3117,9 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                   .map((t) => {
                     const cat = catMap[t.categoryId];
                     return (
-                      <div
+                      <button
                         key={t.id}
-                        role={isMobile ? "button" : undefined}
-                        tabIndex={isMobile ? 0 : undefined}
+                        type="button"
                         onClick={() => {
                           setEditTarget(t);
                           setModal("editRecurring");
@@ -3144,12 +3143,20 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                           justifyContent: "space-between",
                           padding: "10px 8px",
                           margin: "0 -8px 2px",
-                          borderBottom: "1px solid var(--border)",
+                          background: "transparent",
+                          border: "none",
+                          outline: "none",
+                          boxShadow: "none",
+                          borderBottom: "1px solid rgba(255,255,255,0.05)",
                           cursor: "pointer",
                           borderRadius: 6,
                           transition: "background 0.12s",
                           WebkitTapHighlightColor: "transparent",
                           touchAction: isMobile ? "manipulation" : undefined,
+                          width: "calc(100% + 16px)",
+                          textAlign: "left",
+                          appearance: "none",
+                          WebkitAppearance: "none",
                         }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -3426,7 +3433,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                             </span>
 
                             <span style={{ color: "var(--t3)", fontSize: 12 }}>{pct}%</span>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>

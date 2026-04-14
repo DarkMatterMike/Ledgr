@@ -52,7 +52,7 @@ function useIsMobile() {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:20 },
+  card:         { background:"var(--card)", border:"none", borderRadius:"var(--radius-lg)", padding:20 },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:16 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 },

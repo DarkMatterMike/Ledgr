@@ -1304,6 +1304,45 @@ function AppInner() {
 
 const reviewCount = transactions.filter(t => needsReview(t)).length;
 
+const PAGE_RIGHT_COL_W = 340;
+const PAGE_COL_GAP = 16;
+const SHARED_LEFT_WIDTH = `calc(100% - ${PAGE_RIGHT_COL_W + PAGE_COL_GAP}px)`;
+
+function PageLayout({ left, right = null }) {
+  if (isMobile) {
+    return (
+      <div style={{ width: "100%" }}>
+        {left}
+        {right ? <div style={{ marginTop: 16 }}>{right}</div> : null}
+      </div>
+    );
+  }
+
+  if (right) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          display: "grid",
+          gridTemplateColumns: `minmax(0, 1fr) ${PAGE_RIGHT_COL_W}px`,
+          gap: PAGE_COL_GAP,
+          alignItems: "start",
+        }}
+      >
+        <div style={{ minWidth: 0 }}>{left}</div>
+        <div style={{ minWidth: 0 }}>{right}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", maxWidth: SHARED_LEFT_WIDTH, minWidth: 0 }}>
+      {left}
+    </div>
+  );
+}
+
+
   const Dashboard = (
     <div>
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
@@ -1644,7 +1683,8 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     }
 
     return (
-      <div style={{maxWidth:860}}>
+      <PageLayout left={(
+      <div>
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
           <div style={S.sectionTitle}>All Transactions</div>
@@ -1809,6 +1849,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
           </div>
         )}
       </div>
+      )} />
     );
   })();
 
@@ -1957,12 +1998,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                 );
               })()}
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {BudgetSummaryCard}
-                {SpendingBreakdownCard}
-                {CashFlowCard}
-                {OverspendingHighlightsCard}
-              </div>
             </>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 16, alignItems: "start" }}>
@@ -2098,7 +2133,8 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
   /* ── Accounts ── */
   const Accounts = (
-    <div style={{maxWidth:860}}>
+    <PageLayout left={(
+    <div>
       <div style={{...S.sectionHdr,marginBottom:8}}>
         <div style={S.sectionTitle}>Accounts</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -2161,11 +2197,13 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
           </div>
       }
     </div>
+    )} />
   );
 
   /* ── Rules ── */
   const Rules = (
-    <div style={{maxWidth:860}}>
+    <PageLayout left={(
+    <div>
       <div style={{...S.sectionHdr,marginBottom:6}}>
         <div style={S.sectionTitle}>Auto-Categorization Rules</div>
         <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>

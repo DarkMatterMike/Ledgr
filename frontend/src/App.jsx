@@ -310,7 +310,7 @@ function AppInner() {
         const loadedTxns = data.transactions || [];
         setAccounts(data.accounts         || []);
         setCategories(data.categories     || []);
-        setTransactions(applyRules(loadedTxns, loadedRules, { onlyUncategorized: true }));
+        setTransactions(applyRules(loadedTxns, loadedRules));
         setPlaidItems(data.plaidItems     || []);
         setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);
@@ -487,7 +487,7 @@ function AppInner() {
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
-  // Smart pending reconciliation — match on merchant + date only, ignore amount
+  // Smart duplicate reconciliation — scan current-month pending vs posted by merchant + total
   const [dismissedPairs,  setDismissedPairs]  = useState(()=>{ try{return JSON.parse(localStorage.getItem("ledgr_dismissed_pairs")||"[]")}catch{return[]} });
   const [showReconcile,   setShowReconcile]   = useState(false);
 
@@ -518,23 +518,31 @@ function AppInner() {
     showToast("Merged — metadata copied to posted transaction");
   }
 
-  const pendingPairs = useMemo(() => {
-    const pending = transactions.filter(t=>t.pending && !dismissedPairs.includes(t.id));
-    const posted  = transactions.filter(t=>!t.pending);
+  const duplicatePairs = useMemo(() => {
+    const currentMonthTxns = transactions.filter(t => t.date?.startsWith(currentMonth));
+    const pending = currentMonthTxns.filter(t => t.pending && !dismissedPairs.includes(t.id));
+    const posted  = currentMonthTxns.filter(t => !t.pending);
     const pairs   = [];
     const usedPostedIds = new Set();
-    pending.forEach(p=>{
-      const pMer  = (p.merchant||p.name||"").toLowerCase().trim();
-      const pDate = new Date(p.date+"T12:00:00");
-      const match = posted.find(t=>{
+
+    pending.forEach(p => {
+      const pMer = (p.merchant || p.name || "").toLowerCase().trim();
+      const pAmt = Math.abs(Number(p.amount) || 0);
+      if (!pMer || !pAmt) return;
+
+      const match = posted.find(t => {
         if (usedPostedIds.has(t.id)) return false;
-        const tDate   = new Date(t.date+"T12:00:00");
-        const dayDiff = Math.abs((tDate-pDate)/(1000*60*60*24));
-        const tMer    = (t.merchant||t.name||"").toLowerCase().trim();
-        return dayDiff<=7 && tMer===pMer;
+        const tMer = (t.merchant || t.name || "").toLowerCase().trim();
+        const tAmt = Math.abs(Number(t.amount) || 0);
+        return tMer === pMer && tAmt === pAmt;
       });
-      if (match) { usedPostedIds.add(match.id); pairs.push({pending:p, posted:match}); }
+
+      if (match) {
+        usedPostedIds.add(match.id);
+        pairs.push({ pending: p, posted: match });
+      }
     });
+
     return pairs;
   }, [transactions, dismissedPairs]);
 
@@ -543,14 +551,14 @@ function AppInner() {
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
       const label = (t.name||t.merchant||"").toLowerCase();
-      if (!showDuplicates && pendingPairs.some(p=>p.pending.id===t.id)) return false;
+      if (!showDuplicates && duplicatePairs.some(p=>p.pending.id===t.id)) return false;
       if (search && !label.includes(search.toLowerCase())) return false;
       if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
       if (filterAcct   !== "all" && t.accountId  !== filterAcct) return false;
       if (filterReview && !needsReview(t)) return false;
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
-  [transactions, search, filterCat, filterAcct, filterReview]);
+  [transactions, search, filterCat, filterAcct, filterReview, showDuplicates, duplicatePairs]);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a,b) => {
@@ -709,27 +717,9 @@ function AppInner() {
           if (!modMap[t.id]) return t;
           const updated = plaidTxnToLocal(modMap[t.id],catMap);
           const merged = {
-            ...updated,
             ...t,
-            id: t.id,
-            date: updated.date || t.date,
-            merchant: updated.merchant || t.merchant,
-            pending: typeof updated.pending === "boolean" ? updated.pending : t.pending,
-            plaidAccountId: updated.plaidAccountId || t.plaidAccountId,
-            accountId: t.manualAccount ? (t.accountId || null) : (updated.accountId || t.accountId || null),
-            categoryId: t.manualCategory ? (t.categoryId || null) : (t.categoryId || updated.categoryId || null),
-            name: t.name || updated.name || "",
-            type: t.manualType ? t.type : (t.type || updated.type),
-            recurring: t.recurring,
-            recurringDay: t.recurringDay,
-            recurringFreq: t.recurringFreq,
-            recurringStart: t.recurringStart,
-            reviewed: t.reviewed,
-            manualCategory: !!t.manualCategory,
-            manualName: !!t.manualName,
-            manualType: !!t.manualType,
-            manualAccount: !!t.manualAccount,
-            manualRecurring: !!t.manualRecurring,
+            ...updated,
+            categoryId: t.categoryId || updated.categoryId || null,
           };
           return applyRules([merged], rules, { onlyUncategorized: true })[0];
         });
@@ -808,21 +798,21 @@ function AppInner() {
   /* ── Transaction CRUD ── */
   function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }
   function saveRename(id) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant,manualName:true}:t));
+    setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant}:t));
     setEditingId(null); showToast("Name updated");
   }
   function updateTxnType(id,val) {
     setTransactions(p=>p.map(t=>{
       if (t.id!==id) return t;
       const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
-      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, manualType:true};
+      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed};
     }));
   }
   function updateTxnCat(id,val) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null,reviewed:val?true:t.reviewed,manualCategory:true}:t));
+    setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null,reviewed:val?true:t.reviewed}:t));
     if(val){const txn=transactions.find(t=>t.id===id);if(txn)promptSaveRule(txn,val);}
   }
-  function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null,manualAccount:true}:t)); }
+  function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
   function deleteTxn(id) {
     const txn = transactions.find(t=>t.id===id);
     setTransactions(p=>p.filter(t=>t.id!==id));
@@ -835,10 +825,10 @@ function AppInner() {
       const autoDay=t.date?parseInt(t.date.split("-")[2]):null;
       return {...t, recurring:on, recurringDay:on?(t.recurringDay||autoDay):null,
         recurringFreq: on?(t.recurringFreq||"monthly"):null,
-        recurringStart: on?(t.recurringStart||t.date||null):null, manualRecurring:true};
+        recurringStart: on?(t.recurringStart||t.date||null):null};
     }));
   }
-  function updateRecurringDay(id,day) { setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null,manualRecurring:true}:t)); }
+  function updateRecurringDay(id,day) { setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null}:t)); }
   function openAddTxn() {
     setTxnForm({merchant:"",amount:"",date:today.toISOString().slice(0,10),categoryId:"",accountId:"",sign:"-1"});
     setModal("addTxn");
@@ -1229,7 +1219,7 @@ function AppInner() {
   );
 
 
-const reviewCount = transactions.filter(t => needsReview(t)).length;
+
   const Dashboard = (
     <div>
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
@@ -1248,47 +1238,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
           <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
         </div>
       </div>
-{reviewCount > 0 && (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      background: "var(--cyan-dim)",
-      borderLeft: "3px solid var(--cyan)",
-      borderRadius: "var(--radius)",
-      padding: "10px 14px",
-      marginBottom: 16,
-    }}
-  >
-    <span style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>
-      <span style={{ color: "var(--cyan)", fontWeight: 700 }}>
-        {reviewCount}
-      </span>{" "}
-      transactions need review
-    </span>
 
-    <button
-      onClick={() => {
-        setView("transactions");
-        setFilterReview(true);
-        setSearch("");
-        setFilterCat("all");
-        setFilterAcct("all");
-      }}
-      style={{
-        background: "none",
-        color: "var(--cyan)",
-        border: "none",
-        cursor: "pointer",
-        fontSize: 13,
-        fontWeight: 600,
-      }}
-    >
-      Review ›
-    </button>
-  </div>
-)}
       <div className="ledgr-stat-grid" style={{marginBottom:20}}>
         {[
           {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
@@ -1596,21 +1546,21 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
         )}
 
         {/* Pending reconciliation banner */}
-        {pendingPairs.length>0&&(
+        {duplicatePairs.length>0 && showDuplicates && (
           <div style={{background:"#fbbf2412",borderLeft:"3px solid var(--amber)",
             borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-                <span style={{color:"var(--amber)",fontWeight:700}}>{pendingPairs.length}</span> pending transaction{pendingPairs.length!==1?"s":""} may have posted
+                <span style={{color:"var(--amber)",fontWeight:700}}>{duplicatePairs.length}</span> possible duplicate charge{duplicatePairs.length!==1?"s":""} found this month
               </span>
               <button onClick={()=>setShowReconcile(p=>!p)}
                 style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
-                {showReconcile?"✕ Close":"Review ›"}
+                {showReconcile?"✕ Close":"Review Candidates ›"}
               </button>
             </div>
             {showReconcile&&(
               <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-                {pendingPairs.map(({pending:p,posted:po})=>{
+                {duplicatePairs.map(({pending:p,posted:po})=>{
                   const pCat = catMap[p.categoryId];
                   return (
                     <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
@@ -1640,7 +1590,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                           Not a match
                         </button>
                         <button style={{...S.btn("primary",true),fontSize:12}}
-                          onClick={()=>{ confirmPair(p.id,po.id); setShowReconcile(pendingPairs.length>1); }}>
+                          onClick={()=>{ confirmPair(p.id,po.id); setShowReconcile(duplicatePairs.length>1); }}>
                           ✓ Confirm &amp; remove pending
                         </button>
                       </div>
@@ -1655,7 +1605,19 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
         {/* Action bar */}
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
           <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
-          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Add Bank"/>
+          <button
+            style={S.btn(showDuplicates ? "amber" : "ghost", true)}
+            onClick={() => {
+              if (duplicatePairs.length === 0) {
+                showToast("No duplicate candidates found for this month");
+                return;
+              }
+              setShowDuplicates(p => !p);
+              setShowReconcile(p => !showDuplicates);
+            }}
+          >
+            {showDuplicates ? "Hide Duplicates" : "Scan Duplicates"}
+          </button>
           {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"⟳ Syncing…":"⟳ Sync"}</button>}
         </div>
 

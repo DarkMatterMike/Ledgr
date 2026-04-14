@@ -3442,7 +3442,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                             </span>
 
                             <span style={{ color: "var(--t3)", fontSize: 12 }}>{pct}%</span>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>

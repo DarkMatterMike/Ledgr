@@ -130,6 +130,45 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
   );
 }
 
+
+const PAGE_RIGHT_COL_W = 340;
+const PAGE_COL_GAP = 16;
+const SHARED_LEFT_WIDTH = `calc(100% - ${PAGE_RIGHT_COL_W + PAGE_COL_GAP}px)`;
+
+function PageLayout({ left, right = null, isMobile = false }) {
+  if (isMobile) {
+    return (
+      <div style={{ width: "100%" }}>
+        {left}
+        {right ? <div style={{ marginTop: 16 }}>{right}</div> : null}
+      </div>
+    );
+  }
+
+  if (right) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          display: "grid",
+          gridTemplateColumns: `minmax(0, 1fr) ${PAGE_RIGHT_COL_W}px`,
+          gap: PAGE_COL_GAP,
+          alignItems: "start",
+        }}
+      >
+        <div style={{ minWidth: 0 }}>{left}</div>
+        <div style={{ minWidth: 0 }}>{right}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: "100%", maxWidth: SHARED_LEFT_WIDTH, minWidth: 0 }}>
+      {left}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
@@ -1331,44 +1370,6 @@ function AppInner() {
 
 const reviewCount = transactions.filter(t => needsReview(t)).length;
 
-const PAGE_RIGHT_COL_W = 340;
-const PAGE_COL_GAP = 16;
-const SHARED_LEFT_WIDTH = `calc(100% - ${PAGE_RIGHT_COL_W + PAGE_COL_GAP}px)`;
-
-function PageLayout({ left, right = null }) {
-  if (isMobile) {
-    return (
-      <div style={{ width: "100%" }}>
-        {left}
-        {right ? <div style={{ marginTop: 16 }}>{right}</div> : null}
-      </div>
-    );
-  }
-
-  if (right) {
-    return (
-      <div
-        style={{
-          width: "100%",
-          display: "grid",
-          gridTemplateColumns: `minmax(0, 1fr) ${PAGE_RIGHT_COL_W}px`,
-          gap: PAGE_COL_GAP,
-          alignItems: "start",
-        }}
-      >
-        <div style={{ minWidth: 0 }}>{left}</div>
-        <div style={{ minWidth: 0 }}>{right}</div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ width: "100%", maxWidth: SHARED_LEFT_WIDTH, minWidth: 0 }}>
-      {left}
-    </div>
-  );
-}
-
 
   const Dashboard = (
     <div>
@@ -1710,7 +1711,7 @@ function PageLayout({ left, right = null }) {
     }
 
     return (
-      <PageLayout left={(
+      <PageLayout isMobile={isMobile} left={(
       <div>
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
@@ -2160,7 +2161,7 @@ function PageLayout({ left, right = null }) {
   );
   /* ── Accounts ── */
   const Accounts = (
-    <PageLayout left={(
+    <PageLayout isMobile={isMobile} left={(
     <div>
       <div style={{...S.sectionHdr,marginBottom:8}}>
         <div style={S.sectionTitle}>Accounts</div>
@@ -2228,7 +2229,7 @@ function PageLayout({ left, right = null }) {
 
   /* ── Rules ── */
   const Rules = (
-    <PageLayout left={(
+    <PageLayout isMobile={isMobile} left={(
     <div>
       <div style={{...S.sectionHdr,marginBottom:6}}>
         <div style={S.sectionTitle}>Auto-Categorization Rules</div>

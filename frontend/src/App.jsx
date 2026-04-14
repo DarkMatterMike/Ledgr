@@ -3842,6 +3842,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
 
   /* ── Shared sidebar content ── */
+  const currentUser = api.getStoredUser();
   const SidebarContent = ({ onNav }) => (
     <>
       <div style={{padding:"24px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
@@ -3898,6 +3899,26 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
             🔔 Enable Notifications
           </button>
         )}
+        {/* User info + sign out */}
+        <div style={{borderTop:"1px solid var(--border)",paddingTop:8,marginTop:2}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {currentUser?.email}
+              </div>
+              {currentUser?.role === "owner" && (
+                <div style={{fontSize:10,color:"var(--cyan)",fontWeight:700,letterSpacing:"0.5px",marginTop:1}}>
+                  OWNER
+                </div>
+              )}
+            </div>
+          </div>
+          <button
+            style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12,color:"var(--red)",borderColor:"transparent"}}
+            onClick={()=>{ api.clearToken(); window.location.reload(); }}>
+            Sign Out
+          </button>
+        </div>
       </div>
     </>
   );

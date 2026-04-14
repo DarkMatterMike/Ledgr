@@ -531,7 +531,7 @@ function AppInner() {
           const a = txns[i];
           const b = txns[j];
           const pairKey = [a.id, b.id].sort().join("__");
-          if (seen.has(pairKey)) continue;
+          if (seen.has(pairKey) || dismissedPairs.includes(pairKey)) continue;
 
           const aDate = new Date(`${a.date}T12:00:00`);
           const bDate = new Date(`${b.date}T12:00:00`);
@@ -579,6 +579,27 @@ function AppInner() {
       })
     );
     showToast("Merged — metadata copied to posted transaction");
+  }
+
+  function dismissDuplicatePair(aId, bId) {
+    const pairKey = [aId, bId].sort().join("__");
+    const next = [...dismissedPairs, pairKey];
+    setDismissedPairs(next);
+    localStorage.setItem("ledgr_dismissed_pairs", JSON.stringify(next));
+    setDuplicatePairs(prev => prev.filter(pair => [pair.pending.id, pair.posted.id].sort().join("__") !== pairKey));
+  }
+
+  function confirmDuplicateRemoval(removeId, keepId) {
+    const removeTxn = transactions.find(t => t.id === removeId);
+    const keepTxn = transactions.find(t => t.id === keepId);
+    if (!removeTxn || !keepTxn) return;
+
+    setTransactions(prev => prev.filter(t => t.id !== removeId));
+    setDuplicatePairs(prev => prev.filter(pair => !(
+      (pair.pending.id === removeId && pair.posted.id === keepId) ||
+      (pair.pending.id === keepId && pair.posted.id === removeId)
+    )));
+    showToast("Duplicate removed");
   }
 
   const pendingPairs = useMemo(() => {
@@ -1616,24 +1637,25 @@ function AppInner() {
             {showReconcile&&(
               <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
 {(duplicatePairs.length ? duplicatePairs : pendingPairs).map(({pending:p,posted:po})=>{
+                  const isScannedDuplicate = duplicatePairs.length > 0;
                   const pCat = catMap[p.categoryId];
                   return (
                     <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
                       {/* Pending row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>PENDING</div>
+                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>{isScannedDuplicate ? (p.pending ? "PENDING / CANDIDATE" : "CANDIDATE A") : "PENDING"}</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name||p.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{p.date}{pCat&&<span style={{color:pCat.color}}> · {pCat.name}</span>}{p.recurring&&<span style={{color:"var(--amber)"}}> · ↻</span>}</div>
                         </div>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t3)",flexShrink:0,marginLeft:10}}>{fmt(Math.abs(p.amount))}</span>
                       </div>
                       {/* Arrow */}
-                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>↓ matches posted transaction</div>
+                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>{isScannedDuplicate ? "↓ possible duplicate match" : "↓ matches posted transaction"}</div>
                       {/* Posted row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>POSTED</div>
+                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>{isScannedDuplicate ? (po.pending ? "PENDING / CANDIDATE" : "CANDIDATE B") : "POSTED"}</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{po.name||po.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{po.date}</div>
                         </div>
@@ -1641,12 +1663,32 @@ function AppInner() {
                       </div>
                       {/* Actions */}
                       <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-                        <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>dismissPair(p.id)}>
+                        <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>{
+                          if (isScannedDuplicate) {
+                            dismissDuplicatePair(p.id, po.id);
+                          } else {
+                            dismissPair(p.id);
+                          }
+                        }}>
                           Not a match
                         </button>
                         <button style={{...S.btn("primary",true),fontSize:12}}
-                          onClick={()=>{ confirmPair(p.id,po.id); const activePairs = duplicatePairs.length ? duplicatePairs : pendingPairs; setShowReconcile(activePairs.length>1); if (duplicatePairs.length) { setDuplicatePairs(prev => prev.filter(pair => !(pair.pending.id===p.id && pair.posted.id===po.id))); } }}>
-                          ✓ Confirm &amp; remove pending
+                          onClick={()=>{
+                            if (isScannedDuplicate) {
+                              const removeId = p.pending && !po.pending ? p.id : (!p.pending && po.pending ? po.id : p.id);
+                              const keepId = removeId === p.id ? po.id : p.id;
+                              confirmDuplicateRemoval(removeId, keepId);
+                              const remaining = duplicatePairs.filter(pair => !(
+                                (pair.pending.id===p.id && pair.posted.id===po.id) ||
+                                (pair.pending.id===po.id && pair.posted.id===p.id)
+                              ));
+                              setShowReconcile(remaining.length > 0);
+                            } else {
+                              confirmPair(p.id,po.id);
+                              setShowReconcile(pendingPairs.length>1);
+                            }
+                          }}>
+                          {isScannedDuplicate ? "✓ Confirm & remove one" : "✓ Confirm & remove pending"}
                         </button>
                       </div>
                     </div>

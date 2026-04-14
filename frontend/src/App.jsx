@@ -518,33 +518,80 @@ function AppInner() {
     showToast("Merged — metadata copied to posted transaction");
   }
 
+  const normalizeMerchant = useCallback((value) => {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[#*]/g, " ")
+      .replace(/(?:store|location|debit|credit|purchase|pos|auth|pending)/g, " ")
+      .replace(/\d+/g, " ")
+      .replace(/[^a-z\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }, []);
+
   const duplicatePairs = useMemo(() => {
-    const currentMonthTxns = transactions.filter(t => t.date?.startsWith(currentMonth));
-    const pending = currentMonthTxns.filter(t => t.pending && !dismissedPairs.includes(t.id));
-    const posted  = currentMonthTxns.filter(t => !t.pending);
-    const pairs   = [];
-    const usedPostedIds = new Set();
+    const currentMonthTxns = transactions
+      .filter(t => t.date?.startsWith(currentMonth))
+      .filter(t => !dismissedPairs.includes(t.id));
 
-    pending.forEach(p => {
-      const pMer = (p.merchant || p.name || "").toLowerCase().trim();
-      const pAmt = Math.abs(Number(p.amount) || 0);
-      if (!pMer || !pAmt) return;
-
-      const match = posted.find(t => {
-        if (usedPostedIds.has(t.id)) return false;
-        const tMer = (t.merchant || t.name || "").toLowerCase().trim();
-        const tAmt = Math.abs(Number(t.amount) || 0);
-        return tMer === pMer && tAmt === pAmt;
-      });
-
-      if (match) {
-        usedPostedIds.add(match.id);
-        pairs.push({ pending: p, posted: match });
-      }
+    const groups = new Map();
+    currentMonthTxns.forEach(t => {
+      const mer = normalizeMerchant(t.merchant || t.name || "");
+      const amt = Math.round(Math.abs(Number(t.amount) || 0) * 100) / 100;
+      if (!mer || !amt) return;
+      const key = `${mer}__${amt.toFixed(2)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
     });
 
+    const pairs = [];
+    const seen = new Set();
+
+    for (const txns of groups.values()) {
+      if (txns.length < 2) continue;
+      const sorted = [...txns].sort((a, b) => {
+        if (!!a.pending !== !!b.pending) return a.pending ? -1 : 1;
+        return (b.date || "").localeCompare(a.date || "");
+      });
+
+      for (let i = 0; i < sorted.length; i++) {
+        for (let j = i + 1; j < sorted.length; j++) {
+          const a = sorted[i];
+          const b = sorted[j];
+          const pairKey = [a.id, b.id].sort().join('__');
+          if (seen.has(pairKey)) continue;
+
+          const dateDiff = Math.abs(
+            (new Date(`${a.date}T12:00:00`) - new Date(`${b.date}T12:00:00`)) / (1000 * 60 * 60 * 24)
+          );
+          if (dateDiff > 14) continue;
+
+          let duplicate = a;
+          let keep = b;
+          let duplicateLabel = a.pending ? 'PENDING' : 'DUPLICATE CANDIDATE';
+          let keepLabel = b.pending ? 'PENDING' : 'POSTED / KEEP';
+
+          if (!a.pending && b.pending) {
+            duplicate = b;
+            keep = a;
+            duplicateLabel = 'PENDING';
+            keepLabel = 'POSTED / KEEP';
+          } else if (!a.pending && !b.pending) {
+            duplicate = a;
+            keep = b;
+            duplicateLabel = 'DUPLICATE CANDIDATE';
+            keepLabel = 'KEEP';
+          }
+
+          seen.add(pairKey);
+          pairs.push({ pending: duplicate, posted: keep, pendingLabel: duplicateLabel, postedLabel: keepLabel });
+          break;
+        }
+      }
+    }
+
     return pairs;
-  }, [transactions, dismissedPairs]);
+  }, [transactions, dismissedPairs, normalizeMerchant]);
 
   const [showDuplicates, setShowDuplicates] = useState(false);
 
@@ -1560,25 +1607,25 @@ function AppInner() {
             </div>
             {showReconcile&&(
               <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-                {duplicatePairs.map(({pending:p,posted:po})=>{
+                {duplicatePairs.map((pair)=>{ const p = pair.pending; const po = pair.posted;
                   const pCat = catMap[p.categoryId];
                   return (
                     <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
                       {/* Pending row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>PENDING</div>
+                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>{pair.pendingLabel || 'PENDING'}</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name||p.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{p.date}{pCat&&<span style={{color:pCat.color}}> · {pCat.name}</span>}{p.recurring&&<span style={{color:"var(--amber)"}}> · ↻</span>}</div>
                         </div>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t3)",flexShrink:0,marginLeft:10}}>{fmt(Math.abs(p.amount))}</span>
                       </div>
                       {/* Arrow */}
-                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>↓ matches posted transaction</div>
+                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>↓ possible duplicate match</div>
                       {/* Posted row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>POSTED</div>
+                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>{pair.postedLabel || 'POSTED'}</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{po.name||po.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{po.date}</div>
                         </div>

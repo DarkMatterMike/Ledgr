@@ -180,45 +180,70 @@ function PageLayout({ left, right = null, isMobile = false }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   PASSWORD GATE
+   AUTH GATE  (email + password, multi-user)
 ═══════════════════════════════════════════════════════════════════ */
-const REMEMBER_DAYS = 30;
-const EXPIRY_KEY    = "ledgr_expiry";
-
 function isAuthValid() {
-  try {
-    const token  = api.getToken();
-    const expiry = localStorage.getItem(EXPIRY_KEY);
-    return !!token && !!expiry && Date.now() < parseInt(expiry);
-  } catch { return false; }
+  try { return !!api.getToken() && !!api.getStoredUser(); }
+  catch { return false; }
 }
 
-function PasswordGate({ onAuth }) {
+function AuthGate({ onAuth }) {
+  const [mode,     setMode]     = useState("login");   // "login" | "register"
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
+  const [confirm,  setConfirm]  = useState("");
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
   const [shake,    setShake]    = useState(false);
 
+  function triggerShake(msg) {
+    setError(msg);
+    setShake(true);
+    setTimeout(() => setShake(false), 600);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    if (mode === "register" && password !== confirm) {
+      triggerShake("Passwords do not match");
+      return;
+    }
+    if (mode === "register" && password.length < 8) {
+      triggerShake("Password must be at least 8 characters");
+      return;
+    }
+    setLoading(true);
     try {
-      await api.login(password);
-      if (remember) {
-        localStorage.setItem(EXPIRY_KEY, String(Date.now() + REMEMBER_DAYS * 24 * 60 * 60 * 1000));
+      if (mode === "login") {
+        await api.login(email, password);
+      } else {
+        await api.register(email, password);
       }
       onAuth();
     } catch (err) {
-      setError(err.message === "Incorrect password" ? "Incorrect password" : "Login failed, try again");
-      setShake(true);
+      triggerShake(err.message || "Something went wrong");
       setPassword("");
-      setTimeout(() => setShake(false), 600);
+      setConfirm("");
     } finally {
       setLoading(false);
     }
   }
+
+  function switchMode(m) {
+    setMode(m);
+    setError("");
+    setPassword("");
+    setConfirm("");
+  }
+
+  const inputStyle = (hasError) => ({
+    background: "var(--surface)",
+    border: `1px solid ${hasError ? "var(--red)" : "var(--border2)"}`,
+    borderRadius: "var(--radius)", padding: "11px 14px",
+    fontSize: 14, color: "var(--t1)", outline: "none", width: "100%",
+    transition: "border-color 0.15s",
+  });
 
   return (
     <div style={{
@@ -237,59 +262,77 @@ function PasswordGate({ onAuth }) {
         .shake { animation: shake 0.5s ease; }
       `}</style>
 
-      <div style={{fontFamily:"var(--font-disp)",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)"}}>
-        ledgr<span style={{color:"var(--cyan)"}}>.</span>
+      <div>
+        <div style={{fontFamily:"var(--font-disp)",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
+          ledgr<span style={{color:"var(--cyan)"}}>.</span>
+        </div>
+        <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",marginTop:4}}>personal finance</div>
       </div>
-      <div style={{fontSize:13,color:"var(--t3)",marginTop:-16}}>personal finance</div>
 
       <div className={shake?"shake":""} style={{
         background:"var(--card)", border:"1px solid var(--border2)",
         borderRadius:"var(--radius-lg)", padding:"32px 28px",
-        width:340, maxWidth:"90vw",
+        width:360, maxWidth:"92vw",
         boxShadow:"0 8px 40px #00000060",
       }}>
-        <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:6}}>Welcome back</div>
-        <div style={{fontSize:13,color:"var(--t3)",marginBottom:24}}>Enter your password to continue</div>
+        {/* Tab switcher */}
+        <div style={{display:"flex",gap:0,marginBottom:24,background:"var(--surface)",borderRadius:"var(--radius)",padding:3}}>
+          {["login","register"].map(m => (
+            <button key={m} onClick={()=>switchMode(m)} style={{
+              flex:1, padding:"7px 0", borderRadius:"var(--radius)",
+              fontSize:13, fontWeight:600, cursor:"pointer", border:"none",
+              background: mode===m ? "var(--card)" : "transparent",
+              color: mode===m ? "var(--t1)" : "var(--t3)",
+              boxShadow: mode===m ? "0 1px 4px #00000030" : "none",
+              transition:"all 0.15s",
+            }}>
+              {m === "login" ? "Sign In" : "Create Account"}
+            </button>
+          ))}
+        </div>
 
-        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:16}}>
+        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div>
+            <input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              autoFocus
+              onChange={e=>{ setEmail(e.target.value); setError(""); }}
+              style={inputStyle(!!error && !password)}
+            />
+          </div>
           <div>
             <input
               type="password"
               placeholder="Password"
               value={password}
               onChange={e=>{ setPassword(e.target.value); setError(""); }}
-              autoFocus
-              style={{
-                background:"var(--surface)",
-                border:`1px solid ${error?"var(--red)":"var(--border2)"}`,
-                borderRadius:"var(--radius)", padding:"11px 14px",
-                fontSize:14, color:"var(--t1)", outline:"none", width:"100%",
-                transition:"border-color 0.15s",
-              }}
+              style={inputStyle(!!error)}
             />
-            {error&&<div style={{fontSize:12,color:"var(--red)",marginTop:6}}>{error}</div>}
           </div>
-
-          <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",userSelect:"none"}}>
-            <div onClick={()=>setRemember(p=>!p)} style={{
-              width:18, height:18, borderRadius:5, flexShrink:0,
-              background:remember?"var(--cyan)":"transparent",
-              border:`2px solid ${remember?"var(--cyan)":"var(--border2)"}`,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              transition:"all 0.15s",
-            }}>
-              {remember&&<span style={{color:"#000",fontSize:12,fontWeight:700,lineHeight:1}}>✓</span>}
+          {mode === "register" && (
+            <div>
+              <input
+                type="password"
+                placeholder="Confirm password"
+                value={confirm}
+                onChange={e=>{ setConfirm(e.target.value); setError(""); }}
+                style={inputStyle(!!error && confirm !== password)}
+              />
             </div>
-            <span style={{fontSize:13,color:"var(--t2)"}}>Remember this device for {REMEMBER_DAYS} days</span>
-          </label>
-
+          )}
+          {error && (
+            <div style={{fontSize:12,color:"var(--red)",marginTop:2}}>{error}</div>
+          )}
           <button type="submit" disabled={loading} style={{
+            marginTop:4,
             background:"var(--cyan)", color:"#000", border:"none",
-            borderRadius:"var(--radius)", padding:"8px 16px",
+            borderRadius:"var(--radius)", padding:"10px 16px",
             fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
             opacity:loading?0.7:1, transition:"opacity 0.15s",
           }}>
-            {loading?"Verifying…":"Unlock"}
+            {loading ? "…" : mode === "login" ? "Sign In" : "Create Account"}
           </button>
         </form>
       </div>
@@ -300,7 +343,7 @@ function PasswordGate({ onAuth }) {
 export default function App() {
   const [authed, setAuthed] = useState(() => isAuthValid());
 
-  if (!authed) return <PasswordGate onAuth={()=>setAuthed(true)}/>;
+  if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
 
   return <AppInner/>;
 }

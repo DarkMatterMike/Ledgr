@@ -99,6 +99,7 @@ const DAYS_OF_WEEK = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const today        = new Date();
 const pad          = n => String(n).padStart(2,"0");
 const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+const cap          = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
@@ -178,9 +179,6 @@ function PageLayout({ left, right = null, isMobile = false }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   MAIN APP
-═══════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════════════════════════════════
    PASSWORD GATE
 ═══════════════════════════════════════════════════════════════════ */
@@ -307,6 +305,9 @@ export default function App() {
   return <AppInner/>;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════════════════════════════ */
 function AppInner() {
   const isMobile = useIsMobile();
 
@@ -373,7 +374,7 @@ function AppInner() {
   /* ── Save ── */
   const saveTimeout = useRef(null);
   const pendingPatch = useRef({});
-  function scheduleSave(patch) {
+  const scheduleSave = useCallback((patch) => {
     if (!initialized.current) return;
     pendingPatch.current = {
       ...pendingPatch.current,
@@ -385,15 +386,15 @@ function AppInner() {
       pendingPatch.current = {};
       api.saveData(payload);
     }, 800);
-  }
-  useEffect(() => { scheduleSave({ accounts });     }, [accounts]);
-  useEffect(() => { scheduleSave({ categories });   }, [categories]);
-  useEffect(() => { scheduleSave({ transactions }); }, [transactions]);
-  useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems]);
-  useEffect(() => { scheduleSave({ rules }); }, [rules]);
+  }, []); // refs are stable — no deps needed
+  useEffect(() => { scheduleSave({ accounts });     }, [accounts,     scheduleSave]);
+  useEffect(() => { scheduleSave({ categories });   }, [categories,   scheduleSave]);
+  useEffect(() => { scheduleSave({ transactions }); }, [transactions,  scheduleSave]);
+  useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems,    scheduleSave]);
+  useEffect(() => { scheduleSave({ rules });        }, [rules,         scheduleSave]);
   useEffect(() => {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
-  }, [calendarAccounts]);
+  }, [calendarAccounts, scheduleSave]);
 
   /* ── Poll for new transactions every 30 minutes ── */
   const knownTxnIds = useRef(null);
@@ -702,7 +703,7 @@ function AppInner() {
       if (filterReview && !needsReview(t)) return false;
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
-  [transactions, search, filterCat, filterAcct, filterReview]);
+  [transactions, search, filterCat, filterAcct, filterReview, showDuplicates, pendingPairs]);
 
   useEffect(() => {
     if (view !== "transactions" || !txnSearchHadFocusRef.current) return;
@@ -1589,21 +1590,9 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
 
-  /* ── Transactions ── */
-  const Transactions = (()=>{
-    // Group filtered transactions by date
-    const grouped = filteredTxns.reduce((acc, t) => {
-      const d = t.date || "Unknown";
-      if (!acc[d]) acc[d] = [];
-      acc[d].push(t);
-      return acc;
-    }, {});
-    const dates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
-
-    const toReview = transactions.filter(t=>needsReview(t)).length;
-    const totalBalance = accounts.reduce((a,b)=>a+(b.balance||0),0);
-
-    function TxnRow({ t }) {
+  /* ── TxnRow — lifted out of Transactions so React doesn't treat it as a new
+       component type on every render (was previously defined inside the IIFE) ── */
+  function TxnRow({ t }) {
       const expanded   = expandedTxnId === t.id;
       const reviewed   = !needsReview(t);
       const typeVal    = t.type||(t.amount<0?"expense":"income");
@@ -1717,7 +1706,21 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
           )}
         </div>
       );
-    }
+  }
+
+  /* ── Transactions ── */
+  const Transactions = (()=>{
+    // Group filtered transactions by date
+    const grouped = filteredTxns.reduce((acc, t) => {
+      const d = t.date || "Unknown";
+      if (!acc[d]) acc[d] = [];
+      acc[d].push(t);
+      return acc;
+    }, {});
+    const dates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+
+    const toReview = transactions.filter(t=>needsReview(t)).length;
+    const totalBalance = accounts.reduce((a,b)=>a+(b.balance||0),0);
 
     return (
       <PageLayout
@@ -3796,7 +3799,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
 
   /* ── Shared sidebar content ── */
-  const SidebarContent = (onNav) => (
+  const SidebarContent = ({ onNav }) => (
     <>
       <div style={{padding:"24px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
         <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>
@@ -3899,7 +3902,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
             zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
           }}>
-            {SidebarContent(id=>{ setView(id); setDrawerOpen(false); })}
+            <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); }} />
           </div>
           {/* Content */}
           <div style={{height:"100%",overflowY:"auto"}} className="ledgr-content">
@@ -3929,7 +3932,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
           <aside style={{width:220,flexShrink:0,background:"var(--surface)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
-            {SidebarContent(id=>setView(id))}
+            <SidebarContent onNav={id=>setView(id)} />
           </aside>
           {/* Content */}
           <div style={{flex:1,overflowY:"auto"}} className="ledgr-content">
@@ -3997,5 +4000,3 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
 }
-
-function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }

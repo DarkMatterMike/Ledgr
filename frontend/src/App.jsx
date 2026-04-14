@@ -23,6 +23,15 @@ function useIsMobile() {
   s.id = "ledgr-css";
   s.textContent = `
     * { box-sizing: border-box; }
+button {
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
     .ledgr-content   { padding: 28px; }
     .ledgr-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
     .ledgr-dash-cards { display: flex; flex-direction: column; gap: 16px; }

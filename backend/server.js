@@ -702,19 +702,18 @@ cron.schedule("0 */4 * * *", async () => {
   }
 });
 /* ── Temporary recovery route ─────────────────────────────────────── */
-app.get("/api/admin/recover", requireOwner, async (req, res) => {
+app.get("/api/admin/recover2", requireOwner, async (req, res) => {
   try {
-    const { rows: userRows } = await pool.query(
-      "SELECT key, length(value) as size FROM app_data WHERE user_id = $1",
-      [req.user.id]
-    );
-    const { rows: oldRows } = await pool.query(
-      "SELECT key, length(value) as size FROM app_data WHERE user_id IS NULL"
-    );
-    const { rows: allRows } = await pool.query(
-      "SELECT user_id, key, length(value) as size FROM app_data LIMIT 50"
-    );
-    res.json({ userRows, oldRows, allRows });
+    const tables = await pool.query(`
+      SELECT table_name FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    const counts = {};
+    for (const { table_name } of tables.rows) {
+      const r = await pool.query(`SELECT COUNT(*) FROM "${table_name}"`);
+      counts[table_name] = parseInt(r.rows[0].count);
+    }
+    res.json({ tables: tables.rows.map(r => r.table_name), counts });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

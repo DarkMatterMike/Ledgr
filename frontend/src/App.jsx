@@ -3533,7 +3533,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                               {t.amount < 0 ? "-" : "+"}
                               {fmt(Math.abs(t.amount))}
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>

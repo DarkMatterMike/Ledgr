@@ -441,9 +441,8 @@ function AppInner() {
   useEffect(() => {
     if (!isMobile) return;
     let startX = 0, startY = 0;
-    const EDGE_ZONE  = 30;  // px from left edge to trigger open swipe
-    const MIN_SWIPE  = 50;  // minimum horizontal distance to count as swipe
-    const MAX_VERTICAL = 60; // max vertical drift before ignoring
+    const MIN_SWIPE    = 50;  // minimum horizontal distance to count as swipe
+    const MAX_VERTICAL = 60;  // max vertical drift before ignoring
 
     function onTouchStart(e) {
       startX = e.touches[0].clientX;
@@ -453,8 +452,8 @@ function AppInner() {
       const dx = e.changedTouches[0].clientX - startX;
       const dy = Math.abs(e.changedTouches[0].clientY - startY);
       if (dy > MAX_VERTICAL) return; // too vertical — scroll, not swipe
-      if (dx > MIN_SWIPE && startX < EDGE_ZONE) {
-        setDrawerOpen(true);  // swipe right from left edge
+      if (dx > MIN_SWIPE && !drawerOpen) {
+        setDrawerOpen(true);  // swipe right from anywhere to open
       } else if (dx < -MIN_SWIPE && drawerOpen) {
         setDrawerOpen(false); // swipe left to close
       }
@@ -500,8 +499,9 @@ function AppInner() {
     setup();
   }, []);
 
+  const contentRef = useRef(null);
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
-  const navigate  = id  => { setView(id); setDrawerOpen(false); };
+  const navigate  = id  => { setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); };
 
   function showUndoToast(label, undoFn) {
     clearTimeout(undoTimer.current);
@@ -3902,10 +3902,10 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
             zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
           }}>
-            <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); }} />
+            <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); }} />
           </div>
           {/* Content */}
-          <div style={{height:"100%",overflowY:"auto"}} className="ledgr-content">
+          <div ref={contentRef} style={{height:"100%",overflowY:"auto"}} className="ledgr-content">
             {VIEWS[view]}
           </div>
         </div>
@@ -3932,10 +3932,10 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
           <aside style={{width:220,flexShrink:0,background:"var(--surface)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
-            <SidebarContent onNav={id=>setView(id)} />
+            <SidebarContent onNav={id=>{ setView(id); contentRef.current?.scrollTo({ top: 0 }); }} />
           </aside>
           {/* Content */}
-          <div style={{flex:1,overflowY:"auto"}} className="ledgr-content">
+          <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">
             {VIEWS[view]}
           </div>
         </div>

@@ -310,7 +310,7 @@ function AppInner() {
         const loadedTxns = data.transactions || [];
         setAccounts(data.accounts         || []);
         setCategories(data.categories     || []);
-        setTransactions(applyRules(loadedTxns, loadedRules));
+        setTransactions(applyRules(loadedTxns, loadedRules, { onlyUncategorized: true }));
         setPlaidItems(data.plaidItems     || []);
         setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);
@@ -709,9 +709,27 @@ function AppInner() {
           if (!modMap[t.id]) return t;
           const updated = plaidTxnToLocal(modMap[t.id],catMap);
           const merged = {
-            ...t,
             ...updated,
-            categoryId: t.categoryId || updated.categoryId || null,
+            ...t,
+            id: t.id,
+            date: updated.date || t.date,
+            merchant: updated.merchant || t.merchant,
+            pending: typeof updated.pending === "boolean" ? updated.pending : t.pending,
+            plaidAccountId: updated.plaidAccountId || t.plaidAccountId,
+            accountId: t.manualAccount ? (t.accountId || null) : (updated.accountId || t.accountId || null),
+            categoryId: t.manualCategory ? (t.categoryId || null) : (t.categoryId || updated.categoryId || null),
+            name: t.name || updated.name || "",
+            type: t.manualType ? t.type : (t.type || updated.type),
+            recurring: t.recurring,
+            recurringDay: t.recurringDay,
+            recurringFreq: t.recurringFreq,
+            recurringStart: t.recurringStart,
+            reviewed: t.reviewed,
+            manualCategory: !!t.manualCategory,
+            manualName: !!t.manualName,
+            manualType: !!t.manualType,
+            manualAccount: !!t.manualAccount,
+            manualRecurring: !!t.manualRecurring,
           };
           return applyRules([merged], rules, { onlyUncategorized: true })[0];
         });
@@ -790,21 +808,21 @@ function AppInner() {
   /* ── Transaction CRUD ── */
   function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }
   function saveRename(id) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant}:t));
+    setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant,manualName:true}:t));
     setEditingId(null); showToast("Name updated");
   }
   function updateTxnType(id,val) {
     setTransactions(p=>p.map(t=>{
       if (t.id!==id) return t;
       const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
-      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed};
+      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, manualType:true};
     }));
   }
   function updateTxnCat(id,val) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null,reviewed:val?true:t.reviewed}:t));
+    setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null,reviewed:val?true:t.reviewed,manualCategory:true}:t));
     if(val){const txn=transactions.find(t=>t.id===id);if(txn)promptSaveRule(txn,val);}
   }
-  function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
+  function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null,manualAccount:true}:t)); }
   function deleteTxn(id) {
     const txn = transactions.find(t=>t.id===id);
     setTransactions(p=>p.filter(t=>t.id!==id));
@@ -817,10 +835,10 @@ function AppInner() {
       const autoDay=t.date?parseInt(t.date.split("-")[2]):null;
       return {...t, recurring:on, recurringDay:on?(t.recurringDay||autoDay):null,
         recurringFreq: on?(t.recurringFreq||"monthly"):null,
-        recurringStart: on?(t.recurringStart||t.date||null):null};
+        recurringStart: on?(t.recurringStart||t.date||null):null, manualRecurring:true};
     }));
   }
-  function updateRecurringDay(id,day) { setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null}:t)); }
+  function updateRecurringDay(id,day) { setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null,manualRecurring:true}:t)); }
   function openAddTxn() {
     setTxnForm({merchant:"",amount:"",date:today.toISOString().slice(0,10),categoryId:"",accountId:"",sign:"-1"});
     setModal("addTxn");
@@ -1799,6 +1817,13 @@ function AppInner() {
                   </div>
                 );
               })()}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {BudgetSummaryCard}
+                {SpendingBreakdownCard}
+                {CashFlowCard}
+                {OverspendingHighlightsCard}
+              </div>
             </>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 16, alignItems: "start" }}>

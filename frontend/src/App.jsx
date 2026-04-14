@@ -2166,148 +2166,156 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   const Accounts = (
     <PageLayout
       isMobile={isMobile}
-      left={(
-    <div>
-      <div style={{...S.sectionHdr,marginBottom:8}}>
-        <div style={S.sectionTitle}>Accounts</div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank"/>
-          <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
-        </div>
-      </div>
-      <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>Projections based on your daily spend rate through end of {today.toLocaleString("default",{month:"long"})}.</div>
-      {plaidItems.length>0&&(
-        <div style={{...S.card,marginBottom:16}}>
-          <div style={S.cardTitle}>Connected Banks</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-            {plaidItems.map(item=>(
-              <div key={item.item_id} style={{display:"flex",alignItems:"center",gap:8,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",padding:"8px 12px"}}>
-                <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>🏦 {item.institution}</span>
-                <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13}} onClick={()=>doSync(item.item_id)}>⟳</button>
-                <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:13}} onClick={()=>disconnectItem(item.item_id)}>✕</button>
+      left={
+        <div>
+          <div style={{...S.sectionHdr,marginBottom:8}}>
+            <div style={S.sectionTitle}>Accounts</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank"/>
+              <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
+            </div>
+          </div>
+          <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>
+            Projections based on your daily spend rate through end of {today.toLocaleString("default",{month:"long"})}.
+          </div>
+          {plaidItems.length>0&&(
+            <div style={{...S.card,marginBottom:16}}>
+              <div style={S.cardTitle}>Connected Banks</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                {plaidItems.map(item=>(
+                  <div key={item.item_id} style={{display:"flex",alignItems:"center",gap:8,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",padding:"8px 12px"}}>
+                    <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>🏦 {item.institution}</span>
+                    <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13}} onClick={()=>doSync(item.item_id)}>⟳</button>
+                    <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:13}} onClick={()=>disconnectItem(item.item_id)}>✕</button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {accounts.length===0
-        ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
-        : <div className="ledgr-acct-grid">
-            {accounts.map(acct=>{
-              const spent=spentByAcct[acct.id]||0;
-              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
-              const daily=today.getDate()>0?spent/today.getDate():0;
-              const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
-              return (
-                <div key={acct.id} style={S.card}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div>
-                      <div style={{fontSize:12,color:"var(--t3)",marginBottom:4}}>{typeIcon} {acct.type}{acct.institution?` · ${acct.institution}`:""}</div>
-                      <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700}}>{acct.name}</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?20:24,fontWeight:600,color:"var(--cyan)",margin:"8px 0"}}>{fmt(acct.balance)}</div>
-                      {acct.available!=null&&<div style={{fontSize:11,color:"var(--t3)"}}>Available: {fmt(acct.available)}</div>}
-                    </div>
-                    <div style={{display:"flex",gap:6}}>
-                      <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
-                      <button style={S.btn("ghost",true)} onClick={()=>deleteAcct(acct.id)}>✕</button>
-                    </div>
-                  </div>
-                  <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)"}}>
-                    {[
-                      ["Spent this month",fmt(spent),"var(--t1)"],
-                      ["Income this month",fmt(income),"var(--green)"],
-                      ["Daily avg spend",`${fmt(daily)}/day`,"var(--t1)"],
-                      ["Projected month end",fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1)),"var(--t1)"],
-                    ].map(([label,value,color])=>(
-                      <div key={label} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--t2)",marginBottom:6}}>
-                        <span>{label}</span><span style={{fontFamily:"var(--font-mono)",color}}>{value}</span>
+            </div>
+          )}
+          {accounts.length===0 ? (
+            <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+          ) : (
+            <div className="ledgr-acct-grid">
+              {accounts.map(acct=>{
+                const spent=spentByAcct[acct.id]||0;
+                const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
+                const daily=today.getDate()>0?spent/today.getDate():0;
+                const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
+                return (
+                  <div key={acct.id} style={S.card}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                      <div>
+                        <div style={{fontSize:12,color:"var(--t3)",marginBottom:4}}>{typeIcon} {acct.type}{acct.institution?` · ${acct.institution}`:""}</div>
+                        <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700}}>{acct.name}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?20:24,fontWeight:600,color:"var(--cyan)",margin:"8px 0"}}>{fmt(acct.balance)}</div>
+                        {acct.available!=null&&<div style={{fontSize:11,color:"var(--t3)"}}>Available: {fmt(acct.available)}</div>}
                       </div>
-                    ))}
+                      <div style={{display:"flex",gap:6}}>
+                        <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
+                        <button style={S.btn("ghost",true)} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                      </div>
+                    </div>
+                    <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)"}}>
+                      {[
+                        ["Spent this month",fmt(spent),"var(--t1)"],
+                        ["Income this month",fmt(income),"var(--green)"],
+                        ["Daily avg spend",`${fmt(daily)}/day`,"var(--t1)"],
+                        ["Projected month end",fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1)),"var(--t1)"],
+                      ].map(([label,value,color])=>(
+                        <div key={label} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--t2)",marginBottom:6}}>
+                          <span>{label}</span><span style={{fontFamily:"var(--font-mono)",color}}>{value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-    </div>
-    )} />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      }
+    />
   );
 
   /* ── Rules ── */
   const Rules = (
     <PageLayout
       isMobile={isMobile}
-      left={(
-    <div>
-      <div style={{...S.sectionHdr,marginBottom:6}}>
-        <div style={S.sectionTitle}>Auto-Categorization Rules</div>
-        <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
-      </div>
-      <p style={{fontSize:12,color:"var(--t3)",marginBottom:16,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync.</p>
+      left={
+        <div>
+          <div style={{...S.sectionHdr,marginBottom:6}}>
+            <div style={S.sectionTitle}>Auto-Categorization Rules</div>
+            <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
+          </div>
+          <p style={{fontSize:12,color:"var(--t3)",marginBottom:16,lineHeight:1.6}}>
+            Automatically assign categories to new transactions when they sync.
+          </p>
 
-      {rules.length===0 ? (
-        <div style={{...S.card,textAlign:"center",padding:48}}>
-          <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
-          <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
-          <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
-        </div>
-      ) : (
-        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
-          {rules.map((rule)=>{
-            const cat = catMap[rule.categoryId];
-            return (
-              <div key={rule.id}
-                style={{
-                  background:"var(--card)",border:"1px solid var(--border)",
-                  borderRadius:"var(--radius)",padding:"13px 16px",
-                  borderLeft:rule.enabled
-                    ? `3px solid ${cat?.color||"var(--cyan)"}`
-                    : "3px solid var(--border2)",
-                  opacity:rule.enabled?1:0.45,
-                  transition:"background 0.12s",
-                }}
-                onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}>
+          {rules.length===0 ? (
+            <div style={{...S.card,textAlign:"center",padding:48}}>
+              <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
+              <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
+              <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
+            </div>
+          ) : (
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
+              {rules.map((rule)=>{
+                const cat = catMap[rule.categoryId];
+                return (
+                  <div
+                    key={rule.id}
+                    style={{
+                      background:"var(--card)",border:"1px solid var(--border)",
+                      borderRadius:"var(--radius)",padding:"13px 16px",
+                      borderLeft:rule.enabled
+                        ? `3px solid ${cat?.color||"var(--cyan)"}`
+                        : "3px solid var(--border2)",
+                      opacity:rule.enabled?1:0.45,
+                      transition:"background 0.12s",
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}
+                  >
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,overflow:"hidden"}}>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"3px 9px",borderRadius:"var(--radius)",flexShrink:0,maxWidth:"55%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {rule.matchType==="exact"?"=":rule.matchType==="starts"?"^":"~"} {rule.pattern}
+                      </span>
+                      <span style={{fontSize:12,color:"var(--t3)",flexShrink:0}}>→</span>
+                      {cat ? (
+                        <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
+                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                          {cat.name}
+                        </span>
+                      ) : (
+                        <span style={{fontSize:12,color:"var(--t3)",flex:1}}>Unknown</span>
+                      )}
+                    </div>
 
-                {/* Row 1: pattern pill → category */}
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,overflow:"hidden"}}>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"3px 9px",borderRadius:"var(--radius)",flexShrink:0,maxWidth:"55%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {rule.matchType==="exact"?"=":rule.matchType==="starts"?"^":"~"} {rule.pattern}
-                  </span>
-                  <span style={{fontSize:12,color:"var(--t3)",flexShrink:0}}>→</span>
-                  {cat ? (
-                    <span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
-                      <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                      {cat.name}
-                    </span>
-                  ) : (
-                    <span style={{fontSize:12,color:"var(--t3)",flex:1}}>Unknown</span>
-                  )}
-                </div>
-
-                {/* Row 2: meta + actions */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                  <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
-                    <span style={{color:"var(--t2)",fontWeight:500,textTransform:"capitalize"}}>{rule.matchType}</span>
-                    {rule.createdAt&&<span style={{marginLeft:6}}>· {new Date(rule.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>}
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                      <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
+                        <span style={{color:"var(--t2)",fontWeight:500,textTransform:"capitalize"}}>{rule.matchType}</span>
+                        {rule.createdAt&&<span style={{marginLeft:6}}>· {new Date(rule.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>}
+                      </div>
+                      <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+                        <button onClick={()=>toggleRule(rule.id)}
+                          style={{...S.btn("ghost",true),color:rule.enabled?"var(--green)":"var(--t3)",borderColor:rule.enabled?"var(--green)44":"var(--border2)"}}>
+                          {rule.enabled?"On":"Off"}
+                        </button>
+                        <button style={S.btn("ghost",true)}
+                          onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId,enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>
+                          Edit
+                        </button>
+                        <button style={S.btn("ghost",true)} onClick={()=>deleteRule(rule.id)}>✕</button>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
-                    <button onClick={()=>toggleRule(rule.id)}
-                      style={{...S.btn("ghost",true),color:rule.enabled?"var(--green)":"var(--t3)",borderColor:rule.enabled?"var(--green)44":"var(--border2)"}}>
-                      {rule.enabled?"On":"Off"}
-                    </button>
-                    <button style={S.btn("ghost",true)}
-                      onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId,enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>
-                      Edit
-                    </button>
-                    <button style={S.btn("ghost",true)} onClick={()=>deleteRule(rule.id)}>✕</button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      }
+    />
   );
 
   /* ── Calendar ── */

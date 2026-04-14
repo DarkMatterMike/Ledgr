@@ -1711,8 +1711,10 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     }
 
     return (
-      <PageLayout isMobile={isMobile} left={(
-      <div>
+      <PageLayout
+        isMobile={isMobile}
+        left={(
+          <div>
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
           <div style={S.sectionTitle}>All Transactions</div>
@@ -1876,8 +1878,9 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
             })}
           </div>
         )}
-      </div>
-      )} />
+          </div>
+        )}
+      />
     );
   })();
 
@@ -2161,7 +2164,9 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
   /* ── Accounts ── */
   const Accounts = (
-    <PageLayout isMobile={isMobile} left={(
+    <PageLayout
+      isMobile={isMobile}
+      left={(
     <div>
       <div style={{...S.sectionHdr,marginBottom:8}}>
         <div style={S.sectionTitle}>Accounts</div>
@@ -2229,7 +2234,9 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
 
   /* ── Rules ── */
   const Rules = (
-    <PageLayout isMobile={isMobile} left={(
+    <PageLayout
+      isMobile={isMobile}
+      left={(
     <div>
       <div style={{...S.sectionHdr,marginBottom:6}}>
         <div style={S.sectionTitle}>Auto-Categorization Rules</div>

@@ -288,6 +288,9 @@ function AppInner() {
   const [calendarAccounts, setCalendarAccounts] = useState(null);
   const [editingCalAccts,  setEditingCalAccts]  = useState(false);
   const [search,        setSearch]        = useState("");
+  const txnSearchInputRef = useRef(null);
+  const txnSearchHadFocusRef = useRef(false);
+  const txnSearchCaretRef = useRef({ start: null, end: null });
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
   const [filterReview,  setFilterReview]  = useState(false);
@@ -455,6 +458,15 @@ function AppInner() {
     clearTimeout(undoTimer.current);
     setUndoAction({ label, fn: undoFn });
     undoTimer.current = setTimeout(() => setUndoAction(null), 4000);
+  }
+
+  function handleTxnSearchChange(e) {
+    txnSearchHadFocusRef.current = true;
+    txnSearchCaretRef.current = {
+      start: e.target.selectionStart,
+      end: e.target.selectionEnd,
+    };
+    setSearch(e.target.value);
   }
 
   // A transaction needs review if it has no category AND hasn't been marked reviewed
@@ -643,6 +655,21 @@ function AppInner() {
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
   [transactions, search, filterCat, filterAcct, filterReview]);
+
+  useEffect(() => {
+    if (view !== "transactions" || !txnSearchHadFocusRef.current) return;
+    const el = txnSearchInputRef.current;
+    if (!el) return;
+    const start = txnSearchCaretRef.current.start ?? search.length;
+    const end = txnSearchCaretRef.current.end ?? search.length;
+    requestAnimationFrame(() => {
+      if (!txnSearchInputRef.current) return;
+      txnSearchInputRef.current.focus();
+      try {
+        txnSearchInputRef.current.setSelectionRange(start, end);
+      } catch {}
+    });
+  }, [search, view, filteredTxns.length]);
 
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a,b) => {
@@ -1802,7 +1829,7 @@ function PageLayout({ left, right = null }) {
         <div className="ledgr-filter-row" style={{...S.filterRow,marginBottom:14}}>
           <div style={{position:"relative",flex:1,minWidth:140}}>
             <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:13}}>🔍</span>
-            <input style={{...S.input,paddingLeft:32,fontSize:13}} placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}/>
+            <input ref={txnSearchInputRef} onFocus={()=>{txnSearchHadFocusRef.current=true;}} onBlur={()=>{txnSearchHadFocusRef.current=false;}} style={{...S.input,paddingLeft:32,fontSize:13}} placeholder="Search…" value={search} onChange={handleTxnSearchChange}/>
           </div>
           <select style={{...S.select,padding:"8px 10px"}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
             <option value="all">All Categories</option>

@@ -701,7 +701,24 @@ cron.schedule("0 */4 * * *", async () => {
     console.error("[cron] Failed:", err.message);
   }
 });
-
+/* ── Temporary recovery route ─────────────────────────────────────── */
+app.get("/api/admin/recover", requireOwner, async (req, res) => {
+  try {
+    const { rows: userRows } = await pool.query(
+      "SELECT key, length(value) as size FROM app_data WHERE user_id = $1",
+      [req.user.id]
+    );
+    const { rows: oldRows } = await pool.query(
+      "SELECT key, length(value) as size FROM app_data WHERE user_id IS NULL"
+    );
+    const { rows: allRows } = await pool.query(
+      "SELECT user_id, key, length(value) as size FROM app_data LIMIT 50"
+    );
+    res.json({ userRows, oldRows, allRows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 /* ── Start ────────────────────────────────────────────────────────── */
 initDB().then(() => {
   app.listen(PORT, () => {

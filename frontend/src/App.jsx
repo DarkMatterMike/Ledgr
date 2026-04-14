@@ -1229,7 +1229,7 @@ function AppInner() {
   );
 
 
-
+const reviewCount = transactions.filter(t => needsReview(t)).length;
   const Dashboard = (
     <div>
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
@@ -1248,7 +1248,47 @@ function AppInner() {
           <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
         </div>
       </div>
+{reviewCount > 0 && (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      background: "var(--cyan-dim)",
+      borderLeft: "3px solid var(--cyan)",
+      borderRadius: "var(--radius)",
+      padding: "10px 14px",
+      marginBottom: 16,
+    }}
+  >
+    <span style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>
+      <span style={{ color: "var(--cyan)", fontWeight: 700 }}>
+        {reviewCount}
+      </span>{" "}
+      transactions need review
+    </span>
 
+    <button
+      onClick={() => {
+        setView("transactions");
+        setFilterReview(true);
+        setSearch("");
+        setFilterCat("all");
+        setFilterAcct("all");
+      }}
+      style={{
+        background: "none",
+        color: "var(--cyan)",
+        border: "none",
+        cursor: "pointer",
+        fontSize: 13,
+        fontWeight: 600,
+      }}
+    >
+      Review ›
+    </button>
+  </div>
+)}
       <div className="ledgr-stat-grid" style={{marginBottom:20}}>
         {[
           {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },

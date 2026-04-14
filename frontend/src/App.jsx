@@ -1548,7 +1548,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                         <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                           <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
                         </div>
-                      </button>
+                      </div>
                     );
                   })
               }

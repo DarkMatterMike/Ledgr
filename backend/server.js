@@ -702,16 +702,16 @@ cron.schedule("0 */4 * * *", async () => {
   }
 });
 /* ── Temporary recovery route ─────────────────────────────────────── */
-app.post("/api/admin/fix-schema", requireOwner, async (req, res) => {
+app.post("/api/admin/fix-push-schema", requireOwner, async (req, res) => {
   try {
-    await pool.query(`ALTER TABLE app_data DROP CONSTRAINT IF EXISTS app_data_pkey`);
-    await pool.query(`ALTER TABLE app_data ADD PRIMARY KEY (user_id, key)`);
+    await pool.query(`ALTER TABLE push_subscriptions DROP CONSTRAINT IF EXISTS push_subscriptions_user_id_endpoint_key`);
+    await pool.query(`ALTER TABLE push_subscriptions DROP CONSTRAINT IF EXISTS push_subscriptions_endpoint_key`);
+    await pool.query(`ALTER TABLE push_subscriptions ADD CONSTRAINT push_subscriptions_user_endpoint UNIQUE (user_id, endpoint)`);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-/* ── Start ────────────────────────────────────────────────────────── */
+});/* ── Start ────────────────────────────────────────────────────────── */
 initDB().then(() => {
   app.listen(PORT, () => {
     console.log(`\n  🏦  Ledgr backend (multi-user)`);

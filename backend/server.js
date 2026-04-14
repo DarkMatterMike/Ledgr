@@ -702,18 +702,11 @@ cron.schedule("0 */4 * * *", async () => {
   }
 });
 /* ── Temporary recovery route ─────────────────────────────────────── */
-app.get("/api/admin/recover2", requireOwner, async (req, res) => {
+app.post("/api/admin/fix-schema", requireOwner, async (req, res) => {
   try {
-    const tables = await pool.query(`
-      SELECT table_name FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `);
-    const counts = {};
-    for (const { table_name } of tables.rows) {
-      const r = await pool.query(`SELECT COUNT(*) FROM "${table_name}"`);
-      counts[table_name] = parseInt(r.rows[0].count);
-    }
-    res.json({ tables: tables.rows.map(r => r.table_name), counts });
+    await pool.query(`ALTER TABLE app_data DROP CONSTRAINT IF EXISTS app_data_pkey`);
+    await pool.query(`ALTER TABLE app_data ADD PRIMARY KEY (user_id, key)`);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

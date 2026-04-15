@@ -294,15 +294,23 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
     for (const item of items) {
       try {
         const r = await plaidClient.accountsGet({ access_token: item.access_token });
-        allAccounts.push(...r.data.accounts.map(a => ({ plaidId: a.account_id, plaidItemId: item.item_id, institution: item.institution, type: a.type, subtype: a.subtype, balance: a.balances.current, available: a.balances.available })));
+        allAccounts.push(...r.data.accounts.map(a => ({ plaidId: a.account_id, plaidItemId: item.item_id, institution: item.institution, name: a.name, type: a.type, subtype: a.subtype, balance: a.balances.current, available: a.balances.available })));
       } catch (e) { console.error(`accountsGet failed for ${item.item_id}:`, e.message); }
     }
     if (allAccounts.length > 0) {
       const saved = (await getData(userId, "accounts")) || [];
       const manual = saved.filter(a => !a.plaidId);
       const byPlaid = Object.fromEntries(saved.filter(a => a.plaidId).map(a => [a.plaidId, a]));
+      // Deduplicate by name+institution before merging
+      const seenNames = new Set();
+      const unique = allAccounts.filter(pa => {
+        const key = `${pa.name}__${pa.institution}`.toLowerCase();
+        if (seenNames.has(key)) return false;
+        seenNames.add(key);
+        return true;
+      });
       const seen = new Set();
-      const plaidUpdated = allAccounts
+      const plaidUpdated = unique
         .filter(pa => { const dup = seen.has(pa.plaidId); seen.add(pa.plaidId); return !dup; })
         .map(pa => ({
           ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
@@ -662,7 +670,15 @@ app.get("/api/plaid/accounts", async (req, res) => {
         })));
       } catch (err) { console.error(`accountsGet error for ${item.item_id}:`, err.response?.data || err.message); }
     }
-    res.json({ accounts: allAccounts });
+    // Deduplicate by name+institution — same account connected multiple times gets collapsed
+    const seen = new Set();
+    const deduped = allAccounts.filter(a => {
+      const key = `${a.name}__${a.institution}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    res.json({ accounts: deduped });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

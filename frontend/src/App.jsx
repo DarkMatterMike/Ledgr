@@ -909,6 +909,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   const inputSt = { ...S.input, marginBottom:0 };
 
   return (
+    <>
     <div style={{ maxWidth:560 }}>
 
       {/* Profile */}
@@ -1100,6 +1101,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         </div>
       </div>
     )}
+    </>
   );
 }
 

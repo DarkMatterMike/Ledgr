@@ -301,18 +301,14 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
       const saved = (await getData(userId, "accounts")) || [];
       const manual = saved.filter(a => !a.plaidId);
       const byPlaid = Object.fromEntries(saved.filter(a => a.plaidId).map(a => [a.plaidId, a]));
-      // Deduplicate by name+institution before merging
-      const seenNames = new Set();
+      // Deduplicate by plaidId — same account from multiple connections gets collapsed
+      const seen = new Set();
       const unique = allAccounts.filter(pa => {
-        const key = `${pa.name}__${pa.institution}`.toLowerCase();
-        if (seenNames.has(key)) return false;
-        seenNames.add(key);
+        if (seen.has(pa.plaidId)) return false;
+        seen.add(pa.plaidId);
         return true;
       });
-      const seen = new Set();
-      const plaidUpdated = unique
-        .filter(pa => { const dup = seen.has(pa.plaidId); seen.add(pa.plaidId); return !dup; })
-        .map(pa => ({
+      const plaidUpdated = unique.map(pa => ({
           ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
           plaidId: pa.plaidId, plaidItemId: pa.plaidItemId,
           balance: pa.balance, available: pa.available,
@@ -669,12 +665,11 @@ app.get("/api/plaid/accounts", async (req, res) => {
         })));
       } catch (err) { console.error(`accountsGet error for ${item.item_id}:`, err.response?.data || err.message); }
     }
-    // Deduplicate by name+institution — same account connected multiple times gets collapsed
+    // Deduplicate by account_id — same account_id from multiple connections gets collapsed
     const seen = new Set();
     const deduped = allAccounts.filter(a => {
-      const key = `${a.name}__${a.institution}`.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
+      if (seen.has(a.account_id)) return false;
+      seen.add(a.account_id);
       return true;
     });
     res.json({ accounts: deduped });

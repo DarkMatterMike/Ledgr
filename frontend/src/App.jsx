@@ -3821,6 +3821,228 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   );
 
+  /* ── Settings ── */
+  const Settings = (() => {
+    const user = api.getStoredUser();
+    const [name,        setName]        = useState(user?.name || "");
+    const [savingName,  setSavingName]  = useState(false);
+    const [currPw,      setCurrPw]      = useState("");
+    const [newPw,       setNewPw]       = useState("");
+    const [confirmPw,   setConfirmPw]   = useState("");
+    const [pwError,     setPwError]     = useState("");
+    const [pwSuccess,   setPwSuccess]   = useState(false);
+    const [savingPw,    setSavingPw]    = useState(false);
+
+    async function saveName() {
+      if (!name.trim()) return;
+      setSavingName(true);
+      try {
+        // Store name in app_data as part of profile
+        await api.saveData({ profile: { name: name.trim() } });
+        api.setStoredUser({ ...user, name: name.trim() });
+        showToast("Name saved");
+      } catch (e) { showToast("Failed to save name"); }
+      finally { setSavingName(false); }
+    }
+
+    async function changePassword() {
+      setPwError(""); setPwSuccess(false);
+      if (!currPw || !newPw) return setPwError("All fields required");
+      if (newPw.length < 8)  return setPwError("New password must be at least 8 characters");
+      if (newPw !== confirmPw) return setPwError("Passwords do not match");
+      setSavingPw(true);
+      try {
+        await api.changePassword(currPw, newPw);
+        setPwSuccess(true);
+        setCurrPw(""); setNewPw(""); setConfirmPw("");
+        showToast("Password updated");
+      } catch (e) { setPwError(e.message || "Failed to update password"); }
+      finally { setSavingPw(false); }
+    }
+
+    function exportCSV() {
+      const headers = ["Date","Name","Merchant","Amount","Type","Category","Account","Recurring"];
+      const rows = transactions.map(t => [
+        t.date || "",
+        t.name || "",
+        t.merchant || "",
+        t.amount ?? "",
+        t.type || "",
+        catMap[t.categoryId]?.name || "",
+        acctMap[t.accountId]?.name || "",
+        t.recurring ? "Yes" : "No",
+      ]);
+      const csv = [headers, ...rows]
+        .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = `ledgr-export-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Export downloaded");
+    }
+
+    const Section = ({ title, children }) => (
+      <div style={{ ...S.card, marginBottom: 16 }}>
+        <div style={S.cardTitle}>{title}</div>
+        {children}
+      </div>
+    );
+
+    const inputSt = { ...S.input, marginBottom: 0 };
+
+    return (
+      <div style={{ maxWidth: 560 }}>
+
+        {/* ── Profile ── */}
+        <Section title="Profile">
+          <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
+            <div style={{
+              width:56, height:56, borderRadius:"50%", flexShrink:0,
+              background: avatarColor + "33", border:`2px solid ${avatarColor}`,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontFamily:"var(--font-disp)", fontSize:22, fontWeight:800, color:avatarColor,
+            }}>
+              {avatarLetter}
+            </div>
+            <div>
+              <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)" }}>
+                {user?.name || user?.email}
+              </div>
+              <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{user?.email}</div>
+              {user?.role === "owner" && (
+                <div style={{ marginTop:4, display:"inline-flex", alignItems:"center", gap:5,
+                  background:"#00d4ff22", border:"1px solid #00d4ff44",
+                  borderRadius:99, padding:"2px 10px", fontSize:10, fontWeight:700, color:"var(--cyan)", letterSpacing:"0.5px" }}>
+                  ⚡ OWNER
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <input
+              style={{ ...inputSt, flex:1 }}
+              placeholder="Display name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && saveName()}
+            />
+            <button style={S.btn("primary", true)} onClick={saveName} disabled={savingName}>
+              {savingName ? "…" : "Save"}
+            </button>
+          </div>
+        </Section>
+
+        {/* ── Subscription ── */}
+        <Section title="Subscription">
+          {user?.role === "owner" ? (
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Owner — Lifetime Access</div>
+                <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>No subscription required</div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ width:8, height:8, borderRadius:"50%",
+                  background: user?.subscription_status === "active" ? "var(--green)" : "var(--amber)", flexShrink:0 }}/>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", textTransform:"capitalize" }}>
+                    {user?.subscription_status || "Unknown"}
+                  </div>
+                  {user?.trial_ends_at && user?.subscription_status === "trialing" && (
+                    <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>
+                      Trial ends {new Date(user.trial_ends_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <a
+                href="https://billing.stripe.com/p/login/test_placeholder"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...S.btn("ghost"), textDecoration:"none", justifyContent:"center", textAlign:"center" }}>
+                Manage Subscription →
+              </a>
+            </div>
+          )}
+        </Section>
+
+        {/* ── Security ── */}
+        <Section title="Security">
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={S.field}>
+              <label style={S.label}>Current Password</label>
+              <input style={inputSt} type="password" placeholder="••••••••"
+                value={currPw} onChange={e => { setCurrPw(e.target.value); setPwError(""); setPwSuccess(false); }} />
+            </div>
+            <div style={S.field}>
+              <label style={S.label}>New Password</label>
+              <input style={inputSt} type="password" placeholder="Min. 8 characters"
+                value={newPw} onChange={e => { setNewPw(e.target.value); setPwError(""); setPwSuccess(false); }} />
+            </div>
+            <div style={S.field}>
+              <label style={S.label}>Confirm New Password</label>
+              <input style={inputSt} type="password" placeholder="••••••••"
+                value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setPwError(""); setPwSuccess(false); }} />
+            </div>
+            {pwError   && <div style={{ fontSize:12, color:"var(--red)" }}>{pwError}</div>}
+            {pwSuccess && <div style={{ fontSize:12, color:"var(--green)" }}>Password updated successfully</div>}
+            <button style={{ ...S.btn("primary"), alignSelf:"flex-start" }} onClick={changePassword} disabled={savingPw}>
+              {savingPw ? "Updating…" : "Update Password"}
+            </button>
+          </div>
+        </Section>
+
+        {/* ── Data ── */}
+        <Section title="Your Data">
+          <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
+            Export all your transactions as a CSV file you can open in Excel or Google Sheets.
+          </div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+            <div style={{ fontSize:12, color:"var(--t3)" }}>
+              {transactions.length} transactions · {accounts.length} accounts · {categories.length} categories
+            </div>
+            <button style={S.btn("ghost", true)} onClick={exportCSV}>
+              ↓ Export CSV
+            </button>
+          </div>
+        </Section>
+
+        {/* ── Legal ── */}
+        <Section title="Legal">
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer"
+              style={{ fontSize:13, color:"var(--t2)", textDecoration:"none", display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:"10px 12px", background:"var(--surface)", borderRadius:"var(--radius)", border:"1px solid var(--border)" }}>
+              Privacy Policy <span style={{ color:"var(--t3)" }}>→</span>
+            </a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer"
+              style={{ fontSize:13, color:"var(--t2)", textDecoration:"none", display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:"10px 12px", background:"var(--surface)", borderRadius:"var(--radius)", border:"1px solid var(--border)" }}>
+              Terms of Service <span style={{ color:"var(--t3)" }}>→</span>
+            </a>
+          </div>
+        </Section>
+
+        {/* ── Danger ── */}
+        <Section title="Account">
+          <button
+            style={{ ...S.btn("danger"), width:"100%" }}
+            onClick={() => { api.clearToken(); window.location.reload(); }}>
+            Sign Out
+          </button>
+        </Section>
+
+      </div>
+    );
+  })();
+
   /* ─────────────────────────────────────────────────────────────────
      NAV + RENDER
   ───────────────────────────────────────────────────────────────── */
@@ -3831,8 +4053,9 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     { id:"accounts",     icon:"▣", label:"Accounts"     },
     { id:"rules",        icon:"◎", label:"Rules"        },
     { id:"calendar",     icon:"▦", label:"Calendar"     },
+    { id:"settings",     icon:"⚙", label:"Settings"     },
   ];
-  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar };
+  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:Settings };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
@@ -3843,6 +4066,12 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
 
   /* ── Shared sidebar content ── */
   const currentUser = api.getStoredUser();
+  const avatarColor = (() => {
+    const colors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
+    const i = (currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
+    return colors[i];
+  })();
+  const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
   const SidebarContent = ({ onNav }) => (
     <>
       <div style={{padding:"24px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
@@ -3899,24 +4128,32 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
             🔔 Enable Notifications
           </button>
         )}
-        {/* User info + sign out */}
+        {/* User info + settings shortcut */}
         <div style={{borderTop:"1px solid var(--border)",paddingTop:8,marginTop:2}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:11,color:"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                {currentUser?.email}
+          <button
+            onClick={() => onNav("settings")}
+            style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"8px 6px",
+              background:"transparent", border:"none", cursor:"pointer", borderRadius:"var(--radius)",
+              textAlign:"left", transition:"background 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background = "var(--surface)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            <div style={{
+              width:28, height:28, borderRadius:"50%", flexShrink:0,
+              background: avatarColor + "33", border:`1.5px solid ${avatarColor}`,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontFamily:"var(--font-disp)", fontSize:12, fontWeight:800, color:avatarColor,
+            }}>
+              {avatarLetter}
+            </div>
+            <div style={{ minWidth:0, flex:1 }}>
+              <div style={{ fontSize:12, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {currentUser?.name || currentUser?.email}
               </div>
               {currentUser?.role === "owner" && (
-                <div style={{fontSize:10,color:"var(--cyan)",fontWeight:700,letterSpacing:"0.5px",marginTop:1}}>
-                  OWNER
-                </div>
+                <div style={{ fontSize:9, color:"var(--cyan)", fontWeight:700, letterSpacing:"0.5px" }}>OWNER</div>
               )}
             </div>
-          </div>
-          <button
-            style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12,color:"var(--red)",borderColor:"transparent"}}
-            onClick={()=>{ api.clearToken(); window.location.reload(); }}>
-            Sign Out
+            <span style={{ fontSize:11, color:"var(--t3)", flexShrink:0 }}>⚙</span>
           </button>
         </div>
       </div>

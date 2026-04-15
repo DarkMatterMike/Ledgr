@@ -142,7 +142,7 @@ async function createUser(email, password) {
   const isFirst   = parseInt(countRes.rows[0].count, 10) === 0;
   const isOwnerEmail = OWNER_EMAIL && email.toLowerCase().trim() === OWNER_EMAIL.toLowerCase().trim();
   const role      = (isOwnerEmail || isFirst) ? "owner" : "subscriber";
-  const trialEnds = Date.now() + 14 * 24 * 60 * 60 * 1000;
+  const trialEnds = Date.now() + 3 * 24 * 60 * 60 * 1000;
   const res = await pool.query(
     `INSERT INTO users (email, password, role, subscription_status, trial_ends_at)
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,

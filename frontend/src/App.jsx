@@ -588,7 +588,7 @@ function Paywall({ onUpgrade }) {
       </div>
       <div style={{ fontSize:14, color:"var(--t3)", maxWidth:360, marginBottom:32, lineHeight:1.6 }}>
         {trialEnded
-          ? "Your 14-day free trial has ended. Subscribe to continue tracking your finances and connecting bank accounts."
+          ? "Your 3-day free trial has ended. Subscribe to continue tracking your finances and connecting bank accounts."
           : "Subscribe to unlock full access — add transactions, connect banks, and sync automatically."}
       </div>
 
@@ -773,7 +773,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Free Trial</div>
                 {user?.trial_ends_at && (
                   <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>
-                    {Math.max(0, Math.ceil((user.trial_ends_at - Date.now()) / (1000*60*60*24)))} days remaining
+                    {Math.max(0, Math.ceil((user.trial_ends_at - Date.now()) / (1000*60*60*24)))} days remaining in trial
                   </div>
                 )}
               </div>
@@ -913,7 +913,15 @@ function AppInner() {
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
   const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
-  const [access,   setAccess]   = useState("full"); // "full" | "free"
+  const [access,   setAccess]   = useState(() => {
+    // Derive initial access from stored user to avoid flash of full access
+    const u = api.getStoredUser();
+    if (!u) return "free";
+    if (u.role === "owner") return "full";
+    if (u.subscription_status === "active") return "full";
+    if (u.subscription_status === "trialing" && u.trial_ends_at && Date.now() < u.trial_ends_at) return "full";
+    return "free";
+  });
 
   /* ── Load ── */
   const initialized = useRef(false);

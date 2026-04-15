@@ -386,6 +386,23 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
             {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
           </button>
         ))}
+        {/* Admin nav — owner only */}
+        {currentUser?.role === "owner" && (
+          <button onClick={()=>onNav("admin")}
+            style={{
+              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
+              borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+              border:`1px solid ${view==="admin"?"#00d4ff33":"transparent"}`,
+              background:view==="admin"?"var(--cyan-dim)":"transparent",
+              color:view==="admin"?"var(--cyan)":"var(--t2)",
+              width:"100%",textAlign:"left",transition:"all 0.15s",
+              marginTop:8, borderTop:"1px solid var(--border)",paddingTop:16,
+            }}>
+            <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>⬡</span>
+            <span>Admin</span>
+            {view==="admin"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
+          </button>
+        )}
       </nav>
       <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:8}}>
         <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
@@ -906,6 +923,196 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 /* ═══════════════════════════════════════════════════════════════════
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
+function AdminPanel() {
+  const [users,    setUsers]    = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState("");
+  const [editing,  setEditing]  = useState(null); // userId being edited
+  const [editForm, setEditForm] = useState({ subscription_status:"", role:"" });
+  const [saving,   setSaving]   = useState(false);
+  const [confirm,  setConfirm]  = useState(null); // userId to delete
+
+  async function loadUsers() {
+    setLoading(true); setError("");
+    try { const d = await api.adminGetUsers(); setUsers(d.users); }
+    catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadUsers(); }, []);
+
+  async function saveEdit(userId) {
+    setSaving(true);
+    try {
+      const patch = {};
+      if (editForm.subscription_status) patch.subscription_status = editForm.subscription_status;
+      if (editForm.role) patch.role = editForm.role;
+      await api.adminUpdateUser(userId, patch);
+      setEditing(null);
+      await loadUsers();
+    } catch(e) { setError(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function deleteUser(userId) {
+    try {
+      await api.adminDeleteUser(userId);
+      setConfirm(null);
+      await loadUsers();
+    } catch(e) { setError(e.message); }
+  }
+
+  // Stats
+  const stats = {
+    total:      users.length,
+    active:     users.filter(u => u.subscription_status === "active").length,
+    trialing:   users.filter(u => u.subscription_status === "trialing").length,
+    canceled:   users.filter(u => u.subscription_status === "canceled" || u.subscription_status === "past_due").length,
+    mrr:        users.filter(u => u.subscription_status === "active" && u.role !== "owner").length * 4.99,
+  };
+
+  const statusColor = s => s === "active" ? "var(--green)" : s === "trialing" ? "var(--amber)" : s === "past_due" ? "var(--red)" : "var(--t3)";
+  const statusDot   = s => <span style={{width:7,height:7,borderRadius:"50%",background:statusColor(s),display:"inline-block",marginRight:6,flexShrink:0}}/>;
+
+  return (
+    <div style={{padding:"24px 20px",maxWidth:900}}>
+      {/* Header */}
+      <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:24,letterSpacing:"-0.3px"}}>
+        Admin Panel
+      </div>
+
+      {/* Stats row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:28}}>
+        {[
+          { label:"Total Users",   value:stats.total,              color:"var(--t1)"   },
+          { label:"Active",        value:stats.active,             color:"var(--green)" },
+          { label:"Trialing",      value:stats.trialing,           color:"var(--amber)" },
+          { label:"MRR",           value:`$${stats.mrr.toFixed(2)}`, color:"var(--cyan)"  },
+        ].map(({label,value,color}) => (
+          <div key={label} style={{...S.card,padding:"16px 18px"}}>
+            <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:6}}>{label}</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,color}}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {error && <div style={{color:"var(--red)",fontSize:13,marginBottom:16,padding:"10px 14px",background:"#ff4d6d11",borderRadius:"var(--radius)",border:"1px solid #ff4d6d33"}}>{error}</div>}
+
+      {/* Users table */}
+      <div style={{...S.card,padding:0,overflow:"hidden"}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
+            Users ({users.length})
+          </div>
+          <button style={{...S.btn("ghost",true)}} onClick={loadUsers} disabled={loading}>
+            {loading ? "Loading…" : "↻ Refresh"}
+          </button>
+        </div>
+
+        {loading ? (
+          <div style={{padding:40,textAlign:"center",color:"var(--t3)",fontSize:13}}>Loading users…</div>
+        ) : (
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr>
+                  {["Email","Role","Status","Trial Ends","Joined","Actions"].map(h => (
+                    <th key={h} style={S.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => (
+                  <tr key={user.id} style={{background: editing === user.id ? "var(--surface)" : "transparent"}}>
+                    <td style={S.td}>
+                      <div style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>{user.email}</div>
+                      <div style={{fontSize:11,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>{user.id.slice(0,8)}…</div>
+                    </td>
+                    <td style={S.td}>
+                      {editing === user.id ? (
+                        <select style={{...S.select,fontSize:12}} value={editForm.role || user.role}
+                          onChange={e => setEditForm(p => ({...p, role: e.target.value}))}>
+                          <option value="subscriber">subscriber</option>
+                          <option value="owner">owner</option>
+                        </select>
+                      ) : (
+                        <span style={{fontSize:12,color: user.role === "owner" ? "var(--cyan)" : "var(--t2)",fontWeight: user.role === "owner" ? 700 : 400}}>
+                          {user.role}
+                        </span>
+                      )}
+                    </td>
+                    <td style={S.td}>
+                      {editing === user.id ? (
+                        <select style={{...S.select,fontSize:12}} value={editForm.subscription_status || user.subscription_status}
+                          onChange={e => setEditForm(p => ({...p, subscription_status: e.target.value}))}>
+                          <option value="active">active</option>
+                          <option value="trialing">trialing</option>
+                          <option value="canceled">canceled</option>
+                          <option value="past_due">past_due</option>
+                        </select>
+                      ) : (
+                        <span style={{display:"inline-flex",alignItems:"center",fontSize:12}}>
+                          {statusDot(user.subscription_status)}{user.subscription_status}
+                        </span>
+                      )}
+                    </td>
+                    <td style={S.td}>
+                      <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
+                        {user.trial_ends_at ? new Date(user.trial_ends_at).toLocaleDateString() : "—"}
+                      </span>
+                    </td>
+                    <td style={S.td}>
+                      <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td style={S.td}>
+                      {editing === user.id ? (
+                        <div style={{display:"flex",gap:6}}>
+                          <button style={S.btn("primary",true)} onClick={() => saveEdit(user.id)} disabled={saving}>
+                            {saving ? "…" : "Save"}
+                          </button>
+                          <button style={S.btn("ghost",true)} onClick={() => setEditing(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <div style={{display:"flex",gap:6}}>
+                          <button style={S.btn("ghost",true)} onClick={() => {
+                            setEditing(user.id);
+                            setEditForm({ subscription_status: user.subscription_status, role: user.role });
+                          }}>Edit</button>
+                          {user.role !== "owner" && (
+                            <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✕</button>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Delete confirm modal */}
+      {confirm && (
+        <div style={S.overlay} onClick={() => setConfirm(null)}>
+          <div style={{...S.modal,maxWidth:380}} onClick={e => e.stopPropagation()}>
+            <div style={S.modalTitle}>Delete User?</div>
+            <div style={{fontSize:13,color:"var(--t2)",marginBottom:20}}>
+              This will permanently delete the user and all their data. This cannot be undone.
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button style={S.btn("ghost")} onClick={() => setConfirm(null)}>Cancel</button>
+              <button style={S.btn("danger")} onClick={() => deleteUser(confirm)}>Delete User</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AppInner() {
   const isMobile = useIsMobile();
 
@@ -4373,11 +4580,13 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     />
   );
 
+  const AdminPage = currentUser?.role === "owner" ? <AdminPanel /> : null;
+
   // Free-tier users get read-only dashboard + settings, paywall for everything else
   const paywallView = <Paywall />;
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:SettingsPage }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, rules:paywallView, calendar:paywallView, settings:SettingsPage };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:SettingsPage, admin:AdminPage }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, rules:paywallView, calendar:paywallView, settings:SettingsPage, admin:AdminPage };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>

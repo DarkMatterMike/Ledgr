@@ -644,7 +644,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -711,16 +711,23 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     showToast("All transactions deleted");
   }
 
-  function clearAllData() {
+  async function clearAllData() {
     const confirmed = window.confirm(
       "Clear ALL data? This will delete all transactions, accounts, categories, rules, and bank connections. This cannot be undone."
     );
     if (!confirmed) return;
+    // Disconnect all Plaid items from the server first
+    for (const item of plaidItems || []) {
+      try { await api.deleteItem(item.item_id); } catch {}
+    }
+    // Clear state
     setTransactions([]);
     setAccounts([]);
     setCategories([]);
     setRules([]);
     setPlaidItems([]);
+    // Explicitly save empty arrays to DB so they don't get restored on next load
+    await api.saveData({ transactions: [], accounts: [], categories: [], rules: [], plaidItems: [] });
     showToast("All data cleared");
   }
 
@@ -4346,6 +4353,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
       setCategories={setCategories}
       setRules={setRules}
       setPlaidItems={setPlaidItems}
+      plaidItems={plaidItems}
       access={access}
     />
   );

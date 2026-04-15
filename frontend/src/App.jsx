@@ -2,7 +2,6 @@
  * src/App.jsx — Ledgr personal finance app
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import React from "react";
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 
@@ -198,7 +197,6 @@ function isAuthValid() {
 }
 
 function AuthGate({ onAuth }) {
-  console.log("AuthGate rendering");
   const [mode,     setMode]     = useState("login");   // "login" | "register"
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -356,31 +354,13 @@ export default function App() {
 
   if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
 
-  return <ErrorBoundary><AppInner/></ErrorBoundary>;
-}
-
-class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { error: null }; }
-  static getDerivedStateFromError(e) { return { error: e }; }
-  render() {
-    if (this.state.error) {
-      return (
-        <div style={{padding:40,fontFamily:"monospace",color:"red",background:"#111",minHeight:"100vh"}}>
-          <h2>Error caught:</h2>
-          <pre>{this.state.error?.message}</pre>
-          <pre>{this.state.error?.stack}</pre>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+  return <AppInner/>;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    SETTINGS VIEW
 ═══════════════════════════════════════════════════════════════════ */
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
-  console.log("SidebarContent rendering");
   const currentUser = api.getStoredUser();
   const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
   return (
@@ -477,7 +457,6 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   needsReview, markReviewed, startRename, deleteTxn,
   updateTxnType, updateTxnCat, updateTxnAcct,
   openAddCat, toggleRecurring, updateRecurringDay, saveRename }) {
-  console.log("TxnRow rendering", t?.id);
 
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
@@ -591,7 +570,6 @@ function SettingsSection({ title, children }) {
 }
 
 function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast }) {
-  console.log("SettingsView rendering");
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -793,9 +771,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
 function AppInner() {
-  console.log("AppInner rendering");
   const isMobile = useIsMobile();
-  console.log("After useIsMobile, isMobile=", isMobile);
 
   /* ── State ── */
   const [view,          setView]          = useState("dashboard");
@@ -838,7 +814,6 @@ function AppInner() {
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
   const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
 
-  console.log("After state declarations");
   /* ── Load ── */
   const initialized = useRef(false);
   useEffect(() => {
@@ -1551,7 +1526,6 @@ function AppInner() {
   ───────────────────────────────────────────────────────────────── */
 
   /* ── Dashboard ── */
-  console.log("Before budgetAnalytics");
   const budgetAnalytics = useMemo(() => {
     const spentCats = categories
       .map((c) => ({
@@ -1628,7 +1602,6 @@ function AppInner() {
     };
   }, [categories, spentByCat, transactions, selectedMonth]);
 
-  console.log("Before JSX variables");
   const BudgetSummaryCard = (
     <div
       style={{
@@ -1680,7 +1653,6 @@ function AppInner() {
     </div>
   );
 
-  console.log("Before SpendingBreakdownCard");
   const SpendingBreakdownCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
@@ -1766,7 +1738,6 @@ function AppInner() {
     </div>
   );
 
-  console.log("Before CashFlowCard");
   const CashFlowCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
@@ -1838,7 +1809,6 @@ function AppInner() {
     </div>
   );
 
-  console.log("Before OverspendingHighlightsCard");
   const OverspendingHighlightsCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
@@ -1873,7 +1843,6 @@ function AppInner() {
 const reviewCount = transactions.filter(t => needsReview(t)).length;
 
 
-  console.log("Before Dashboard");
   const Dashboard = (
     <div>
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
@@ -2084,7 +2053,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
 
   /* ── Transactions ── */
-  console.log("Before Transactions");
   const Transactions = (()=>{
     // Group filtered transactions by date
     const grouped = filteredTxns.reduce((acc, t) => {
@@ -2315,7 +2283,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     setEditingLimitId(null);
   }
 
-  console.log("Before Budgets");
   const Budgets = (
     <div>
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
@@ -2565,7 +2532,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
   /* ── Accounts ── */
-  console.log("Before Accounts");
   const Accounts = (
     <PageLayout
       isMobile={isMobile}
@@ -2638,7 +2604,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
 
   /* ── Rules ── */
-  console.log("Before Rules");
   const Rules = (
     <PageLayout
       isMobile={isMobile}
@@ -2707,7 +2672,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   const daysInCal=daysInMonth(calYear,calMonthN);
   const totalCells=Math.ceil((firstDow+daysInCal)/7)*7;
 
-  console.log("Before Calendar");
   const Calendar = (()=>{
     const isCurrentCalMonth = calYear===today.getFullYear()&&calMonthN===today.getMonth()+1;
     const isPastCalMonth    = calYear<today.getFullYear()||(calYear===today.getFullYear()&&calMonthN<today.getMonth()+1);
@@ -4014,7 +3978,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   /* ─────────────────────────────────────────────────────────────────
      MODALS
   ───────────────────────────────────────────────────────────────── */
-  console.log("Before EditRecurringModal");
   const EditRecurringModal = editTarget && modal==="editRecurring" ? (
     <Modal title="Edit Recurring Transaction" onClose={()=>{setModal(null);setEditTarget(null);}}
       actions={<>
@@ -4075,7 +4038,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   ) : null;
 
-  console.log("Before RuleModal");
   const RuleModal = (
     <Modal title={modal==="addRule"?"New Rule":"Edit Rule"} onClose={()=>setModal(null)}
       actions={<>
@@ -4110,7 +4072,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   );
 
-  console.log("Before CatModal");
   const CatModal = (
     <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
@@ -4129,7 +4090,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   );
 
-  console.log("Before AcctModal");
   const AcctModal = (
     <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
@@ -4145,7 +4105,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   );
 
-  console.log("Before TxnModal");
   const TxnModal = (
     <Modal title="Add Transaction" onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
@@ -4179,7 +4138,16 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   /* ─────────────────────────────────────────────────────────────────
      NAV + RENDER
   ───────────────────────────────────────────────────────────────── */
-  console.log("Before SettingsPage");
+
+  /* ── Shared sidebar ── */
+  const currentUser  = api.getStoredUser();
+  const avatarColor  = (() => {
+    const colors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
+    const i = (currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
+    return colors[i];
+  })();
+  const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
+
   const SettingsPage = (
     <SettingsView
       transactions={transactions}
@@ -4192,7 +4160,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
       showToast={showToast}
     />
   );
-  console.log("Before VIEWS");
   const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:SettingsPage };
 
   if (loading) return (
@@ -4202,16 +4169,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
 
-  /* ── Shared sidebar ── */
-  const currentUser  = api.getStoredUser();
-  const avatarColor  = (() => {
-    const colors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
-    const i = (currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
-    return colors[i];
-  })();
-  const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
-
-  console.log("Before return");
   return (
     <div style={S.shell}>
     {isMobile ? (

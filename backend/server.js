@@ -16,6 +16,7 @@ const bcrypt    = require("bcrypt");
 const jwt       = require("jsonwebtoken");
 const rateLimit = require("express-rate-limit");
 const Stripe    = require("stripe");
+const { Resend } = require("resend");
 const {
   PlaidApi,
   PlaidEnvironments,
@@ -37,8 +38,12 @@ const BCRYPT_ROUNDS = 12;
 
 // Stripe
 const stripe             = Stripe(process.env.STRIPE_SECRET_KEY || "");
-const STRIPE_PRICE_ID    = process.env.STRIPE_PRICE_ID    || "";  // $4.99/mo price ID
+const STRIPE_PRICE_ID    = process.env.STRIPE_PRICE_ID    || "";
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
+
+// Resend
+const resend    = new Resend(process.env.RESEND_API_KEY || "");
+const FROM_EMAIL = "noreply@ledgrfinance.app";
 
 if (!JWT_SECRET)           console.warn("⚠  JWT_SECRET not set");
 if (!ENCRYPT_KEY)          console.warn("⚠  ENCRYPT_KEY not set");
@@ -46,6 +51,7 @@ if (!OWNER_EMAIL)          console.warn("⚠  OWNER_EMAIL not set");
 if (!process.env.STRIPE_SECRET_KEY) console.warn("⚠  STRIPE_SECRET_KEY not set");
 if (!STRIPE_PRICE_ID)      console.warn("⚠  STRIPE_PRICE_ID not set");
 if (!STRIPE_WEBHOOK_SECRET) console.warn("⚠  STRIPE_WEBHOOK_SECRET not set");
+if (!process.env.RESEND_API_KEY) console.warn("⚠  RESEND_API_KEY not set");
 
 /* ── Encryption ───────────────────────────────────────────────────── */
 function encrypt(text) {
@@ -119,6 +125,16 @@ async function initDB() {
       subscription TEXT NOT NULL,
       created_at   BIGINT,
       UNIQUE (user_id, endpoint)
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token      TEXT NOT NULL UNIQUE,
+      expires_at BIGINT NOT NULL,
+      used       BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     );
   `);
   console.log("  =>  Database ready");
@@ -229,6 +245,91 @@ async function sendPushToUser(userId, payload) {
       })
     )
   );
+}
+
+/* ── Email helpers ────────────────────────────────────────────────── */
+async function sendEmail(to, subject, html) {
+  if (!process.env.RESEND_API_KEY) { console.warn("[email] RESEND_API_KEY not set, skipping:", subject); return; }
+  try {
+    await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
+    console.log(`[email] Sent "${subject}" to ${to}`);
+  } catch(e) { console.error("[email] Failed:", e.message); }
+}
+
+function emailWelcome(email) {
+  return sendEmail(email, "Welcome to ledgr.", `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
+      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
+      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">Welcome aboard 👋</h2>
+      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
+        Your ledgr account is ready. You have a 3-day free trial to explore everything — connect your bank, track spending, and set budgets.
+      </p>
+      <a href="${FRONTEND_URL}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
+        Open ledgr →
+      </a>
+      <p style="color:#8b949e;font-size:12px;margin-top:28px">
+        After your trial, ledgr is $4.99/month. You can subscribe anytime from Settings.
+      </p>
+    </div>
+  `);
+}
+
+function emailTrialExpiring(email, daysLeft) {
+  return sendEmail(email, `Your ledgr trial ends ${daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`}`, `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
+      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
+      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">⏰ Your trial ends ${daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`}</h2>
+      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
+        Don't lose access to your financial data. Subscribe now to keep tracking your spending, budgets, and bank connections.
+      </p>
+      <a href="${FRONTEND_URL}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
+        Subscribe — $4.99/mo →
+      </a>
+      <p style="color:#8b949e;font-size:12px;margin-top:28px">
+        Cancel anytime. No hidden fees.
+      </p>
+    </div>
+  `);
+}
+
+function emailSubscriptionConfirmed(email) {
+  return sendEmail(email, "You're now a ledgr Pro subscriber 🎉", `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
+      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
+      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">Subscription confirmed 🎉</h2>
+      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
+        Thanks for subscribing to ledgr Pro at $4.99/month. You now have full access to all features including bank connections and automatic sync.
+      </p>
+      <a href="${FRONTEND_URL}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
+        Open ledgr →
+      </a>
+      <p style="color:#8b949e;font-size:12px;margin-top:28px">
+        Manage your subscription anytime from Settings → Subscription.
+      </p>
+    </div>
+  `);
+}
+
+function emailPasswordReset(email, resetUrl) {
+  return sendEmail(email, "Reset your ledgr password", `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
+      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
+      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
+      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">Reset your password</h2>
+      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
+        Click the button below to reset your password. This link expires in 1 hour.
+      </p>
+      <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
+        Reset Password →
+      </a>
+      <p style="color:#8b949e;font-size:12px;margin-top:28px">
+        If you didn't request this, you can safely ignore this email. Your password won't change.
+      </p>
+    </div>
+  `);
 }
 
 /* ── Plaid client ─────────────────────────────────────────────────── */
@@ -357,6 +458,8 @@ app.post("/api/billing/webhook",
               "UPDATE users SET stripe_customer_id = $1, subscription_status = 'active' WHERE id = $2",
               [session.customer, userId]
             );
+            const user = await getUserById(userId);
+            if (user) emailSubscriptionConfirmed(user.email).catch(() => {});
             console.log(`[stripe] checkout complete for user ${userId}`);
           }
           break;
@@ -464,6 +567,8 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
     if (await getUserByEmail(email)) return res.status(409).json({ error: "Email already registered" });
     const user  = await createUser(email, password);
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
+    // Send welcome email (non-blocking)
+    if (user.role !== "owner") emailWelcome(user.email).catch(() => {});
     res.json({ token, user: { id: user.id, email: user.email, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
   } catch (err) {
     console.error("Register error:", err.message);
@@ -485,6 +590,45 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
     console.error("Login error:", err.message);
     res.status(500).json({ error: "Login failed" });
   }
+});
+
+/* ── Forgot / reset password (public) ────────────────────────────── */
+app.post("/api/auth/forgot-password", authLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email required" });
+  // Always return success to prevent email enumeration
+  res.json({ ok: true });
+  try {
+    const user = await getUserByEmail(email);
+    if (!user) return; // silently ignore unknown emails
+    // Create reset token
+    const token   = crypto.randomBytes(32).toString("hex");
+    const expires = Date.now() + 60 * 60 * 1000; // 1 hour
+    await pool.query(
+      `INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)`,
+      [user.id, token, expires]
+    );
+    const resetUrl = `${FRONTEND_URL}?reset=${token}`;
+    await emailPasswordReset(user.email, resetUrl);
+  } catch(e) { console.error("[forgot-password]", e.message); }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) return res.status(400).json({ error: "Token and new password required" });
+  if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM password_resets WHERE token = $1 AND used = FALSE AND expires_at > $2`,
+      [token, Date.now()]
+    );
+    if (!rows[0]) return res.status(400).json({ error: "Invalid or expired reset link" });
+    const reset = rows[0];
+    const hash  = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await pool.query("UPDATE users SET password = $1 WHERE id = $2", [hash, reset.user_id]);
+    await pool.query("UPDATE password_resets SET used = TRUE WHERE id = $1", [reset.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 /* ── All routes below require auth ───────────────────────────────── */
@@ -770,6 +914,35 @@ app.post("/api/admin/encrypt-tokens", requireOwner, async (_req, res) => {
 /* ═══════════════════════════════════════════════════════════════════
    CRON
 ═══════════════════════════════════════════════════════════════════ */
+
+// Every hour: expire trials that have ended + send 1-day warning emails
+cron.schedule("0 * * * *", async () => {
+  const now = Date.now();
+  try {
+    // Expire trials that ended
+    const expired = await pool.query(`
+      UPDATE users SET subscription_status = 'expired'
+      WHERE subscription_status = 'trialing' AND trial_ends_at < $1
+      RETURNING id, email
+    `, [now]);
+    for (const u of expired.rows) {
+      console.log(`[cron] Trial expired for ${u.email}`);
+    }
+
+    // Send "trial ending tomorrow" emails (trial ends in 20-28 hours, not yet sent)
+    const expiringSoon = await pool.query(`
+      SELECT id, email, trial_ends_at FROM users
+      WHERE subscription_status = 'trialing'
+        AND trial_ends_at BETWEEN $1 AND $2
+    `, [now + 20 * 60 * 60 * 1000, now + 28 * 60 * 60 * 1000]);
+    for (const u of expiringSoon.rows) {
+      await emailTrialExpiring(u.email, 1).catch(() => {});
+      console.log(`[cron] Sent trial expiring email to ${u.email}`);
+    }
+  } catch(e) { console.error("[cron] Trial check failed:", e.message); }
+});
+
+// Every 4 hours: sync active users
 cron.schedule("0 */4 * * *", async () => {
   console.log(`[cron] ${new Date().toISOString()} — syncing active users`);
   try {

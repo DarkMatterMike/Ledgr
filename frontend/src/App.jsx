@@ -196,53 +196,77 @@ function isAuthValid() {
 }
 
 function AuthGate({ onAuth }) {
-  const [mode,     setMode]     = useState("login");   // "login" | "register"
+  // Check for reset token in URL
+  const resetToken = new URLSearchParams(window.location.search).get("reset");
+  const [mode,     setMode]     = useState(resetToken ? "reset" : "login"); // "login" | "register" | "forgot" | "reset"
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [confirm,  setConfirm]  = useState("");
   const [error,    setError]    = useState("");
+  const [success,  setSuccess]  = useState("");
   const [loading,  setLoading]  = useState(false);
   const [shake,    setShake]    = useState(false);
 
   function triggerShake(msg) {
-    setError(msg);
-    setShake(true);
+    setError(msg); setShake(true);
     setTimeout(() => setShake(false), 600);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
-    if (mode === "register" && password !== confirm) {
-      triggerShake("Passwords do not match");
+    setError(""); setSuccess("");
+
+    if (mode === "forgot") {
+      if (!email) return triggerShake("Email required");
+      setLoading(true);
+      try {
+        await fetch(`https://ledgr-production-9e35.up.railway.app/api/auth/forgot-password`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        setSuccess("If that email is registered, you'll receive a reset link shortly.");
+      } catch { setSuccess("Check your email for a reset link."); }
+      finally { setLoading(false); }
       return;
     }
-    if (mode === "register" && password.length < 8) {
-      triggerShake("Password must be at least 8 characters");
+
+    if (mode === "reset") {
+      if (!password) return triggerShake("Password required");
+      if (password.length < 8) return triggerShake("Password must be at least 8 characters");
+      if (password !== confirm) return triggerShake("Passwords do not match");
+      setLoading(true);
+      try {
+        const r = await fetch(`https://ledgr-production-9e35.up.railway.app/api/auth/reset-password`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: resetToken, newPassword: password }),
+        });
+        const d = await r.json();
+        if (!r.ok) return triggerShake(d.error || "Reset failed");
+        window.history.replaceState({}, "", window.location.pathname);
+        setSuccess("Password updated! You can now sign in.");
+        setTimeout(() => switchMode("login"), 1500);
+      } catch { triggerShake("Reset failed. Please try again."); }
+      finally { setLoading(false); }
       return;
     }
+
+    if (mode === "register" && password !== confirm) return triggerShake("Passwords do not match");
+    if (mode === "register" && password.length < 8)  return triggerShake("Password must be at least 8 characters");
+
     setLoading(true);
     try {
-      if (mode === "login") {
-        await api.login(email, password);
-      } else {
-        await api.register(email, password);
-      }
+      if (mode === "login") await api.login(email, password);
+      else                  await api.register(email, password);
       onAuth();
     } catch (err) {
       triggerShake(err.message || "Something went wrong");
-      setPassword("");
-      setConfirm("");
-    } finally {
-      setLoading(false);
-    }
+      setPassword(""); setConfirm("");
+    } finally { setLoading(false); }
   }
 
   function switchMode(m) {
-    setMode(m);
-    setError("");
-    setPassword("");
-    setConfirm("");
+    setMode(m); setError(""); setSuccess("");
+    setPassword(""); setConfirm("");
   }
 
   const inputStyle = (hasError) => ({
@@ -252,6 +276,8 @@ function AuthGate({ onAuth }) {
     fontSize: 14, color: "var(--t1)", outline: "none", width: "100%",
     transition: "border-color 0.15s",
   });
+
+  const isForgotOrReset = mode === "forgot" || mode === "reset";
 
   return (
     <div style={{
@@ -283,56 +309,64 @@ function AuthGate({ onAuth }) {
         width:360, maxWidth:"92vw",
         boxShadow:"0 8px 40px #00000060",
       }}>
-        {/* Tab switcher */}
-        <div style={{display:"flex",gap:0,marginBottom:24,background:"var(--surface)",borderRadius:"var(--radius)",padding:3}}>
-          {["login","register"].map(m => (
-            <button key={m} onClick={()=>switchMode(m)} style={{
-              flex:1, padding:"7px 0", borderRadius:"var(--radius)",
-              fontSize:13, fontWeight:600, cursor:"pointer", border:"none",
-              background: mode===m ? "var(--card)" : "transparent",
-              color: mode===m ? "var(--t1)" : "var(--t3)",
-              boxShadow: mode===m ? "0 1px 4px #00000030" : "none",
-              transition:"all 0.15s",
-            }}>
-              {m === "login" ? "Sign In" : "Create Account"}
-            </button>
-          ))}
-        </div>
+        {/* Tab switcher — only for login/register */}
+        {!isForgotOrReset && (
+          <div style={{display:"flex",gap:0,marginBottom:24,background:"var(--surface)",borderRadius:"var(--radius)",padding:3}}>
+            {["login","register"].map(m => (
+              <button key={m} onClick={()=>switchMode(m)} style={{
+                flex:1, padding:"7px 0", borderRadius:"var(--radius)",
+                fontSize:13, fontWeight:600, cursor:"pointer", border:"none",
+                background: mode===m ? "var(--card)" : "transparent",
+                color: mode===m ? "var(--t1)" : "var(--t3)",
+                boxShadow: mode===m ? "0 1px 4px #00000030" : "none",
+                transition:"all 0.15s",
+              }}>
+                {m === "login" ? "Sign In" : "Create Account"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Forgot/reset header */}
+        {isForgotOrReset && (
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:4}}>
+              {mode === "forgot" ? "Forgot password" : "Reset password"}
+            </div>
+            <div style={{fontSize:13,color:"var(--t3)"}}>
+              {mode === "forgot"
+                ? "Enter your email and we'll send you a reset link."
+                : "Enter your new password below."}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div>
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              autoFocus
+          {/* Email field — login, register, forgot */}
+          {mode !== "reset" && (
+            <input type="email" placeholder="Email address" value={email} autoFocus
               onChange={e=>{ setEmail(e.target.value); setError(""); }}
-              style={inputStyle(!!error && !password)}
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
+              style={inputStyle(!!error && !password)} />
+          )}
+
+          {/* Password field — login, register, reset */}
+          {mode !== "forgot" && (
+            <input type="password" placeholder={mode === "reset" ? "New password" : "Password"}
+              value={password} autoFocus={mode === "reset"}
               onChange={e=>{ setPassword(e.target.value); setError(""); }}
-              style={inputStyle(!!error)}
-            />
-          </div>
-          {mode === "register" && (
-            <div>
-              <input
-                type="password"
-                placeholder="Confirm password"
-                value={confirm}
-                onChange={e=>{ setConfirm(e.target.value); setError(""); }}
-                style={inputStyle(!!error && confirm !== password)}
-              />
-            </div>
+              style={inputStyle(!!error)} />
           )}
-          {error && (
-            <div style={{fontSize:12,color:"var(--red)",marginTop:2}}>{error}</div>
+
+          {/* Confirm password — register, reset */}
+          {(mode === "register" || mode === "reset") && (
+            <input type="password" placeholder="Confirm password" value={confirm}
+              onChange={e=>{ setConfirm(e.target.value); setError(""); }}
+              style={inputStyle(!!error && confirm !== password)} />
           )}
+
+          {error   && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
+          {success && <div style={{fontSize:12,color:"var(--green)"}}>{success}</div>}
+
           <button type="submit" disabled={loading} style={{
             marginTop:4,
             background:"var(--cyan)", color:"#000", border:"none",
@@ -340,9 +374,29 @@ function AuthGate({ onAuth }) {
             fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
             opacity:loading?0.7:1, transition:"opacity 0.15s",
           }}>
-            {loading ? "…" : mode === "login" ? "Sign In" : "Create Account"}
+            {loading ? "…"
+              : mode === "login"    ? "Sign In"
+              : mode === "register" ? "Create Account"
+              : mode === "forgot"   ? "Send Reset Link"
+              : "Reset Password"}
           </button>
         </form>
+
+        {/* Footer links */}
+        <div style={{marginTop:16,textAlign:"center",display:"flex",flexDirection:"column",gap:8}}>
+          {mode === "login" && (
+            <button onClick={()=>switchMode("forgot")}
+              style={{fontSize:12,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>
+              Forgot your password?
+            </button>
+          )}
+          {isForgotOrReset && (
+            <button onClick={()=>switchMode("login")}
+              style={{fontSize:12,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>
+              ← Back to sign in
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

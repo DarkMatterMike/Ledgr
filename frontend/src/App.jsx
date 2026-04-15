@@ -4191,6 +4191,11 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
 
   console.log("Before return");
   return (
+    <div style={S.shell}>
+    {isMobile ? (
+      /* ════════════════════════════════════
+         MOBILE — hamburger + overlay drawer
+         ════════════════════════════════════ */
       <>
         {/* Mobile top bar */}
         <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>

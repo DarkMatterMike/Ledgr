@@ -1248,7 +1248,7 @@ function AdminPanel() {
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr>
-                  {["Email","Role","Status","Trial Ends","Joined","Actions"].map(h => (
+                  {["Email","Role","Status","Trial Ends","Last Login","Joined","Actions"].map(h => (
                     <th key={h} style={S.th}>{h}</th>
                   ))}
                 </tr>
@@ -1291,6 +1291,11 @@ function AdminPanel() {
                     <td style={S.td}>
                       <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
                         {user.trial_ends_at ? new Date(user.trial_ends_at).toLocaleDateString() : "—"}
+                      </span>
+                    </td>
+                    <td style={S.td}>
+                      <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
+                        {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : "—"}
                       </span>
                     </td>
                     <td style={S.td}>

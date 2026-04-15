@@ -105,6 +105,7 @@ async function initDB() {
   // Add lockout columns for existing deployments that predate this migration
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until BIGINT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at BIGINT`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_data (
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -630,10 +631,10 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
       return res.status(401).json({ error: "Incorrect email or password" });
     }
 
-    // Successful login — reset failed attempts
+    // Successful login — reset failed attempts and record last login
     await pool.query(
-      "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1",
-      [user.id]
+      "UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = $1 WHERE id = $2",
+      [Date.now(), user.id]
     );
 
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
@@ -923,7 +924,7 @@ app.post("/api/push/test", async (req, res) => {
 ═══════════════════════════════════════════════════════════════════ */
 app.get("/api/admin/users", requireOwner, async (_req, res) => {
   try {
-    const { rows } = await pool.query("SELECT id, email, role, subscription_status, trial_ends_at, stripe_customer_id, created_at FROM users ORDER BY created_at ASC");
+    const { rows } = await pool.query("SELECT id, email, role, subscription_status, trial_ends_at, stripe_customer_id, last_login_at, created_at FROM users ORDER BY created_at ASC");
     res.json({ users: rows });
   } catch (err) { serverError(res, err); }
 });

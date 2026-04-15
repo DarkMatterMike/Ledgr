@@ -198,14 +198,17 @@ function isAuthValid() {
 function AuthGate({ onAuth }) {
   // Check for reset token in URL
   const resetToken = new URLSearchParams(window.location.search).get("reset");
-  const [mode,     setMode]     = useState(resetToken ? "reset" : "login"); // "login" | "register" | "forgot" | "reset"
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm,  setConfirm]  = useState("");
-  const [error,    setError]    = useState("");
-  const [success,  setSuccess]  = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [shake,    setShake]    = useState(false);
+  const [mode,          setMode]          = useState(resetToken ? "reset" : "login");
+  const [email,         setEmail]         = useState("");
+  const [password,      setPassword]      = useState("");
+  const [confirm,       setConfirm]       = useState("");
+  const [error,         setError]         = useState("");
+  const [success,       setSuccess]       = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [shake,         setShake]         = useState(false);
+  const [agreedTerms,   setAgreedTerms]   = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
+  const [legalModal,    setLegalModal]    = useState(null); // "privacy" | "terms" | null
 
   function triggerShake(msg) {
     setError(msg); setShake(true);
@@ -252,6 +255,7 @@ function AuthGate({ onAuth }) {
 
     if (mode === "register" && password !== confirm) return triggerShake("Passwords do not match");
     if (mode === "register" && password.length < 8)  return triggerShake("Password must be at least 8 characters");
+    if (mode === "register" && (!agreedTerms || !agreedPrivacy)) return triggerShake("Please agree to the Terms of Service and Privacy Policy");
 
     setLoading(true);
     try {
@@ -364,6 +368,26 @@ function AuthGate({ onAuth }) {
               style={inputStyle(!!error && confirm !== password)} />
           )}
 
+          {/* Terms checkboxes — register only */}
+          {mode === "register" && (
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
+              {[
+                { checked: agreedTerms,   setChecked: setAgreedTerms,   doc:"terms",   label:"Terms of Service" },
+                { checked: agreedPrivacy, setChecked: setAgreedPrivacy, doc:"privacy", label:"Privacy Policy"   },
+              ].map(({ checked, setChecked, doc, label }) => (
+                <label key={doc} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:12,color:"var(--t2)"}}>
+                  <input type="checkbox" checked={checked} onChange={e=>setChecked(e.target.checked)}
+                    style={{width:15,height:15,accentColor:"var(--cyan)",flexShrink:0,cursor:"pointer"}}/>
+                  I agree to the{" "}
+                  <button type="button" onClick={()=>setLegalModal(doc)}
+                    style={{background:"none",border:"none",padding:0,color:"var(--cyan)",cursor:"pointer",fontSize:12,textDecoration:"underline"}}>
+                    {label}
+                  </button>
+                </label>
+              ))}
+            </div>
+          )}
+
           {error   && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
           {success && <div style={{fontSize:12,color:"var(--green)"}}>{success}</div>}
 
@@ -398,6 +422,29 @@ function AuthGate({ onAuth }) {
           )}
         </div>
       </div>
+
+      {/* Legal modal */}
+      {legalModal && (
+        <div style={S.overlay} onClick={()=>setLegalModal(null)}>
+          <div style={{...S.modal,width:640,maxHeight:"82vh",display:"flex",flexDirection:"column"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexShrink:0}}>
+              <div style={S.modalTitle}>
+                {legalModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
+              </div>
+              <button onClick={()=>setLegalModal(null)}
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>✕</button>
+            </div>
+            <div style={{overflowY:"auto",flex:1,fontSize:13,color:"var(--t2)",lineHeight:1.7}}>
+              {legalModal === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
+            </div>
+            <div style={{marginTop:16,flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:11,color:"var(--t3)"}}>Last updated: {new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
+              <button onClick={()=>setLegalModal(null)} style={S.btn("primary",true)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

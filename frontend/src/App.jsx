@@ -351,6 +351,15 @@ export default function App() {
 /* ═══════════════════════════════════════════════════════════════════
    SETTINGS VIEW
 ═══════════════════════════════════════════════════════════════════ */
+function SettingsSection({ title, children }) {
+  return (
+    <div style={{ ...S.card, marginBottom:16 }}>
+      <div style={S.cardTitle}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
 function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
@@ -410,19 +419,13 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     showToast("Export downloaded");
   }
 
-  const Section = ({ title, children }) => (
-    <div style={{ ...S.card, marginBottom:16 }}>
-      <div style={S.cardTitle}>{title}</div>
-      {children}
-    </div>
-  );
   const inputSt = { ...S.input, marginBottom:0 };
 
   return (
     <div style={{ maxWidth:560 }}>
 
       {/* Profile */}
-      <Section title="Profile">
+      <SettingsSection title="Profile">
         <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
           <div style={{
             width:56, height:56, borderRadius:"50%", flexShrink:0,
@@ -452,10 +455,10 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             {savingName ? "…" : "Save"}
           </button>
         </div>
-      </Section>
+      </SettingsSection>
 
       {/* Subscription */}
-      <Section title="Subscription">
+      <SettingsSection title="Subscription">
         {user?.role === "owner" ? (
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
@@ -487,10 +490,10 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </a>
           </div>
         )}
-      </Section>
+      </SettingsSection>
 
       {/* Security */}
-      <Section title="Security">
+      <SettingsSection title="Security">
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <div style={S.field}>
             <label style={S.label}>Current Password</label>
@@ -513,10 +516,10 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             {savingPw ? "Updating…" : "Update Password"}
           </button>
         </div>
-      </Section>
+      </SettingsSection>
 
       {/* Data export */}
-      <Section title="Your Data">
+      <SettingsSection title="Your Data">
         <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
           Export all your transactions as a CSV file you can open in Excel or Google Sheets.
         </div>
@@ -526,10 +529,10 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           </div>
           <button style={S.btn("ghost",true)} onClick={exportCSV}>↓ Export CSV</button>
         </div>
-      </Section>
+      </SettingsSection>
 
       {/* Legal */}
-      <Section title="Legal">
+      <SettingsSection title="Legal">
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {[["Privacy Policy","/privacy"],["Terms of Service","/terms"]].map(([label, href]) => (
             <a key={href} href={href} target="_blank" rel="noopener noreferrer"
@@ -541,15 +544,15 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </a>
           ))}
         </div>
-      </Section>
+      </SettingsSection>
 
       {/* Sign out */}
-      <Section title="Account">
+      <SettingsSection title="Account">
         <button style={{ ...S.btn("danger"), width:"100%" }}
           onClick={() => { api.clearToken(); window.location.reload(); }}>
           Sign Out
         </button>
-      </Section>
+      </SettingsSection>
 
     </div>
   );

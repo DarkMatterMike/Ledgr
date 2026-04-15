@@ -1674,6 +1674,7 @@ function AppInner() {
     </div>
   );
 
+  console.log("Before SpendingBreakdownCard");
   const SpendingBreakdownCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
@@ -1759,6 +1760,7 @@ function AppInner() {
     </div>
   );
 
+  console.log("Before CashFlowCard");
   const CashFlowCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
@@ -1830,6 +1832,7 @@ function AppInner() {
     </div>
   );
 
+  console.log("Before OverspendingHighlightsCard");
   const OverspendingHighlightsCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
@@ -1864,6 +1867,7 @@ function AppInner() {
 const reviewCount = transactions.filter(t => needsReview(t)).length;
 
 
+  console.log("Before Dashboard");
   const Dashboard = (
     <div>
       <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
@@ -2074,6 +2078,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
 
   /* ── Transactions ── */
+  console.log("Before Transactions");
   const Transactions = (()=>{
     // Group filtered transactions by date
     const grouped = filteredTxns.reduce((acc, t) => {
@@ -2304,6 +2309,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     setEditingLimitId(null);
   }
 
+  console.log("Before Budgets");
   const Budgets = (
     <div>
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
@@ -2553,6 +2559,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
   /* ── Accounts ── */
+  console.log("Before Accounts");
   const Accounts = (
     <PageLayout
       isMobile={isMobile}
@@ -2625,6 +2632,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   );
 
   /* ── Rules ── */
+  console.log("Before Rules");
   const Rules = (
     <PageLayout
       isMobile={isMobile}
@@ -2693,6 +2701,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   const daysInCal=daysInMonth(calYear,calMonthN);
   const totalCells=Math.ceil((firstDow+daysInCal)/7)*7;
 
+  console.log("Before Calendar");
   const Calendar = (()=>{
     const isCurrentCalMonth = calYear===today.getFullYear()&&calMonthN===today.getMonth()+1;
     const isPastCalMonth    = calYear<today.getFullYear()||(calYear===today.getFullYear()&&calMonthN<today.getMonth()+1);
@@ -3999,6 +4008,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   /* ─────────────────────────────────────────────────────────────────
      MODALS
   ───────────────────────────────────────────────────────────────── */
+  console.log("Before EditRecurringModal");
   const EditRecurringModal = editTarget && modal==="editRecurring" ? (
     <Modal title="Edit Recurring Transaction" onClose={()=>{setModal(null);setEditTarget(null);}}
       actions={<>
@@ -4059,6 +4069,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   ) : null;
 
+  console.log("Before RuleModal");
   const RuleModal = (
     <Modal title={modal==="addRule"?"New Rule":"Edit Rule"} onClose={()=>setModal(null)}
       actions={<>
@@ -4093,6 +4104,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   );
 
+  console.log("Before CatModal");
   const CatModal = (
     <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
@@ -4111,6 +4123,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   );
 
+  console.log("Before AcctModal");
   const AcctModal = (
     <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
@@ -4126,6 +4139,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </Modal>
   );
 
+  console.log("Before TxnModal");
   const TxnModal = (
     <Modal title="Add Transaction" onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
@@ -4159,6 +4173,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   /* ─────────────────────────────────────────────────────────────────
      NAV + RENDER
   ───────────────────────────────────────────────────────────────── */
+  console.log("Before SettingsPage");
   const SettingsPage = (
     <SettingsView
       transactions={transactions}
@@ -4171,6 +4186,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
       showToast={showToast}
     />
   );
+  console.log("Before VIEWS");
   const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:SettingsPage };
 
   if (loading) return (

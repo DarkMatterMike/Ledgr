@@ -560,6 +560,77 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   );
 }
 
+function Paywall({ onUpgrade }) {
+  const [loading, setLoading] = useState(false);
+  const user = api.getStoredUser();
+  const trialEnded = user?.subscription_status === "trialing"
+    ? Date.now() >= (user?.trial_ends_at || 0)
+    : user?.subscription_status !== "active";
+
+  async function handleUpgrade() {
+    setLoading(true);
+    try { await api.startCheckout(); }
+    catch (e) { setLoading(false); }
+  }
+
+  return (
+    <div style={{
+      display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+      minHeight:"60vh", padding:"40px 24px", textAlign:"center",
+    }}>
+      <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
+      <div style={{ fontFamily:"var(--font-disp)", fontSize:24, fontWeight:800, color:"var(--t1)", marginBottom:8 }}>
+        {trialEnded ? "Your trial has ended" : "Upgrade to continue"}
+      </div>
+      <div style={{ fontSize:14, color:"var(--t3)", maxWidth:360, marginBottom:32, lineHeight:1.6 }}>
+        {trialEnded
+          ? "Your 14-day free trial has ended. Subscribe to continue tracking your finances and connecting bank accounts."
+          : "Subscribe to unlock full access — add transactions, connect banks, and sync automatically."}
+      </div>
+
+      <div style={{
+        background:"var(--card)", border:"1px solid var(--border2)",
+        borderRadius:"var(--radius-lg)", padding:"28px 32px",
+        width:"100%", maxWidth:320, marginBottom:24,
+        boxShadow:"0 4px 24px #00000040",
+      }}>
+        <div style={{ fontSize:13, color:"var(--t3)", marginBottom:4, textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 }}>
+          Ledgr Pro
+        </div>
+        <div style={{ display:"flex", alignItems:"baseline", gap:4, justifyContent:"center", marginBottom:8 }}>
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:40, fontWeight:800, color:"var(--t1)" }}>$4.99</span>
+          <span style={{ fontSize:14, color:"var(--t3)" }}>/month</span>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:24, textAlign:"left" }}>
+          {["Unlimited transactions", "Connect bank accounts via Plaid", "Auto-sync every 4 hours", "Budget tracking & categories", "Recurring calendar", "CSV export"].map(f => (
+            <div key={f} style={{ display:"flex", alignItems:"center", gap:10, fontSize:13, color:"var(--t2)" }}>
+              <span style={{ color:"var(--cyan)", flexShrink:0 }}>✓</span> {f}
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={handleUpgrade}
+          disabled={loading}
+          style={{
+            width:"100%", padding:"12px 0",
+            background:"var(--cyan)", color:"#000",
+            border:"none", borderRadius:"var(--radius)",
+            fontSize:15, fontWeight:700, cursor:loading?"wait":"pointer",
+            opacity:loading?0.7:1, transition:"opacity 0.15s",
+          }}>
+          {loading ? "Redirecting…" : "Subscribe — $4.99/mo"}
+        </button>
+      </div>
+
+      <button
+        onClick={() => { api.clearToken(); window.location.reload(); }}
+        style={{ fontSize:12, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>
+        Sign out
+      </button>
+    </div>
+  );
+}
+
 function SettingsSection({ title, children }) {
   return (
     <div style={{ ...S.card, marginBottom:16 }}>
@@ -676,27 +747,52 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>No subscription required</div>
             </div>
           </div>
-        ) : (
+        ) : user?.subscription_status === "active" ? (
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", flexShrink:0,
-                background: user?.subscription_status === "active" ? "var(--green)" : "var(--amber)" }}/>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
               <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", textTransform:"capitalize" }}>
-                  {user?.subscription_status || "Unknown"}
-                </div>
-                {user?.trial_ends_at && user?.subscription_status === "trialing" && (
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Active — $4.99/month</div>
+                <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>Your subscription is active</div>
+              </div>
+            </div>
+            <button onClick={async () => { try { await api.openBillingPortal(); } catch(e) { showToast("Failed to open portal"); } }}
+              style={{ ...S.btn("ghost"), justifyContent:"center" }}>
+              Manage Subscription →
+            </button>
+          </div>
+        ) : user?.subscription_status === "trialing" ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--amber)", flexShrink:0 }}/>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Free Trial</div>
+                {user?.trial_ends_at && (
                   <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>
-                    Trial ends {new Date(user.trial_ends_at).toLocaleDateString()}
+                    {Math.max(0, Math.ceil((user.trial_ends_at - Date.now()) / (1000*60*60*24)))} days remaining
                   </div>
                 )}
               </div>
             </div>
-            <a href="https://billing.stripe.com/p/login/placeholder"
-              target="_blank" rel="noopener noreferrer"
-              style={{ ...S.btn("ghost"), textDecoration:"none", justifyContent:"center" }}>
-              Manage Subscription →
-            </a>
+            <button onClick={async () => { try { await api.startCheckout(); } catch(e) { showToast("Failed to start checkout"); } }}
+              style={{ ...S.btn("primary"), justifyContent:"center" }}>
+              Subscribe — $4.99/mo
+            </button>
+          </div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--red)", flexShrink:0 }}/>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", textTransform:"capitalize" }}>
+                  {user?.subscription_status || "Inactive"}
+                </div>
+              </div>
+            </div>
+            <button onClick={async () => { try { await api.startCheckout(); } catch(e) { showToast("Failed to start checkout"); } }}
+              style={{ ...S.btn("primary"), justifyContent:"center" }}>
+              Subscribe — $4.99/mo
+            </button>
           </div>
         )}
       </SettingsSection>
@@ -813,9 +909,26 @@ function AppInner() {
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
   const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
+  const [access,   setAccess]   = useState("full"); // "full" | "free"
 
   /* ── Load ── */
   const initialized = useRef(false);
+  useEffect(() => {
+    // Handle Stripe redirect back to app
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscribed") === "true") {
+      // Refresh user from server to get updated subscription_status
+      api.fetchMe().then(me => {
+        api.setStoredUser({ ...api.getStoredUser(), ...me });
+        setAccess(me.access || "full");
+        window.history.replaceState({}, "", window.location.pathname);
+      }).catch(() => {});
+    }
+    if (params.get("canceled") === "true") {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       try {
@@ -828,6 +941,7 @@ function AppInner() {
         setPlaidItems(data.plaidItems     || []);
         setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);
+        if (data.access) setAccess(data.access);
       } catch (e) { console.warn("Load error:", e.message); }
       finally { setLoading(false); initialized.current = true; }
     })();
@@ -4158,9 +4272,15 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
       avatarColor={avatarColor}
       avatarLetter={avatarLetter}
       showToast={showToast}
+      access={access}
     />
   );
-  const VIEWS = { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:SettingsPage };
+
+  // Free-tier users get read-only dashboard + settings, paywall for everything else
+  const paywallView = <Paywall />;
+  const VIEWS = access === "full"
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:SettingsPage }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, rules:paywallView, calendar:paywallView, settings:SettingsPage };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>

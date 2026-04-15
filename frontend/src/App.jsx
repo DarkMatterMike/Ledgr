@@ -101,6 +101,15 @@ const pad          = n => String(n).padStart(2,"0");
 const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
 const cap          = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+const NAV = [
+  { id:"dashboard",    icon:"◈", label:"Dashboard"    },
+  { id:"transactions", icon:"⇅", label:"Transactions" },
+  { id:"budgets",      icon:"◉", label:"Budgets"      },
+  { id:"accounts",     icon:"▣", label:"Accounts"     },
+  { id:"rules",        icon:"◎", label:"Rules"        },
+  { id:"calendar",     icon:"▦", label:"Calendar"     },
+  { id:"settings",     icon:"⚙", label:"Settings"     },
+];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
 
@@ -351,17 +360,6 @@ export default function App() {
 /* ═══════════════════════════════════════════════════════════════════
    SETTINGS VIEW
 ═══════════════════════════════════════════════════════════════════ */
-/* ── Nav items — module level so SidebarContent can reference it ── */
-const NAV = [
-  { id:"dashboard",    icon:"◈", label:"Dashboard"    },
-  { id:"transactions", icon:"⇅", label:"Transactions" },
-  { id:"budgets",      icon:"◉", label:"Budgets"      },
-  { id:"accounts",     icon:"▣", label:"Accounts"     },
-  { id:"rules",        icon:"◎", label:"Rules"        },
-  { id:"calendar",     icon:"▦", label:"Calendar"     },
-  { id:"settings",     icon:"⚙", label:"Settings"     },
-];
-
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
   const currentUser = api.getStoredUser();
   const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";

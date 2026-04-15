@@ -655,12 +655,6 @@ app.delete("/api/plaid/items/:itemId", async (req, res) => {
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-    catch (e) { console.warn("Plaid itemRemove failed:", e.message); }
-    await removeItem(req.params.itemId);
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 app.get("/api/plaid/accounts", async (req, res) => {
   try {
     const items = await getItemsForUser(req.user.id);

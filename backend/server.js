@@ -7,6 +7,7 @@
 
 const express   = require("express");
 const cors      = require("cors");
+const helmet    = require("helmet");
 const dotenv    = require("dotenv");
 const { Pool }  = require("pg");
 const cron      = require("node-cron");
@@ -89,16 +90,21 @@ const pool = new Pool({
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      email               TEXT UNIQUE NOT NULL,
-      password            TEXT NOT NULL,
-      role                TEXT NOT NULL DEFAULT 'subscriber',
-      stripe_customer_id  TEXT,
-      subscription_status TEXT NOT NULL DEFAULT 'trialing',
-      trial_ends_at       BIGINT,
-      created_at          BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+      id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email                TEXT UNIQUE NOT NULL,
+      password             TEXT NOT NULL,
+      role                 TEXT NOT NULL DEFAULT 'subscriber',
+      stripe_customer_id   TEXT,
+      subscription_status  TEXT NOT NULL DEFAULT 'trialing',
+      trial_ends_at        BIGINT,
+      failed_login_attempts INT NOT NULL DEFAULT 0,
+      locked_until         BIGINT,
+      created_at           BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     );
   `);
+  // Add lockout columns for existing deployments that predate this migration
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until BIGINT`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_data (
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -435,6 +441,14 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
 ═══════════════════════════════════════════════════════════════════ */
 const app = express();
 
+const IS_PROD = process.env.NODE_ENV === "production";
+
+// Generic error response — never leak internal details in production
+function serverError(res, err, fallback = "Internal server error") {
+  console.error(err?.message || err);
+  return res.status(500).json({ error: IS_PROD ? fallback : (err?.message || fallback) });
+}
+
 // Stripe webhook needs raw body — must be registered BEFORE express.json()
 app.post("/api/billing/webhook",
   express.raw({ type: "application/json" }),
@@ -510,7 +524,19 @@ app.post("/api/billing/webhook",
 );
 
 app.use(cors({ origin: FRONTEND_URL, credentials: true }));
-app.use(express.json({ limit: "10mb" }));
+app.use(helmet({
+  crossOriginEmbedderPolicy: false, // needed for Plaid Link iframe
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "cdn.plaid.com"],
+      frameSrc: ["cdn.plaid.com"],
+      connectSrc: ["'self'", "https://production.plaid.com", "https://sandbox.plaid.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+app.use(express.json({ limit: "512kb" }));
 
 const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: "Too many login attempts." } });
 const syncLimiter = rateLimit({ windowMs: 60*60*1000, max: 20, message: { error: "Sync rate limit exceeded." } });
@@ -581,14 +607,40 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: "Email and password required" });
   if (!JWT_SECRET)          return res.status(500).json({ error: "Auth not configured" });
   try {
-    const user  = await getUserByEmail(email);
+    const user = await getUserByEmail(email);
+
+    // Check account lockout
+    if (user?.locked_until && Date.now() < user.locked_until) {
+      const minutesLeft = Math.ceil((user.locked_until - Date.now()) / 60000);
+      return res.status(429).json({ error: `Account locked. Try again in ${minutesLeft} minute${minutesLeft !== 1 ? "s" : ""}.` });
+    }
+
     const valid = user && await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: "Incorrect email or password" });
+
+    if (!valid) {
+      // Increment failed attempts and lock after 10 failures
+      if (user) {
+        const attempts = (user.failed_login_attempts || 0) + 1;
+        const lockedUntil = attempts >= 10 ? Date.now() + 30 * 60 * 1000 : null; // 30 min lockout
+        await pool.query(
+          "UPDATE users SET failed_login_attempts = $1, locked_until = $2 WHERE id = $3",
+          [attempts, lockedUntil, user.id]
+        );
+      }
+      return res.status(401).json({ error: "Incorrect email or password" });
+    }
+
+    // Successful login — reset failed attempts
+    await pool.query(
+      "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = $1",
+      [user.id]
+    );
+
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token, user: { id: user.id, email: user.email, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
   } catch (err) {
     console.error("Login error:", err.message);
-    res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ error: IS_PROD ? "Login failed" : err.message });
   }
 });
 
@@ -649,7 +701,7 @@ app.post("/api/auth/change-password", async (req, res) => {
     const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await pool.query("UPDATE users SET password = $1 WHERE id = $2", [hash, req.user.id]);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -684,7 +736,7 @@ app.post("/api/billing/create-checkout", async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error("Create checkout error:", err.message);
-    res.status(500).json({ error: err.message });
+    serverError(res, err, "Checkout failed");
   }
 });
 
@@ -700,7 +752,7 @@ app.post("/api/billing/portal", async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error("Portal error:", err.message);
-    res.status(500).json({ error: err.message });
+    serverError(res, err, "Portal failed");
   }
 });
 
@@ -733,7 +785,7 @@ app.get("/api/data", async (req, res) => {
       calendarAccounts: calendarAccounts || null,
       access:           getAccessLevel(req.user),
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 // Writes require subscription
@@ -750,7 +802,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(calendarAccounts)) ops.push(setData(uid, "calendarAccounts", calendarAccounts));
     await Promise.all(ops);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -769,7 +821,7 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
     res.json({ link_token: response.data.link_token });
   } catch (err) {
     console.error("create_link_token error:", err.response?.data || err.message);
-    res.status(500).json({ error: err.response?.data || err.message });
+    serverError(res, err, "Failed to create link token");
   }
 });
 
@@ -782,7 +834,7 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
     res.json({ item_id: data.item_id, institution: institution_name });
   } catch (err) {
     console.error("exchange_public_token error:", err.response?.data || err.message);
-    res.status(500).json({ error: err.response?.data || err.message });
+    serverError(res, err, "Failed to connect bank");
   }
 });
 
@@ -790,7 +842,7 @@ app.get("/api/plaid/items", async (req, res) => {
   try {
     const items = (await getItemsForUser(req.user.id)).map(({ item_id, institution, created_at }) => ({ item_id, institution, created_at }));
     res.json({ items });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 app.delete("/api/plaid/items/:itemId", async (req, res) => {
@@ -802,7 +854,7 @@ app.delete("/api/plaid/items/:itemId", async (req, res) => {
     catch (e) { console.warn("Plaid itemRemove failed:", e.message); }
     await removeItem(req.params.itemId);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 app.get("/api/plaid/accounts", async (req, res) => {
   try {
@@ -826,7 +878,7 @@ app.get("/api/plaid/accounts", async (req, res) => {
       return true;
     });
     res.json({ accounts: deduped });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
@@ -838,7 +890,7 @@ app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
   try {
     const result = await syncItemTransactions(req.user.id, targetItemId || null);
     res.json(result);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -849,21 +901,21 @@ app.post("/api/push/subscribe", async (req, res) => {
     if (!req.body?.endpoint) return res.status(400).json({ error: "Invalid subscription" });
     await saveSubscription(req.user.id, req.body);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 app.post("/api/push/unsubscribe", async (req, res) => {
   try {
     if (req.body?.endpoint) await removeSubscription(req.user.id, req.body.endpoint);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 app.post("/api/push/test", async (req, res) => {
   try {
     await sendPushToUser(req.user.id, { title: "ledgr. test", body: "Push notifications are working!", url: "/" });
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -873,11 +925,17 @@ app.get("/api/admin/users", requireOwner, async (_req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, email, role, subscription_status, trial_ends_at, stripe_customer_id, created_at FROM users ORDER BY created_at ASC");
     res.json({ users: rows });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 app.patch("/api/admin/users/:userId", requireOwner, async (req, res) => {
   const { subscription_status, role } = req.body;
+  const validStatuses = ["active", "trialing", "canceled", "past_due", "expired"];
+  const validRoles    = ["owner", "subscriber"];
+  if (subscription_status && !validStatuses.includes(subscription_status))
+    return res.status(400).json({ error: "Invalid subscription_status" });
+  if (role && !validRoles.includes(role))
+    return res.status(400).json({ error: "Invalid role" });
   try {
     const fields = [], vals = [];
     if (subscription_status) { fields.push(`subscription_status = $${fields.length+1}`); vals.push(subscription_status); }
@@ -886,7 +944,7 @@ app.patch("/api/admin/users/:userId", requireOwner, async (req, res) => {
     vals.push(req.params.userId);
     await pool.query(`UPDATE users SET ${fields.join(", ")} WHERE id = $${vals.length}`, vals);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err, "Failed to update user"); }
 });
 
 app.delete("/api/admin/users/:userId", requireOwner, async (req, res) => {
@@ -894,7 +952,7 @@ app.delete("/api/admin/users/:userId", requireOwner, async (req, res) => {
   try {
     await pool.query("DELETE FROM users WHERE id = $1", [req.params.userId]);
     res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 app.post("/api/admin/encrypt-tokens", requireOwner, async (_req, res) => {
@@ -908,7 +966,7 @@ app.post("/api/admin/encrypt-tokens", requireOwner, async (_req, res) => {
       migrated++;
     }
     res.json({ ok: true, migrated, skipped });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { serverError(res, err); }
 });
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -929,7 +987,7 @@ cron.schedule("0 * * * *", async () => {
       console.log(`[cron] Trial expired for ${u.email}`);
     }
 
-    // Send "trial ending tomorrow" emails (trial ends in 20-28 hours, not yet sent)
+    // Send "trial ending tomorrow" emails (trial ends in 20-28 hours)
     const expiringSoon = await pool.query(`
       SELECT id, email, trial_ends_at FROM users
       WHERE subscription_status = 'trialing'
@@ -939,7 +997,20 @@ cron.schedule("0 * * * *", async () => {
       await emailTrialExpiring(u.email, 1).catch(() => {});
       console.log(`[cron] Sent trial expiring email to ${u.email}`);
     }
-  } catch(e) { console.error("[cron] Trial check failed:", e.message); }
+
+    // Clean up expired/used password reset tokens older than 24 hours
+    await pool.query(`
+      DELETE FROM password_resets
+      WHERE used = TRUE OR expires_at < $1
+    `, [now - 24 * 60 * 60 * 1000]);
+
+    // Clear lockouts that have expired
+    await pool.query(`
+      UPDATE users SET failed_login_attempts = 0, locked_until = NULL
+      WHERE locked_until IS NOT NULL AND locked_until < $1
+    `, [now]);
+
+  } catch(e) { console.error("[cron] Hourly check failed:", e.message); }
 });
 
 // Every 4 hours: sync active users

@@ -17,7 +17,8 @@
     "node-cron": "^3.0.3",
     "pg": "^8.11.0",
     "plaid": "^17.0.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "stripe": "^14.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.0"

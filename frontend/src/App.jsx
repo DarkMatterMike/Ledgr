@@ -644,7 +644,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -701,6 +701,19 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     a.click();
     URL.revokeObjectURL(url);
     showToast("Export downloaded");
+  }
+
+  function deleteAllTransactions() {
+    if (!transactions.length) {
+      showToast("No transactions to delete");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Delete all ${transactions.length} transactions? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setTransactions([]);
+    showToast("All transactions deleted");
   }
 
   const inputSt = { ...S.input, marginBottom:0 };
@@ -832,11 +845,16 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
           Export all your transactions as a CSV file you can open in Excel or Google Sheets.
         </div>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
-          <div style={{ fontSize:12, color:"var(--t3)" }}>
-            {transactions.length} transactions · {accounts.length} accounts · {categories.length} categories
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:10 }}>
+          <div style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+            <div style={{ fontSize:12, color:"var(--t3)" }}>
+              {transactions.length} transactions · {accounts.length} accounts · {categories.length} categories
+            </div>
+            <button style={S.btn("ghost",true)} onClick={exportCSV}>↓ Export CSV</button>
           </div>
-          <button style={S.btn("ghost",true)} onClick={exportCSV}>↓ Export CSV</button>
+          <button style={S.btn("danger",true)} onClick={deleteAllTransactions}>
+            Delete All Transactions
+          </button>
         </div>
       </SettingsSection>
 
@@ -4290,6 +4308,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
       avatarColor={avatarColor}
       avatarLetter={avatarLetter}
       showToast={showToast}
+      setTransactions={setTransactions}
       access={access}
     />
   );

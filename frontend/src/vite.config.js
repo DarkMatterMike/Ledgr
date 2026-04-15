@@ -18,9 +18,10 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        // Prevent Rollup from reordering module-level const declarations
-        // which can cause temporal dead zone errors in large single-file components
         hoistTransitiveImports: false,
+        chunkFileNames: "assets/[name]-[hash]-v2.js",
+        entryFileNames: "assets/[name]-[hash]-v2.js",
+        assetFileNames: "assets/[name]-[hash]-v2.[ext]",
       },
     },
   },

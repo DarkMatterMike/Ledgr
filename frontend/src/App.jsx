@@ -351,6 +351,106 @@ export default function App() {
 /* ═══════════════════════════════════════════════════════════════════
    SETTINGS VIEW
 ═══════════════════════════════════════════════════════════════════ */
+function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
+  const currentUser = api.getStoredUser();
+  const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+  const NAV = [
+    { id:"dashboard",    icon:"◈", label:"Dashboard"    },
+    { id:"transactions", icon:"⇅", label:"Transactions" },
+    { id:"budgets",      icon:"◉", label:"Budgets"      },
+    { id:"accounts",     icon:"▣", label:"Accounts"     },
+    { id:"rules",        icon:"◎", label:"Rules"        },
+    { id:"calendar",     icon:"▦", label:"Calendar"     },
+    { id:"settings",     icon:"⚙", label:"Settings"     },
+  ];
+  return (
+    <>
+      <div style={{padding:"24px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+        <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>
+          ledgr<span style={{color:"var(--cyan)"}}>.</span>
+        </div>
+        <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>personal finance</div>
+      </div>
+      <nav style={{flex:1,padding:"12px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
+        {NAV.map(n=>(
+          <button key={n.id} onClick={()=>onNav(n.id)}
+            style={{
+              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
+              borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+              border:`1px solid ${view===n.id?"#00d4ff33":"transparent"}`,
+              background:view===n.id?"var(--cyan-dim)":"transparent",
+              color:view===n.id?"var(--cyan)":"var(--t2)",
+              width:"100%",textAlign:"left",transition:"all 0.15s",
+            }}>
+            <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+            <span>{n.label}</span>
+            {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
+          </button>
+        ))}
+      </nav>
+      <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:8}}>
+        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+          onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
+          {syncing?"⟳ Syncing…":"⟳ Sync All"}
+        </button>
+        {"Notification" in window && Notification.permission !== "granted" && (
+          <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+            onClick={async ()=>{
+              try {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                  const reg = await navigator.serviceWorker.ready;
+                  const toUint8 = b64 => {
+                    const pad = "=".repeat((4-b64.length%4)%4);
+                    const raw = atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/"));
+                    return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+                  };
+                  const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: toUint8(VAPID),
+                  });
+                  await api.subscribePush(sub);
+                  showToast("Notifications enabled!");
+                }
+              } catch(e) { console.warn("Notification setup:",e.message); }
+              onNav(view);
+            }}>
+            🔔 Enable Notifications
+          </button>
+        )}
+        {/* User info + settings shortcut */}
+        <div style={{borderTop:"1px solid var(--border)",paddingTop:8,marginTop:2}}>
+          <button
+            onClick={()=>onNav("settings")}
+            style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"8px 6px",
+              background:"transparent",border:"none",cursor:"pointer",borderRadius:"var(--radius)",
+              textAlign:"left",transition:"background 0.15s"}}
+            onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            <div style={{
+              width:28,height:28,borderRadius:"50%",flexShrink:0,
+              background:avatarColor+"33",border:`1.5px solid ${avatarColor}`,
+              display:"flex",alignItems:"center",justifyContent:"center",
+              fontFamily:"var(--font-disp)",fontSize:12,fontWeight:800,color:avatarColor,
+            }}>
+              {avatarLetter}
+            </div>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {currentUser?.name || currentUser?.email}
+              </div>
+              {currentUser?.role==="owner"&&(
+                <div style={{fontSize:9,color:"var(--cyan)",fontWeight:700,letterSpacing:"0.5px"}}>OWNER</div>
+              )}
+            </div>
+            <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>⚙</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function SettingsSection({ title, children }) {
   return (
     <div style={{ ...S.card, marginBottom:16 }}>
@@ -4064,101 +4164,14 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
 
-  /* ── Shared sidebar content ── */
-  const currentUser = api.getStoredUser();
-  const avatarColor = (() => {
+  /* ── Shared sidebar ── */
+  const currentUser  = api.getStoredUser();
+  const avatarColor  = (() => {
     const colors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
     const i = (currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
     return colors[i];
   })();
   const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
-  const SidebarContent = ({ onNav }) => (
-    <>
-      <div style={{padding:"24px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
-        <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>
-          ledgr<span style={{color:"var(--cyan)"}}>.</span>
-        </div>
-        <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>personal finance</div>
-      </div>
-      <nav style={{flex:1,padding:"12px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
-        {NAV.map(n=>(
-          <button key={n.id} onClick={()=>onNav(n.id)}
-            style={{
-              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-              borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
-              border:`1px solid ${view===n.id?"#00d4ff33":"transparent"}`,
-              background:view===n.id?"var(--cyan-dim)":"transparent",
-              color:view===n.id?"var(--cyan)":"var(--t2)",
-              width:"100%",textAlign:"left",transition:"all 0.15s",
-            }}>
-            <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>{n.icon}</span>
-            <span>{n.label}</span>
-            {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
-          </button>
-        ))}
-      </nav>
-      <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:8}}>
-        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
-          onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
-          {syncing?"⟳ Syncing…":"⟳ Sync All"}
-        </button>
-        {"Notification" in window && Notification.permission !== "granted" && (
-          <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
-            onClick={async ()=>{
-              try {
-                const permission = await Notification.requestPermission();
-                if (permission === "granted") {
-                  const reg = await navigator.serviceWorker.ready;
-                  const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
-                  const toUint8 = b64 => {
-                    const pad = "=".repeat((4-b64.length%4)%4);
-                    const raw = atob((b64+pad).replace(/-/g,"+").replace(/_/g,"/"));
-                    return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
-                  };
-                  const sub = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: toUint8(VAPID),
-                  });
-                  await api.subscribePush(sub);
-                  showToast("Notifications enabled!");
-                }
-              } catch(e) { console.warn("Notification setup:",e.message); }
-              onNav(view);
-            }}>
-            🔔 Enable Notifications
-          </button>
-        )}
-        {/* User info + settings shortcut */}
-        <div style={{borderTop:"1px solid var(--border)",paddingTop:8,marginTop:2}}>
-          <button
-            onClick={() => onNav("settings")}
-            style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"8px 6px",
-              background:"transparent", border:"none", cursor:"pointer", borderRadius:"var(--radius)",
-              textAlign:"left", transition:"background 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.background = "var(--surface)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-            <div style={{
-              width:28, height:28, borderRadius:"50%", flexShrink:0,
-              background: avatarColor + "33", border:`1.5px solid ${avatarColor}`,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontFamily:"var(--font-disp)", fontSize:12, fontWeight:800, color:avatarColor,
-            }}>
-              {avatarLetter}
-            </div>
-            <div style={{ minWidth:0, flex:1 }}>
-              <div style={{ fontSize:12, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                {currentUser?.name || currentUser?.email}
-              </div>
-              {currentUser?.role === "owner" && (
-                <div style={{ fontSize:9, color:"var(--cyan)", fontWeight:700, letterSpacing:"0.5px" }}>OWNER</div>
-              )}
-            </div>
-            <span style={{ fontSize:11, color:"var(--t3)", flexShrink:0 }}>⚙</span>
-          </button>
-        </div>
-      </div>
-    </>
-  );
 
   return (
     <div style={S.shell}>
@@ -4203,7 +4216,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
             zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
           }}>
-            <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); }} />
+            <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); }} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </div>
           {/* Content */}
           <div ref={contentRef} style={{height:"100%",overflowY:"auto"}} className="ledgr-content">
@@ -4233,7 +4246,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
           <aside style={{width:220,flexShrink:0,background:"var(--surface)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
-            <SidebarContent onNav={id=>{ setView(id); contentRef.current?.scrollTo({ top: 0 }); }} />
+            <SidebarContent onNav={id=>{ setView(id); contentRef.current?.scrollTo({ top: 0 }); }} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
           {/* Content */}
           <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">

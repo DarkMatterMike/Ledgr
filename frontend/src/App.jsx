@@ -198,6 +198,7 @@ function isAuthValid() {
 }
 
 function AuthGate({ onAuth }) {
+  console.log("AuthGate rendering");
   const [mode,     setMode]     = useState("login");   // "login" | "register"
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -379,6 +380,7 @@ class ErrorBoundary extends React.Component {
    SETTINGS VIEW
 ═══════════════════════════════════════════════════════════════════ */
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
+  console.log("SidebarContent rendering");
   const currentUser = api.getStoredUser();
   const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
   return (
@@ -475,6 +477,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   needsReview, markReviewed, startRename, deleteTxn,
   updateTxnType, updateTxnCat, updateTxnAcct,
   openAddCat, toggleRecurring, updateRecurringDay, saveRename }) {
+  console.log("TxnRow rendering", t?.id);
 
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
@@ -588,6 +591,7 @@ function SettingsSection({ title, children }) {
 }
 
 function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast }) {
+  console.log("SettingsView rendering");
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);

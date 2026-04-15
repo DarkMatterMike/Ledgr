@@ -1,5 +1,5 @@
 {
-  "buildCommand": "rm -rf dist && npx vite build",
+  "buildCommand": "rm -rf dist && npm run build",
   "outputDirectory": "dist",
   "framework": "vite"
 }

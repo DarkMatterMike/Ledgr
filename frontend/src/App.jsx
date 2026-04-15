@@ -791,6 +791,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 function AppInner() {
   console.log("AppInner rendering");
   const isMobile = useIsMobile();
+  console.log("After useIsMobile, isMobile=", isMobile);
 
   /* ── State ── */
   const [view,          setView]          = useState("dashboard");
@@ -833,6 +834,7 @@ function AppInner() {
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
   const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
 
+  console.log("After state declarations");
   /* ── Load ── */
   const initialized = useRef(false);
   useEffect(() => {

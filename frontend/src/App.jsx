@@ -964,6 +964,12 @@ function AppInner() {
   const pendingPatch = useRef({});
   const scheduleSave = useCallback((patch) => {
     if (!initialized.current) return;
+    // Don't attempt saves for free-tier users — server will reject with 402
+    const u = api.getStoredUser();
+    if (u?.role !== "owner" && u?.subscription_status !== "active") {
+      const trialOk = u?.subscription_status === "trialing" && Date.now() < (u?.trial_ends_at || 0);
+      if (!trialOk) return;
+    }
     pendingPatch.current = {
       ...pendingPatch.current,
       ...patch,

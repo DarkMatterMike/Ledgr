@@ -279,13 +279,22 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
   const modMap = Object.fromEntries(modified.map(t => [t.transaction_id, t]));
   next = next.map(t => { if (!modMap[t.id]) return t; const m = modMap[t.id]; return { ...t, date: m.date, pending: m.pending, amount: m.amount }; });
   const existingIds = new Set(next.map(t => t.id));
-  const newTxns = added.filter(t => !existingIds.has(t.transaction_id)).map(t => ({
-    id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
-    accountId: "a" + t.account_id, date: t.date || t.authorized_date,
-    merchant: t.merchant_name || t.name, name: "", amount: t.amount,
-    categoryId: null, pending: t.pending,
-    type: t.amount < 0 ? "expense" : "income", recurring: false, recurringDay: null,
-  }));
+  const fingerprints = new Set(next.map(t => `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`));
+  const newTxns = added
+    .filter(t => !existingIds.has(t.transaction_id))
+    .map(t => ({
+      id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
+      accountId: "a" + t.account_id, date: t.date || t.authorized_date,
+      merchant: t.merchant_name || t.name, name: "", amount: t.amount,
+      categoryId: null, pending: t.pending,
+      type: t.amount < 0 ? "expense" : "income", recurring: false, recurringDay: null,
+    }))
+    .filter(t => {
+      const fp = `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`;
+      if (fingerprints.has(fp)) return false;
+      fingerprints.add(fp);
+      return true;
+    });
   next = [...newTxns, ...next];
   await setData(userId, "transactions", next);
   try {

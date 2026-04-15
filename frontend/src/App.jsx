@@ -1485,16 +1485,7 @@ function AppInner() {
   }, [rules]);
 
   /* ── Plaid ── */
-  const handlePlaidSuccess = useCallback(async (publicToken, institutionName) => {
-    try {
-      const {item_id} = await api.exchangePublicToken(publicToken, institutionName);
-      setPlaidItems(p=>[...p.filter(i=>i.item_id!==item_id),{item_id,institution:institutionName}]);
-      showToast(`${institutionName} connected! Syncing…`);
-      await doSync(item_id);
-    } catch(e) { showToast("Connection failed: "+e.message); }
-  }, []);
-
-  async function doSync(itemId) {
+  const doSync = useCallback(async (itemId) => {
     setSyncing(true);
     try {
       const {added,modified,removed} = await api.syncTransactions(itemId);
@@ -1514,7 +1505,18 @@ function AppInner() {
           return applyRules([merged], rules, { onlyUncategorized: true })[0];
         });
         const existing=new Set(next.map(t=>t.id));
-        const rawNew=added.filter(t=>!existing.has(t.transaction_id)).map(t=>plaidTxnToLocal(t,catMap));
+        // Also deduplicate by fingerprint (date+amount+merchant) to prevent
+        // duplicates when the same bank is reconnected with new transaction_ids
+        const fingerprints=new Set(next.map(t=>`${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`));
+        const rawNew=added
+          .filter(t=>!existing.has(t.transaction_id))
+          .map(t=>plaidTxnToLocal(t,catMap))
+          .filter(t=>{
+            const fp=`${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`;
+            if(fingerprints.has(fp)) return false;
+            fingerprints.add(fp);
+            return true;
+          });
         return [...applyRules(rawNew, rules, { onlyUncategorized: true }),...next];
       });
       const {accounts:plaidAccts} = await api.getAccounts();
@@ -1550,7 +1552,16 @@ function AppInner() {
       showToast(`Synced: +${added.length} transactions`);
     } catch(e) { showToast("Sync error: "+e.message); }
     finally { setSyncing(false); }
-  }
+  }, [catMap, rules]);
+
+  const handlePlaidSuccess = useCallback(async (publicToken, institutionName) => {
+    try {
+      const {item_id} = await api.exchangePublicToken(publicToken, institutionName);
+      setPlaidItems(p=>[...p.filter(i=>i.item_id!==item_id),{item_id,institution:institutionName}]);
+      showToast(`${institutionName} connected! Syncing…`);
+      await doSync(item_id);
+    } catch(e) { showToast("Connection failed: "+e.message); }
+  }, [doSync]);
   function plaidTxnToLocal(t,cm) {
     const pc=(t.category||"").toLowerCase();
     const matched=Object.values(cm).find(c=>pc.includes(c.name.toLowerCase().split(" ")[0]));

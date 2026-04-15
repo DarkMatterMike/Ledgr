@@ -789,6 +789,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
 function AppInner() {
+  console.log("AppInner rendering");
   const isMobile = useIsMobile();
 
   /* ── State ── */
@@ -1544,6 +1545,7 @@ function AppInner() {
   ───────────────────────────────────────────────────────────────── */
 
   /* ── Dashboard ── */
+  console.log("Before budgetAnalytics");
   const budgetAnalytics = useMemo(() => {
     const spentCats = categories
       .map((c) => ({
@@ -1620,6 +1622,7 @@ function AppInner() {
     };
   }, [categories, spentByCat, transactions, selectedMonth]);
 
+  console.log("Before JSX variables");
   const BudgetSummaryCard = (
     <div
       style={{
@@ -4186,12 +4189,8 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
   })();
   const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
 
+  console.log("Before return");
   return (
-    <div style={S.shell}>
-    {isMobile ? (
-      /* ════════════════════════════════════
-         MOBILE — hamburger + overlay drawer
-         ════════════════════════════════════ */
       <>
         {/* Mobile top bar */}
         <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>

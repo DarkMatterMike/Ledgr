@@ -647,9 +647,14 @@ app.get("/api/plaid/items", async (req, res) => {
 app.delete("/api/plaid/items/:itemId", async (req, res) => {
   try {
     const item = await getItem(req.params.itemId);
-    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (!item) return res.json({ ok: true }); // already gone, treat as success
     if (item.user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
     try { await plaidClient.itemRemove({ access_token: item.access_token }); }
+    catch (e) { console.warn("Plaid itemRemove failed:", e.message); }
+    await removeItem(req.params.itemId);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
     catch (e) { console.warn("Plaid itemRemove failed:", e.message); }
     await removeItem(req.params.itemId);
     res.json({ ok: true });

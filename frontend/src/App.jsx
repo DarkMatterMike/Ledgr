@@ -1561,21 +1561,17 @@ function AppInner() {
   }
   async function disconnectItem(itemId) {
     try {
-      await api.deleteItem(itemId);
-      // Compute cleaned state synchronously so we can save it immediately
-      const cleanAccounts    = accounts.filter(a => a.plaidItemId !== itemId);
+      // Best-effort server delete — ignore 404 (item may not be in DB)
+      try { await api.deleteItem(itemId); } catch(e) {
+        if (!e.message?.includes("404") && !e.message?.includes("not found")) throw e;
+      }
+      const cleanAccounts     = accounts.filter(a => a.plaidItemId !== itemId);
       const cleanTransactions = transactions.filter(t => t.plaidItemId !== itemId);
-      const cleanPlaidItems  = plaidItems.filter(i => i.item_id !== itemId);
-      // Update state
+      const cleanPlaidItems   = plaidItems.filter(i => i.item_id !== itemId);
       setAccounts(cleanAccounts);
       setTransactions(cleanTransactions);
       setPlaidItems(cleanPlaidItems);
-      // Immediately persist to DB — don't rely on debounced scheduleSave
-      await api.saveData({
-        accounts:     cleanAccounts,
-        transactions: cleanTransactions,
-        plaidItems:   cleanPlaidItems,
-      });
+      await api.saveData({ accounts: cleanAccounts, transactions: cleanTransactions, plaidItems: cleanPlaidItems });
       showToast("Bank disconnected");
     } catch(e) { showToast("Error: " + e.message); }
   }

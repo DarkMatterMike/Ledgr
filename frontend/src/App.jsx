@@ -2,6 +2,7 @@
  * src/App.jsx — Ledgr personal finance app
  */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React from "react";
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 
@@ -354,7 +355,24 @@ export default function App() {
 
   if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
 
-  return <AppInner/>;
+  return <ErrorBoundary><AppInner/></ErrorBoundary>;
+}
+
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{padding:40,fontFamily:"monospace",color:"red",background:"#111",minHeight:"100vh"}}>
+          <h2>Error caught:</h2>
+          <pre>{this.state.error?.message}</pre>
+          <pre>{this.state.error?.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════

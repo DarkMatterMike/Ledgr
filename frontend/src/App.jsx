@@ -644,7 +644,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -704,16 +704,24 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   }
 
   function deleteAllTransactions() {
-    if (!transactions.length) {
-      showToast("No transactions to delete");
-      return;
-    }
-    const confirmed = window.confirm(
-      `Delete all ${transactions.length} transactions? This cannot be undone.`
-    );
+    if (!transactions.length) { showToast("No transactions to delete"); return; }
+    const confirmed = window.confirm(`Delete all ${transactions.length} transactions? This cannot be undone.`);
     if (!confirmed) return;
     setTransactions([]);
     showToast("All transactions deleted");
+  }
+
+  function clearAllData() {
+    const confirmed = window.confirm(
+      "Clear ALL data? This will delete all transactions, accounts, categories, rules, and bank connections. This cannot be undone."
+    );
+    if (!confirmed) return;
+    setTransactions([]);
+    setAccounts([]);
+    setCategories([]);
+    setRules([]);
+    setPlaidItems([]);
+    showToast("All data cleared");
   }
 
   const inputSt = { ...S.input, marginBottom:0 };
@@ -854,6 +862,9 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           </div>
           <button style={S.btn("danger",true)} onClick={deleteAllTransactions}>
             Delete All Transactions
+          </button>
+          <button style={S.btn("danger",true)} onClick={clearAllData}>
+            Clear All Data
           </button>
         </div>
       </SettingsSection>
@@ -1501,13 +1512,27 @@ function AppInner() {
       });
       const {accounts:plaidAccts} = await api.getAccounts();
       setAccounts(prev => {
-        const byId=Object.fromEntries(prev.map(a=>[a.plaidId,a]));
-        const updated=plaidAccts.map(pa=>({
-          id:byId[pa.account_id]?.id||"a"+pa.account_id, plaidId:pa.account_id,
-          name:byId[pa.account_id]?.name||pa.name, balance:pa.balance,
-          available:pa.available, type:cap(pa.subtype||pa.type), institution:pa.institution,
-        }));
-        api.saveData({accounts:updated});
+        // Keep manually-added accounts (no plaidId) as-is
+        const manual = prev.filter(a => !a.plaidId);
+        // Build a map of existing Plaid accounts by plaidId to preserve custom names
+        const byPlaidId = Object.fromEntries(prev.filter(a => a.plaidId).map(a => [a.plaidId, a]));
+        // Merge: update balances for existing, add new ones, deduplicate by plaidId
+        const seen = new Set();
+        const plaidUpdated = plaidAccts
+          .filter(pa => { const dup = seen.has(pa.account_id); seen.add(pa.account_id); return !dup; })
+          .map(pa => ({
+            // Preserve existing record (custom name, id) or create fresh
+            ...(byPlaidId[pa.account_id] || { id: "a" + pa.account_id }),
+            plaidId: pa.account_id,
+            plaidItemId: pa.item_id,
+            name: byPlaidId[pa.account_id]?.name || pa.name,
+            balance: pa.balance,
+            available: pa.available,
+            type: cap(pa.subtype || pa.type),
+            institution: pa.institution,
+          }));
+        const updated = [...manual, ...plaidUpdated];
+        api.saveData({ accounts: updated });
         return updated;
       });
       setTransactions(prev=>{
@@ -1522,14 +1547,22 @@ function AppInner() {
   function plaidTxnToLocal(t,cm) {
     const pc=(t.category||"").toLowerCase();
     const matched=Object.values(cm).find(c=>pc.includes(c.name.toLowerCase().split(" ")[0]));
-    return {id:t.transaction_id,plaidAccountId:t.account_id,accountId:"a"+t.account_id,
+    return {id:t.transaction_id,plaidAccountId:t.account_id,plaidItemId:t.item_id,accountId:"a"+t.account_id,
       date:t.date||t.authorized_date,merchant:t.merchant_name||t.name,name:"",
       amount:t.amount,categoryId:matched?.id||null,pending:t.pending,recurring:false,recurringDay:null,
       type:t.amount<0?"expense":"income"};
   }
   async function disconnectItem(itemId) {
-    try { await api.deleteItem(itemId); setPlaidItems(p=>p.filter(i=>i.item_id!==itemId)); showToast("Disconnected"); }
-    catch(e) { showToast("Error: "+e.message); }
+    try {
+      await api.deleteItem(itemId);
+      // Remove the plaid item from state
+      setPlaidItems(p => p.filter(i => i.item_id !== itemId));
+      // Remove accounts that came from this item
+      setAccounts(prev => prev.filter(a => a.plaidItemId !== itemId));
+      // Remove transactions that came from this item
+      setTransactions(prev => prev.filter(t => t.plaidItemId !== itemId));
+      showToast("Bank disconnected");
+    } catch(e) { showToast("Error: " + e.message); }
   }
 
   /* ── Category CRUD ── */
@@ -4309,6 +4342,10 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
       avatarLetter={avatarLetter}
       showToast={showToast}
       setTransactions={setTransactions}
+      setAccounts={setAccounts}
+      setCategories={setCategories}
+      setRules={setRules}
+      setPlaidItems={setPlaidItems}
       access={access}
     />
   );

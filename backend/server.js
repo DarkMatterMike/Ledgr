@@ -280,9 +280,10 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
   next = next.map(t => { if (!modMap[t.id]) return t; const m = modMap[t.id]; return { ...t, date: m.date, pending: m.pending, amount: m.amount }; });
   const existingIds = new Set(next.map(t => t.id));
   const newTxns = added.filter(t => !existingIds.has(t.transaction_id)).map(t => ({
-    id: t.transaction_id, plaidAccountId: t.account_id, accountId: "a" + t.account_id,
-    date: t.date || t.authorized_date, merchant: t.merchant_name || t.name, name: "",
-    amount: t.amount, categoryId: null, pending: t.pending,
+    id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
+    accountId: "a" + t.account_id, date: t.date || t.authorized_date,
+    merchant: t.merchant_name || t.name, name: "", amount: t.amount,
+    categoryId: null, pending: t.pending,
     type: t.amount < 0 ? "expense" : "income", recurring: false, recurringDay: null,
   }));
   next = [...newTxns, ...next];
@@ -293,14 +294,23 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
     for (const item of items) {
       try {
         const r = await plaidClient.accountsGet({ access_token: item.access_token });
-        allAccounts.push(...r.data.accounts.map(a => ({ plaidId: a.account_id, institution: item.institution, type: a.type, subtype: a.subtype, balance: a.balances.current, available: a.balances.available })));
+        allAccounts.push(...r.data.accounts.map(a => ({ plaidId: a.account_id, plaidItemId: item.item_id, institution: item.institution, type: a.type, subtype: a.subtype, balance: a.balances.current, available: a.balances.available })));
       } catch (e) { console.error(`accountsGet failed for ${item.item_id}:`, e.message); }
     }
     if (allAccounts.length > 0) {
       const saved = (await getData(userId, "accounts")) || [];
-      const byPlaid = Object.fromEntries(saved.map(a => [a.plaidId, a]));
-      const updated = allAccounts.map(pa => ({ ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }), plaidId: pa.plaidId, balance: pa.balance, available: pa.available, institution: pa.institution, type: pa.subtype || pa.type }));
-      await setData(userId, "accounts", updated);
+      const manual = saved.filter(a => !a.plaidId);
+      const byPlaid = Object.fromEntries(saved.filter(a => a.plaidId).map(a => [a.plaidId, a]));
+      const seen = new Set();
+      const plaidUpdated = allAccounts
+        .filter(pa => { const dup = seen.has(pa.plaidId); seen.add(pa.plaidId); return !dup; })
+        .map(pa => ({
+          ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
+          plaidId: pa.plaidId, plaidItemId: pa.plaidItemId,
+          balance: pa.balance, available: pa.available,
+          institution: pa.institution, type: pa.subtype || pa.type,
+        }));
+      await setData(userId, "accounts", [...manual, ...plaidUpdated]);
     }
   } catch (e) { console.error("Balance refresh failed:", e.message); }
   return { added: newTxns.length, modified: modified.length, removed: removed.length, newTxns };

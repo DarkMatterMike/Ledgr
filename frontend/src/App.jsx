@@ -453,6 +453,115 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   );
 }
 
+function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
+  editingId, editingName, setEditingName, setEditingId,
+  catMap, acctMap, categories, accounts,
+  needsReview, markReviewed, startRename, deleteTxn,
+  updateTxnType, updateTxnCat, updateTxnAcct,
+  openAddCat, toggleRecurring, updateRecurringDay, saveRename }) {
+
+  const expanded   = expandedTxnId === t.id;
+  const reviewed   = !needsReview(t);
+  const typeVal    = t.type||(t.amount<0?"expense":"income");
+  const noCategory = ["income","transfer","reimbursement"].includes(typeVal);
+  const cat        = catMap[t.categoryId];
+  const acct       = acctMap[t.accountId];
+
+  return (
+    <div style={{borderBottom:"1px solid var(--border)"}}>
+      <div onClick={()=>setExpandedTxnId(expanded?null:t.id)}
+        style={{padding:"10px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
+          borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
+          paddingLeft:t.recurring||needsReview(t)?10:0,
+          transition:"background 0.1s"}}>
+        <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)"}}/>
+        <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
+          {t.name||t.merchant}
+        </span>
+        {cat ? (
+          <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
+        ) : (
+          <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0,textTransform:"capitalize"}}>{typeVal}</span>
+        )}
+        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+          {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+        </span>
+        <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
+          {ellipsisId===t.id&&(
+            <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
+              border:"1px solid var(--border2)",borderRadius:"var(--radius)",
+              boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
+              <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
+                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
+                {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}
+              </button>
+              <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
+                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+              <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
+                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {expanded&&(
+        <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+          {editingId===t.id&&(
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <input style={{...S.input,flex:1,fontSize:13}}
+                value={editingName} onChange={e=>setEditingName(e.target.value)}
+                onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
+              <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
+              <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
+            </div>
+          )}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
+              value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+              <option value="refund">Refund</option>
+              <option value="reimbursement">Reimbursement</option>
+              <option value="transfer">Transfer</option>
+            </select>
+            {noCategory ? (
+              <div style={{...S.select,padding:"7px 10px",fontSize:12,color:"var(--t3)"}}>No category needed</div>
+            ) : (
+              <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
+                value={t.categoryId||""}
+                onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
+                <option value="">— Category —</option>
+                {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="__new__">＋ New Category…</option>
+              </select>
+            )}
+          </div>
+          <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
+            value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
+            <option value="">— Account —</option>
+            {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <button onClick={()=>toggleRecurring(t.id)} style={{...S.btn(t.recurring?"amber":"ghost",true)}}>
+              {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
+            </button>
+            {t.recurring&&(
+              <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--t2)"}}>
+                Day: <input type="number" min="1" max="31"
+                  style={{...S.input,width:52}}
+                  value={t.recurringDay||""} onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
+              </div>
+            )}
+            <button onClick={()=>setExpandedTxnId(null)} style={{...S.btn("ghost",true),marginLeft:"auto"}}>Done</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsSection({ title, children }) {
   return (
     <div style={{ ...S.card, marginBottom:16 }}>
@@ -1945,124 +2054,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
 
-  /* ── TxnRow — lifted out of Transactions so React doesn't treat it as a new
-       component type on every render (was previously defined inside the IIFE) ── */
-  function TxnRow({ t }) {
-      const expanded   = expandedTxnId === t.id;
-      const reviewed   = !needsReview(t);
-      const typeVal    = t.type||(t.amount<0?"expense":"income");
-      const noCategory = ["income","transfer","reimbursement"].includes(typeVal);
-      const cat        = catMap[t.categoryId];
-      const acct       = acctMap[t.accountId];
-
-      return (
-        <div style={{borderBottom:"1px solid var(--border)"}}>
-          {/* Single line row */}
-          <div onClick={()=>setExpandedTxnId(expanded?null:t.id)}
-            style={{padding:"10px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
-              borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
-              paddingLeft:t.recurring||needsReview(t)?10:0,
-              transition:"background 0.1s",
-                        }}>
-            {/* Status dot */}
-            <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)"}}/>
-            {/* Name */}
-            <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
-              {t.name||t.merchant}
-            </span>
-            {/* Category or type */}
-            {cat ? (
-              <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
-            ) : (
-              <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0,textTransform:"capitalize"}}>{typeVal}</span>
-            )}
-            {/* Amount */}
-            <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
-              {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
-            </span>
-            {/* Ellipsis menu */}
-            <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-              <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
-                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
-              {ellipsisId===t.id&&(
-                <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
-                  border:"1px solid var(--border2)",borderRadius:"var(--radius)",
-                  boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
-                  <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
-                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
-                    {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}
-                  </button>
-                  <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
-                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
-                  <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
-                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Expanded edit panel */}
-          {expanded&&(
-            <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
-              {/* Rename if editing */}
-              {editingId===t.id&&(
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  <input style={{...S.input,flex:1,fontSize:13}}
-                    value={editingName} onChange={e=>setEditingName(e.target.value)}
-                    onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
-                  <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
-                  <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
-                </div>
-              )}
-              {/* Selects row */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
-                  value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                  <option value="refund">Refund</option>
-                  <option value="reimbursement">Reimbursement</option>
-                  <option value="transfer">Transfer</option>
-                </select>
-                {noCategory ? (
-                  <div style={{...S.select,padding:"7px 10px",fontSize:12,color:"var(--t3)"}}>No category needed</div>
-                ) : (
-                  <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
-                    value={t.categoryId||""}
-                    onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
-                    <option value="">— Category —</option>
-                    {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                    <option value="__new__">＋ New Category…</option>
-                  </select>
-                )}
-              </div>
-              <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
-                value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
-                <option value="">— Account —</option>
-                {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-              {/* Recurring toggle */}
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <button onClick={()=>toggleRecurring(t.id)}
-                  style={{...S.btn(t.recurring?"amber":"ghost",true)}}>
-                  {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
-                </button>
-                {t.recurring&&(
-                  <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--t2)"}}>
-                    Day: <input type="number" min="1" max="31"
-                      style={{...S.input,width:52}}
-                      value={t.recurringDay||""} onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
-                  </div>
-                )}
-                <button onClick={()=>setExpandedTxnId(null)}
-                  style={{...S.btn("ghost",true),marginLeft:"auto"}}>Done</button>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-  }
-
   /* ── Transactions ── */
   const Transactions = (()=>{
     // Group filtered transactions by date
@@ -2238,7 +2229,20 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                   </div>
                   {/* Transactions for this date */}
                   <div style={{padding:"0 16px"}}>
-                    {txns.map(t=><TxnRow key={t.id} t={t}/>)}
+                    {txns.map(t=><TxnRow key={t.id} t={t}
+                      expandedTxnId={expandedTxnId} setExpandedTxnId={setExpandedTxnId}
+                      ellipsisId={ellipsisId} setEllipsisId={setEllipsisId}
+                      editingId={editingId} editingName={editingName}
+                      setEditingName={setEditingName} setEditingId={setEditingId}
+                      catMap={catMap} acctMap={acctMap}
+                      categories={categories} accounts={accounts}
+                      needsReview={needsReview} markReviewed={markReviewed}
+                      startRename={startRename} deleteTxn={deleteTxn}
+                      updateTxnType={updateTxnType} updateTxnCat={updateTxnCat}
+                      updateTxnAcct={updateTxnAcct} openAddCat={openAddCat}
+                      toggleRecurring={toggleRecurring} updateRecurringDay={updateRecurringDay}
+                      saveRename={saveRename}
+                    />)}
                   </div>
                 </div>
               );

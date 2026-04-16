@@ -1156,13 +1156,14 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
 function AdminPanel() {
+  const isMobile = useIsMobile();
   const [users,    setUsers]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
-  const [editing,  setEditing]  = useState(null); // userId being edited
+  const [editing,  setEditing]  = useState(null);
   const [editForm, setEditForm] = useState({ subscription_status:"", role:"" });
   const [saving,   setSaving]   = useState(false);
-  const [confirm,  setConfirm]  = useState(null); // userId to delete
+  const [confirm,  setConfirm]  = useState(null);
 
   async function loadUsers() {
     setLoading(true); setError("");
@@ -1194,45 +1195,44 @@ function AdminPanel() {
     } catch(e) { setError(e.message); }
   }
 
-  // Stats
   const stats = {
-    total:      users.length,
-    active:     users.filter(u => u.subscription_status === "active").length,
-    trialing:   users.filter(u => u.subscription_status === "trialing").length,
-    canceled:   users.filter(u => u.subscription_status === "canceled" || u.subscription_status === "past_due").length,
-    mrr:        users.filter(u => u.subscription_status === "active" && u.role !== "owner" && u.role !== "free").length * 4.99,
+    total:    users.length,
+    active:   users.filter(u => u.subscription_status === "active").length,
+    trialing: users.filter(u => u.subscription_status === "trialing").length,
+    canceled: users.filter(u => u.subscription_status === "canceled" || u.subscription_status === "past_due").length,
+    mrr:      users.filter(u => u.subscription_status === "active" && u.role !== "owner" && u.role !== "free").length * 4.99,
   };
 
   const statusColor = s => s === "active" ? "var(--green)" : s === "trialing" ? "var(--amber)" : s === "past_due" ? "var(--red)" : "var(--t3)";
   const statusDot   = s => <span style={{width:7,height:7,borderRadius:"50%",background:statusColor(s),display:"inline-block",marginRight:6,flexShrink:0}}/>;
+  const roleColor   = r => r === "owner" ? "var(--cyan)" : r === "free" ? "var(--green)" : "var(--t2)";
 
   return (
-    <div style={{padding:"24px 20px",maxWidth:900}}>
-      {/* Header */}
+    <div style={{padding:"24px 16px",maxWidth:900}}>
       <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:24,letterSpacing:"-0.3px"}}>
         Admin Panel
       </div>
 
-      {/* Stats row */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:28}}>
+      {/* Stats — 2x2 on mobile, 4 columns on desktop */}
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:24}}>
         {[
-          { label:"Total Users",   value:stats.total,              color:"var(--t1)"   },
-          { label:"Active",        value:stats.active,             color:"var(--green)" },
-          { label:"Trialing",      value:stats.trialing,           color:"var(--amber)" },
-          { label:"MRR",           value:`$${stats.mrr.toFixed(2)}`, color:"var(--cyan)"  },
+          { label:"Total Users", value:stats.total,                  color:"var(--t1)"    },
+          { label:"Active",      value:stats.active,                  color:"var(--green)" },
+          { label:"Trialing",    value:stats.trialing,                color:"var(--amber)" },
+          { label:"MRR",         value:`$${stats.mrr.toFixed(2)}`,   color:"var(--cyan)"  },
         ].map(({label,value,color}) => (
-          <div key={label} style={{...S.card,padding:"16px 18px"}}>
-            <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:6}}>{label}</div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,color}}>{value}</div>
+          <div key={label} style={{...S.card,padding:"14px 16px"}}>
+            <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:4}}>{label}</div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?20:24,fontWeight:700,color}}>{value}</div>
           </div>
         ))}
       </div>
 
       {error && <div style={{color:"var(--red)",fontSize:13,marginBottom:16,padding:"10px 14px",background:"#ff4d6d11",borderRadius:"var(--radius)",border:"1px solid #ff4d6d33"}}>{error}</div>}
 
-      {/* Users table */}
+      {/* Users list */}
       <div style={{...S.card,padding:0,overflow:"hidden"}}>
-        <div style={{padding:"14px 20px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
             Users ({users.length})
           </div>
@@ -1243,7 +1243,92 @@ function AdminPanel() {
 
         {loading ? (
           <div style={{padding:40,textAlign:"center",color:"var(--t3)",fontSize:13}}>Loading users…</div>
+        ) : isMobile ? (
+          /* ── Mobile: card-per-user ── */
+          <div style={{display:"flex",flexDirection:"column"}}>
+            {users.map((user, i) => (
+              <div key={user.id} style={{
+                padding:"14px 16px",
+                borderBottom: i < users.length-1 ? "1px solid var(--border)" : "none",
+                background: editing === user.id ? "var(--surface)" : "transparent",
+              }}>
+                {/* Email + ID */}
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:10}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:"var(--t1)"}}>{user.email}</div>
+                    <div style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:2}}>{user.id.slice(0,8)}…</div>
+                  </div>
+                  {!editing && user.role !== "owner" && (
+                    <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✕</button>
+                  )}
+                </div>
+
+                {/* Info row */}
+                {editing !== user.id ? (
+                  <>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:10}}>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Role</div>
+                        <span style={{fontSize:12,color:roleColor(user.role),fontWeight:700}}>{user.role}</span>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Status</div>
+                        <span style={{display:"inline-flex",alignItems:"center",fontSize:12}}>
+                          {statusDot(user.subscription_status)}{user.subscription_status}
+                        </span>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Joined</div>
+                        <span style={{fontSize:12,color:"var(--t3)"}}>{new Date(user.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Last Login</div>
+                        <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : "—"}</span>
+                      </div>
+                    </div>
+                    <button style={{...S.btn("ghost",true),width:"100%",justifyContent:"center"}} onClick={() => {
+                      setEditing(user.id);
+                      setEditForm({ subscription_status: user.subscription_status, role: user.role });
+                    }}>Edit</button>
+                  </>
+                ) : (
+                  /* Edit mode */
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Role</div>
+                        <select style={{...S.select,width:"100%",fontSize:12}} value={editForm.role || user.role}
+                          onChange={e => setEditForm(p => ({...p, role: e.target.value}))}>
+                          <option value="subscriber">subscriber</option>
+                          <option value="free">free</option>
+                          <option value="owner">owner</option>
+                        </select>
+                      </div>
+                      <div>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Status</div>
+                        <select style={{...S.select,width:"100%",fontSize:12}} value={editForm.subscription_status || user.subscription_status}
+                          onChange={e => setEditForm(p => ({...p, subscription_status: e.target.value}))}>
+                          <option value="active">active</option>
+                          <option value="trialing">trialing</option>
+                          <option value="canceled">canceled</option>
+                          <option value="past_due">past_due</option>
+                          <option value="expired">expired</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:8}}>
+                      <button style={{...S.btn("primary",true),flex:1,justifyContent:"center"}} onClick={() => saveEdit(user.id)} disabled={saving}>
+                        {saving ? "Saving…" : "Save"}
+                      </button>
+                      <button style={{...S.btn("ghost",true),flex:1,justifyContent:"center"}} onClick={() => setEditing(null)}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
+          /* ── Desktop: table ── */
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
@@ -1269,9 +1354,7 @@ function AdminPanel() {
                           <option value="owner">owner</option>
                         </select>
                       ) : (
-                        <span style={{fontSize:12,
-                          color: user.role === "owner" ? "var(--cyan)" : user.role === "free" ? "var(--green)" : "var(--t2)",
-                          fontWeight: user.role === "owner" || user.role === "free" ? 700 : 400}}>
+                        <span style={{fontSize:12,color:roleColor(user.role),fontWeight: user.role !== "subscriber" ? 700 : 400}}>
                           {user.role}
                         </span>
                       )}
@@ -1284,6 +1367,7 @@ function AdminPanel() {
                           <option value="trialing">trialing</option>
                           <option value="canceled">canceled</option>
                           <option value="past_due">past_due</option>
+                          <option value="expired">expired</option>
                         </select>
                       ) : (
                         <span style={{display:"inline-flex",alignItems:"center",fontSize:12}}>

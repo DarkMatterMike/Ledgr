@@ -936,7 +936,14 @@ app.post("/api/push/test", async (req, res) => {
 app.get("/api/admin/users", requireOwner, async (_req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, email, role, subscription_status, trial_ends_at, stripe_customer_id, last_login_at, created_at FROM users ORDER BY created_at ASC");
-    res.json({ users: rows });
+    // Convert BIGINT strings to numbers for JSON serialization
+    const users = rows.map(u => ({
+      ...u,
+      trial_ends_at:  u.trial_ends_at  ? Number(u.trial_ends_at)  : null,
+      last_login_at:  u.last_login_at  ? Number(u.last_login_at)  : null,
+      created_at:     u.created_at     ? Number(u.created_at)     : null,
+    }));
+    res.json({ users });
   } catch (err) { serverError(res, err); }
 });
 

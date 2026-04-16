@@ -1297,11 +1297,11 @@ function AdminPanel() {
                       </div>
                       <div>
                         <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Joined</div>
-                        <span style={{fontSize:12,color:"var(--t3)"}}>{new Date(user.created_at).toLocaleDateString()}</span>
+                        <span style={{fontSize:12,color:"var(--t3)"}}>{new Date(Number(user.created_at)).toLocaleDateString()}</span>
                       </div>
                       <div>
                         <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Last Login</div>
-                        <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : "—"}</span>
+                        <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_login_at ? new Date(Number(user.last_login_at)).toLocaleDateString() : "—"}</span>
                       </div>
                     </div>
                     <button style={{...S.btn("ghost",true),width:"100%",justifyContent:"center"}} onClick={() => {
@@ -1395,17 +1395,17 @@ function AdminPanel() {
                     </td>
                     <td style={S.td}>
                       <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
-                        {user.trial_ends_at ? new Date(user.trial_ends_at).toLocaleDateString() : "—"}
+                        {user.trial_ends_at ? new Date(Number(user.trial_ends_at)).toLocaleDateString() : "—"}
                       </span>
                     </td>
                     <td style={S.td}>
                       <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
-                        {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : "—"}
+                        {user.last_login_at ? new Date(Number(user.last_login_at)).toLocaleDateString() : "—"}
                       </span>
                     </td>
                     <td style={S.td}>
                       <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
-                        {new Date(user.created_at).toLocaleDateString()}
+                        {new Date(Number(user.created_at)).toLocaleDateString()}
                       </span>
                     </td>
                     <td style={S.td}>

@@ -2624,7 +2624,40 @@ function AppInner() {
   );
 
 const reviewCount = transactions.filter(t => needsReview(t)).length;
+  const isNewUser = transactions.length === 0 && plaidItems.length === 0 && accounts.length === 0;
 
+  // Onboarding steps — checked off as user completes them
+  const onboardingSteps = [
+    {
+      id: "bank",
+      done: plaidItems.length > 0 || accounts.length > 0,
+      icon: "🏦",
+      title: "Connect your bank",
+      desc: "Link a bank account to automatically import transactions.",
+      action: () => navigate("accounts"),
+      cta: "Go to Accounts →",
+    },
+    {
+      id: "categories",
+      done: categories.length > 0,
+      icon: "◉",
+      title: "Create budget categories",
+      desc: "Set up spending categories with limits to track your budget.",
+      action: () => navigate("budgets"),
+      cta: "Go to Budgets →",
+    },
+    {
+      id: "rules",
+      done: rules.length > 0 || transactions.some(t => t.categoryId),
+      icon: "◎",
+      title: "Categorize a transaction",
+      desc: "Review your transactions and assign categories. Set up rules to auto-categorize going forward.",
+      action: () => navigate("transactions"),
+      cta: "Go to Transactions →",
+    },
+  ];
+  const onboardingComplete = onboardingSteps.every(s => s.done);
+  const onboardingProgress = onboardingSteps.filter(s => s.done).length;
 
   const Dashboard = (
     <div>
@@ -2644,6 +2677,76 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
           <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
         </div>
       </div>
+{/* Onboarding — show until all steps done */}
+{!onboardingComplete && (
+  <div style={{
+    background:"var(--card)", border:"1px solid var(--border)",
+    borderRadius:"var(--radius-lg)", padding:"20px", marginBottom:16,
+  }}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+      <div>
+        <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:800,color:"var(--t1)"}}>
+          Get started with ledgr.
+        </div>
+        <div style={{fontSize:12,color:"var(--t3)",marginTop:3}}>
+          {onboardingProgress} of {onboardingSteps.length} steps complete
+        </div>
+      </div>
+      {/* Progress dots */}
+      <div style={{display:"flex",gap:6}}>
+        {onboardingSteps.map(s => (
+          <div key={s.id} style={{
+            width:8, height:8, borderRadius:"50%",
+            background: s.done ? "var(--cyan)" : "var(--border2)",
+            transition:"background 0.3s",
+          }}/>
+        ))}
+      </div>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {onboardingSteps.map(s => (
+        <div key={s.id} style={{
+          display:"flex", alignItems:"center", gap:14,
+          padding:"12px 14px", borderRadius:"var(--radius)",
+          background: s.done ? "transparent" : "var(--surface)",
+          border:`1px solid ${s.done ? "transparent" : "var(--border)"}`,
+          opacity: s.done ? 0.5 : 1,
+          transition:"all 0.2s",
+        }}>
+          {/* Check / icon */}
+          <div style={{
+            width:32, height:32, borderRadius:"50%", flexShrink:0,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            background: s.done ? "#00d4ff22" : "var(--card)",
+            border:`1.5px solid ${s.done ? "var(--cyan)" : "var(--border2)"}`,
+            fontSize:15,
+          }}>
+            {s.done ? <span style={{color:"var(--cyan)",fontWeight:800,fontSize:14}}>✓</span> : s.icon}
+          </div>
+          {/* Text */}
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",textDecoration:s.done?"line-through":"none"}}>
+              {s.title}
+            </div>
+            {!s.done && (
+              <div style={{fontSize:12,color:"var(--t3)",marginTop:2,lineHeight:1.4}}>{s.desc}</div>
+            )}
+          </div>
+          {/* CTA */}
+          {!s.done && (
+            <button onClick={s.action} style={{
+              ...S.btn("ghost",true), flexShrink:0, whiteSpace:"nowrap",
+              borderColor:"var(--cyan)", color:"var(--cyan)",
+            }}>
+              {s.cta}
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
 {reviewCount > 0 && (
   <div
     style={{

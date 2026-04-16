@@ -1164,6 +1164,9 @@ function AdminPanel() {
   const [editForm, setEditForm] = useState({ subscription_status:"", role:"" });
   const [saving,   setSaving]   = useState(false);
   const [confirm,  setConfirm]  = useState(null);
+  const [search,   setSearch]   = useState("");
+  const [page,     setPage]     = useState(1);
+  const PAGE_SIZE = 25;
 
   async function loadUsers() {
     setLoading(true); setError("");
@@ -1173,6 +1176,9 @@ function AdminPanel() {
   }
 
   useEffect(() => { loadUsers(); }, []);
+
+  // Reset to page 1 when search changes
+  useEffect(() => { setPage(1); }, [search]);
 
   async function saveEdit(userId) {
     setSaving(true);
@@ -1207,6 +1213,10 @@ function AdminPanel() {
   const statusDot   = s => <span style={{width:7,height:7,borderRadius:"50%",background:statusColor(s),display:"inline-block",marginRight:6,flexShrink:0}}/>;
   const roleColor   = r => r === "owner" ? "var(--cyan)" : r === "free" ? "var(--green)" : "var(--t2)";
 
+  const filteredUsers = users.filter(u => u.email.toLowerCase().includes(search.toLowerCase().trim()));
+  const totalPages    = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const pagedUsers    = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div style={{padding:"24px 16px",maxWidth:900}}>
       <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:24,letterSpacing:"-0.3px"}}>
@@ -1232,13 +1242,21 @@ function AdminPanel() {
 
       {/* Users list */}
       <div style={{...S.card,padding:0,overflow:"hidden"}}>
-        <div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
-            Users ({users.length})
+        <div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
+              Users ({search ? `${filteredUsers.length} of ${users.length}` : users.length})
+            </div>
+            <button style={{...S.btn("ghost",true)}} onClick={loadUsers} disabled={loading}>
+              {loading ? "Loading…" : "↻ Refresh"}
+            </button>
           </div>
-          <button style={{...S.btn("ghost",true)}} onClick={loadUsers} disabled={loading}>
-            {loading ? "Loading…" : "↻ Refresh"}
-          </button>
+          <input
+            style={{...S.input, fontSize:13}}
+            placeholder="Search by email…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
 
         {loading ? (
@@ -1246,10 +1264,10 @@ function AdminPanel() {
         ) : isMobile ? (
           /* ── Mobile: card-per-user ── */
           <div style={{display:"flex",flexDirection:"column"}}>
-            {users.map((user, i) => (
+            {pagedUsers.map((user, i) => (
               <div key={user.id} style={{
                 padding:"14px 16px",
-                borderBottom: i < users.length-1 ? "1px solid var(--border)" : "none",
+                borderBottom: i < pagedUsers.length-1 ? "1px solid var(--border)" : "none",
                 background: editing === user.id ? "var(--surface)" : "transparent",
               }}>
                 {/* Email + ID */}
@@ -1339,7 +1357,7 @@ function AdminPanel() {
                 </tr>
               </thead>
               <tbody>
-                {users.map(user => (
+                {pagedUsers.map(user => (
                   <tr key={user.id} style={{background: editing === user.id ? "var(--surface)" : "transparent"}}>
                     <td style={S.td}>
                       <div style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>{user.email}</div>
@@ -1417,6 +1435,27 @@ function AdminPanel() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,gap:8}}>
+          <button
+            style={{...S.btn("ghost",true)}}
+            onClick={() => setPage(p => Math.max(1, p-1))}
+            disabled={page === 1}>
+            ← Prev
+          </button>
+          <span style={{fontSize:13,color:"var(--t3)"}}>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            style={{...S.btn("ghost",true)}}
+            onClick={() => setPage(p => Math.min(totalPages, p+1))}
+            disabled={page === totalPages}>
+            Next →
+          </button>
+        </div>
+      )}
 
       {/* Delete confirm modal */}
       {confirm && (

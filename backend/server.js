@@ -170,7 +170,7 @@ async function createUser(email, password) {
   const isFirst      = parseInt(countRes.rows[0].count, 10) === 0;
   const isOwnerEmail = OWNER_EMAIL && email.toLowerCase().trim() === OWNER_EMAIL.toLowerCase().trim();
   const role         = (isOwnerEmail || isFirst) ? "owner" : "subscriber";
-  const trialEnds    = Date.now() + 3 * 24 * 60 * 60 * 1000;
+  const trialEnds    = Date.now() + 7 * 24 * 60 * 60 * 1000;
   const res = await pool.query(
     `INSERT INTO users (email, password, role, subscription_status, trial_ends_at)
      VALUES ($1, $2, $3, $4, $5) RETURNING *`,
@@ -271,7 +271,7 @@ function emailWelcome(email) {
       <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
       <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">Welcome aboard 👋</h2>
       <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
-        Your ledgr account is ready. You have a 3-day free trial to explore everything — connect your bank, track spending, and set budgets.
+        Your ledgr account is ready. You have a 7-day free trial to explore everything — connect your bank, track spending, and set budgets.
       </p>
       <a href="${FRONTEND_URL}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
         Open ledgr →

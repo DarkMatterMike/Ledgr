@@ -706,7 +706,7 @@ function Paywall({ onUpgrade }) {
       </div>
       <div style={{ fontSize:14, color:"var(--t3)", maxWidth:360, marginBottom:32, lineHeight:1.6 }}>
         {trialEnded
-          ? "Your 3-day free trial has ended. Subscribe to continue tracking your finances and connecting bank accounts."
+          ? "Your 7-day free trial has ended. Subscribe to continue tracking your finances and connecting bank accounts."
           : "Subscribe to unlock full access — add transactions, connect banks, and sync automatically."}
       </div>
 
@@ -814,11 +814,11 @@ function TermsOfService() {
       <LegalP>You are responsible for maintaining the security of your account password and for all activity that occurs under your account. Notify us immediately at support@ledgrfinance.app if you suspect unauthorized access.</LegalP>
 
       <LegalHeading>3. Subscription and Billing</LegalHeading>
-      <LegalP>Ledgr is offered on a subscription basis at $4.99 per month following a 3-day free trial. Subscriptions automatically renew each month unless canceled. You may cancel at any time from Settings → Subscription → Manage Subscription. Cancellation takes effect at the end of the current billing period — no partial refunds are provided for unused time.</LegalP>
+      <LegalP>Ledgr is offered on a subscription basis at $4.99 per month following a 7-day free trial. Subscriptions automatically renew each month unless canceled. You may cancel at any time from Settings → Subscription → Manage Subscription. Cancellation takes effect at the end of the current billing period — no partial refunds are provided for unused time.</LegalP>
       <LegalP>Payments are processed by Stripe. By subscribing, you authorize us to charge your payment method on a recurring basis.</LegalP>
 
       <LegalHeading>4. Free Trial</LegalHeading>
-      <LegalP>New accounts receive a 3-day free trial with full access to all features. At the end of the trial, a subscription is required to continue using write features and bank connections. Your data remains accessible in read-only mode without a subscription.</LegalP>
+      <LegalP>New accounts receive a 7-day free trial with full access to all features. At the end of the trial, a subscription is required to continue using write features and bank connections. Your data remains accessible in read-only mode without a subscription.</LegalP>
 
       <LegalHeading>5. Acceptable Use</LegalHeading>
       <LegalP>You agree not to use Ledgr to: violate any laws or regulations, attempt to gain unauthorized access to our systems, reverse engineer or scrape the service, or use the service for any purpose other than personal financial tracking.</LegalP>
@@ -2692,7 +2692,6 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
           {onboardingProgress} of {onboardingSteps.length} steps complete
         </div>
       </div>
-      {/* Progress dots */}
       <div style={{display:"flex",gap:6}}>
         {onboardingSteps.map(s => (
           <div key={s.id} style={{
@@ -2706,37 +2705,47 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {onboardingSteps.map(s => (
         <div key={s.id} style={{
-          display:"flex", alignItems:"center", gap:14,
           padding:"12px 14px", borderRadius:"var(--radius)",
           background: s.done ? "transparent" : "var(--surface)",
           border:`1px solid ${s.done ? "transparent" : "var(--border)"}`,
           opacity: s.done ? 0.5 : 1,
           transition:"all 0.2s",
         }}>
-          {/* Check / icon */}
-          <div style={{
-            width:32, height:32, borderRadius:"50%", flexShrink:0,
-            display:"flex", alignItems:"center", justifyContent:"center",
-            background: s.done ? "#00d4ff22" : "var(--card)",
-            border:`1.5px solid ${s.done ? "var(--cyan)" : "var(--border2)"}`,
-            fontSize:15,
-          }}>
-            {s.done ? <span style={{color:"var(--cyan)",fontWeight:800,fontSize:14}}>✓</span> : s.icon}
-          </div>
-          {/* Text */}
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",textDecoration:s.done?"line-through":"none"}}>
-              {s.title}
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            {/* Check / icon */}
+            <div style={{
+              width:32, height:32, borderRadius:"50%", flexShrink:0,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              background: s.done ? "#00d4ff22" : "var(--card)",
+              border:`1.5px solid ${s.done ? "var(--cyan)" : "var(--border2)"}`,
+              fontSize:15,
+            }}>
+              {s.done ? <span style={{color:"var(--cyan)",fontWeight:800,fontSize:14}}>✓</span> : s.icon}
             </div>
-            {!s.done && (
-              <div style={{fontSize:12,color:"var(--t3)",marginTop:2,lineHeight:1.4}}>{s.desc}</div>
+            {/* Text */}
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",textDecoration:s.done?"line-through":"none"}}>
+                {s.title}
+              </div>
+              {!s.done && (
+                <div style={{fontSize:12,color:"var(--t3)",marginTop:2,lineHeight:1.4}}>{s.desc}</div>
+              )}
+            </div>
+            {/* CTA — inline on desktop, below on mobile */}
+            {!s.done && !isMobile && (
+              <button onClick={s.action} style={{
+                ...S.btn("ghost",true), flexShrink:0, whiteSpace:"nowrap",
+                borderColor:"var(--cyan)", color:"var(--cyan)",
+              }}>
+                {s.cta}
+              </button>
             )}
           </div>
-          {/* CTA */}
-          {!s.done && (
+          {/* CTA below on mobile */}
+          {!s.done && isMobile && (
             <button onClick={s.action} style={{
-              ...S.btn("ghost",true), flexShrink:0, whiteSpace:"nowrap",
-              borderColor:"var(--cyan)", color:"var(--cyan)",
+              ...S.btn("ghost",true), marginTop:10, width:"100%",
+              justifyContent:"center", borderColor:"var(--cyan)", color:"var(--cyan)",
             }}>
               {s.cta}
             </button>
@@ -5081,8 +5090,45 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
 
+  const trialDaysLeft = (() => {
+    const u = api.getStoredUser();
+    if (!u || u.role === "owner" || u.role === "free" || u.subscription_status !== "trialing") return null;
+    const days = Math.ceil((u.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, days);
+  })();
+
   return (
     <div style={S.shell}>
+    {/* Trial countdown banner */}
+    {trialDaysLeft !== null && (
+      <div style={{
+        flexShrink:0, background: trialDaysLeft <= 1 ? "var(--red-dim)" : "#fbbf2415",
+        borderBottom:`1px solid ${trialDaysLeft <= 1 ? "#ff4d6d44" : "#fbbf2433"}`,
+        padding:"8px 16px", display:"flex", alignItems:"center",
+        justifyContent:"space-between", gap:12,
+      }}>
+        <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color: trialDaysLeft <= 1 ? "var(--red)" : "var(--amber)"}}>
+          <span style={{fontSize:14}}>{trialDaysLeft <= 1 ? "⚠️" : "⏳"}</span>
+          <span style={{fontWeight:600}}>
+            {trialDaysLeft === 0
+              ? "Your trial expires today"
+              : trialDaysLeft === 1
+              ? "Your trial expires tomorrow"
+              : `${trialDaysLeft} days left in your free trial`}
+          </span>
+        </div>
+        <button
+          onClick={async () => { try { await api.startCheckout(); } catch {} }}
+          style={{
+            background: trialDaysLeft <= 1 ? "var(--red)" : "var(--amber)",
+            color:"#000", border:"none", borderRadius:"var(--radius)",
+            padding:"5px 12px", fontSize:12, fontWeight:700, cursor:"pointer",
+            flexShrink:0, whiteSpace:"nowrap",
+          }}>
+          Subscribe — $4.99/mo
+        </button>
+      </div>
+    )}
     {isMobile ? (
       /* ════════════════════════════════════
          MOBILE — hamburger + overlay drawer

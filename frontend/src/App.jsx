@@ -1200,7 +1200,7 @@ function AdminPanel() {
     active:     users.filter(u => u.subscription_status === "active").length,
     trialing:   users.filter(u => u.subscription_status === "trialing").length,
     canceled:   users.filter(u => u.subscription_status === "canceled" || u.subscription_status === "past_due").length,
-    mrr:        users.filter(u => u.subscription_status === "active" && u.role !== "owner").length * 4.99,
+    mrr:        users.filter(u => u.subscription_status === "active" && u.role !== "owner" && u.role !== "free").length * 4.99,
   };
 
   const statusColor = s => s === "active" ? "var(--green)" : s === "trialing" ? "var(--amber)" : s === "past_due" ? "var(--red)" : "var(--t3)";
@@ -1265,10 +1265,13 @@ function AdminPanel() {
                         <select style={{...S.select,fontSize:12}} value={editForm.role || user.role}
                           onChange={e => setEditForm(p => ({...p, role: e.target.value}))}>
                           <option value="subscriber">subscriber</option>
+                          <option value="free">free</option>
                           <option value="owner">owner</option>
                         </select>
                       ) : (
-                        <span style={{fontSize:12,color: user.role === "owner" ? "var(--cyan)" : "var(--t2)",fontWeight: user.role === "owner" ? 700 : 400}}>
+                        <span style={{fontSize:12,
+                          color: user.role === "owner" ? "var(--cyan)" : user.role === "free" ? "var(--green)" : "var(--t2)",
+                          fontWeight: user.role === "owner" || user.role === "free" ? 700 : 400}}>
                           {user.role}
                         </span>
                       )}
@@ -1398,6 +1401,7 @@ function AppInner() {
     const u = api.getStoredUser();
     if (!u) return "free";
     if (u.role === "owner") return "full";
+    if (u.role === "free")  return "full";
     if (u.subscription_status === "active") return "full";
     if (u.subscription_status === "trialing" && u.trial_ends_at && Date.now() < u.trial_ends_at) return "full";
     return "free";
@@ -1450,9 +1454,10 @@ function AppInner() {
   const pendingPatch = useRef({});
   const scheduleSave = useCallback((patch) => {
     if (!initialized.current) return;
-    // Don't attempt saves for free-tier users — server will reject with 402
+    // Don't attempt saves for expired/canceled users — server will reject with 402
     const u = api.getStoredUser();
-    if (u?.role !== "owner" && u?.subscription_status !== "active") {
+    if (u?.role === "owner" || u?.role === "free") { /* always allow */ }
+    else if (u?.subscription_status !== "active") {
       const trialOk = u?.subscription_status === "trialing" && Date.now() < (u?.trial_ends_at || 0);
       if (!trialOk) return;
     }

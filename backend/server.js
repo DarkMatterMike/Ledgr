@@ -563,6 +563,7 @@ async function requireAuth(req, res, next) {
 /* ── Subscription status helper ───────────────────────────────────── */
 function getAccessLevel(user) {
   if (user.role === "owner") return "full";
+  if (user.role === "free")  return "full"; // complimentary full access, not billed
   if (user.subscription_status === "active") return "full";
   if (user.subscription_status === "trialing" && Date.now() < user.trial_ends_at) return "full";
   return "free"; // read-only, no Plaid
@@ -942,7 +943,7 @@ app.get("/api/admin/users", requireOwner, async (_req, res) => {
 app.patch("/api/admin/users/:userId", requireOwner, async (req, res) => {
   const { subscription_status, role } = req.body;
   const validStatuses = ["active", "trialing", "canceled", "past_due", "expired"];
-  const validRoles    = ["owner", "subscriber"];
+  const validRoles    = ["owner", "subscriber", "free"];
   if (subscription_status && !validStatuses.includes(subscription_status))
     return res.status(400).json({ error: "Invalid subscription_status" });
   if (role && !validRoles.includes(role))

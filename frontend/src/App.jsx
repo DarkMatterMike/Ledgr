@@ -191,8 +191,19 @@ function PageLayout({ left, right = null, isMobile = false }) {
    AUTH GATE  (email + password, multi-user)
 ═══════════════════════════════════════════════════════════════════ */
 function isAuthValid() {
-  try { return !!api.getToken() && !!api.getStoredUser(); }
-  catch { return false; }
+  try {
+    const token = api.getToken();
+    if (!token || !api.getStoredUser()) return false;
+    // Decode the JWT payload (base64url middle section) to check expiry
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (!payload.exp) return false;
+    // exp is in seconds, Date.now() is in ms
+    if (Date.now() >= payload.exp * 1000) {
+      api.clearToken(); // clean up expired token
+      return false;
+    }
+    return true;
+  } catch { return false; }
 }
 
 function AuthGate({ onAuth }) {
@@ -451,6 +462,14 @@ function AuthGate({ onAuth }) {
 
 export default function App() {
   const [authed, setAuthed] = useState(() => isAuthValid());
+
+  // Periodically check if token has expired mid-session
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isAuthValid()) setAuthed(false);
+    }, 60 * 1000); // check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
 

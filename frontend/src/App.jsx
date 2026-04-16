@@ -596,8 +596,8 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   editingId, editingName, setEditingName, setEditingId,
   catMap, acctMap, categories, accounts,
   needsReview, markReviewed, startRename, deleteTxn,
-  updateTxnType, updateTxnCat, updateTxnAcct,
-  openAddCat, toggleRecurring, updateRecurringDay, saveRename }) {
+  updateTxnType, updateTxnCat, updateTxnAcct, updateTxnNotes,
+  openAddCat, toggleRecurring, updateRecurringDay, saveRename, isMobile }) {
 
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
@@ -616,6 +616,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
         <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)"}}/>
         <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
+          {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>
         {cat ? (
           <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
@@ -656,32 +657,56 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
             </div>
           )}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
-              value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-              <option value="refund">Refund</option>
-              <option value="reimbursement">Reimbursement</option>
-              <option value="transfer">Transfer</option>
-            </select>
-            {noCategory ? (
-              <div style={{...S.select,padding:"7px 10px",fontSize:12,color:"var(--t3)"}}>No category needed</div>
-            ) : (
-              <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
-                value={t.categoryId||""}
-                onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
-                <option value="">— Category —</option>
-                {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                <option value="__new__">＋ New Category…</option>
+
+          {/* Desktop: dropdowns left, notes right. Mobile: stacked */}
+          <div style={{display:"flex", flexDirection: isMobile ? "column" : "row", gap:8}}>
+            {/* Left: dropdowns */}
+            <div style={{display:"flex", flexDirection:"column", gap:8, flex:1}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
+                  value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                  <option value="refund">Refund</option>
+                  <option value="reimbursement">Reimbursement</option>
+                  <option value="transfer">Transfer</option>
+                </select>
+                {noCategory ? (
+                  <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
+                ) : (
+                  <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
+                    value={t.categoryId||""}
+                    onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
+                    <option value="">— Category —</option>
+                    {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                    <option value="__new__">＋ New…</option>
+                  </select>
+                )}
+              </div>
+              <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
+                value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
+                <option value="">— Account —</option>
+                {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
-            )}
+            </div>
+
+            {/* Right: notes textarea */}
+            <textarea
+              placeholder="Add a note…"
+              value={t.notes||""}
+              onChange={e=>updateTxnNotes(t.id,e.target.value)}
+              rows={2}
+              style={{
+                ...S.input,
+                flex: isMobile ? undefined : "0 0 38%",
+                width: isMobile ? "100%" : undefined,
+                resize:"none", fontSize:12,
+                padding:"7px 10px", lineHeight:1.5,
+                fontFamily:"var(--font-body)",
+              }}
+            />
           </div>
-          <select style={{...S.select,width:"100%",padding:"7px 10px",fontSize:12}}
-            value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
-            <option value="">— Account —</option>
-            {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
+
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>toggleRecurring(t.id)} style={{...S.btn(t.recurring?"amber":"ghost",true)}}>
               {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
@@ -2237,6 +2262,7 @@ function AppInner() {
     if(val){const txn=transactions.find(t=>t.id===id);if(txn)promptSaveRule(txn,val);}
   }
   function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
+  function updateTxnNotes(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,notes:val}:t)); }
   function deleteTxn(id) {
     const txn = transactions.find(t=>t.id===id);
     setTransactions(p=>p.filter(t=>t.id!==id));
@@ -3163,9 +3189,10 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                       needsReview={needsReview} markReviewed={markReviewed}
                       startRename={startRename} deleteTxn={deleteTxn}
                       updateTxnType={updateTxnType} updateTxnCat={updateTxnCat}
-                      updateTxnAcct={updateTxnAcct} openAddCat={openAddCat}
+                      updateTxnAcct={updateTxnAcct} updateTxnNotes={updateTxnNotes}
+                      openAddCat={openAddCat}
                       toggleRecurring={toggleRecurring} updateRecurringDay={updateRecurringDay}
-                      saveRename={saveRename}
+                      saveRename={saveRename} isMobile={isMobile}
                     />)}
                   </div>
                 </div>

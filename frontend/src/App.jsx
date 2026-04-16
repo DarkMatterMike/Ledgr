@@ -881,7 +881,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     if (!name.trim()) return;
     setSavingName(true);
     try {
-      await api.saveData({ profile: { name: name.trim() } });
+      await api.updateProfile(name.trim());
       api.setStoredUser({ ...user, name: name.trim() });
       showToast("Name saved");
     } catch { showToast("Failed to save name"); }
@@ -1424,7 +1424,13 @@ function AppInner() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await api.loadData();
+        // Refresh user profile from server on every load — ensures name,
+        // subscription status, and access level are always current across devices
+        const [data, me] = await Promise.all([api.loadData(), api.fetchMe()]);
+        if (me) {
+          api.setStoredUser({ ...api.getStoredUser(), ...me });
+          if (me.access) setAccess(me.access);
+        }
         const loadedRules = data.rules || [];
         const loadedTxns = data.transactions || [];
         setAccounts(data.accounts         || []);
@@ -2305,7 +2311,7 @@ function AppInner() {
   const SpendingBreakdownCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
-        <div style={S.sectionTitle}>Spending Breakdown</div>
+        <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
 
       {budgetAnalytics.totalSpentForBreakdown > 0 ? (
@@ -2390,7 +2396,7 @@ function AppInner() {
   const CashFlowCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
-        <div style={S.sectionTitle}>Cash Flow</div>
+        <div style={S.cardTitle}>Cash Flow</div>
       </div>
 
       <div style={{ fontSize: 13, color: "var(--t2)", marginBottom: 14 }}>
@@ -2461,7 +2467,7 @@ function AppInner() {
   const OverspendingHighlightsCard = (
     <div style={{ ...S.card, padding: 18 }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
-        <div style={S.sectionTitle}>Overspending Highlights</div>
+        <div style={S.cardTitle}>Overspending Highlights</div>
       </div>
 
       {budgetAnalytics.topOverspent.length === 0 ? (

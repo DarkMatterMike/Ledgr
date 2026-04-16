@@ -106,6 +106,7 @@ async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until BIGINT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at BIGINT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_data (
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -596,7 +597,7 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
     // Send welcome email (non-blocking)
     if (user.role !== "owner") emailWelcome(user.email).catch(() => {});
-    res.json({ token, user: { id: user.id, email: user.email, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name || null, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
   } catch (err) {
     console.error("Register error:", err.message);
     res.status(500).json({ error: "Registration failed" });
@@ -638,7 +639,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
     );
 
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token, user: { id: user.id, email: user.email, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name || null, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
   } catch (err) {
     console.error("Login error:", err.message);
     res.status(500).json({ error: IS_PROD ? "Login failed" : err.message });
@@ -688,9 +689,18 @@ app.post("/api/auth/reset-password", async (req, res) => {
 app.use(requireAuth);
 
 app.get("/api/auth/me", (req, res) => {
-  const { id, email, role, subscription_status, trial_ends_at } = req.user;
+  const { id, email, name, role, subscription_status, trial_ends_at } = req.user;
   const access = getAccessLevel(req.user);
-  res.json({ id, email, role, subscription_status, trial_ends_at, access });
+  res.json({ id, email, name, role, subscription_status, trial_ends_at, access });
+});
+
+app.patch("/api/auth/profile", async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: "Name required" });
+  try {
+    await pool.query("UPDATE users SET name = $1 WHERE id = $2", [name.trim(), req.user.id]);
+    res.json({ ok: true, name: name.trim() });
+  } catch (err) { serverError(res, err, "Failed to update profile"); }
 });
 
 app.post("/api/auth/change-password", async (req, res) => {

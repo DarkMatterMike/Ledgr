@@ -85,6 +85,10 @@ export async function fetchMe() {
   return request("/api/auth/me");
 }
 
+export async function updateProfile(name) {
+  return request("/api/auth/profile", { method: "PATCH", body: JSON.stringify({ name }) });
+}
+
 export async function changePassword(currentPassword, newPassword) {
   return request("/api/auth/change-password", {
     method: "POST",

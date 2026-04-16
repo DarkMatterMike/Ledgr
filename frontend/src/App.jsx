@@ -2871,10 +2871,22 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
             <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
               <span style={{color:"var(--cyan)",fontWeight:700}}>{toReview}</span> transactions need review
             </span>
-            <button onClick={()=>{ setFilterReview(p=>!p); setSearch(""); setFilterCat("all"); }}
-              style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
-              {filterReview?"✕ Clear":"Review ›"}
-            </button>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {filterReview && (
+                <button onClick={()=>{
+                  setTransactions(p => p.map(t => needsReview(t) ? {...t, reviewed:true} : t));
+                  setFilterReview(false);
+                  showToast("All transactions marked as reviewed");
+                }}
+                  style={{background:"none",color:"var(--cyan)",border:"1px solid var(--cyan)",borderRadius:"var(--radius)",cursor:"pointer",fontSize:12,fontWeight:600,padding:"3px 10px"}}>
+                  ✓ Mark All Reviewed
+                </button>
+              )}
+              <button onClick={()=>{ setFilterReview(p=>!p); setSearch(""); setFilterCat("all"); }}
+                style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
+                {filterReview?"✕ Clear":"Review ›"}
+              </button>
+            </div>
           </div>
         )}
 

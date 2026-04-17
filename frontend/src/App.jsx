@@ -1651,7 +1651,9 @@ function AppInner() {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts, scheduleSave]);
   useEffect(() => { scheduleSave({ scanMemory });      }, [scanMemory,      scheduleSave]);
-  useEffect(() => { scheduleSave({ dismissedPairs });  }, [dismissedPairs,  scheduleSave]);
+  useEffect(() => {
+    if (dismissedPairs.length > 0) scheduleSave({ dismissedPairs });
+  }, [dismissedPairs, scheduleSave]);
 
   /* ── Poll for new transactions every 30 minutes ── */
   const knownTxnIds = useRef(null);
@@ -3155,6 +3157,8 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
 {activeDuplicatePairs.map(({pending:p,posted:po})=>{
                   const isScannedDuplicate = duplicateScanActive;
                   const pCat = catMap[p.categoryId];
+                  const removeCandidate = (p && po) ? pickRemove(p, po) : p;
+                  const removeLabel = removeCandidate?.pending ? "pending" : isPreauth(removeCandidate) ? "preauth" : "earlier";
                   return (
                     <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
                       {/* Pending row */}
@@ -3196,7 +3200,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                         <button style={{...S.btn("primary",true),fontSize:12}}
                           onClick={()=>{
                             if (isScannedDuplicate) {
-                              const remove = pickRemove(p, po);
+                              const remove = removeCandidate;
                               const keep   = remove.id === p.id ? po : p;
                               confirmDuplicateRemoval(remove.id, keep.id);
                               const remaining = duplicatePairs.filter(pair => !(
@@ -3210,7 +3214,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                               setShowReconcile(pendingPairs.length>1);
                             }
                           }}>
-                          ✓ Confirm & remove {pickRemove(p,po).pending ? "pending" : isPreauth(pickRemove(p,po)) ? "preauth" : "earlier"}
+                          ✓ Confirm & remove {removeLabel}
                         </button>
                       </div>
                     </div>

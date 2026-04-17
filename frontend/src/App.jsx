@@ -1808,30 +1808,6 @@ function AppInner() {
   // Smart pending reconciliation — match on merchant + date only, ignore amount
   const [dismissedPairs,  setDismissedPairs]  = useState([]);
   const [scanMemory, setScanMemory] = useState({confirmed:{},dismissed:{}});
-
-  function memoryKey(a, b) {
-    return [normalizeMerchantLabel(a), normalizeMerchantLabel(b)].sort().join("__");
-  }
-  function recordConfirmed(tA, tB) {
-    const key = memoryKey(tA, tB);
-    setScanMemory(prev => ({...prev, confirmed: {...prev.confirmed, [key]: (prev.confirmed[key]||0)+1}}));
-  }
-  function recordDismissed(tA, tB) {
-    const key = memoryKey(tA, tB);
-    setScanMemory(prev => ({...prev, dismissed: {...prev.dismissed, [key]: (prev.dismissed[key]||0)+1}}));
-  }
-  // Returns true if this merchant pair has been dismissed more than confirmed (user said "not a match")
-  function isSuppressedByMemory(tA, tB) {
-    const key = memoryKey(tA, tB);
-    const conf = scanMemory.confirmed[key]||0;
-    const dism = scanMemory.dismissed[key]||0;
-    return dism > conf + 1; // suppress only if dismissed significantly more than confirmed
-  }
-  // Returns confidence boost for this pair (previously confirmed = higher confidence)
-  function memoryConfidence(tA, tB) {
-    const key = memoryKey(tA, tB);
-    return scanMemory.confirmed[key]||0;
-  }
   const [showReconcile,   setShowReconcile]   = useState(false);
   const [duplicatePairs,  setDuplicatePairs]  = useState([]);
   const [duplicateScanActive, setDuplicateScanActive] = useState(false);
@@ -1847,26 +1823,43 @@ function AppInner() {
       .trim();
   }
 
-  // Returns true if two merchant labels are a fuzzy match (one contains the other)
   function merchantsMatch(a, b) {
     if (!a || !b) return false;
     return a.includes(b) || b.includes(a);
   }
 
-  // Returns true if the raw transaction name indicates a preauthorization hold
   function isPreauth(t) {
     const raw = (t.merchant || t.name || "").toLowerCase();
     return raw.includes("preauth") || raw.includes("pre-auth") || raw.includes("preauthorized") || raw.includes("pre auth") || !!t.pending;
   }
 
-  // Determine which transaction should be removed from a pair
-  // Priority: pending flag > preauth keyword > earlier date
+  function memoryKey(a, b) {
+    return [normalizeMerchantLabel(a), normalizeMerchantLabel(b)].sort().join("__");
+  }
+  function recordConfirmed(tA, tB) {
+    const key = memoryKey(tA, tB);
+    setScanMemory(prev => ({...prev, confirmed: {...prev.confirmed, [key]: (prev.confirmed[key]||0)+1}}));
+  }
+  function recordDismissed(tA, tB) {
+    const key = memoryKey(tA, tB);
+    setScanMemory(prev => ({...prev, dismissed: {...prev.dismissed, [key]: (prev.dismissed[key]||0)+1}}));
+  }
+  function isSuppressedByMemory(tA, tB) {
+    const key = memoryKey(tA, tB);
+    const conf = scanMemory.confirmed[key]||0;
+    const dism = scanMemory.dismissed[key]||0;
+    return dism > conf + 1;
+  }
+  function memoryConfidence(tA, tB) {
+    const key = memoryKey(tA, tB);
+    return scanMemory.confirmed[key]||0;
+  }
+
   function pickRemove(a, b) {
     if (a.pending && !b.pending) return a;
     if (b.pending && !a.pending) return b;
     if (isPreauth(a) && !isPreauth(b)) return a;
     if (isPreauth(b) && !isPreauth(a)) return b;
-    // Earlier date = the hold/preauth came first
     return (a.date <= b.date) ? a : b;
   }
 

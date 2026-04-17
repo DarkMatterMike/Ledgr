@@ -6,6 +6,8 @@ import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 import { useAppData } from "./hooks/useAppData.js";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
+import { usePortfolio } from "./hooks/usePortfolio.js";
+import PortfolioView from "./PortfolioView.jsx";
 
 /* ─── Mobile detection ──────────────────────────────────────────── */
 function useIsMobile() {
@@ -108,6 +110,7 @@ const NAV = [
   { id:"transactions", icon:"⇅", label:"Transactions" },
   { id:"budgets",      icon:"◉", label:"Budgets"      },
   { id:"accounts",     icon:"▣", label:"Accounts"     },
+  { id:"portfolio",    icon:"◬", label:"Portfolio"    },
   { id:"rules",        icon:"◎", label:"Rules"        },
   { id:"calendar",     icon:"▦", label:"Calendar"     },
 ];
@@ -1697,12 +1700,22 @@ function AppInner() {
     return "free";
   });
 
+  /* ── Stable save ref (allows portfolio hook to be defined before useAppData) ── */
+  const scheduleSaveRef = useRef(null);
+
+  /* ── Portfolio (via hook) ── */
+  const portfolio = usePortfolio((patch) => scheduleSaveRef.current?.(patch));
+
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
+    onData: (data) => portfolio.loadFromData(data),
   });
+
+  // Wire the ref once scheduleSave is available
+  scheduleSaveRef.current = scheduleSave;
 
   /* ── Poll for new transactions every 30 minutes ── */
   const knownTxnIds = useRef(null);
@@ -5049,9 +5062,28 @@ function AppInner() {
 
   // Free-tier users get read-only dashboard + settings, paywall for everything else
   const paywallView = <Paywall />;
+  const PortfolioPage = (
+    <PortfolioView
+      investmentAccounts={portfolio.investmentAccounts}
+      holdings={portfolio.holdings}
+      netWorthSnapshots={portfolio.netWorthSnapshots}
+      metrics={portfolio.metrics}
+      syncing={portfolio.syncing}
+      addAccount={portfolio.addAccount}
+      updateAccount={portfolio.updateAccount}
+      deleteAccount={portfolio.deleteAccount}
+      addHolding={portfolio.addHolding}
+      updateHolding={portfolio.updateHolding}
+      deleteHolding={portfolio.deleteHolding}
+      syncFromPlaid={portfolio.syncFromPlaid}
+      showToast={showToast}
+      isMobile={isMobile}
+    />
+  );
+
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, rules:Rules, calendar:Calendar, settings:SettingsPage, admin:AdminPage }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, rules:paywallView, calendar:paywallView, settings:SettingsPage, admin:AdminPage };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, settings:SettingsPage, admin:AdminPage }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, settings:SettingsPage, admin:AdminPage };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>

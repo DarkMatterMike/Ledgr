@@ -26,6 +26,7 @@ export function useAppData({
   setAccess,
   setLoading,
   applyRules,
+  onData,
 }) {
   const initialized  = useRef(false);
   const saveTimeout  = useRef(null);
@@ -64,6 +65,7 @@ export function useAppData({
         setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);
         if (data.access) setAccess(data.access);
+        if (onData) onData(data);
       } catch (e) {
         console.warn("Load error:", e.message);
       } finally {

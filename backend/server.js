@@ -783,19 +783,25 @@ app.get("/api/billing/status", (req, res) => {
 app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
-    const [transactions, categories, accounts, plaidItems, rules, calendarAccounts] = await Promise.all([
+    const [transactions, categories, accounts, plaidItems, rules, calendarAccounts,
+           investmentAccounts, holdings, netWorthSnapshots] = await Promise.all([
       getData(uid, "transactions"), getData(uid, "categories"),
       getData(uid, "accounts"),     getData(uid, "plaidItems"),
       getData(uid, "rules"),        getData(uid, "calendarAccounts"),
+      getData(uid, "investmentAccounts"), getData(uid, "holdings"),
+      getData(uid, "netWorthSnapshots"),
     ]);
     res.json({
-      transactions:     transactions     || [],
-      categories:       categories       || [],
-      accounts:         accounts         || [],
-      plaidItems:       plaidItems       || [],
-      rules:            rules            || [],
-      calendarAccounts: calendarAccounts || null,
-      access:           getAccessLevel(req.user),
+      transactions:       transactions       || [],
+      categories:         categories         || [],
+      accounts:           accounts           || [],
+      plaidItems:         plaidItems         || [],
+      rules:              rules              || [],
+      calendarAccounts:   calendarAccounts   || null,
+      investmentAccounts: investmentAccounts || [],
+      holdings:           holdings           || [],
+      netWorthSnapshots:  netWorthSnapshots  || [],
+      access:             getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
 });
@@ -804,14 +810,18 @@ app.get("/api/data", async (req, res) => {
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { transactions, categories, accounts, plaidItems, rules, calendarAccounts } = req.body;
+    const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
+            investmentAccounts, holdings, netWorthSnapshots } = req.body;
     const ops = [];
-    if (transactions     !== undefined) ops.push(setData(uid, "transactions",     transactions));
-    if (categories       !== undefined) ops.push(setData(uid, "categories",       categories));
-    if (accounts         !== undefined) ops.push(setData(uid, "accounts",         accounts));
-    if (plaidItems       !== undefined) ops.push(setData(uid, "plaidItems",       plaidItems));
-    if (rules            !== undefined) ops.push(setData(uid, "rules",            rules));
-    if (Array.isArray(calendarAccounts)) ops.push(setData(uid, "calendarAccounts", calendarAccounts));
+    if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
+    if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
+    if (accounts           !== undefined) ops.push(setData(uid, "accounts",           accounts));
+    if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
+    if (rules              !== undefined) ops.push(setData(uid, "rules",              rules));
+    if (Array.isArray(calendarAccounts))  ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
+    if (Array.isArray(investmentAccounts)) ops.push(setData(uid, "investmentAccounts", investmentAccounts));
+    if (Array.isArray(holdings))           ops.push(setData(uid, "holdings",           holdings));
+    if (Array.isArray(netWorthSnapshots))  ops.push(setData(uid, "netWorthSnapshots",  netWorthSnapshots));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -890,6 +900,64 @@ app.get("/api/plaid/accounts", async (req, res) => {
       return true;
     });
     res.json({ accounts: deduped });
+  } catch (err) { serverError(res, err); }
+});
+
+app.post("/api/plaid/investments/sync", async (req, res) => {
+  try {
+    const items = await getItemsForUser(req.user.id);
+    const allAccounts = [];
+    const allHoldings = [];
+
+    for (const item of items) {
+      try {
+        // Get investment holdings (includes securities and account info)
+        const r = await plaidClient.investmentsHoldingsGet({ access_token: item.access_token });
+
+        // Build a map of security_id -> security details
+        const secMap = {};
+        (r.data.securities || []).forEach(s => { secMap[s.security_id] = s; });
+
+        // Investment accounts from this item
+        (r.data.accounts || []).filter(a => a.type === "investment").forEach(a => {
+          allAccounts.push({
+            plaidAccountId: a.account_id,
+            plaidItemId:    item.item_id,
+            institution:    item.institution,
+            name:           a.name,
+            type:           a.subtype || "Brokerage",
+            subtype:        a.subtype || "",
+            balance:        a.balances.current || 0,
+            currency:       a.balances.iso_currency_code || "USD",
+          });
+        });
+
+        // Holdings
+        (r.data.holdings || []).forEach(h => {
+          const sec = secMap[h.security_id] || {};
+          const acct = allAccounts.find(a => a.plaidAccountId === h.account_id);
+          if (!acct) return;
+          allHoldings.push({
+            accountId:    acct.plaidAccountId, // will be matched in frontend
+            ticker:       sec.ticker_symbol || sec.name?.slice(0,6) || "N/A",
+            name:         sec.name || sec.ticker_symbol || "Unknown",
+            quantity:     h.quantity || 0,
+            currentPrice: h.institution_price || 0,
+            currentValue: h.institution_value || 0,
+            costBasis:    h.cost_basis || 0,
+            fromPlaid:    true,
+          });
+        });
+      } catch (err) {
+        // Item may not have investment products — skip silently
+        const code = err.response?.data?.error_code;
+        if (code !== "PRODUCTS_NOT_SUPPORTED" && code !== "ITEM_NOT_SUPPORTED") {
+          console.warn(`investments sync error for ${item.item_id}:`, code || err.message);
+        }
+      }
+    }
+
+    res.json({ accounts: allAccounts, holdings: allHoldings });
   } catch (err) { serverError(res, err); }
 });
 

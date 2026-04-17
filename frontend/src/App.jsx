@@ -3186,7 +3186,7 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
                       </div>
                       {/* Actions */}
                       <div style={{display:"flex",gap:8,justifyContent:"flex-end",alignItems:"center"}}>
-                        {({pending:p,posted:po}=>memoryConfidence(p,po)>0)({pending:p,posted:po}) && (
+                        {memoryConfidence(p,po)>0 && (
                           <span style={{fontSize:11,color:"var(--cyan)",marginRight:"auto"}}>
                             ✦ previously confirmed
                           </span>

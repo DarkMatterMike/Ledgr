@@ -364,9 +364,9 @@ export default function PortfolioView({
         <div style={{ fontSize:13, color:"var(--t3)" }}>{investmentAccounts.length} account{investmentAccounts.length!==1?"s":""}</div>
         <div style={{ display:"flex", gap:8 }}>
           <button style={S.btn("ghost", true)} onClick={() => syncFromPlaid(showToast)} disabled={syncing}>
-            {syncing ? "⟳ Syncing…" : "⟳ Sync via Plaid"}
+            {syncing ? "⟳ Syncing…" : "⟳ Sync Accounts"}
           </button>
-          <button style={S.btn("primary", true)} onClick={() => setAcctModal("add")}>+ Account</button>
+          <button style={S.btn("primary", true)} onClick={() => setAcctModal("add")}>+ Add Investment Account</button>
         </div>
       </div>
 

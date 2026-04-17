@@ -110,9 +110,9 @@ const NAV = [
   { id:"transactions", icon:"⇅", label:"Transactions" },
   { id:"budgets",      icon:"◉", label:"Budgets"      },
   { id:"accounts",     icon:"▣", label:"Accounts"     },
-  { id:"portfolio",    icon:"◬", label:"Portfolio"    },
   { id:"rules",        icon:"◎", label:"Rules"        },
   { id:"calendar",     icon:"▦", label:"Calendar"     },
+  { id:"portfolio",    icon:"◬", label:"Portfolio"    },
 ];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
@@ -2411,7 +2411,7 @@ function AppInner() {
             >
               {label}
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontWeight: 800, color }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color }}>
               {value}
             </div>
           </div>
@@ -2815,7 +2815,7 @@ function AppInner() {
                           <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                           <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
                           {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
                         </span>
                       </div>
@@ -2880,7 +2880,7 @@ function AppInner() {
                             <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                             <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                           </div>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
                             {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
                           </span>
                         </div>

@@ -4,6 +4,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
+import { useAppData } from "./hooks/useAppData.js";
+import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 
 /* ─── Mobile detection ──────────────────────────────────────────── */
 function useIsMobile() {
@@ -1580,79 +1582,12 @@ function AppInner() {
     return "free";
   });
 
-  /* ── Load ── */
-  const initialized = useRef(false);
-  useEffect(() => {
-    // Handle Stripe redirect back to app
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("subscribed") === "true") {
-      // Refresh user from server to get updated subscription_status
-      api.fetchMe().then(me => {
-        api.setStoredUser({ ...api.getStoredUser(), ...me });
-        setAccess(me.access || "full");
-        window.history.replaceState({}, "", window.location.pathname);
-      }).catch(() => {});
-    }
-    if (params.get("canceled") === "true") {
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        // Refresh user profile from server on every load — ensures name,
-        // subscription status, and access level are always current across devices
-        const [data, me] = await Promise.all([api.loadData(), api.fetchMe()]);
-        if (me) {
-          api.setStoredUser({ ...api.getStoredUser(), ...me });
-          if (me.access) setAccess(me.access);
-        }
-        const loadedRules = data.rules || [];
-        const loadedTxns = data.transactions || [];
-        setAccounts(data.accounts         || []);
-        setCategories(data.categories     || []);
-        setTransactions(applyRules(loadedTxns, loadedRules));
-        setPlaidItems(data.plaidItems     || []);
-        setRules(loadedRules);
-        setCalendarAccounts(data.calendarAccounts || null);
-        if (data.access) setAccess(data.access);
-      } catch (e) { console.warn("Load error:", e.message); }
-      finally { setLoading(false); initialized.current = true; }
-    })();
-  }, []);
-
-  /* ── Save ── */
-  const saveTimeout = useRef(null);
-  const pendingPatch = useRef({});
-  const scheduleSave = useCallback((patch) => {
-    if (!initialized.current) return;
-    // Don't attempt saves for expired/canceled users — server will reject with 402
-    const u = api.getStoredUser();
-    if (u?.role === "owner" || u?.role === "free") { /* always allow */ }
-    else if (u?.subscription_status !== "active") {
-      const trialOk = u?.subscription_status === "trialing" && Date.now() < (u?.trial_ends_at || 0);
-      if (!trialOk) return;
-    }
-    pendingPatch.current = {
-      ...pendingPatch.current,
-      ...patch,
-    };
-    clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => {
-      const payload = pendingPatch.current;
-      pendingPatch.current = {};
-      api.saveData(payload);
-    }, 800);
-  }, []); // refs are stable — no deps needed
-  useEffect(() => { scheduleSave({ accounts });     }, [accounts,     scheduleSave]);
-  useEffect(() => { scheduleSave({ categories });   }, [categories,   scheduleSave]);
-  useEffect(() => { scheduleSave({ transactions }); }, [transactions,  scheduleSave]);
-  useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems,    scheduleSave]);
-  useEffect(() => { scheduleSave({ rules });        }, [rules,         scheduleSave]);
-  useEffect(() => {
-    if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
-  }, [calendarAccounts, scheduleSave]);
+  /* ── Load + Save (via hook) ── */
+  const { initialized, scheduleSave } = useAppData({
+    accounts, categories, transactions, plaidItems, rules, calendarAccounts,
+    setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
+    setCalendarAccounts, setAccess, setLoading, applyRules,
+  });
 
   /* ── Poll for new transactions every 30 minutes ── */
   const knownTxnIds = useRef(null);
@@ -1806,181 +1741,20 @@ function AppInner() {
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
-  // Smart pending reconciliation
-  const [dismissedPairs,  setDismissedPairs]  = useState([]);
-  const [showReconcile,   setShowReconcile]   = useState(false);
-  const [duplicatePairs,  setDuplicatePairs]  = useState([]);
-  const [duplicateScanActive, setDuplicateScanActive] = useState(false);
-
-  function normalizeMerchantLabel(t) {
-    return ((t.merchant || t.name || ""))
-      .toLowerCase()
-      .replace(/[#*]/g, " ")
-      .replace(/\b(?:debit|credit|purchase|pos|checkcard|card|visa|mc|mastercard|pending|payment|online|auth|authorized|store|location|ticket|txn|preauthorized|preauth|pre-auth)\b/g, " ")
-      .replace(/\d+/g, " ")
-      .replace(/[^a-z]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  function merchantsMatch(a, b) {
-    if (!a || !b) return false;
-    return a.includes(b) || b.includes(a);
-  }
-
-  function isPreauth(t) {
-    const raw = (t.merchant || t.name || "").toLowerCase();
-    return raw.includes("preauth") || raw.includes("pre-auth") || raw.includes("preauthorized") || raw.includes("pre auth") || !!t.pending;
-  }
-
-  function pickRemove(a, b) {
-    if (a.pending && !b.pending) return a;
-    if (b.pending && !a.pending) return b;
-    if (isPreauth(a) && !isPreauth(b)) return a;
-    if (isPreauth(b) && !isPreauth(a)) return b;
-    return (a.date <= b.date) ? a : b;
-  }
-
-  function scanForDuplicates() {
-    const candidates = transactions.filter(t => {
-      if (!t.date) return false;
-      if (t.amount >= 0) return false;
-      return !!normalizeMerchantLabel(t);
-    });
-
-    const nextPairs = [];
-    const seen = new Set();
-
-    for (let i = 0; i < candidates.length; i++) {
-      for (let j = i + 1; j < candidates.length; j++) {
-        const a = candidates[i];
-        const b = candidates[j];
-        const pairKey = [a.id, b.id].sort().join("__");
-        if (seen.has(pairKey) || dismissedPairs.includes(pairKey)) continue;
-
-        const aDate   = new Date(`${a.date}T12:00:00`);
-        const bDate   = new Date(`${b.date}T12:00:00`);
-        const dayDiff = Math.abs((bDate - aDate) / (1000 * 60 * 60 * 24));
-
-        const aNorm = normalizeMerchantLabel(a);
-        const bNorm = normalizeMerchantLabel(b);
-        if (!merchantsMatch(aNorm, bNorm)) continue;
-
-        const aAmt = Math.abs(Number(a.amount || 0));
-        const bAmt = Math.abs(Number(b.amount || 0));
-        const amtDiff = Math.abs(aAmt - bAmt);
-
-        const aIsPreauth = isPreauth(a);
-        const bIsPreauth = isPreauth(b);
-        const eitherPreauth = aIsPreauth || bIsPreauth;
-
-        if (eitherPreauth) {
-          if (dayDiff > 5) continue;
-          const amtTolerance = Math.max(10, aAmt * 0.20);
-          if (amtDiff > amtTolerance) continue;
-        } else {
-          if (dayDiff > 14) continue;
-          if (aAmt.toFixed(2) !== bAmt.toFixed(2)) continue;
-        }
-
-        const remove = pickRemove(a, b);
-        const keep   = remove.id === a.id ? b : a;
-
-        nextPairs.push({ pending: remove, posted: keep, isPreauth: eitherPreauth });
-        seen.add(pairKey);
-      }
-    }
-
-    nextPairs.sort((x, y) => String(y.posted.date || y.pending.date).localeCompare(String(x.posted.date || x.pending.date)));
-    setDuplicatePairs(nextPairs);
-    setDuplicateScanActive(nextPairs.length > 0);
-    setShowReconcile(nextPairs.length > 0);
-    showToast(nextPairs.length > 0 ? `Found ${nextPairs.length} possible duplicate${nextPairs.length === 1 ? "" : "s"}` : "No duplicates found");
-  }
-
-  function dismissPair(pendingId) {
-    setDismissedPairs(prev => [...prev, pendingId]);
-  }
-
-  function confirmPair(pendingId, postedId) {
-    const pending = transactions.find(t=>t.id===pendingId);
-    const posted  = transactions.find(t=>t.id===postedId);
-    if (!pending||!posted) return;
-    setTransactions(p=>p
-      .filter(t=>t.id!==pendingId)
-      .map(t=>t.id!==postedId?t:{
-        ...t,
-        name:          pending.name||t.name,
-        categoryId:    pending.categoryId||t.categoryId,
-        recurring:     pending.recurring||t.recurring,
-        recurringDay:  pending.recurringDay||t.recurringDay,
-        recurringFreq: pending.recurringFreq||t.recurringFreq,
-        recurringStart:pending.recurringStart||t.recurringStart,
-        reviewed:      pending.reviewed||t.reviewed,
-        type:          pending.type||t.type,
-      })
-    );
-    showToast("Merged — metadata copied to posted transaction");
-  }
-
-  function dismissDuplicatePair(aId, bId) {
-    const pairKey = [aId, bId].sort().join("__");
-    setDismissedPairs(prev => [...prev, pairKey]);
-    setDuplicatePairs(prev => {
-      const remaining = prev.filter(pair => [pair.pending.id, pair.posted.id].sort().join("__") !== pairKey);
-      setShowReconcile(remaining.length > 0);
-      return remaining;
-    });
-  }
-
-  function confirmDuplicateRemoval(removeId, keepId) {
-    const removeTxn = transactions.find(t => t.id === removeId);
-    const keepTxn   = transactions.find(t => t.id === keepId);
-    if (!removeTxn || !keepTxn) return;
-    setTransactions(prev => prev.filter(t => t.id !== removeId));
-    setDuplicatePairs(prev => prev.filter(pair => !(
-      (pair.pending.id === removeId && pair.posted.id === keepId) ||
-      (pair.pending.id === keepId && pair.posted.id === removeId)
-    )));
-    showToast("Duplicate removed");
-  }
-
-  const pendingPairs = useMemo(() => {
-    const pending = transactions.filter(t => t.pending && !dismissedPairs.includes(t.id));
-    const posted  = transactions.filter(t => !t.pending);
-    const pairs   = [];
-    const usedPostedIds = new Set();
-
-    pending.forEach(p => {
-      const pNorm = normalizeMerchantLabel(p);
-      const pDate = new Date(p.date + "T12:00:00");
-      const pAmt  = Math.abs(Number(p.amount || 0));
-
-      const match = posted.find(t => {
-        if (usedPostedIds.has(t.id)) return false;
-        const tDate   = new Date(t.date + "T12:00:00");
-        const dayDiff = (tDate - pDate) / (1000 * 60 * 60 * 24);
-        if (dayDiff < 0 || dayDiff > 5) return false;
-        const tNorm = normalizeMerchantLabel(t);
-        if (!merchantsMatch(pNorm, tNorm)) return false;
-        const tAmt = Math.abs(Number(t.amount || 0));
-        const tolerance = Math.max(10, pAmt * 0.20);
-        return Math.abs(pAmt - tAmt) <= tolerance;
-      });
-
-      if (match) {
-        usedPostedIds.add(match.id);
-        const remove = pickRemove(p, match);
-        const keep   = remove.id === p.id ? match : p;
-        pairs.push({ pending: remove, posted: keep });
-      }
-    });
-    return pairs;
-  }, [transactions, dismissedPairs]);
-
-  const [showDuplicates, setShowDuplicates] = useState(false);
-
-  const activeDuplicatePairs = duplicateScanActive ? duplicatePairs : pendingPairs;
+  /* ── Duplicate scan (via hook) ── */
+  const {
+    dismissedPairs, setDismissedPairs,
+    duplicatePairs, setDuplicatePairs,
+    duplicateScanActive, setDuplicateScanActive,
+    showReconcile, setShowReconcile,
+    showDuplicates, setShowDuplicates,
+    pendingPairs,
+    activeDuplicatePairs,
+    scanForDuplicates,
+    dismissPair, confirmPair,
+    dismissDuplicatePair, confirmDuplicateRemoval,
+    pickRemove, isPreauth,
+  } = useDuplicateScan(transactions, showToast, setTransactions);
 
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
@@ -3102,7 +2876,7 @@ function AppInner() {
             </div>
             {showReconcile&&(
               <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-{activeDuplicatePairs.map(({pending:p,posted:po})=>{
+{activeDuplicatePairs.map(({pending:p, posted:po, wasConfirmed})=>{
                   const isScannedDuplicate = duplicateScanActive;
                   const pCat = catMap[p.categoryId];
                   const removeCandidate = (p && po) ? pickRemove(p, po) : p;
@@ -3131,6 +2905,9 @@ function AppInner() {
                       </div>
                       {/* Actions */}
                       <div style={{display:"flex",gap:8,justifyContent:"flex-end",alignItems:"center"}}>
+                        {wasConfirmed && (
+                          <span style={{fontSize:11,color:"var(--cyan)",marginRight:"auto"}}>✦ previously confirmed</span>
+                        )}
                         <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>{
                           if (isScannedDuplicate) {
                             dismissDuplicatePair(p.id, po.id);

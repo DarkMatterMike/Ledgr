@@ -1524,37 +1524,34 @@ function AdminPanel() {
   );
 }
 
+const INSTALL_KEY = "ledgr_install_prompt_dismissed";
+
+function getInstallPlatform() {
+  // Already installed as PWA
+  if (window.matchMedia("(display-mode: standalone)").matches) return null;
+  if (window.navigator.standalone === true) return null;
+  // Already dismissed
+  if (localStorage.getItem(INSTALL_KEY)) return null;
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "ios";
+  if (/Android/.test(ua)) return "android";
+  return null;
+}
+
 function InstallPrompt() {
-  const STORAGE_KEY = "ledgr_install_prompt_dismissed";
-
-  // Detect if already dismissed, already installed, or not mobile
-  const shouldShow = () => {
-    if (localStorage.getItem(STORAGE_KEY)) return false;
-    // Already running as PWA
-    if (window.matchMedia("(display-mode: standalone)").matches) return false;
-    if (window.navigator.standalone === true) return false;
-    // Mobile check
-    const ua = navigator.userAgent || "";
-    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-    const isAndroid = /Android/.test(ua);
-    return isIOS || isAndroid;
-  };
-
   const [visible, setVisible] = useState(false);
   const [platform, setPlatform] = useState(null);
 
   useEffect(() => {
-    if (!shouldShow()) return;
-    const ua = navigator.userAgent || "";
-    const isIOS = /iPad|iPhone|iPod/.test(ua);
-    setPlatform(isIOS ? "ios" : "android");
-    // Show after a short delay so the app has a chance to render first
+    const p = getInstallPlatform();
+    if (!p) return;
+    setPlatform(p);
     const t = setTimeout(() => setVisible(true), 800);
     return () => clearTimeout(t);
   }, []);
 
   function dismiss() {
-    localStorage.setItem(STORAGE_KEY, "1");
+    localStorage.setItem(INSTALL_KEY, "1");
     setVisible(false);
   }
 

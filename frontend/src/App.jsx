@@ -1524,6 +1524,124 @@ function AdminPanel() {
   );
 }
 
+function InstallPrompt() {
+  const STORAGE_KEY = "ledgr_install_prompt_dismissed";
+
+  // Detect if already dismissed, already installed, or not mobile
+  const shouldShow = () => {
+    if (localStorage.getItem(STORAGE_KEY)) return false;
+    // Already running as PWA
+    if (window.matchMedia("(display-mode: standalone)").matches) return false;
+    if (window.navigator.standalone === true) return false;
+    // Mobile check
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isAndroid = /Android/.test(ua);
+    return isIOS || isAndroid;
+  };
+
+  const [visible, setVisible] = useState(false);
+  const [platform, setPlatform] = useState(null);
+
+  useEffect(() => {
+    if (!shouldShow()) return;
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    setPlatform(isIOS ? "ios" : "android");
+    // Show after a short delay so the app has a chance to render first
+    const t = setTimeout(() => setVisible(true), 800);
+    return () => clearTimeout(t);
+  }, []);
+
+  function dismiss() {
+    localStorage.setItem(STORAGE_KEY, "1");
+    setVisible(false);
+  }
+
+  if (!visible) return null;
+
+  const iosSteps = [
+    { icon: "1", text: "Tap the Share button", detail: "at the bottom of Safari" },
+    { icon: "2", text: "Scroll down and tap", detail: "\"Add to Home Screen\"" },
+    { icon: "3", text: "Tap Add", detail: "in the top-right corner" },
+  ];
+
+  const androidSteps = [
+    { icon: "1", text: "Tap the menu button", detail: "(⋮) in the top-right of Chrome" },
+    { icon: "2", text: "Tap", detail: "\"Add to Home screen\"" },
+    { icon: "3", text: "Tap Install", detail: "or Add to confirm" },
+  ];
+
+  const steps = platform === "ios" ? iosSteps : androidSteps;
+  const browserName = platform === "ios" ? "Safari" : "Chrome";
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(6px)",
+      zIndex:1000, display:"flex", alignItems:"flex-end", justifyContent:"center",
+      padding:16,
+    }}>
+      <div style={{
+        background:"var(--card)", border:"1px solid var(--border2)",
+        borderRadius:"var(--radius-lg)", padding:"24px 22px",
+        width:"100%", maxWidth:440, maxHeight:"85vh", overflowY:"auto",
+        animation:"slideUp 0.3s ease-out",
+      }}>
+        <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+
+        <div style={{
+          fontSize:28, textAlign:"center", marginBottom:6,
+          color:"var(--cyan)", fontFamily:"var(--font-disp)", fontWeight:800,
+        }}>
+          ℓ
+        </div>
+        <div style={{
+          fontSize:18, fontWeight:700, textAlign:"center",
+          color:"var(--t1)", marginBottom:6, fontFamily:"var(--font-disp)",
+        }}>
+          Install Ledgr
+        </div>
+        <div style={{
+          fontSize:13, color:"var(--t2)", textAlign:"center", marginBottom:20, lineHeight:1.5,
+        }}>
+          Add Ledgr to your home screen for a faster, app-like experience — no browser bar, instant launch.
+        </div>
+
+        <div style={{display:"flex", flexDirection:"column", gap:12, marginBottom:20}}>
+          {steps.map((s, i) => (
+            <div key={i} style={{display:"flex", alignItems:"center", gap:12}}>
+              <div style={{
+                flexShrink:0, width:28, height:28, borderRadius:"50%",
+                background:"var(--cyan)", color:"#000",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:13, fontWeight:700, fontFamily:"var(--font-mono)",
+              }}>{s.icon}</div>
+              <div style={{flex:1, fontSize:13, color:"var(--t1)"}}>
+                {s.text} <span style={{color:"var(--t2)"}}>{s.detail}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          background:"var(--surface)", borderRadius:"var(--radius)",
+          padding:"10px 12px", fontSize:11, color:"var(--t3)",
+          textAlign:"center", marginBottom:16, lineHeight:1.5,
+        }}>
+          Make sure you're using <strong style={{color:"var(--t2)"}}>{browserName}</strong> for this to work.
+        </div>
+
+        <button
+          style={{...S.btn("primary"), width:"100%", justifyContent:"center", padding:"12px"}}
+          onClick={dismiss}
+        >
+          Got it — don't show again
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppInner() {
   const isMobile = useIsMobile();
 
@@ -4952,6 +5070,7 @@ function AppInner() {
 
   return (
     <div style={S.shell}>
+    <InstallPrompt />
     {/* Trial countdown banner */}
     {trialDaysLeft !== null && (
       <div style={{

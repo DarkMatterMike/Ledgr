@@ -386,13 +386,15 @@ function AuthGate({ onAuth }) {
     setPassword(""); setConfirm("");
   }
 
-  const inputStyle = (hasError) => ({
-    background: "var(--surface)",
-    border: `1px solid ${hasError ? "var(--red)" : "var(--border2)"}`,
-    borderRadius: "var(--radius)", padding: "11px 14px",
-    fontSize: 14, color: "var(--t1)", outline: "none", width: "100%",
-    transition: "border-color 0.15s",
-  });
+  function inputStyle(hasError) {
+    return {
+      background: "var(--surface)",
+      border: `1px solid ${hasError ? "var(--red)" : "var(--border2)"}`,
+      borderRadius: "var(--radius)", padding: "11px 14px",
+      fontSize: 14, color: "var(--t1)", outline: "none", width: "100%",
+      transition: "border-color 0.15s",
+    };
+  }
 
   const isForgotOrReset = mode === "forgot" || mode === "reset";
 
@@ -1615,9 +1617,6 @@ function AppInner() {
         setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);
         if (data.access) setAccess(data.access);
-        // Load scan memory and dismissed pairs from server (overrides localStorage)
-        if (data.scanMemory)     setScanMemory(data.scanMemory);
-        if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       } catch (e) { console.warn("Load error:", e.message); }
       finally { setLoading(false); initialized.current = true; }
     })();
@@ -1654,10 +1653,6 @@ function AppInner() {
   useEffect(() => {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts, scheduleSave]);
-  useEffect(() => { scheduleSave({ scanMemory });      }, [scanMemory,      scheduleSave]);
-  useEffect(() => {
-    if (dismissedPairs.length > 0) scheduleSave({ dismissedPairs });
-  }, [dismissedPairs, scheduleSave]);
 
   /* ── Poll for new transactions every 30 minutes ── */
   const knownTxnIds = useRef(null);
@@ -1811,9 +1806,8 @@ function AppInner() {
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
-  // Smart pending reconciliation — match on merchant + date only, ignore amount
+  // Smart pending reconciliation
   const [dismissedPairs,  setDismissedPairs]  = useState([]);
-  const [scanMemory, setScanMemory] = useState({confirmed:{},dismissed:{}});
   const [showReconcile,   setShowReconcile]   = useState(false);
   const [duplicatePairs,  setDuplicatePairs]  = useState([]);
   const [duplicateScanActive, setDuplicateScanActive] = useState(false);
@@ -1837,28 +1831,6 @@ function AppInner() {
   function isPreauth(t) {
     const raw = (t.merchant || t.name || "").toLowerCase();
     return raw.includes("preauth") || raw.includes("pre-auth") || raw.includes("preauthorized") || raw.includes("pre auth") || !!t.pending;
-  }
-
-  function memoryKey(a, b) {
-    return [normalizeMerchantLabel(a), normalizeMerchantLabel(b)].sort().join("__");
-  }
-  function recordConfirmed(tA, tB) {
-    const key = memoryKey(tA, tB);
-    setScanMemory(prev => ({...prev, confirmed: {...prev.confirmed, [key]: (prev.confirmed[key]||0)+1}}));
-  }
-  function recordDismissed(tA, tB) {
-    const key = memoryKey(tA, tB);
-    setScanMemory(prev => ({...prev, dismissed: {...prev.dismissed, [key]: (prev.dismissed[key]||0)+1}}));
-  }
-  function isSuppressedByMemory(tA, tB) {
-    const key = memoryKey(tA, tB);
-    const conf = scanMemory.confirmed[key]||0;
-    const dism = scanMemory.dismissed[key]||0;
-    return dism > conf + 1;
-  }
-  function memoryConfidence(tA, tB) {
-    const key = memoryKey(tA, tB);
-    return scanMemory.confirmed[key]||0;
   }
 
   function pickRemove(a, b) {
@@ -1886,9 +1858,6 @@ function AppInner() {
         const pairKey = [a.id, b.id].sort().join("__");
         if (seen.has(pairKey) || dismissedPairs.includes(pairKey)) continue;
 
-        // Skip if memory says this merchant pair is suppressed
-        if (isSuppressedByMemory(a, b)) continue;
-
         const aDate   = new Date(`${a.date}T12:00:00`);
         const bDate   = new Date(`${b.date}T12:00:00`);
         const dayDiff = Math.abs((bDate - aDate) / (1000 * 60 * 60 * 24));
@@ -1905,40 +1874,24 @@ function AppInner() {
         const bIsPreauth = isPreauth(b);
         const eitherPreauth = aIsPreauth || bIsPreauth;
 
-        // Previously confirmed pairs get a wider date window (up to 7 days instead of 5)
-        const memBoost = memoryConfidence(a, b) > 0;
-
         if (eitherPreauth) {
-          const maxDays = memBoost ? 7 : 5;
-          if (dayDiff > maxDays) continue;
+          if (dayDiff > 5) continue;
           const amtTolerance = Math.max(10, aAmt * 0.20);
           if (amtDiff > amtTolerance) continue;
         } else {
-          const maxDays = memBoost ? 21 : 14;
-          if (dayDiff > maxDays) continue;
+          if (dayDiff > 14) continue;
           if (aAmt.toFixed(2) !== bAmt.toFixed(2)) continue;
         }
 
-        // Use pickRemove to assign pending/posted roles
         const remove = pickRemove(a, b);
         const keep   = remove.id === a.id ? b : a;
 
-        nextPairs.push({
-          pending: remove,
-          posted: keep,
-          isPreauth: eitherPreauth,
-          memoryConfidence: memoryConfidence(a, b),
-        });
+        nextPairs.push({ pending: remove, posted: keep, isPreauth: eitherPreauth });
         seen.add(pairKey);
       }
     }
 
-    // Sort: memory-confirmed pairs first, then by date
-    nextPairs.sort((x, y) => {
-      if (y.memoryConfidence !== x.memoryConfidence) return y.memoryConfidence - x.memoryConfidence;
-      return String(y.posted.date || y.pending.date).localeCompare(String(x.posted.date || x.pending.date));
-    });
-
+    nextPairs.sort((x, y) => String(y.posted.date || y.pending.date).localeCompare(String(x.posted.date || x.pending.date)));
     setDuplicatePairs(nextPairs);
     setDuplicateScanActive(nextPairs.length > 0);
     setShowReconcile(nextPairs.length > 0);
@@ -1946,8 +1899,6 @@ function AppInner() {
   }
 
   function dismissPair(pendingId) {
-    const pair = pendingPairs.find(pr=>pr.pending.id===pendingId);
-    if (pair) recordDismissed(pair.pending, pair.posted);
     setDismissedPairs(prev => [...prev, pendingId]);
   }
 
@@ -1955,7 +1906,6 @@ function AppInner() {
     const pending = transactions.find(t=>t.id===pendingId);
     const posted  = transactions.find(t=>t.id===postedId);
     if (!pending||!posted) return;
-    recordConfirmed(pending, posted);
     setTransactions(p=>p
       .filter(t=>t.id!==pendingId)
       .map(t=>t.id!==postedId?t:{
@@ -1974,9 +1924,6 @@ function AppInner() {
   }
 
   function dismissDuplicatePair(aId, bId) {
-    const tA = transactions.find(t=>t.id===aId);
-    const tB = transactions.find(t=>t.id===bId);
-    if (tA && tB) recordDismissed(tA, tB);
     const pairKey = [aId, bId].sort().join("__");
     setDismissedPairs(prev => [...prev, pairKey]);
     setDuplicatePairs(prev => {
@@ -1990,7 +1937,6 @@ function AppInner() {
     const removeTxn = transactions.find(t => t.id === removeId);
     const keepTxn   = transactions.find(t => t.id === keepId);
     if (!removeTxn || !keepTxn) return;
-    recordConfirmed(removeTxn, keepTxn);
     setTransactions(prev => prev.filter(t => t.id !== removeId));
     setDuplicatePairs(prev => prev.filter(pair => !(
       (pair.pending.id === removeId && pair.posted.id === keepId) ||
@@ -2012,11 +1958,9 @@ function AppInner() {
 
       const match = posted.find(t => {
         if (usedPostedIds.has(t.id)) return false;
-        if (isSuppressedByMemory(p, t)) return false;
         const tDate   = new Date(t.date + "T12:00:00");
         const dayDiff = (tDate - pDate) / (1000 * 60 * 60 * 24);
-        const maxDays = memoryConfidence(p, t) > 0 ? 7 : 5;
-        if (dayDiff < 0 || dayDiff > maxDays) return false;
+        if (dayDiff < 0 || dayDiff > 5) return false;
         const tNorm = normalizeMerchantLabel(t);
         if (!merchantsMatch(pNorm, tNorm)) return false;
         const tAmt = Math.abs(Number(t.amount || 0));
@@ -2032,7 +1976,7 @@ function AppInner() {
       }
     });
     return pairs;
-  }, [transactions, dismissedPairs, scanMemory]);
+  }, [transactions, dismissedPairs]);
 
   const [showDuplicates, setShowDuplicates] = useState(false);
 
@@ -3187,11 +3131,6 @@ function AppInner() {
                       </div>
                       {/* Actions */}
                       <div style={{display:"flex",gap:8,justifyContent:"flex-end",alignItems:"center"}}>
-                        {memoryConfidence(p,po)>0 && (
-                          <span style={{fontSize:11,color:"var(--cyan)",marginRight:"auto"}}>
-                            ✦ previously confirmed
-                          </span>
-                        )}
                         <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>{
                           if (isScannedDuplicate) {
                             dismissDuplicatePair(p.id, po.id);

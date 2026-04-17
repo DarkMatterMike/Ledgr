@@ -2757,7 +2757,7 @@ function AppInner() {
     </div>
   );
 
-const reviewCount = transactions.filter(t => needsReview(t)).length;
+  const reviewCount = transactions.filter(t => needsReview(t)).length;
   const isNewUser = transactions.length === 0 && plaidItems.length === 0 && accounts.length === 0;
 
   // Onboarding steps — checked off as user completes them

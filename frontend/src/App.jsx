@@ -1563,6 +1563,10 @@ function AppInner() {
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
   const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
+  const [editingLimitId,   setEditingLimitId]   = useState(null);
+  const [editingLimitVal,  setEditingLimitVal]  = useState("");
+  const [editingCatNameId, setEditingCatNameId] = useState(null);
+  const [editingCatName,   setEditingCatName]   = useState("");
   const [access,   setAccess]   = useState(() => {
     // Derive initial access from stored user to avoid flash of full access
     const u = api.getStoredUser();
@@ -3304,10 +3308,6 @@ function AppInner() {
 
 
   /* ── Budgets ── */
-  const [editingLimitId,   setEditingLimitId]   = useState(null);
-  const [editingLimitVal,  setEditingLimitVal]  = useState("");
-  const [editingCatNameId, setEditingCatNameId] = useState(null);
-  const [editingCatName,   setEditingCatName]   = useState("");
 
   function saveCatName(id) {
     const trimmed = editingCatName.trim();

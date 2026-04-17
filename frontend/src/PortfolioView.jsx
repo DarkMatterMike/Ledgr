@@ -507,8 +507,8 @@ export default function PortfolioView({
   // ── Performance tab ────────────────────────────────────────────────
 
   const totalReturn = metrics.totalReturn;
-  const bestHolding  = metrics.holdingMetrics.reduce((b, h) => h.gainPct > (b?.gainPct||−Infinity) ? h : b, null);
-  const worstHolding = metrics.holdingMetrics.reduce((w, h) => h.gainPct < (w?.gainPct||Infinity) ? h : w, null);
+  const bestHolding  = metrics.holdingMetrics.reduce((b, h) => h.gainPct > (b?.gainPct ?? -Infinity) ? h : b, null);
+  const worstHolding = metrics.holdingMetrics.reduce((w, h) => h.gainPct < (w?.gainPct ?? Infinity)  ? h : w, null);
 
   const PerformanceTab = (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>

@@ -5190,11 +5190,8 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
 
   /* ── Shared sidebar ── */
   const currentUser  = api.getStoredUser();
-  const avatarColor  = (() => {
-    const colors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
-    const i = (currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
-    return colors[i];
-  })();
+  const _avatarColors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
+  const avatarColor  = _avatarColors[(currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % _avatarColors.length];
   const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
 
   const SettingsPage = (
@@ -5232,12 +5229,10 @@ const reviewCount = transactions.filter(t => needsReview(t)).length;
     </div>
   );
 
-  const trialDaysLeft = (() => {
-    const u = api.getStoredUser();
-    if (!u || u.role === "owner" || u.role === "free" || u.subscription_status !== "trialing") return null;
-    const days = Math.ceil((u.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, days);
-  })();
+  const _trialUser = api.getStoredUser();
+  const trialDaysLeft = (_trialUser && _trialUser.role !== "owner" && _trialUser.role !== "free" && _trialUser.subscription_status === "trialing")
+    ? Math.max(0, Math.ceil((_trialUser.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
 
   return (
     <div style={S.shell}>

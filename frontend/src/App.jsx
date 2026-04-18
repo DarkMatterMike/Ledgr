@@ -43,6 +43,86 @@ button {
     .ledgr-budget-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
     .ledgr-cal-cell  { min-height: 80px; padding: 8px; }
 
+    /* ── Animations ───────────────────────────────────────────── */
+
+    /* Loading screen — pulsing cyan glow on the ℓ logo */
+    @keyframes ledgr-pulse-glow {
+      0%, 100% { text-shadow: 0 0 8px #00d4ff44, 0 0 24px #00d4ff22; opacity: 1; }
+      50%       { text-shadow: 0 0 24px #00d4ffcc, 0 0 48px #00d4ff66, 0 0 72px #00d4ff33; opacity: 0.85; }
+    }
+    .ledgr-logo-pulse { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
+
+    /* Loading text — subtle fade in/out */
+    @keyframes ledgr-breathe {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 0.9; }
+    }
+    .ledgr-loading-text { animation: ledgr-breathe 2s ease-in-out infinite; }
+
+    /* Page content — fade in when view changes */
+    @keyframes ledgr-fade-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ledgr-view-enter { animation: ledgr-fade-in 0.2s ease-out both; }
+
+    /* Cards — staggered fade-up */
+    @keyframes ledgr-card-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ledgr-card-anim { animation: ledgr-card-up 0.25s ease-out both; }
+    .ledgr-card-anim:nth-child(1) { animation-delay: 0ms; }
+    .ledgr-card-anim:nth-child(2) { animation-delay: 50ms; }
+    .ledgr-card-anim:nth-child(3) { animation-delay: 100ms; }
+    .ledgr-card-anim:nth-child(4) { animation-delay: 150ms; }
+    .ledgr-card-anim:nth-child(5) { animation-delay: 200ms; }
+    .ledgr-card-anim:nth-child(n+6) { animation-delay: 250ms; }
+
+    /* Modal — scale + fade in */
+    @keyframes ledgr-modal-in {
+      from { opacity: 0; transform: scale(0.95) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .ledgr-modal-anim { animation: ledgr-modal-in 0.18s ease-out both; }
+
+    /* Overlay — fade in */
+    @keyframes ledgr-overlay-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.15s ease-out both; }
+
+    /* Toast — slide up from bottom */
+    @keyframes ledgr-toast-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ledgr-toast-anim { animation: ledgr-toast-in 0.2s ease-out both; }
+
+    /* Auth gate shake (already exists, keeping consistent) */
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-8px)}
+      40%{transform:translateX(8px)}
+      60%{transform:translateX(-6px)}
+      80%{transform:translateX(4px)}
+    }
+    .shake { animation: shake 0.5s ease; }
+
+    /* Install prompt slide-up */
+    @keyframes ledgr-slide-up {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .ledgr-slide-up { animation: ledgr-slide-up 0.3s ease-out both; }
+
+    /* Nav item active indicator */
+    @keyframes ledgr-nav-active {
+      from { opacity: 0; transform: scaleX(0); }
+      to   { opacity: 1; transform: scaleX(1); }
+    }
+
     @media (max-width: 767px) {
       .ledgr-content   { padding: 16px !important; }
       .ledgr-stat-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
@@ -124,8 +204,8 @@ function CategoryBadge({ cat }) {
 }
 function Modal({ title, onClose, children, actions }) {
   return (
-    <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={S.modal}>
+    <div style={S.overlay} className="ledgr-overlay-anim" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={S.modal} className="ledgr-modal-anim">
         <div style={S.modalTitle}>{title}</div>
         {children}
         <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:24}}>{actions}</div>
@@ -133,7 +213,7 @@ function Modal({ title, onClose, children, actions }) {
     </div>
   );
 }
-function Toast({ msg }) { return msg ? <div style={S.toast}>✓ {msg}</div> : null; }
+function Toast({ msg }) { return msg ? <div style={S.toast} className="ledgr-toast-anim">✓ {msg}</div> : null; }
 function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, style={} }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
@@ -409,16 +489,6 @@ function AuthGate({ onAuth }) {
       height:"100vh", background:"var(--bg)", flexDirection:"column", gap:24,
       fontFamily:"var(--font-body)",
     }}>
-      <style>{`
-        @keyframes shake {
-          0%,100%{transform:translateX(0)}
-          20%{transform:translateX(-8px)}
-          40%{transform:translateX(8px)}
-          60%{transform:translateX(-6px)}
-          80%{transform:translateX(6px)}
-        }
-        .shake { animation: shake 0.5s ease; }
-      `}</style>
 
       <div>
         <div style={{fontFamily:"var(--font-disp)",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
@@ -545,8 +615,8 @@ function AuthGate({ onAuth }) {
 
       {/* Legal modal */}
       {legalModal && (
-        <div style={S.overlay} onClick={()=>setLegalModal(null)}>
-          <div style={{...S.modal,width:640,maxHeight:"82vh",display:"flex",flexDirection:"column"}}
+        <div style={S.overlay} className="ledgr-overlay-anim" onClick={()=>setLegalModal(null)}>
+          <div style={{...S.modal,width:640,maxHeight:"82vh",display:"flex",flexDirection:"column"}} className="ledgr-modal-anim"
             onClick={e=>e.stopPropagation()}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexShrink:0}}>
               <div style={S.modalTitle}>
@@ -1178,8 +1248,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 
     {/* Legal document modal */}
     {legalDoc && (
-      <div style={S.overlay} onClick={() => setLegalDoc(null)}>
-        <div style={{
+      <div style={S.overlay} className="ledgr-overlay-anim" onClick={() => setLegalDoc(null)}>
+        <div className="ledgr-modal-anim" style={{
           ...S.modal,
           width: 640, maxHeight: "82vh", display: "flex", flexDirection: "column",
         }} onClick={e => e.stopPropagation()}>
@@ -1510,8 +1580,8 @@ function AdminPanel() {
 
       {/* Delete confirm modal */}
       {confirm && (
-        <div style={S.overlay} onClick={() => setConfirm(null)}>
-          <div style={{...S.modal,maxWidth:380}} onClick={e => e.stopPropagation()}>
+        <div style={S.overlay} className="ledgr-overlay-anim" onClick={() => setConfirm(null)}>
+          <div style={{...S.modal,maxWidth:380}} className="ledgr-modal-anim" onClick={e => e.stopPropagation()}>
             <div style={S.modalTitle}>Delete User?</div>
             <div style={{fontSize:13,color:"var(--t2)",marginBottom:20}}>
               This will permanently delete the user and all their data. This cannot be undone.
@@ -1581,13 +1651,11 @@ function InstallPrompt() {
       zIndex:1000, display:"flex", alignItems:"flex-end", justifyContent:"center",
       padding:16,
     }}>
-      <div style={{
+      <div className="ledgr-slide-up" style={{
         background:"var(--card)", border:"1px solid var(--border2)",
         borderRadius:"var(--radius-lg)", padding:"24px 22px",
         width:"100%", maxWidth:440, maxHeight:"85vh", overflowY:"auto",
-        animation:"slideUp 0.3s ease-out",
       }}>
-        <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
 
         <div style={{
           fontSize:28, textAlign:"center", marginBottom:6,
@@ -2234,8 +2302,8 @@ function AppInner() {
   /* ── Drill-down modal ── */
   const showDrillModal = drillCat && (view !== "budgets" || isMobile);
   const DrillDownModal = showDrillModal ? (
-    <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
-      <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}}>
+    <div style={S.overlay} className="ledgr-overlay-anim" onClick={e=>e.target===e.currentTarget&&setDrillCat(null)}>
+      <div style={{...S.modal,width:620,maxHeight:"85vh",display:"flex",flexDirection:"column",padding:20}} className="ledgr-modal-anim">
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
@@ -2788,7 +2856,7 @@ function AppInner() {
           {label:"Income",      value:fmt(totalIncome),sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)"},
           {label:"Transactions",value:monthTxns.length,sub:monthLabel(selectedMonth),                 color:"var(--t1)"   },
         ].map(s=>(
-          <div key={s.label} style={S.stat}>
+          <div key={s.label} style={S.stat} className="ledgr-card-anim">
             <div style={S.statLabel}>{s.label}</div>
             <div style={{...S.statValue,color:s.color,fontSize:isMobile?17:26}}>{s.value}</div>
             <div style={{...S.statSub,fontSize:isMobile?10:12}}>{s.sub}</div>
@@ -2798,7 +2866,7 @@ function AppInner() {
 
       {isMobile ? (
         <div className="ledgr-dash-cards">
-          <div style={S.card}>
+          <div style={S.card} className="ledgr-card-anim">
             <div style={{...S.sectionHdr,marginBottom:12}}>
               <div style={S.cardTitle}>Budget Progress</div>
               <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
@@ -2863,7 +2931,7 @@ function AppInner() {
       ) : (
         <div style={{display:"grid",gridTemplateColumns:"minmax(0, 1fr) 340px",gap:16,alignItems:"start"}}>
           <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
-            <div style={S.card}>
+            <div style={S.card} className="ledgr-card-anim">
               <div style={{...S.sectionHdr,marginBottom:12}}>
                 <div style={S.cardTitle}>Budget Progress</div>
                 <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
@@ -4835,7 +4903,7 @@ function AppInner() {
         {/* Account charges popup (mobile + desktop) */}
         {calendarAcctPopup&&(
           <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setCalendarAcctPopup(null)}>
-            <div style={{...S.modal,width:480}}>
+            <div style={{...S.modal,width:480}} className="ledgr-modal-anim">
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
                 <div>
                   <div style={S.modalTitle}>{calendarAcctPopup.name}</div>
@@ -5034,6 +5102,10 @@ function AppInner() {
 
   /* ── Shared sidebar ── */
   const currentUser  = api.getStoredUser();
+  const PREMIUM_PRICE_ID = import.meta.env.VITE_PREMIUM_PRICE_ID || "";
+  const isPremium = currentUser?.role === "owner" ||
+    (currentUser?.isPremium === true) ||
+    (PREMIUM_PRICE_ID && currentUser?.stripe_price_id === PREMIUM_PRICE_ID);
   const _avatarColors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
   const avatarColor  = _avatarColors[(currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % _avatarColors.length];
   const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
@@ -5088,6 +5160,7 @@ function AppInner() {
       isMobile={isMobile}
       PlaidButtonComponent={PlaidButton}
       onPlaidSuccess={handlePortfolioPlaidSuccess}
+      isPremium={isPremium}
     />
   );
 
@@ -5097,8 +5170,9 @@ function AppInner() {
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
-      <div style={{fontFamily:"var(--font-disp)",fontSize:28,fontWeight:800,color:"var(--t1)"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
-      <div style={{fontSize:13,color:"var(--t3)"}}>Loading your data…</div>
+      <div style={{fontFamily:"var(--font-disp)",fontSize:52,fontWeight:800,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-pulse">ℓ</div>
+      <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+      <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>
   );
 
@@ -5185,7 +5259,7 @@ function AppInner() {
           </div>
           {/* Content */}
           <div ref={contentRef} style={{height:"100%",overflowY:"auto"}} className="ledgr-content">
-            {VIEWS[view]}
+            <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
           </div>
         </div>
       </>
@@ -5215,7 +5289,7 @@ function AppInner() {
           </aside>
           {/* Content */}
           <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">
-            {VIEWS[view]}
+            <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
           </div>
         </div>
       </>

@@ -1844,6 +1844,13 @@ function AppInner() {
   const needsReview = t => !t.reviewed && !t.categoryId && (t.type==="expense" || t.type==="refund" || !t.type);
   function markReviewed(id) { setTransactions(p=>p.map(t=>t.id===id?{...t,reviewed:!t.reviewed}:t)); }
 
+  // Auto-clear the review filter when nothing is left to review so users aren't stuck in an empty view
+  useEffect(() => {
+    if (filterReview && !transactions.some(t => needsReview(t))) {
+      setFilterReview(false);
+    }
+  }, [transactions, filterReview]);
+
   /* ── Computed ── */
   const monthTxns = useMemo(() =>
     transactions.filter(t => t.date?.startsWith(selectedMonth)),

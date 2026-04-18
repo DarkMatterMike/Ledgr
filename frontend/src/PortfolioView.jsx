@@ -203,6 +203,7 @@ export default function PortfolioView({
   addAccount, updateAccount, deleteAccount,
   addHolding, updateHolding, deleteHolding,
   syncFromPlaid, showToast, isMobile,
+  PlaidButtonComponent, onPlaidSuccess,
 }) {
   const [tab, setTab]               = useState("Overview");
   const [acctModal, setAcctModal]   = useState(null);
@@ -313,9 +314,20 @@ export default function PortfolioView({
         <button style={{ ...S.btn("ghost",true), justifyContent:"center" }} onClick={() => syncFromPlaid(showToast)} disabled={syncing}>
           {syncing ? "⟳ Syncing…" : "⟳ Sync Accounts"}
         </button>
-        <button style={{ ...S.btn("primary",true), justifyContent:"center" }} onClick={() => setAcctModal("add")}>
-          + Add Investment Account
+        <button style={{ ...S.btn("ghost",true), justifyContent:"center" }} onClick={() => setAcctModal("add")}>
+          + Add Manual Account
         </button>
+        {PlaidButtonComponent && (
+          <PlaidButtonComponent
+            label="Connect via Plaid"
+            products={["investments"]}
+            style={{ width: isMobile ? "100%" : "auto" }}
+            onSuccess={async (publicToken, institution) => {
+              await onPlaidSuccess(publicToken, institution);
+              await syncFromPlaid(showToast);
+            }}
+          />
+        )}
       </div>
 
       {!hasAccounts ? (

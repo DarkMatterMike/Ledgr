@@ -134,20 +134,20 @@ function Modal({ title, onClose, children, actions }) {
   );
 }
 function Toast({ msg }) { return msg ? <div style={S.toast}>✓ {msg}</div> : null; }
-function PlaidButton({ onSuccess, onExit, label="Connect a Bank" }) {
+function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, style={} }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState(null);
   const fetchToken = useCallback(async () => {
     setLoading(true); setError(null);
-    try { const { link_token } = await api.createLinkToken(); setLinkToken(link_token); }
+    try { const { link_token } = await api.createLinkToken(products); setLinkToken(link_token); }
     catch (e) { setError(e.message); } finally { setLoading(false); }
-  }, []);
+  }, [products]);
   const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
     <div>
-      <button style={S.btn("primary")} onClick={fetchToken} disabled={loading}>{loading?"…":"🏦 "+label}</button>
+      <button style={{...S.btn("primary"), ...style}} onClick={fetchToken} disabled={loading}>{loading?"…":"🏦 "+label}</button>
       {error && <div style={{marginTop:8,fontSize:12,color:"var(--red)"}}>{error}</div>}
     </div>
   );
@@ -5062,6 +5062,14 @@ function AppInner() {
 
   // Free-tier users get read-only dashboard + settings, paywall for everything else
   const paywallView = <Paywall />;
+  const handlePortfolioPlaidSuccess = useCallback(async (publicToken, institutionName) => {
+    try {
+      const { item_id } = await api.exchangePublicToken(publicToken, institutionName);
+      setPlaidItems(p => [...p.filter(i => i.item_id !== item_id), { item_id, institution: institutionName }]);
+      showToast(`${institutionName} connected!`);
+    } catch(e) { showToast("Connection failed: " + e.message); }
+  }, []);
+
   const PortfolioPage = (
     <PortfolioView
       investmentAccounts={portfolio.investmentAccounts}
@@ -5078,6 +5086,8 @@ function AppInner() {
       syncFromPlaid={portfolio.syncFromPlaid}
       showToast={showToast}
       isMobile={isMobile}
+      PlaidButtonComponent={PlaidButton}
+      onPlaidSuccess={handlePortfolioPlaidSuccess}
     />
   );
 

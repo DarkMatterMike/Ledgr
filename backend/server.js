@@ -834,10 +834,13 @@ app.use("/api/plaid", requireSubscription);
 
 app.post("/api/plaid/create_link_token", async (req, res) => {
   try {
+    const products = (req.body?.products && Array.isArray(req.body.products))
+      ? req.body.products
+      : PRODUCTS;
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: req.user.id },
       client_name: "Ledgr Finance",
-      products: PRODUCTS, country_codes: COUNTRY_CODES, language: "en",
+      products, country_codes: COUNTRY_CODES, language: "en",
       redirect_uri: process.env.FRONTEND_URL,
     });
     res.json({ link_token: response.data.link_token });

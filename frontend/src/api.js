@@ -101,7 +101,12 @@ export function loadData()        { return request("/api/data"); }
 export function saveData(patch)   { return request("/api/data", { method: "PATCH", body: JSON.stringify(patch) }); }
 
 /* ── Plaid ────────────────────────────────────────────────────────── */
-export function createLinkToken()                       { return request("/api/plaid/create_link_token", { method: "POST" }); }
+export function createLinkToken(products)  {
+  return request("/api/plaid/create_link_token", {
+    method: "POST",
+    body: products ? JSON.stringify({ products }) : undefined,
+  });
+}
 export function exchangePublicToken(publicToken, name)  { return request("/api/plaid/exchange_public_token", { method: "POST", body: JSON.stringify({ public_token: publicToken, institution_name: name }) }); }
 export function syncTransactions(itemId)                { return request("/api/plaid/transactions/sync", { method: "POST", body: JSON.stringify(itemId ? { item_id: itemId } : {}) }); }
 export function getAccounts()                           { return request("/api/plaid/accounts"); }

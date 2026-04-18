@@ -110,6 +110,20 @@ button {
     }
     .shake { animation: shake 0.5s ease; }
 
+    /* Chevron rotation for expand/collapse */
+    .ledgr-chevron { transition: transform 0.2s ease; display: inline-block; }
+    .ledgr-chevron-open { transform: rotate(180deg); }
+
+    /* Expand panel — slide down from top */
+    @keyframes ledgr-expand {
+      from { opacity: 0; transform: translateY(-6px); max-height: 0; }
+      to   { opacity: 1; transform: translateY(0);    max-height: 800px; }
+    }
+    .ledgr-expand {
+      animation: ledgr-expand 0.22s ease-out both;
+      overflow: hidden;
+    }
+
     /* Install prompt slide-up */
     @keyframes ledgr-slide-up {
       from { transform: translateY(100%); opacity: 0; }
@@ -192,7 +206,7 @@ const NAV = [
   { id:"accounts",     icon:"▣", label:"Accounts"     },
   { id:"rules",        icon:"◎", label:"Rules"        },
   { id:"calendar",     icon:"▦", label:"Calendar"     },
-  // { id:"portfolio",    icon:"◬", label:"Portfolio"    },
+  { id:"portfolio",    icon:"◬", label:"Portfolio"    },
 ];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
@@ -796,8 +810,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
         <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
-        </span>
-        {cat ? (
+        </span>        {cat ? (
           <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
         ) : (
           <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0,textTransform:"capitalize"}}>{typeVal}</span>
@@ -826,7 +839,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
       </div>
 
       {expanded&&(
-        <div style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+        <div className="ledgr-expand" style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
           {editingId===t.id&&(
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <input style={{...S.input,flex:1,fontSize:13}}
@@ -3314,12 +3327,12 @@ function AppInner() {
                                   </span>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                     <button style={{ ...S.btn("ghost", true) }} onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}>Edit</button>
-                                    <span style={{ color: "var(--t3)", fontSize: 12 }}>{budgetExpandedCatId === cat.id ? "▲" : "▼"}</span>
+                                    <span className={`ledgr-chevron${budgetExpandedCatId === cat.id ? " ledgr-chevron-open" : ""}`} style={{ color: "var(--t3)", fontSize: 12 }}>▼</span>
                                   </div>
                                 </div>
 
                                 {budgetExpandedCatId === cat.id && (
-                                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+                                  <div className="ledgr-expand" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
                                     {(monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date))).length === 0 ? (
                                       <div style={{ fontSize: 12, color: "var(--t3)" }}>No transactions in {monthLabel(selectedMonth)}</div>
                                     ) : (

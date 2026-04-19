@@ -1735,6 +1735,7 @@ function AppInner() {
   const [categories,    setCategories]    = useState([]);
   const [transactions,  setTransactions]  = useState([]);
   const [plaidItems,    setPlaidItems]    = useState([]);
+  const [staleItemIds,  setStaleItemIds]  = useState(new Set()); // items that returned 0 accounts on last sync
   const [rules,         setRules]         = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [modal,         setModal]         = useState(null);
@@ -2183,6 +2184,21 @@ function AppInner() {
         return [...applyRules(rawNew, rules, { onlyUncategorized: true }),...next];
       });
       const {accounts:plaidAccts} = await api.getAccounts();
+
+      // Detect stale items — connected items that returned no accounts
+      if (plaidAccts.length === 0 && plaidItems.length > 0) {
+        // All items stale
+        setStaleItemIds(new Set(plaidItems.map(i => i.item_id)));
+      } else if (targetItemId) {
+        // Single item sync — check if this specific item returned accounts
+        const itemAccts = plaidAccts.filter(a => a.item_id === targetItemId);
+        setStaleItemIds(prev => {
+          const next = new Set(prev);
+          if (itemAccts.length === 0) next.add(targetItemId);
+          else next.delete(targetItemId);
+          return next;
+        });
+      }
       setAccounts(prev => {
         // Keep manually-added accounts (no plaidId) as-is
         const manual = prev.filter(a => !a.plaidId);
@@ -3803,14 +3819,62 @@ function AppInner() {
           {plaidItems.length>0&&(
             <div style={{...S.card,marginBottom:16}}>
               <div style={S.cardTitle}>Connected Banks</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-                {plaidItems.map(item=>(
-                  <div key={item.item_id} style={{display:"flex",alignItems:"center",gap:8,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",padding:"8px 12px"}}>
-                    <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>🏦 {item.institution}</span>
-                    <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13}} onClick={()=>doSync(item.item_id)}>⟳</button>
-                    <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--red)",fontSize:13}} onClick={()=>disconnectItem(item.item_id)}>✕</button>
-                  </div>
-                ))}
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {plaidItems.map(item=>{
+                  const isStale = staleItemIds.has(item.item_id);
+                  return (
+                    <div key={item.item_id} style={{
+                      background:"var(--surface)",
+                      border:`1px solid ${isStale?"var(--amber)44":"var(--border2)"}`,
+                      borderRadius:"var(--radius)",
+                      padding:"12px 14px",
+                    }}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:14,fontWeight:600,color:"var(--t1)"}}>
+                            🏦 {item.institution}
+                          </div>
+                          {isStale&&(
+                            <div style={{fontSize:11,color:"var(--amber)",marginTop:3,display:"flex",alignItems:"center",gap:4}}>
+                              ⚠ Connection issue — no accounts found
+                            </div>
+                          )}
+                        </div>
+                        <div style={{display:"flex",gap:8,flexShrink:0}}>
+                          {!isStale&&(
+                            <button style={{...S.btn("ghost",true),minWidth:64}}
+                              onClick={()=>doSync(item.item_id)} disabled={syncing}>
+                              {syncing?"…":"⟳ Sync"}
+                            </button>
+                          )}
+                          <button style={{...S.btn("danger",true),minWidth:isMobile?80:64}}
+                            onClick={()=>disconnectItem(item.item_id)}>
+                            Disconnect
+                          </button>
+                        </div>
+                      </div>
+                      {isStale&&(
+                        <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
+                          <div style={{fontSize:12,color:"var(--t2)",marginBottom:8,lineHeight:1.5}}>
+                            Disconnect and reconnect to restore access to your accounts.
+                          </div>
+                          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                            <button style={{...S.btn("danger",true),flex:isMobile?1:0}}
+                              onClick={()=>disconnectItem(item.item_id)}>
+                              Disconnect
+                            </button>
+                            <PlaidButton
+                              onSuccess={handlePlaidSuccess}
+                              onExit={()=>{}}
+                              label="Reconnect"
+                              style={{flex:isMobile?1:0,justifyContent:"center"}}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

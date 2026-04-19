@@ -31,11 +31,16 @@ const S = {
 };
 
 function ApiKeySection({ hasApiKey, keyChecked, onSave, isMobile }) {
-  const [editing, setEditing]   = useState(!hasApiKey);
+  const [editing, setEditing]   = useState(false);
   const [keyVal,  setKeyVal]    = useState("");
   const [saving,  setSaving]    = useState(false);
   const [error,   setError]     = useState(null);
   const [saved,   setSaved]     = useState(false);
+
+  // Once the key check resolves, show input only if no key exists
+  useEffect(() => {
+    if (keyChecked) setEditing(!hasApiKey);
+  }, [keyChecked, hasApiKey]);
 
   async function handleSave() {
     if (!keyVal.trim()) return;

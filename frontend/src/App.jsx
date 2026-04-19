@@ -1772,6 +1772,8 @@ function AppInner() {
   const [editingLimitVal,  setEditingLimitVal]  = useState("");
   const [editingCatNameId, setEditingCatNameId] = useState(null);
   const [editingCatName,   setEditingCatName]   = useState("");
+  const [limitSuggestions,    setLimitSuggestions]    = useState([]); // [{categoryId, suggestedLimit, reasoning}]
+  const [suggestingLimits,    setSuggestingLimits]    = useState(false);
   const [access,   setAccess]   = useState(() => {
     // Derive initial access from stored user to avoid flash of full access
     const u = api.getStoredUser();
@@ -3409,12 +3411,139 @@ function AppInner() {
     setEditingLimitId(null);
   }
 
+  async function runSuggestLimits() {
+    if (!categories.length) return;
+    setSuggestingLimits(true);
+    try {
+      // Build last 3 months of spending per category
+      const months = [];
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const byCategory = {};
+        transactions.forEach(t => {
+          if (t.date?.startsWith(ym) && t.amount < 0 && t.categoryId) {
+            byCategory[t.categoryId] = (byCategory[t.categoryId] || 0) + Math.abs(t.amount);
+          }
+        });
+        months.push({ month: ym, byCategory });
+      }
+
+      // Compute avg monthly income
+      const incomeMonths = months.map(m => {
+        let inc = 0;
+        transactions.forEach(t => {
+          if (t.date?.startsWith(m.month) && t.amount > 0 && (t.type === "income" || !t.type)) inc += t.amount;
+        });
+        return inc;
+      });
+      const avgIncome = incomeMonths.reduce((a, b) => a + b, 0) / incomeMonths.length;
+
+      const { suggestions } = await api.suggestLimits(
+        categories.map(c => ({ id: c.id, name: c.name, limit: c.limit || 0 })),
+        months,
+        avgIncome,
+      );
+      setLimitSuggestions(suggestions);
+      if (!suggestions.length) showToast("Not enough spending history yet — need at least 2 months of data");
+    } catch (e) {
+      if (!e.message?.includes("no_api_key")) showToast("Suggestion failed: " + e.message);
+    } finally {
+      setSuggestingLimits(false);
+    }
+  }
+
   const Budgets = (
     <div>
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
         <div style={S.sectionTitle}>Budget Categories</div>
-        <button style={S.btn("primary", true)} onClick={openAddCat}>+ New Category</button>
+        <div style={{ display:"flex", gap:8 }}>
+          {aiChat.hasApiKey && (
+            <button style={S.btn("ghost", true)} disabled={suggestingLimits}
+              onClick={runSuggestLimits}>
+              {suggestingLimits ? "✦ Analyzing…" : "✦ Optimize Limits"}
+            </button>
+          )}
+          <button style={S.btn("primary", true)} onClick={openAddCat}>+ New Category</button>
+        </div>
       </div>
+
+      {/* AI Limit Suggestions panel */}
+      {limitSuggestions.length > 0 && (
+        <div style={{ background:"var(--card)", border:"1px solid var(--cyan)44",
+                      borderRadius:"var(--radius-lg)", padding:16, marginBottom:20 }}
+             className="ledgr-card-anim">
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)" }}>
+                ✦ AI Limit Suggestions
+              </div>
+              <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>
+                Based on your last 3 months of spending. Accept or dismiss each suggestion.
+              </div>
+            </div>
+            <button style={{ ...S.btn("ghost",true), fontSize:11 }}
+              onClick={() => setLimitSuggestions([])}>Dismiss all</button>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {limitSuggestions.map(s => {
+              const cat = catMap[s.categoryId];
+              if (!cat) return null;
+              const diff = s.suggestedLimit - (cat.limit || 0);
+              const diffColor = diff > 0 ? "var(--amber)" : diff < 0 ? "var(--green)" : "var(--t3)";
+              return (
+                <div key={s.categoryId} style={{
+                  display:"flex", alignItems:"center", gap:12, flexWrap:"wrap",
+                  background:"var(--surface)", borderRadius:"var(--radius)", padding:"10px 14px",
+                  borderLeft:`3px solid ${cat.color}`,
+                }}>
+                  <div style={{ flex:1, minWidth:160 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+                      <span style={{ width:8, height:8, borderRadius:"50%", background:cat.color, flexShrink:0 }}/>
+                      <span style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>{cat.name}</span>
+                    </div>
+                    <div style={{ fontSize:11, color:"var(--t3)", lineHeight:1.5 }}>{s.reasoning}</div>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:11, color:"var(--t3)" }}>Current</div>
+                      <div style={{ fontSize:13, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>
+                        {fmt(cat.limit || 0)}
+                      </div>
+                    </div>
+                    <div style={{ fontSize:13, color:"var(--t3)" }}>→</div>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:11, color:"var(--t3)" }}>Suggested</div>
+                      <div style={{ fontSize:14, fontFamily:"var(--font-mono)", fontWeight:700, color:cat.color }}>
+                        {fmt(s.suggestedLimit)}
+                      </div>
+                      {diff !== 0 && (
+                        <div style={{ fontSize:10, color:diffColor, fontFamily:"var(--font-mono)" }}>
+                          {diff > 0 ? "+" : ""}{fmt(diff)}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display:"flex", gap:6 }}>
+                      <button style={{ ...S.btn("primary", true), fontSize:12 }}
+                        onClick={() => {
+                          setCategories(p => p.map(c => c.id === s.categoryId ? { ...c, limit: s.suggestedLimit } : c));
+                          setLimitSuggestions(p => p.filter(x => x.categoryId !== s.categoryId));
+                          showToast(`${cat.name} limit updated to ${fmt(s.suggestedLimit)}`);
+                        }}>
+                        Accept
+                      </button>
+                      <button style={{ ...S.btn("ghost", true), fontSize:12 }}
+                        onClick={() => setLimitSuggestions(p => p.filter(x => x.categoryId !== s.categoryId))}>
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {categories.length === 0 ? (
         <div style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>

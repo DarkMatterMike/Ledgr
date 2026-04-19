@@ -1248,9 +1248,109 @@ Example: {"txn123": "cat456", "txn789": "cat101"}`;
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════════
-   ADMIN
-═══════════════════════════════════════════════════════════════════ */
+// Suggest budget limits based on historical spending
+app.post("/api/ai/suggest-limits", async (req, res) => {
+  try {
+    const { categories = [], monthlySpending = [], avgMonthlyIncome = 0 } = req.body;
+    if (!categories.length) return res.json({ suggestions: [] });
+
+    const encryptedKey = await getData(req.user.id, "aiApiKey");
+    if (!encryptedKey) return res.status(402).json({ error: "no_api_key" });
+    const apiKey = decrypt(encryptedKey);
+    if (!apiKey) return res.status(402).json({ error: "no_api_key" });
+
+    // Build spending summary per category across months
+    const catSummary = categories.map(c => {
+      const monthly = monthlySpending.map(m => ({
+        month: m.month,
+        spent: m.byCategory[c.id] || 0,
+      }));
+      const months  = monthly.filter(m => m.spent > 0);
+      const avg     = months.length ? months.reduce((s, m) => s + m.spent, 0) / months.length : 0;
+      const max     = months.length ? Math.max(...months.map(m => m.spent)) : 0;
+      return {
+        id:           c.id,
+        name:         c.name,
+        currentLimit: c.limit || 0,
+        avgSpending:  Math.round(avg * 100) / 100,
+        maxSpending:  Math.round(max * 100) / 100,
+        monthsOfData: months.length,
+        monthlyDetail: monthly.map(m => `${m.month}: $${m.spent.toFixed(2)}`).join(", "),
+      };
+    }).filter(c => c.monthsOfData > 0);
+
+    if (!catSummary.length) return res.json({ suggestions: [] });
+
+    const prompt = `You are a personal finance advisor analyzing a user's spending habits to suggest monthly budget limits.
+
+${avgMonthlyIncome > 0 ? `Average monthly income: $${avgMonthlyIncome.toFixed(2)}` : ""}
+
+Spending history by category (last 3 months):
+${catSummary.map(c => `
+Category: ${c.name} (id: ${c.id})
+Current limit: $${c.currentLimit.toFixed(2)}
+Average monthly spending: $${c.avgSpending.toFixed(2)}
+Highest month: $${c.maxSpending.toFixed(2)}
+Monthly detail: ${c.monthlyDetail}`).join("\n")}
+
+Suggest a realistic monthly budget limit for each category. Consider:
+- Slightly above average spending (10-15%) to be achievable but not too loose
+- Round to nearest $5 or $10 for clean numbers
+- If current limit is already sensible, you can keep it
+- Skip categories with less than 2 months of data
+
+Return ONLY valid JSON, no other text:
+{
+  "suggestions": [
+    {
+      "categoryId": "string",
+      "suggestedLimit": number,
+      "reasoning": "one short sentence explaining why"
+    }
+  ]
+}`;
+
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const err = await claudeRes.json().catch(() => ({}));
+      return res.status(claudeRes.status).json({ error: err.error?.message || "Claude API error" });
+    }
+
+    const data = await claudeRes.json();
+    const text = data.content?.[0]?.text || "{}";
+    const clean = text.replace(/```json|```/g, "").trim();
+    let parsed = { suggestions: [] };
+    try { parsed = JSON.parse(clean); } catch { parsed = { suggestions: [] }; }
+
+    // Validate
+    const validCatIds = new Set(categories.map(c => c.id));
+    const suggestions = (parsed.suggestions || []).filter(s =>
+      validCatIds.has(s.categoryId) &&
+      typeof s.suggestedLimit === "number" &&
+      s.suggestedLimit > 0
+    );
+
+    res.json({ suggestions });
+  } catch (err) {
+    console.error("AI suggest-limits error:", err.message);
+    serverError(res, err);
+  }
+});
+
+
 app.get("/api/admin/users", requireOwner, async (_req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, email, role, subscription_status, trial_ends_at, stripe_customer_id, last_login_at, created_at FROM users ORDER BY created_at ASC");

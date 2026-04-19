@@ -140,3 +140,10 @@ export function autoCategorize(transactions, categories, examples) {
     body: JSON.stringify({ transactions, categories, examples }),
   });
 }
+
+export function suggestLimits(categories, monthlySpending, avgMonthlyIncome) {
+  return request("/api/ai/suggest-limits", {
+    method: "POST",
+    body: JSON.stringify({ categories, monthlySpending, avgMonthlyIncome }),
+  });
+}

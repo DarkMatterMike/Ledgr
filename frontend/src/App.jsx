@@ -59,17 +59,17 @@ button {
     }
     .ledgr-loading-text { animation: ledgr-breathe 2s ease-in-out infinite; }
 
-    /* Page content — fade in when view changes */
+    /* Page content — fade in when view changes (opacity only — no transform to avoid breaking position:fixed) */
     @keyframes ledgr-fade-in {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
-    .ledgr-view-enter { animation: ledgr-fade-in 0.2s ease-out both; }
+    .ledgr-view-enter { animation: ledgr-fade-in 0.18s ease-out both; }
 
-    /* Cards — staggered fade-up */
+    /* Cards — staggered fade in */
     @keyframes ledgr-card-up {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
     .ledgr-card-anim { animation: ledgr-card-up 0.25s ease-out both; }
     .ledgr-card-anim:nth-child(1) { animation-delay: 0ms; }
@@ -114,10 +114,10 @@ button {
     .ledgr-chevron { transition: transform 0.2s ease; display: inline-block; }
     .ledgr-chevron-open { transform: rotate(180deg); }
 
-    /* Expand panel — slide down from top */
+    /* Expand panel — fade + clip down */
     @keyframes ledgr-expand {
-      from { opacity: 0; transform: translateY(-6px); max-height: 0; }
-      to   { opacity: 1; transform: translateY(0);    max-height: 800px; }
+      from { opacity: 0; max-height: 0; }
+      to   { opacity: 1; max-height: 800px; }
     }
     .ledgr-expand {
       animation: ledgr-expand 0.22s ease-out both;
@@ -5252,15 +5252,15 @@ function AppInner() {
         </div>
 
         {/* Mobile body */}
-        <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+        <div style={{flex:1,position:"relative",overflow:"visible"}}>
           {/* Backdrop */}
           {drawerOpen&&(
             <div onClick={()=>setDrawerOpen(false)}
-              style={{position:"absolute",inset:0,background:"#00000055",zIndex:40}}/>
+              style={{position:"fixed",inset:0,background:"#00000055",zIndex:40}}/>
           )}
           {/* Overlay drawer */}
           <div style={{
-            position:"absolute",top:0,left:0,bottom:0,width:240,
+            position:"fixed",top:0,left:0,bottom:0,width:240,
             background:"var(--surface)",borderRight:"1px solid var(--border)",
             display:"flex",flexDirection:"column",
             transform:drawerOpen?"translateX(0)":"translateX(-100%)",
@@ -5270,7 +5270,7 @@ function AppInner() {
             <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); }} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </div>
           {/* Content */}
-          <div ref={contentRef} style={{height:"100%",overflowY:"auto"}} className="ledgr-content">
+          <div ref={contentRef} style={{position:"absolute",inset:0,overflowY:"auto"}} className="ledgr-content">
             <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
           </div>
         </div>

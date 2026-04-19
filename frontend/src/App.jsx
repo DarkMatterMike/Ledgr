@@ -409,6 +409,69 @@ function TermsOfService() {
     </div>
   );
 }
+function SecurityBadges({ compact = false }) {
+  const items = [
+    { icon: "🔒", label: "256-bit AES encryption", detail: "Bank tokens encrypted at rest" },
+    { icon: "🏦", label: "Plaid-powered bank sync", detail: "Read-only access, no login stored" },
+    { icon: "🚫", label: "No data selling", detail: "Your data is never sold or shared" },
+    { icon: "🗑", label: "Delete anytime", detail: "Full data removal on request" },
+  ];
+
+  if (compact) {
+    return (
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center",
+        padding: "12px 0",
+      }}>
+        {items.map(item => (
+          <div key={item.icon} style={{
+            display: "flex", alignItems: "center", gap: 6,
+            fontSize: 11, color: "var(--t3)",
+          }}>
+            <span>{item.icon}</span>
+            <span>{item.label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      width: 360, maxWidth: "92vw",
+      background: "var(--card)", border: "1px solid var(--border)",
+      borderRadius: "var(--radius-lg)", padding: "16px 20px",
+    }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, color: "var(--t3)",
+        textTransform: "uppercase", letterSpacing: "1.2px",
+        marginBottom: 12, textAlign: "center",
+      }}>
+        Your data is secure
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {items.map(item => (
+          <div key={item.icon} style={{
+            display: "flex", alignItems: "flex-start", gap: 8,
+            background: "var(--surface)", borderRadius: "var(--radius)",
+            padding: "10px 12px",
+          }}>
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t1)", marginBottom: 2 }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--t3)", lineHeight: 1.4 }}>
+                {item.detail}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AuthGate({ onAuth }) {
   // Check for reset token in URL
   const resetToken = new URLSearchParams(window.location.search).get("reset");
@@ -628,6 +691,9 @@ function AuthGate({ onAuth }) {
           )}
         </div>
       </div>
+
+      {/* Security badges — shown on register tab */}
+      {mode === "register" && <SecurityBadges />}
 
       {/* Legal modal */}
       {legalModal && (
@@ -3922,6 +3988,7 @@ function AppInner() {
                 })}
               </div>
           }
+          <SecurityBadges compact />
         </div>
       }
     />

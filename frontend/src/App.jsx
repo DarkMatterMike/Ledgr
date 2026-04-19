@@ -1736,6 +1736,7 @@ function AppInner() {
   const [transactions,  setTransactions]  = useState([]);
   const [plaidItems,    setPlaidItems]    = useState([]);
   const [staleItemIds,  setStaleItemIds]  = useState(new Set()); // items that returned 0 accounts on last sync
+  const [reconnectingItemId, setReconnectingItemId] = useState(null);
   const [rules,         setRules]         = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [modal,         setModal]         = useState(null);
@@ -3853,20 +3854,26 @@ function AppInner() {
                       </div>
                       {isStale&&(
                         <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                          <div style={{fontSize:12,color:"var(--t2)",marginBottom:8,lineHeight:1.5}}>
-                            Disconnect and reconnect to restore access to your accounts.
+                          <div style={{fontSize:12,color:"var(--t2)",marginBottom:10,lineHeight:1.5}}>
+                            This connection has expired. Reconnect to restore your accounts — your existing transactions and rules won't be affected.
                           </div>
                           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                            <PlaidButton
+                              onSuccess={async (publicToken, institution) => {
+                                // Disconnect the stale item first, then connect the new one
+                                await disconnectItem(item.item_id);
+                                setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
+                                await handlePlaidSuccess(publicToken, institution || item.institution);
+                                setReconnectingItemId(null);
+                              }}
+                              onExit={() => setReconnectingItemId(null)}
+                              label={reconnectingItemId === item.item_id ? "Opening Plaid…" : "Reconnect"}
+                              style={{flex:isMobile?1:0, justifyContent:"center"}}
+                            />
                             <button style={{...S.btn("danger",true),flex:isMobile?1:0}}
                               onClick={()=>disconnectItem(item.item_id)}>
-                              Disconnect
+                              Remove
                             </button>
-                            <PlaidButton
-                              onSuccess={handlePlaidSuccess}
-                              onExit={()=>{}}
-                              label="Reconnect"
-                              style={{flex:isMobile?1:0,justifyContent:"center"}}
-                            />
                           </div>
                         </div>
                       )}

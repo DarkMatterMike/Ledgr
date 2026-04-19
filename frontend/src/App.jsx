@@ -2187,15 +2187,13 @@ function AppInner() {
 
       // Detect stale items — connected items that returned no accounts
       if (plaidAccts.length === 0 && plaidItems.length > 0) {
-        // All items stale
         setStaleItemIds(new Set(plaidItems.map(i => i.item_id)));
-      } else if (targetItemId) {
-        // Single item sync — check if this specific item returned accounts
-        const itemAccts = plaidAccts.filter(a => a.item_id === targetItemId);
+      } else if (itemId) {
+        const itemAccts = plaidAccts.filter(a => a.item_id === itemId);
         setStaleItemIds(prev => {
           const next = new Set(prev);
-          if (itemAccts.length === 0) next.add(targetItemId);
-          else next.delete(targetItemId);
+          if (itemAccts.length === 0) next.add(itemId);
+          else next.delete(itemId);
           return next;
         });
       }

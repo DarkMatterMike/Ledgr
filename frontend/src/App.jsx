@@ -410,28 +410,40 @@ function TermsOfService() {
   );
 }
 function SecurityBadges({ compact = false }) {
+  const lockIcon = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+  const shieldIcon = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+  const noIcon = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>;
+  const checkIcon = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>;
+
   const items = [
-    { icon: "🔒", label: "256-bit AES encryption", detail: "Bank tokens encrypted at rest" },
-    { icon: "🏦", label: "Plaid-powered bank sync", detail: "Read-only access, no login stored" },
-    { icon: "🚫", label: "No data selling", detail: "Your data is never sold or shared" },
-    { icon: "🗑", label: "Delete anytime", detail: "Full data removal on request" },
+    { icon: lockIcon,   label: "256-bit AES encryption",  detail: "Bank tokens encrypted at rest" },
+    { icon: shieldIcon, label: "Read-only bank access",    detail: "We never see your login" },
+    { icon: noIcon,     label: "Zero data selling",        detail: "Never sold or shared" },
+    { icon: checkIcon,  label: "Full data control",        detail: "Export or delete anytime" },
   ];
 
   if (compact) {
     return (
       <div style={{
-        display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center",
+        marginTop: 20,
+        borderTop: "1px solid var(--border)",
+        borderBottom: "1px solid var(--border)",
         padding: "12px 0",
       }}>
-        {items.map(item => (
-          <div key={item.icon} style={{
-            display: "flex", alignItems: "center", gap: 6,
-            fontSize: 11, color: "var(--t3)",
-          }}>
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
-          </div>
-        ))}
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+          <span style={{ color:"var(--cyan)", display:"flex" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          <span style={{ fontSize:11, fontWeight:600, color:"var(--t2)", letterSpacing:"0.3px" }}>Security &amp; Privacy</span>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+          {items.map((item, i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:7 }}>
+              <span style={{ color:"var(--cyan)", display:"flex", flexShrink:0 }}>{item.icon}</span>
+              <span style={{ fontSize:11, color:"var(--t2)" }}>{item.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -439,34 +451,59 @@ function SecurityBadges({ compact = false }) {
   return (
     <div style={{
       width: 360, maxWidth: "92vw",
-      background: "var(--card)", border: "1px solid var(--border)",
-      borderRadius: "var(--radius-lg)", padding: "16px 20px",
+      background: "var(--card)",
+      border: "1px solid var(--border2)",
+      borderRadius: "var(--radius-lg)",
+      overflow: "hidden",
     }}>
+      {/* Header bar */}
       <div style={{
-        fontSize: 11, fontWeight: 700, color: "var(--t3)",
-        textTransform: "uppercase", letterSpacing: "1.2px",
-        marginBottom: 12, textAlign: "center",
+        background: "var(--surface)",
+        borderBottom: "1px solid var(--border)",
+        padding: "11px 16px",
+        display: "flex", alignItems: "center", gap: 8,
       }}>
-        Your data is secure
+        <span style={{ color:"var(--cyan)", display:"flex", flexShrink:0 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </span>
+        <span style={{ fontSize:12, fontWeight:600, color:"var(--t1)", flex:1 }}>Your data is protected</span>
+        <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+          <div style={{ width:6, height:6, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
+          <span style={{ fontSize:11, color:"var(--green)", fontWeight:500 }}>Secured</span>
+        </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {items.map(item => (
-          <div key={item.icon} style={{
-            display: "flex", alignItems: "flex-start", gap: 8,
-            background: "var(--surface)", borderRadius: "var(--radius)",
-            padding: "10px 12px",
+
+      {/* 2×2 grid with divider lines */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr" }}>
+        {items.map((item, i) => (
+          <div key={i} style={{
+            padding: "13px 14px",
+            borderRight:  i % 2 === 0 ? "1px solid var(--border)" : "none",
+            borderBottom: i < 2       ? "1px solid var(--border)" : "none",
+            display: "flex", gap: 10, alignItems: "flex-start",
           }}>
-            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
+            <span style={{ color:"var(--cyan)", display:"flex", flexShrink:0, marginTop:1 }}>{item.icon}</span>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t1)", marginBottom: 2 }}>
+              <div style={{ fontSize:12, fontWeight:600, color:"var(--t1)", marginBottom:2, lineHeight:1.3 }}>
                 {item.label}
               </div>
-              <div style={{ fontSize: 11, color: "var(--t3)", lineHeight: 1.4 }}>
+              <div style={{ fontSize:11, color:"var(--t3)", lineHeight:1.4 }}>
                 {item.detail}
               </div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        background: "var(--surface)",
+        borderTop: "1px solid var(--border)",
+        padding: "8px 16px",
+        fontSize: 10, color: "var(--t3)",
+        textAlign: "center", letterSpacing: "0.2px",
+      }}>
+        Powered by Plaid · Hosted on Railway · AES-256 encryption
       </div>
     </div>
   );

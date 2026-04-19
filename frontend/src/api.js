@@ -101,10 +101,10 @@ export function loadData()        { return request("/api/data"); }
 export function saveData(patch)   { return request("/api/data", { method: "PATCH", body: JSON.stringify(patch) }); }
 
 /* ── Plaid ────────────────────────────────────────────────────────── */
-export function createLinkToken(products)  {
+export function createLinkToken(products) {
   return request("/api/plaid/create_link_token", {
     method: "POST",
-    body: products ? JSON.stringify({ products }) : undefined,
+    body: JSON.stringify(products ? { products } : {}),
   });
 }
 export function exchangePublicToken(publicToken, name)  { return request("/api/plaid/exchange_public_token", { method: "POST", body: JSON.stringify({ public_token: publicToken, institution_name: name }) }); }
@@ -132,3 +132,11 @@ export async function openBillingPortal() {
 export function adminGetUsers()               { return request("/api/admin/users"); }
 export function adminUpdateUser(userId, data) { return request(`/api/admin/users/${userId}`, { method: "PATCH", body: JSON.stringify(data) }); }
 export function adminDeleteUser(userId)       { return request(`/api/admin/users/${userId}`, { method: "DELETE" }); }
+
+/* ── AI ───────────────────────────────────────────────────────────── */
+export function autoCategorize(transactions, categories, examples) {
+  return request("/api/ai/categorize", {
+    method: "POST",
+    body: JSON.stringify({ transactions, categories, examples }),
+  });
+}

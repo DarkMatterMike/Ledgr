@@ -804,12 +804,13 @@ app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
     const [transactions, categories, accounts, plaidItems, rules, calendarAccounts,
-           investmentAccounts, holdings, netWorthSnapshots, aiMessages] = await Promise.all([
+           investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples] = await Promise.all([
       getData(uid, "transactions"), getData(uid, "categories"),
       getData(uid, "accounts"),     getData(uid, "plaidItems"),
       getData(uid, "rules"),        getData(uid, "calendarAccounts"),
       getData(uid, "investmentAccounts"), getData(uid, "holdings"),
       getData(uid, "netWorthSnapshots"),  getData(uid, "aiMessages"),
+      getData(uid, "aiCatExamples"),
     ]);
     res.json({
       transactions:       transactions       || [],
@@ -822,6 +823,7 @@ app.get("/api/data", async (req, res) => {
       holdings:           holdings           || [],
       netWorthSnapshots:  netWorthSnapshots  || [],
       aiMessages:         aiMessages         || [],
+      aiCatExamples:      aiCatExamples      || [],
       access:             getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -832,7 +834,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
     const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
-            investmentAccounts, holdings, netWorthSnapshots, aiMessages } = req.body;
+            investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples } = req.body;
     const ops = [];
     if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
@@ -844,6 +846,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(holdings))           ops.push(setData(uid, "holdings",           holdings));
     if (Array.isArray(netWorthSnapshots))  ops.push(setData(uid, "netWorthSnapshots",  netWorthSnapshots));
     if (Array.isArray(aiMessages))         ops.push(setData(uid, "aiMessages",         aiMessages));
+    if (Array.isArray(aiCatExamples))      ops.push(setData(uid, "aiCatExamples",      aiCatExamples));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -1163,6 +1166,85 @@ ${lastMonthTransactions.slice(0, 30).map(t =>
     console.error("AI chat error:", err.message);
     if (!res.headersSent) serverError(res, err);
     else res.end();
+  }
+});
+
+// Auto-categorize uncategorized transactions using Claude
+app.post("/api/ai/categorize", async (req, res) => {
+  try {
+    const { transactions = [], categories = [], examples = [] } = req.body;
+
+    if (!transactions.length) return res.json({ assignments: {} });
+
+    // Get user's encrypted API key
+    const encryptedKey = await getData(req.user.id, "aiApiKey");
+    if (!encryptedKey) return res.status(402).json({ error: "no_api_key" });
+    const apiKey = decrypt(encryptedKey);
+    if (!apiKey) return res.status(402).json({ error: "no_api_key" });
+
+    // Build compact prompt
+    const catList = categories.map(c => `${c.id}: ${c.name}`).join("\n");
+    const exampleList = examples.slice(-60).map(e =>
+      `"${e.merchant}" → ${e.categoryId}`
+    ).join("\n");
+
+    const txnList = transactions.map(t =>
+      `id:${t.id} merchant:"${t.merchant}" amount:${t.amount}`
+    ).join("\n");
+
+    const prompt = `You are categorizing financial transactions. Return ONLY valid JSON, no other text.
+
+Categories available (id: name):
+${catList}
+
+Past categorizations to learn from (merchant → categoryId):
+${exampleList || "None yet"}
+
+Transactions to categorize:
+${txnList}
+
+Return a JSON object mapping transaction id to the best matching category id.
+Only include transactions you can confidently categorize. Skip if unsure.
+Example: {"txn123": "cat456", "txn789": "cat101"}`;
+
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001", // fast + cheap for categorization
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const err = await claudeRes.json().catch(() => ({}));
+      return res.status(claudeRes.status).json({ error: err.error?.message || "Claude API error" });
+    }
+
+    const data = await claudeRes.json();
+    const text = data.content?.[0]?.text || "{}";
+
+    // Parse JSON from response, strip any markdown fences
+    const clean = text.replace(/```json|```/g, "").trim();
+    let assignments = {};
+    try { assignments = JSON.parse(clean); } catch { assignments = {}; }
+
+    // Validate — only keep assignments where categoryId exists in our list
+    const validCatIds = new Set(categories.map(c => c.id));
+    const validAssignments = {};
+    for (const [txnId, catId] of Object.entries(assignments)) {
+      if (validCatIds.has(catId)) validAssignments[txnId] = catId;
+    }
+
+    res.json({ assignments: validAssignments });
+  } catch (err) {
+    console.error("AI categorize error:", err.message);
+    serverError(res, err);
   }
 });
 

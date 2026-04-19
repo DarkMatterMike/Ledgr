@@ -1792,6 +1792,10 @@ function AppInner() {
   /* ── AI Chat (via hook) ── */
   const aiChat = useAiChat((patch) => scheduleSaveRef.current?.(patch));
 
+  /* ── AI categorization examples (memory) ── */
+  const [aiCatExamples, setAiCatExamples] = useState([]);
+  const [autoCatRunning, setAutoCatRunning] = useState(false);
+
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
@@ -1800,6 +1804,7 @@ function AppInner() {
     onData: (data) => {
       portfolio.loadFromData(data);
       aiChat.loadFromData(data);
+      if (data.aiCatExamples) setAiCatExamples(data.aiCatExamples);
     },
   });
 
@@ -2098,15 +2103,21 @@ function AppInner() {
   function applyRules(txns, rs, opts = {}) {
     if (!rs?.length) return txns;
     const { onlyUncategorized = false } = opts;
+    // Manual rules always take priority over AI rules
+    const manualRules = rs.filter(r => r.source !== "ai");
+    const aiRules     = rs.filter(r => r.source === "ai");
+    const orderedRules = [...manualRules, ...aiRules];
     return txns.map(t => {
       if (onlyUncategorized && t.categoryId) return t;
-      const mer=(t.merchant||t.name||"").toLowerCase().trim();
-      for (const r of rs) {
+      const mer = (t.merchant || t.name || "").toLowerCase().trim();
+      for (const r of orderedRules) {
         if (!r.enabled) continue;
-        const pat=r.pattern.toLowerCase().trim();
+        const pat = r.pattern.toLowerCase().trim();
         if (!pat) continue;
-        const match=r.matchType==="exact"?mer===pat:r.matchType==="starts"?mer.startsWith(pat):mer.includes(pat);
-        if (match) return {...t,categoryId:r.categoryId||t.categoryId};
+        const match = r.matchType === "exact"   ? mer === pat
+                    : r.matchType === "starts"  ? mer.startsWith(pat)
+                    : mer.includes(pat);
+        if (match) return { ...t, categoryId: r.categoryId || t.categoryId };
       }
       return t;
     });
@@ -2200,6 +2211,11 @@ function AppInner() {
         return prev.map(t=>t.plaidAccountId?{...t,accountId:map[t.plaidAccountId]||t.accountId}:t);
       });
       showToast(`Synced: +${added.length} transactions`);
+      // Auto-categorize new uncategorized transactions if user has AI key
+      if (added.length > 0) {
+        const count = await runAutoCategorize();
+        if (count > 0) showToast(`✦ Auto-categorized ${count} transaction${count === 1 ? "" : "s"}`);
+      }
     } catch(e) { showToast("Sync error: "+e.message); }
     finally { setSyncing(false); }
   }, [catMap, rules]);
@@ -2285,10 +2301,129 @@ function AppInner() {
       return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed};
     }));
   }
-  function updateTxnCat(id,val) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,categoryId:val||null,reviewed:val?true:t.reviewed}:t));
-    if(val){const txn=transactions.find(t=>t.id===id);if(txn)promptSaveRule(txn,val);}
+  function updateTxnCat(id, val) {
+    setTransactions(p => p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed } : t));
+    if (val) {
+      const txn = transactions.find(t => t.id === id);
+      if (txn) {
+        promptSaveRule(txn, val);
+        // Record as a manual rule — overwrites any AI rule for same merchant
+        const merchant = (txn.merchant || txn.name || "").trim();
+        if (merchant) {
+          setAiCatExamples(prev => {
+            const filtered = prev.filter(e => !(e.merchant === merchant && e.categoryId === val));
+            const next = [...filtered, { merchant, categoryId: val }].slice(-200);
+            scheduleSaveRef.current?.({ aiCatExamples: next });
+            return next;
+          });
+          // Upsert into rules: if AI rule exists for this pattern, upgrade it to manual
+          setRules(prev => {
+            const pattern = merchant.toLowerCase();
+            const existingIdx = prev.findIndex(r =>
+              r.pattern.toLowerCase() === pattern && r.categoryId === val
+            );
+            if (existingIdx >= 0) {
+              // Upgrade AI rule to manual
+              const next = [...prev];
+              next[existingIdx] = { ...next[existingIdx], source: "manual" };
+              return next;
+            }
+            // Check if there's an AI rule for this merchant with a different category — replace it
+            const aiIdx = prev.findIndex(r =>
+              r.pattern.toLowerCase() === pattern && r.source === "ai"
+            );
+            if (aiIdx >= 0) {
+              const next = [...prev];
+              next[aiIdx] = { ...next[aiIdx], categoryId: val, source: "manual" };
+              return next;
+            }
+            return prev; // promptSaveRule handles creating new manual rules
+          });
+        }
+      }
+    }
   }
+  async function runAutoCategorize(txnsToCheck) {
+    if (!categories.length) return 0;
+    const uncategorized = (txnsToCheck || transactions).filter(t =>
+      !t.categoryId && (t.type === "expense" || t.type === "refund" || !t.type) && t.amount < 0
+    );
+    if (!uncategorized.length) return 0;
+
+    // Build examples from existing rules for the prompt
+    const examples = rules
+      .filter(r => r.enabled && r.categoryId)
+      .map(r => ({ merchant: r.pattern, categoryId: r.categoryId }));
+
+    setAutoCatRunning(true);
+    try {
+      const payload = uncategorized.slice(0, 80).map(t => ({
+        id: t.id,
+        merchant: (t.merchant || t.name || "").trim(),
+        amount: t.amount,
+      }));
+      const { assignments } = await api.autoCategorize(payload, categories, examples);
+      const count = Object.keys(assignments).length;
+      if (count === 0) return 0;
+
+      // Build new AI rules from assignments — one rule per unique merchant
+      // Never overwrite an existing manual rule
+      const manualPatterns = new Set(
+        rules.filter(r => r.source !== "ai").map(r => r.pattern.toLowerCase())
+      );
+
+      const newRules = [];
+      const seenMerchants = new Set();
+
+      for (const [txnId, catId] of Object.entries(assignments)) {
+        const txn = uncategorized.find(t => t.id === txnId);
+        if (!txn) continue;
+        const merchant = (txn.merchant || txn.name || "").trim();
+        const pattern  = merchant.toLowerCase();
+        if (!merchant || seenMerchants.has(pattern)) continue;
+        seenMerchants.add(pattern);
+
+        // Skip if a manual rule already exists for this merchant
+        if (manualPatterns.has(pattern)) continue;
+
+        // Check if AI rule already exists — update it, don't duplicate
+        const existingAiRule = rules.find(r => r.source === "ai" && r.pattern.toLowerCase() === pattern);
+        if (!existingAiRule) {
+          newRules.push({
+            id:         "ai" + Date.now() + Math.random().toString(36).slice(2),
+            pattern:    merchant,
+            matchType:  "contains",
+            categoryId: catId,
+            enabled:    true,
+            source:     "ai",
+            createdAt:  Date.now(),
+          });
+        }
+      }
+
+      // Apply assignments to current uncategorized transactions
+      setTransactions(prev => prev.map(t =>
+        assignments[t.id] && !t.categoryId
+          ? { ...t, categoryId: assignments[t.id], reviewed: true }
+          : t
+      ));
+
+      // Add new AI rules (manual rules come first thanks to applyRules ordering)
+      if (newRules.length > 0) {
+        setRules(prev => [...prev, ...newRules]);
+      }
+
+      return count;
+    } catch (e) {
+      if (!e.message?.includes("no_api_key")) {
+        console.warn("Auto-categorize failed:", e.message);
+      }
+      return 0;
+    } finally {
+      setAutoCatRunning(false);
+    }
+  }
+
   function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
   function updateTxnNotes(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,notes:val}:t)); }
   function deleteTxn(id) {
@@ -3167,6 +3302,15 @@ function AppInner() {
           <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
           <button style={S.btn("ghost",true)} onClick={scanForDuplicates}>Scan Duplicates</button>
           {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"⟳ Syncing…":"⟳ Sync"}</button>}
+          {aiChat.hasApiKey&&(
+            <button style={S.btn("ghost",true)} disabled={autoCatRunning}
+              onClick={async()=>{
+                const count = await runAutoCategorize();
+                showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");
+              }}>
+              {autoCatRunning?"✦ Categorizing…":"✦ Auto-categorize"}
+            </button>
+          )}
         </div>
 
         {/* Filter row */}
@@ -3595,7 +3739,13 @@ function AppInner() {
             <div style={S.sectionTitle}>Auto-Categorization Rules</div>
             <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
           </div>
-          <p style={{fontSize:12,color:"var(--t3)",marginBottom:16,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync.</p>
+          <p style={{fontSize:12,color:"var(--t3)",marginBottom:4,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync. Manual rules always take priority over AI rules.</p>
+          {rules.length > 0 && (
+            <div style={{fontSize:11,color:"var(--t3)",marginBottom:16,display:"flex",gap:12}}>
+              <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
+              <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
+            </div>
+          )}
 
           {rules.length===0 ? (
             <div style={{...S.card,textAlign:"center",padding:48}}>
@@ -3607,6 +3757,7 @@ function AppInner() {
             <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
               {rules.map((rule)=>{
                 const cat = catMap[rule.categoryId];
+                const isAi = rule.source === "ai";
                 return (
                   <div key={rule.id}
                     style={{
@@ -3619,8 +3770,15 @@ function AppInner() {
                     }}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:12,color:"var(--t3)",marginBottom:4}}>
+                        <div style={{fontSize:12,color:"var(--t3)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
                           {rule.matchType==="exact"?"Exact":"Contains"} match
+                          {isAi && (
+                            <span style={{fontSize:10,fontWeight:700,color:"var(--cyan)",
+                              background:"var(--cyan-dim)",borderRadius:99,padding:"1px 6px",
+                              letterSpacing:"0.5px"}}>
+                              ✦ AI
+                            </span>
+                          )}
                         </div>
                         <div style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",marginBottom:8,wordBreak:"break-word"}}>
                           "{rule.pattern}"

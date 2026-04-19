@@ -206,7 +206,6 @@ const NAV = [
   { id:"accounts",     icon:"▣", label:"Accounts"     },
   { id:"rules",        icon:"◎", label:"Rules"        },
   { id:"calendar",     icon:"▦", label:"Calendar"     },
-  { id:"portfolio",    icon:"◬", label:"Portfolio"    },
 ];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }

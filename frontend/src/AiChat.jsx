@@ -279,11 +279,72 @@ export default function AiChat({
           )}
 
           {isEmpty && !hasApiKey && keyChecked && (
-            <div style={{ textAlign: "center", padding: "48px 16px", color: "var(--t3)" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🔑</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--t2)", marginBottom: 6 }}>Add your API key to get started</div>
-              <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-                Enter your Claude API key above to start chatting with your financial data.
+            <div style={{ padding: "24px 8px", maxWidth: 480, margin: "0 auto" }}>
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <div style={{ fontSize: 28, marginBottom: 10 }}>✦</div>
+                <div style={{ fontFamily: "var(--font-disp)", fontSize: 17, fontWeight: 800, color: "var(--t1)", marginBottom: 6 }}>
+                  Set up your AI assistant
+                </div>
+                <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>
+                  Ledgr uses Claude by Anthropic to answer questions about your financial data.
+                  You'll need a free API key to get started — it takes about 2 minutes.
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+                {[
+                  {
+                    step: "1",
+                    title: "Create an Anthropic account",
+                    body: "Go to console.anthropic.com and sign up for a free account.",
+                    link: { label: "Open Anthropic Console →", url: "https://console.anthropic.com" },
+                  },
+                  {
+                    step: "2",
+                    title: "Generate an API key",
+                    body: "Once logged in, go to API Keys in the left sidebar and click \"Create Key\". Give it any name you like.",
+                  },
+                  {
+                    step: "3",
+                    title: "Paste it above",
+                    body: "Copy your key — it starts with sk-ant-api03- — and paste it into the field above, then click Save Key.",
+                  },
+                ].map(s => (
+                  <div key={s.step} style={{
+                    display: "flex", gap: 12, alignItems: "flex-start",
+                    background: "var(--surface)", borderRadius: "var(--radius)", padding: "12px 14px",
+                  }}>
+                    <div style={{
+                      width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                      background: "var(--cyan)", color: "#000",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 12, fontWeight: 800, fontFamily: "var(--font-mono)",
+                    }}>{s.step}</div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", marginBottom: 3 }}>{s.title}</div>
+                      <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.5 }}>{s.body}</div>
+                      {s.link && (
+                        <a href={s.link.url} target="_blank" rel="noreferrer"
+                          style={{ fontSize: 12, color: "var(--cyan)", marginTop: 6, display: "inline-block" }}>
+                          {s.link.label}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pricing note */}
+              <div style={{
+                background: "var(--card)", border: "1px solid var(--border)",
+                borderRadius: "var(--radius)", padding: "12px 14px",
+                fontSize: 12, color: "var(--t3)", lineHeight: 1.6,
+              }}>
+                <span style={{ color: "var(--t2)", fontWeight: 600 }}>What does it cost?</span>{" "}
+                Anthropic offers $5 in free credits when you sign up — enough for thousands of questions.
+                After that, usage is pay-as-you-go and very inexpensive. A typical conversation costs less than a fraction of a cent.
+                Your key is stored encrypted on our servers and never shared.
               </div>
             </div>
           )}

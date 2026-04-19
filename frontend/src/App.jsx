@@ -7,7 +7,9 @@ import * as api from "./api.js";
 import { useAppData } from "./hooks/useAppData.js";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
+import { useAiChat } from "./hooks/useAiChat.js";
 import PortfolioView from "./PortfolioView.jsx";
+import AiChat from "./AiChat.jsx";
 
 /* ─── Mobile detection ──────────────────────────────────────────── */
 function useIsMobile() {
@@ -206,6 +208,7 @@ const NAV = [
   { id:"accounts",     icon:"▣", label:"Accounts"     },
   { id:"rules",        icon:"◎", label:"Rules"        },
   { id:"calendar",     icon:"▦", label:"Calendar"     },
+  { id:"ai",           icon:"✦", label:"Ask AI"       },
 ];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
@@ -1786,12 +1789,18 @@ function AppInner() {
   /* ── Portfolio (via hook) ── */
   const portfolio = usePortfolio((patch) => scheduleSaveRef.current?.(patch));
 
+  /* ── AI Chat (via hook) ── */
+  const aiChat = useAiChat((patch) => scheduleSaveRef.current?.(patch));
+
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
-    onData: (data) => portfolio.loadFromData(data),
+    onData: (data) => {
+      portfolio.loadFromData(data);
+      aiChat.loadFromData(data);
+    },
   });
 
   // Wire the ref once scheduleSave is available
@@ -5176,9 +5185,29 @@ function AppInner() {
     />
   );
 
+  const AiChatPage = (
+    <AiChat
+      messages={aiChat.messages}
+      hasApiKey={aiChat.hasApiKey}
+      keyChecked={aiChat.keyChecked}
+      loading={aiChat.loading}
+      error={aiChat.error}
+      checkApiKey={aiChat.checkApiKey}
+      saveApiKey={aiChat.saveApiKey}
+      sendMessage={aiChat.sendMessage}
+      clearHistory={aiChat.clearHistory}
+      transactions={transactions}
+      categories={categories}
+      accounts={accounts}
+      catMap={catMap}
+      acctMap={acctMap}
+      isMobile={isMobile}
+    />
+  );
+
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, settings:SettingsPage, admin:AdminPage }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, settings:SettingsPage, admin:AdminPage };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, settings:SettingsPage, admin:AdminPage }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, settings:SettingsPage, admin:AdminPage };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>

@@ -38,9 +38,10 @@ const OWNER_EMAIL   = process.env.OWNER_EMAIL;
 const BCRYPT_ROUNDS = 12;
 
 // Stripe
-const stripe             = Stripe(process.env.STRIPE_SECRET_KEY || "");
-const STRIPE_PRICE_ID    = process.env.STRIPE_PRICE_ID    || "";
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
+const stripe                  = Stripe(process.env.STRIPE_SECRET_KEY || "");
+const STRIPE_PRICE_ID         = process.env.STRIPE_PRICE_ID         || "";
+const STRIPE_PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID || "";
+const STRIPE_WEBHOOK_SECRET   = process.env.STRIPE_WEBHOOK_SECRET   || "";
 
 // Resend
 const resend    = new Resend(process.env.RESEND_API_KEY || "");
@@ -107,6 +108,7 @@ async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until BIGINT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at BIGINT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_price_id TEXT`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_data (
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -470,13 +472,21 @@ app.post("/api/billing/webhook",
           const session = event.data.object;
           const userId  = session.metadata?.userId;
           if (userId) {
+            // Fetch the subscription to get the price ID
+            let priceId = null;
+            try {
+              if (session.subscription) {
+                const sub = await stripe.subscriptions.retrieve(session.subscription);
+                priceId = sub.items?.data[0]?.price?.id || null;
+              }
+            } catch (e) { console.warn("[stripe] could not fetch subscription price:", e.message); }
             await pool.query(
-              "UPDATE users SET stripe_customer_id = $1, subscription_status = 'active' WHERE id = $2",
-              [session.customer, userId]
+              "UPDATE users SET stripe_customer_id = $1, subscription_status = 'active', stripe_price_id = $2 WHERE id = $3",
+              [session.customer, priceId, userId]
             );
             const user = await getUserById(userId);
             if (user) emailSubscriptionConfirmed(user.email).catch(() => {});
-            console.log(`[stripe] checkout complete for user ${userId}`);
+            console.log(`[stripe] checkout complete for user ${userId}, price: ${priceId}`);
           }
           break;
         }
@@ -484,15 +494,16 @@ app.post("/api/billing/webhook",
           const sub  = event.data.object;
           const user = await getUserByStripeCustomerId(sub.customer);
           if (user) {
-            const status = sub.status === "active" ? "active"
+            const status  = sub.status === "active"   ? "active"
               : sub.status === "trialing" ? "trialing"
               : sub.status === "past_due"  ? "past_due"
               : "canceled";
+            const priceId = sub.items?.data[0]?.price?.id || user.stripe_price_id;
             await pool.query(
-              "UPDATE users SET subscription_status = $1 WHERE id = $2",
-              [status, user.id]
+              "UPDATE users SET subscription_status = $1, stripe_price_id = $2 WHERE id = $3",
+              [status, priceId, user.id]
             );
-            console.log(`[stripe] subscription updated for user ${user.id}: ${status}`);
+            console.log(`[stripe] subscription updated for user ${user.id}: ${status}, price: ${priceId}`);
           }
           break;
         }
@@ -573,6 +584,14 @@ function getAccessLevel(user) {
 function requireSubscription(req, res, next) {
   if (getAccessLevel(req.user) === "full") return next();
   return res.status(402).json({ error: "subscription_required" });
+}
+
+/* ── Premium (higher tier) check for investment sync ─────────────── */
+function requirePremium(req, res, next) {
+  const u = req.user;
+  if (u.role === "owner") return next();
+  if (u.stripe_price_id && u.stripe_price_id === STRIPE_PREMIUM_PRICE_ID) return next();
+  return res.status(402).json({ error: "premium_required" });
 }
 
 /* ── Owner-only ───────────────────────────────────────────────────── */
@@ -690,9 +709,10 @@ app.post("/api/auth/reset-password", async (req, res) => {
 app.use(requireAuth);
 
 app.get("/api/auth/me", (req, res) => {
-  const { id, email, name, role, subscription_status, trial_ends_at } = req.user;
-  const access = getAccessLevel(req.user);
-  res.json({ id, email, name, role, subscription_status, trial_ends_at, access });
+  const { id, email, name, role, subscription_status, trial_ends_at, stripe_price_id } = req.user;
+  const access    = getAccessLevel(req.user);
+  const isPremium = role === "owner" || (stripe_price_id && stripe_price_id === STRIPE_PREMIUM_PRICE_ID);
+  res.json({ id, email, name, role, subscription_status, trial_ends_at, stripe_price_id, access, isPremium });
 });
 
 app.patch("/api/auth/profile", async (req, res) => {
@@ -784,12 +804,12 @@ app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
     const [transactions, categories, accounts, plaidItems, rules, calendarAccounts,
-           investmentAccounts, holdings, netWorthSnapshots] = await Promise.all([
+           investmentAccounts, holdings, netWorthSnapshots, aiMessages] = await Promise.all([
       getData(uid, "transactions"), getData(uid, "categories"),
       getData(uid, "accounts"),     getData(uid, "plaidItems"),
       getData(uid, "rules"),        getData(uid, "calendarAccounts"),
       getData(uid, "investmentAccounts"), getData(uid, "holdings"),
-      getData(uid, "netWorthSnapshots"),
+      getData(uid, "netWorthSnapshots"),  getData(uid, "aiMessages"),
     ]);
     res.json({
       transactions:       transactions       || [],
@@ -801,6 +821,7 @@ app.get("/api/data", async (req, res) => {
       investmentAccounts: investmentAccounts || [],
       holdings:           holdings           || [],
       netWorthSnapshots:  netWorthSnapshots  || [],
+      aiMessages:         aiMessages         || [],
       access:             getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -811,17 +832,18 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
     const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
-            investmentAccounts, holdings, netWorthSnapshots } = req.body;
+            investmentAccounts, holdings, netWorthSnapshots, aiMessages } = req.body;
     const ops = [];
     if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
     if (accounts           !== undefined) ops.push(setData(uid, "accounts",           accounts));
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
     if (rules              !== undefined) ops.push(setData(uid, "rules",              rules));
-    if (Array.isArray(calendarAccounts))  ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
+    if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
     if (Array.isArray(investmentAccounts)) ops.push(setData(uid, "investmentAccounts", investmentAccounts));
     if (Array.isArray(holdings))           ops.push(setData(uid, "holdings",           holdings));
     if (Array.isArray(netWorthSnapshots))  ops.push(setData(uid, "netWorthSnapshots",  netWorthSnapshots));
+    if (Array.isArray(aiMessages))         ops.push(setData(uid, "aiMessages",         aiMessages));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -834,13 +856,21 @@ app.use("/api/plaid", requireSubscription);
 
 app.post("/api/plaid/create_link_token", async (req, res) => {
   try {
-    const products = (req.body?.products && Array.isArray(req.body.products))
+    const requestedProducts = (req.body?.products && Array.isArray(req.body.products))
       ? req.body.products
       : PRODUCTS;
+
+    // Investment connections require premium tier
+    if (requestedProducts.includes("investments")) {
+      const isPremium = req.user.role === "owner" ||
+        (req.user.stripe_price_id && req.user.stripe_price_id === STRIPE_PREMIUM_PRICE_ID);
+      if (!isPremium) return res.status(402).json({ error: "premium_required" });
+    }
+
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: req.user.id },
       client_name: "Ledgr Finance",
-      products, country_codes: COUNTRY_CODES, language: "en",
+      products: requestedProducts, country_codes: COUNTRY_CODES, language: "en",
       redirect_uri: process.env.FRONTEND_URL,
     });
     res.json({ link_token: response.data.link_token });
@@ -906,7 +936,7 @@ app.get("/api/plaid/accounts", async (req, res) => {
   } catch (err) { serverError(res, err); }
 });
 
-app.post("/api/plaid/investments/sync", async (req, res) => {
+app.post("/api/plaid/investments/sync", requirePremium, async (req, res) => {
   try {
     const items = await getItemsForUser(req.user.id);
     const allAccounts = [];
@@ -999,6 +1029,141 @@ app.post("/api/push/test", async (req, res) => {
     await sendPushToUser(req.user.id, { title: "ledgr. test", body: "Push notifications are working!", url: "/" });
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   AI ASSISTANT
+═══════════════════════════════════════════════════════════════════ */
+
+// Get whether user has an API key (never return the raw key)
+app.get("/api/ai/key", async (req, res) => {
+  try {
+    const row = await getData(req.user.id, "aiApiKey");
+    res.json({ hasKey: !!row });
+  } catch (err) { serverError(res, err); }
+});
+
+// Save encrypted API key
+app.patch("/api/ai/key", async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (!key) {
+      // Allow clearing the key
+      await setData(req.user.id, "aiApiKey", null);
+      return res.json({ ok: true });
+    }
+    if (!key.startsWith("sk-ant-")) {
+      return res.status(400).json({ error: "Invalid Anthropic API key format" });
+    }
+    await setData(req.user.id, "aiApiKey", encrypt(key));
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// Chat endpoint — streams Claude's response
+app.post("/api/ai/chat", async (req, res) => {
+  try {
+    const { message, history = [], context = {} } = req.body;
+    if (!message) return res.status(400).json({ error: "message required" });
+
+    // Get user's encrypted API key
+    const encryptedKey = await getData(req.user.id, "aiApiKey");
+    if (!encryptedKey) return res.status(402).json({ error: "no_api_key" });
+    const apiKey = decrypt(encryptedKey);
+    if (!apiKey) return res.status(402).json({ error: "no_api_key" });
+
+    // Build system prompt with user's financial context
+    const { categories = [], accounts = [], thisMonthTransactions = [],
+            lastMonthTransactions = [], recentTransactions = [],
+            currentMonth = "", totalTransactions = 0 } = context;
+
+    const systemPrompt = `You are a helpful personal finance assistant for a user of Ledgr, a budgeting app.
+
+You have access to the user's financial data for this conversation. Be concise, specific, and use actual numbers from their data. Format currency as dollars. When referencing transactions, use merchant names. Keep responses focused and practical.
+
+Current month: ${currentMonth}
+Total transactions on record: ${totalTransactions}
+
+Budget categories:
+${categories.map(c => `- ${c.name}: $${c.spent.toFixed(2)} spent of $${(c.limit || 0).toFixed(2)} budget`).join("\n") || "None set up yet"}
+
+Accounts:
+${accounts.map(a => `- ${a.name} (${a.type}): $${(a.balance || 0).toFixed(2)}`).join("\n") || "None connected"}
+
+This month's transactions (${thisMonthTransactions.length}):
+${thisMonthTransactions.slice(0, 50).map(t =>
+  `${t.date} | ${t.merchant} | $${Math.abs(t.amount).toFixed(2)} ${t.amount < 0 ? "expense" : "income"}${t.category ? ` | ${t.category}` : ""}${t.pending ? " (pending)" : ""}`
+).join("\n") || "None yet this month"}
+
+Last month's transactions (sample of ${lastMonthTransactions.length}):
+${lastMonthTransactions.slice(0, 30).map(t =>
+  `${t.date} | ${t.merchant} | $${Math.abs(t.amount).toFixed(2)} ${t.amount < 0 ? "expense" : "income"}${t.category ? ` | ${t.category}` : ""}`
+).join("\n") || "None"}`;
+
+    // Build message history for Claude
+    const claudeMessages = [
+      ...history.map(m => ({ role: m.role, content: m.content })),
+      { role: "user", content: message },
+    ];
+
+    // Call Claude API with streaming
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "messages-2023-12-15",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-6",
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: claudeMessages,
+        stream: true,
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const err = await claudeRes.json().catch(() => ({}));
+      const msg = err.error?.message || `Claude API error: ${claudeRes.status}`;
+      return res.status(claudeRes.status).json({ error: msg });
+    }
+
+    // Stream response back to client as SSE
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    const reader = claudeRes.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              res.write(`data: ${JSON.stringify({ delta: parsed.delta.text })}\n\n`);
+            } else if (parsed.type === "message_stop") {
+              res.write("data: [DONE]\n\n");
+            }
+          } catch { /* skip */ }
+        }
+      }
+    }
+
+    res.end();
+  } catch (err) {
+    console.error("AI chat error:", err.message);
+    if (!res.headersSent) serverError(res, err);
+    else res.end();
+  }
 });
 
 /* ═══════════════════════════════════════════════════════════════════

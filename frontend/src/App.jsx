@@ -5836,7 +5836,7 @@ function AppInner() {
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
-      <div style={{fontFamily:"var(--font-disp)",fontSize:52,fontWeight:800,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-pulse">ℓ</div>
+      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-pulse">ℓ</div>
       <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>
@@ -5894,7 +5894,7 @@ function AppInner() {
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
-            <span style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,color:"var(--cyan)",lineHeight:1,letterSpacing:"-0.5px",marginTop:1}} className="ledgr-logo-pulse">ℓ</span>
+            <span style={{fontFamily:"var(--font-script)",fontSize:26,fontWeight:700,color:"var(--cyan)",lineHeight:1,letterSpacing:"0px",marginTop:1}} className="ledgr-logo-pulse">ℓ</span>
             <div style={{fontFamily:"var(--font-disp)",fontSize:18,fontWeight:800,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>

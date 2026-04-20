@@ -5850,6 +5850,8 @@ function AppInner() {
     />
     </div>
   );
+
+  const AnalyticsPage = (
     <Analytics
       transactions={transactions}
       categories={categories}

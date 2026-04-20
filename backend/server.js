@@ -814,13 +814,6 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "aiCatExamples"),      getData(uid, "userProfile"),
       getData(uid, "insightsTodos"),
     ]);
-    const [analyticsInsights, dismissedPairs, scanMemory, aiConversations, aiCurrentConvId] = await Promise.all([
-      getData(uid, "analyticsInsights"),
-      getData(uid, "dismissedPairs"),
-      getData(uid, "scanMemory"),
-      getData(uid, "aiConversations"),
-      getData(uid, "aiCurrentConvId"),
-    ]);
     res.json({
       transactions:       transactions       || [],
       categories:         categories         || [],
@@ -835,11 +828,6 @@ app.get("/api/data", async (req, res) => {
       aiCatExamples:      aiCatExamples      || [],
       userProfile:        userProfile        || null,
       insightsTodos:      insightsTodos      || [],
-      analyticsInsights:  analyticsInsights  || null,
-      dismissedPairs:     dismissedPairs     || [],
-      scanMemory:         scanMemory         || null,
-      aiConversations:    aiConversations    || [],
-      aiCurrentConvId:    aiCurrentConvId    || null,
       access:             getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -851,8 +839,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const uid = req.user.id;
     const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
-            userProfile, insightsTodos,
-            analyticsInsights, dismissedPairs, scanMemory, aiConversations, aiCurrentConvId } = req.body;
+            userProfile, insightsTodos } = req.body;
     const ops = [];
     if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
@@ -867,11 +854,6 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiCatExamples))      ops.push(setData(uid, "aiCatExamples",      aiCatExamples));
     if (userProfile !== undefined && userProfile !== null) ops.push(setData(uid, "userProfile", userProfile));
     if (Array.isArray(insightsTodos))      ops.push(setData(uid, "insightsTodos",      insightsTodos));
-    if (analyticsInsights !== undefined)   ops.push(setData(uid, "analyticsInsights",  analyticsInsights));
-    if (Array.isArray(dismissedPairs))     ops.push(setData(uid, "dismissedPairs",     dismissedPairs));
-    if (scanMemory !== undefined)          ops.push(setData(uid, "scanMemory",         scanMemory));
-    if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
-    if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -1385,12 +1367,22 @@ app.post("/api/ai/insights", async (req, res) => {
     const apiKey = decrypt(encryptedKey);
     if (!apiKey) return res.status(402).json({ error: "no_api_key" });
 
-    const prompt = `You are a personal finance advisor. Write a concise honest financial health summary based on this data:
+    const corrections = context.userCorrections ? `\n\nUSER CORRECTIONS — treat these as ground truth, override any conflicting data:\n${context.userCorrections}` : "";
+
+    const prompt = `You are a personal finance advisor. Write a concise honest financial health summary.
+
+IMPORTANT RULES:
+- Use the categoryBreakdown field to verify all spending numbers — do your own math, don't just trust pre-computed totals
+- The subscriptions list may include large recurring items like rent — cross-check against categoryBreakdown before calling anything a "subscription"
+- If incomeSource is "estimated from transactions", treat avgMonthlyIncome as approximate and say so
+- Never invent numbers — only reference figures present in the data${corrections}
+
+Financial data:
 ${JSON.stringify(context, null, 2)}
 
 Return ONLY valid JSON (no markdown fences) with exactly this shape:
 {"headline":"one sentence summary","score":75,"scoreLabel":"Good","insights":[{"type":"positive|warning|neutral","title":"short title","body":"1-2 sentences with specific numbers","suggestion":"one concrete improvement action — omit this field entirely if type is positive"}],"recommendation":"one concrete action for this month"}
-Include 3-5 insights. Be specific. Use actual dollar amounts. Only include suggestion for warning/neutral insights.`;
+Include 3-5 insights. Be specific with actual dollar amounts from the data. Only include suggestion for warning/neutral insights.`;
 
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

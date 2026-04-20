@@ -22,7 +22,7 @@ function Card({ children, style }) {
 function SectionHead({ title, sub }) {
   return (
     <div style={{ marginBottom:12 }}>
-      <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{title}</div>
+      <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)" }}>{title}</div>
       {sub && <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>{sub}</div>}
     </div>
   );
@@ -30,7 +30,7 @@ function SectionHead({ title, sub }) {
 function StatCard({ label, value, sub, subColor, accent }) {
   return (
     <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"14px 16px", borderTop:`3px solid ${accent||"var(--border)"}` }}>
-      <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{label}</div>
+      <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 }}>{label}</div>
       <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{value}</div>
       {sub && <div style={{ fontSize:11, color:subColor||"var(--t3)" }}>{sub}</div>}
     </div>
@@ -113,6 +113,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   const [tab,       setTab]       = useState("overview");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError,   setAiError]   = useState(null);
+  const [userCorrections, setUserCorrections] = useState("");
   const touchStartX = useRef(null);
   const today = new Date();
 
@@ -267,21 +268,44 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   const runAiInsights = useCallback(async () => {
     setAiLoading(true); setAiError(null);
     try {
+      // Build last 3 months of actual category spending for Claude to verify against
+      const last3Months = monthlyData.slice(-3);
+      const catBreakdown = categories.map(c => ({
+        name:    c.name,
+        limit:   c.limit || 0,
+        avg3mo:  Math.round(last3Months.reduce((s, m) => s + (m.byCategory[c.id] || 0), 0) / 3),
+        thisMonth: Math.round(last3Months[2]?.byCategory[c.id] || 0),
+      })).filter(c => c.avg3mo > 0 || c.limit > 0);
+
+      // Filter subscriptions — exclude likely rent/housing/transfer by category name
+      const subscriptionExcludes = ["rent", "housing", "mortgage", "transfer", "paycheck", "salary", "income"];
+      const filteredSubscriptions = subscriptions.filter(s => {
+        const name = s.name.toLowerCase();
+        return !subscriptionExcludes.some(ex => name.includes(ex));
+      });
+
       const context = {
+        // Income — prefer user-set profile value, fall back to transaction average
+        avgMonthlyIncome:        monthlyIncome > 0 ? monthlyIncome : Math.round(avgIncome),
+        incomeSource:            monthlyIncome > 0 ? "user-provided" : "estimated from transactions (may be inaccurate)",
         avgMonthlySpending:      Math.round(avgSpending),
-        avgMonthlyIncome:        Math.round(avgIncome),
         savingsRate, momChange,
         currentNetWorth:         Math.round(currentNetWorth),
         projectedRetirement:     Math.round(retirementProjection.fv),
         retirementTarget:        retirementProjection.target,
         yearsToRetire:           retirementProjection.years,
-        subscriptionTotal:       Math.round(subscriptionTotal),
-        topSubscriptions:        subscriptions.slice(0,5).map(s => `${s.name}: $${s.amount}/mo`),
+        // Subscriptions — explicitly note rent/large recurring are excluded
+        subscriptionTotal:       Math.round(filteredSubscriptions.reduce((s, r) => s + r.amount, 0)),
+        topSubscriptions:        filteredSubscriptions.slice(0, 8).map(s => `${s.name}: $${s.amount}/mo`),
+        subscriptionNote:        "Subscriptions exclude likely rent/housing/transfer transactions. Verify against category breakdown below.",
         budgetEfficiency:        efficiencyScore,
         projectedSpendThisMonth: Math.round(projectedSpend),
         totalBudget,
-        consecutiveOverspend:    budgetGrid.filter(r => r.streak >= 2).map(r => ({ name:r.cat.name, streak:r.streak })),
-        topCategories:           budgetGrid.slice(0,5).map(r => ({ name:r.cat.name, avgSpend:Math.round(r.avgSp), limit:r.cat.limit, overMs:r.overMs })),
+        // Full category breakdown so Claude can verify math itself
+        categoryBreakdown:       catBreakdown,
+        consecutiveOverspend:    budgetGrid.filter(r => r.streak >= 2).map(r => ({ name: r.cat.name, streak: r.streak, avgSpend: Math.round(r.avgSp), limit: r.cat.limit })),
+        // User corrections — injected before generation
+        userCorrections:         userCorrections || null,
       };
       const result = await getAiInsights(context);
       if (result.error) throw new Error(result.error);
@@ -310,7 +334,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* Net worth */}
       <Card>
-        <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>Net Worth</div>
+        <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>Net Worth</div>
         <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{fmt(currentNetWorth)}</div>
         <LineChart points={netWorthSeries} height={60} />
       </Card>
@@ -323,7 +347,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         { label:"Budget efficiency",   value:efficiencyScore!=null?`${efficiencyScore}%`:"—", color:efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)", sub:efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention" },
       ].map(s => (
         <Card key={s.label} style={{ padding:"12px 14px" }}>
-          <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{s.label}</div>
+          <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>{s.label}</div>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:18, fontWeight:700, color:s.color, marginBottom:s.sub?2:0 }}>{s.value}</div>
           {s.sub && <div style={{ fontSize:11, color:"var(--t3)" }}>{s.sub}</div>}
         </Card>
@@ -332,7 +356,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {/* Retirement */}
       {retirementProjection.target > 0 && (
         <Card style={{ padding:"12px 14px" }}>
-          <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>Retirement</div>
+          <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 }}>Retirement</div>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
             <span style={{ fontSize:11, color:"var(--t3)" }}>Projected</span>
             <span style={{ fontSize:12, fontFamily:"var(--font-mono)", fontWeight:700, color:retirementProjection.fv>=retirementProjection.target?"var(--green)":"var(--amber)" }}>{fmt(retirementProjection.fv)}</span>
@@ -450,48 +474,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     );
   }
 
-  /* ── Shared Action Items sidebar (right column on all tabs) ───── */
-  const ActionItemsSidebar = (
-    <div style={{ position:"sticky", top:16 }}>
-      <Card>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-          <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : null} />
-          {todos.length > 0 && (
-            <button onClick={() => onTodosChange([])}
-              style={{ fontSize:11, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>
-              Clear all
-            </button>
-          )}
-        </div>
-        {todos.length === 0 ? (
-          <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
-            Go to <strong style={{color:"var(--t1)"}}>Insights</strong>, generate AI analysis,<br/>
-            then tap <span style={{ color:"var(--cyan)" }}>+ Add to To-Do</span> on any suggestion.
-          </div>
-        ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {todos.map(todo => (
-              <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-                <button onClick={() => removeTodo(todo.id)} style={{
-                  width:18, height:18, borderRadius:4,
-                  border:"1.5px solid var(--border2)", background:"none",
-                  cursor:"pointer", flexShrink:0, marginTop:2,
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  transition:"all 0.15s",
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background="var(--cyan)"; e.currentTarget.style.borderColor="var(--cyan)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background="none"; e.currentTarget.style.borderColor="var(--border2)"; }}>
-                  <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
-                </button>
-                <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-    </div>
-  );
-
   const MainContent = (
     <div>
       {/* Tab bar — original pill style, auto-width on desktop, full-width on mobile */}
@@ -535,6 +517,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
             </div>
             <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
+            <CashFlowBarChart last6={last6} cashMax={cashMax} />
+            <OverspendHighlights budgetGrid={budgetGrid} fmt={fmt} />
+            <Card><SectionHead title="Largest transactions" sub="All time" />{biggestTxns.map((t,i)=>{const cat=catMap[t.categoryId];return(<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}><div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:70}}>{t.date}</div><div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>{cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}<div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div></div>);})}</Card>
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
@@ -568,8 +553,25 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               {/* Row 3: Spending Breakdown */}
               <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             </div>
-            {/* Column 2: Action items */}
-            {ActionItemsSidebar}
+            {/* Column 2 */}
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <CashFlowBarChart last6={last6} cashMax={cashMax} />
+              <OverspendHighlights budgetGrid={budgetGrid} fmt={fmt} />
+              <Card>
+                <SectionHead title="Largest transactions" sub="All time" />
+                {biggestTxns.map((t,i)=>{
+                  const cat=catMap[t.categoryId];
+                  return(
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:70}}>{t.date}</div>
+                      <div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      {cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                    </div>
+                  );
+                })}
+              </Card>
+            </div>
           </div>
         )
       )}
@@ -647,7 +649,11 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
           </Card>
           </div>
-          {!isMobile && ActionItemsSidebar}
+          {!isMobile && (
+            <div style={{ minWidth:0 }}>
+              {/* Spending right column — cards coming soon */}
+            </div>
+          )}
         </div>
       )}
 
@@ -823,8 +829,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </Card>
             </div>
 
-            {/* Column 3: Action items */}
-            {ActionItemsSidebar}
+            {/* Column 3: placeholder */}
+            <div style={{ minWidth:0 }}>
+              {/* Budget right column — cards coming soon */}
+            </div>
           </div>
         )
       )}
@@ -892,6 +900,27 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 {aiLoading?"✦ Analyzing…":"✦ Generate Insights"}
               </button>
             </div>
+
+            {/* User corrections */}
+            {hasApiKey && (
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:6, lineHeight:1.5 }}>
+                  <span style={{ fontWeight:600, color:"var(--t2)" }}>Corrections</span> — tell Claude anything it might get wrong (e.g. "rent $2,100 is not a subscription", "income is $6,500/mo after tax")
+                </div>
+                <textarea
+                  value={userCorrections}
+                  onChange={e => setUserCorrections(e.target.value)}
+                  placeholder='Optional: "My rent of $X is not a subscription" · "Ignore the transfer to savings account" · "Income is $X/mo"'
+                  rows={2}
+                  style={{
+                    width:"100%", background:"var(--surface)", border:"1px solid var(--border2)",
+                    borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12,
+                    color:"var(--t1)", resize:"vertical", fontFamily:"var(--font-body)",
+                    lineHeight:1.5, outline:"none", boxSizing:"border-box",
+                  }}
+                />
+              </div>
+            )}
 
             {!hasApiKey && (
               <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
@@ -1002,7 +1031,46 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           )}
 
           </div>
-          {!isMobile && ActionItemsSidebar}
+          {!isMobile && (
+            <div style={{ minWidth:0, position:"sticky", top:16 }}>
+              <Card>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                  <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : null} />
+                  {todos.length > 0 && (
+                    <button onClick={() => onTodosChange([])}
+                      style={{ fontSize:11, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>
+                      Clear all
+                    </button>
+                  )}
+                </div>
+                {todos.length === 0 ? (
+                  <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
+                    Generate insights, then tap<br/>
+                    <span style={{ color:"var(--cyan)" }}>+ Add to To-Do</span> on any suggestion.
+                  </div>
+                ) : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    {todos.map(todo => (
+                      <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                        <button onClick={() => removeTodo(todo.id)} style={{
+                          width:18, height:18, borderRadius:4,
+                          border:"1.5px solid var(--border2)", background:"none",
+                          cursor:"pointer", flexShrink:0, marginTop:2,
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          transition:"all 0.15s",
+                        }}
+                          onMouseEnter={e => { e.currentTarget.style.background="var(--cyan)"; e.currentTarget.style.borderColor="var(--cyan)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background="none"; e.currentTarget.style.borderColor="var(--border2)"; }}>
+                          <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
+                        </button>
+                        <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1016,7 +1084,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* Page title */}
       <div style={{ marginBottom:16 }}>
-        <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:700, letterSpacing:"-0.5px", color:"var(--t1)", lineHeight:1 }}>Analytics</div>
+        <div style={{ fontFamily:"var(--font-disp)", fontSize: isMobile ? 18 : 22, fontWeight:800, color:"var(--t1)" }}>Analytics</div>
         <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{transactions.filter(t => t.amount < 0).length} transactions · {monthlyData.filter(m => m.spending > 0).length} months of data</div>
       </div>
 

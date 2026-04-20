@@ -30,7 +30,7 @@ function SectionHead({ title, sub }) {
 function StatCard({ label, value, sub, subColor, accent }) {
   return (
     <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"14px 16px", borderTop:`3px solid ${accent||"var(--border)"}` }}>
-      <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 }}>{label}</div>
+      <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)", marginBottom:8 }}>{label}</div>
       <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{value}</div>
       {sub && <div style={{ fontSize:11, color:subColor||"var(--t3)" }}>{sub}</div>}
     </div>
@@ -310,7 +310,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* Net worth */}
       <Card>
-        <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>Net Worth</div>
+        <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)", marginBottom:8 }}>Net Worth</div>
         <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{fmt(currentNetWorth)}</div>
         <LineChart points={netWorthSeries} height={60} />
       </Card>
@@ -323,7 +323,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         { label:"Budget efficiency",   value:efficiencyScore!=null?`${efficiencyScore}%`:"—", color:efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)", sub:efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention" },
       ].map(s => (
         <Card key={s.label} style={{ padding:"12px 14px" }}>
-          <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>{s.label}</div>
+          <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)", marginBottom:8 }}>{s.label}</div>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:18, fontWeight:700, color:s.color, marginBottom:s.sub?2:0 }}>{s.value}</div>
           {s.sub && <div style={{ fontSize:11, color:"var(--t3)" }}>{s.sub}</div>}
         </Card>
@@ -332,7 +332,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {/* Retirement */}
       {retirementProjection.target > 0 && (
         <Card style={{ padding:"12px 14px" }}>
-          <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 }}>Retirement</div>
+          <div style={{ fontSize:13, fontWeight:700, color:"var(--t1)", marginBottom:8 }}>Retirement</div>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
             <span style={{ fontSize:11, color:"var(--t3)" }}>Projected</span>
             <span style={{ fontSize:12, fontFamily:"var(--font-mono)", fontWeight:700, color:retirementProjection.fv>=retirementProjection.target?"var(--green)":"var(--amber)" }}>{fmt(retirementProjection.fv)}</span>

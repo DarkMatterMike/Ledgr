@@ -163,6 +163,7 @@ button {
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
   card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:20 },
+  cardTitle:    { fontFamily:"var(--font-disp)", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:16 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 },
   stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"20px 22px" },
@@ -187,9 +188,7 @@ const S = {
   toast:        { position:"fixed", bottom:24, right:16, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"12px 18px", fontSize:13, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
   monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 16px", display:"flex", alignItems:"center", gap:16, fontSize:12, color:"var(--t2)", marginBottom:20, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
-  pageTitle:    { fontFamily:"var(--font-disp)", fontSize:17, fontWeight:700, letterSpacing:"-0.5px", color:"var(--t1)", lineHeight:1 },
-  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.1px", color:"var(--t1)" },
-  cardTitle:    { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 },
+  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:16, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"10px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
   td:           { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
@@ -1985,6 +1984,8 @@ function AppInner() {
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [drillCat,      setDrillCat]      = useState(null);
   const [budgetExpandedCatId, setBudgetExpandedCatId] = useState(null);
+  const [budgetTxnSearch, setBudgetTxnSearch] = useState("");
+  const [drillTxnSearch, setDrillTxnSearch] = useState("");
   const [calendarDay,      setCalendarDay]      = useState(null);
   const [calendarAcctPopup,setCalendarAcctPopup]= useState(null);
   const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
@@ -2064,13 +2065,9 @@ function AppInner() {
     onData: (data) => {
       portfolio.loadFromData(data);
       aiChat.loadFromData(data);
-      if (data.aiCatExamples)       setAiCatExamples(data.aiCatExamples);
-      if (data.userProfile)         setUserProfile(p => ({ ...p, ...data.userProfile }));
-      if (data.insightsTodos)       setInsightsTodos(data.insightsTodos);
-      if (data.analyticsInsights)   setAnalyticsInsights(data.analyticsInsights);
-      if (data.dismissedPairs)      setDismissedPairs(data.dismissedPairs);
-      if (data.scanMemory)          setScanMemory(data.scanMemory);
-      // aiConversations are loaded inside useAiChat.loadFromData — it handles both legacy aiMessages and new format
+      if (data.aiCatExamples) setAiCatExamples(data.aiCatExamples);
+      if (data.userProfile)   setUserProfile(p => ({ ...p, ...data.userProfile }));
+      if (data.insightsTodos) setInsightsTodos(data.insightsTodos);
     },
   });
 
@@ -2232,7 +2229,6 @@ function AppInner() {
   /* ── Duplicate scan (via hook) ── */
   const {
     dismissedPairs, setDismissedPairs,
-    scanMemory, setScanMemory,
     duplicatePairs, setDuplicatePairs,
     duplicateScanActive, setDuplicateScanActive,
     showReconcile, setShowReconcile,
@@ -2244,15 +2240,6 @@ function AppInner() {
     dismissDuplicatePair, confirmDuplicateRemoval,
     pickRemove, isPreauth,
   } = useDuplicateScan(transactions, showToast, setTransactions);
-
-  // Persist dismissed pairs and scan memory so they survive page refresh
-  useEffect(() => {
-    if (dismissedPairs.length > 0) scheduleSaveRef.current?.({ dismissedPairs });
-  }, [dismissedPairs]);
-  useEffect(() => {
-    const hasData = Object.keys(scanMemory.confirmed).length > 0 || Object.keys(scanMemory.dismissed).length > 0;
-    if (hasData) scheduleSaveRef.current?.({ scanMemory });
-  }, [scanMemory]);
 
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
@@ -2591,7 +2578,12 @@ function AppInner() {
     }));
   }
   function updateTxnCat(id, val) {
-    setTransactions(p => p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed } : t));
+    setTransactions(p => {
+      const next = p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed } : t);
+      // Save immediately — don't rely on debounce, a sync could arrive within 800ms
+      api.saveData({ transactions: next });
+      return next;
+    });
     if (val) {
       const txn = transactions.find(t => t.id === id);
       if (txn) {
@@ -2783,12 +2775,6 @@ function AppInner() {
                 <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 4px",borderBottom:i<catTxns.length-1?"1px solid var(--border)":"none",flexWrap:"wrap"}}>
                   <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0}}>{t.date}</div>
                   <div style={{flex:1,minWidth:80,fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                  <select style={{...S.select,fontSize:12,padding:"5px 8px",flexShrink:0,maxWidth:150}}
-                    value={t.categoryId||""}
-                    onChange={e=>{updateTxnCat(t.id,e.target.value);if(e.target.value!==drillCat.id)showToast("Moved");}}>
-                    {categories.map(c=><option key={c.id} value={c.id}>{c.id===drillCat.id?"✓ ":""}{c.name}</option>)}
-                    <option value="">— Uncategorized —</option>
-                  </select>
                   <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0,minWidth:70,textAlign:"right"}}>{fmt(Math.abs(t.amount))}</div>
                 </div>
               ))
@@ -2881,32 +2867,6 @@ function AppInner() {
       topOverspent,
     };
   }, [categories, spentByCat, transactions, selectedMonth]);
-
-  const biggestTxns = useMemo(() =>
-    [...transactions].filter(t => t.amount < 0).sort((a,b) => a.amount - b.amount).slice(0,5),
-    [transactions]
-  );
-
-  const LargestTransactionsCard = (
-    <div style={{...S.card, padding:18}}>
-      <div style={{...S.sectionHdr, marginBottom:10}}>
-        <div style={S.cardTitle}>Largest Transactions</div>
-      </div>
-      {biggestTxns.length === 0 ? (
-        <div style={{color:"var(--t3)", fontSize:13, padding:"12px 0"}}>No transactions yet.</div>
-      ) : biggestTxns.map((t,i) => {
-        const cat = catMap[t.categoryId];
-        return (
-          <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:64}}>{t.date}</div>
-            <div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-            {cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}
-            <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
 
   const BudgetSummaryCard = (
     <div
@@ -3456,9 +3416,7 @@ function AppInner() {
           </div>
 
           <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
-            {CashFlowCard}
-            {OverspendingHighlightsCard}
-            {LargestTransactionsCard}
+            {BudgetSummaryCard}
           </div>
         </div>
       )}
@@ -3487,7 +3445,7 @@ function AppInner() {
           <div>
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
-          <div style={S.pageTitle}>All Transactions</div>
+          <div style={S.sectionTitle}>All Transactions</div>
           <div style={{textAlign:"right"}}>
             <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
             <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Total Balance</div>
@@ -3765,7 +3723,7 @@ function AppInner() {
   const Budgets = (
     <div>
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
-        <div style={S.pageTitle}>Budget Categories</div>
+        <div style={S.sectionTitle}>Budget Categories</div>
         <div style={{ display:"flex", gap:8 }}>
           {aiChat.hasApiKey && (
             <button style={S.btn("ghost", true)} disabled={suggestingLimits}
@@ -3888,7 +3846,7 @@ function AppInner() {
                             const remColor = over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
                             const remBg = over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
                             return (
-                              <div key={cat.id} onClick={() => setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer" }}>
+                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                   {editingCatNameId === cat.id ? (
@@ -3923,33 +3881,81 @@ function AppInner() {
 
                                 {budgetExpandedCatId === cat.id && (
                                   <div className="ledgr-expand" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
-                                    {(monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date))).length === 0 ? (
-                                      <div style={{ fontSize: 12, color: "var(--t3)" }}>No transactions in {monthLabel(selectedMonth)}</div>
+
+                                    {/* Assigned transactions */}
+                                    {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).length === 0 ? (
+                                      <div style={{ fontSize: 12, color: "var(--t3)", marginBottom: 12 }}>No transactions assigned to this category in {monthLabel(selectedMonth)}.</div>
                                     ) : (
-                                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
                                         {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).map((t) => (
-                                          <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "start", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px" }}>
+                                          <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
                                             <div style={{ minWidth: 0 }}>
                                               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
-                                              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{t.date}</div>
-                                              <div style={{ marginTop: 8 }}>
-                                                <select
-                                                  style={{ ...S.select, width: "100%", padding: "7px 10px", fontSize: 12 }}
-                                                  value={t.categoryId || ""}
-                                                  onChange={(e) => updateTxnCat(t.id, e.target.value)}
-                                                >
-                                                  <option value="">— Uncategorized —</option>
-                                                  {categories.map((c) => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                                  ))}
-                                                </select>
-                                              </div>
+                                              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 1 }}>{t.date}</div>
                                             </div>
-                                            <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", whiteSpace: "nowrap" }}>-{fmt(Math.abs(t.amount))}</div>
+                                            <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", whiteSpace: "nowrap" }}>{fmt(Math.abs(t.amount))}</div>
+                                            <button
+                                              title="Remove from this category"
+                                              onClick={() => { updateTxnCat(t.id, ""); showToast("Removed from " + cat.name); }}
+                                              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>✕</button>
                                           </div>
                                         ))}
                                       </div>
                                     )}
+
+                                    {/* Manual assignment — search all month transactions */}
+                                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                                      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
+                                        Manually assign a transaction
+                                      </div>
+                                      <input
+                                        placeholder="Search by name or merchant…"
+                                        value={budgetExpandedCatId === cat.id ? budgetTxnSearch : ""}
+                                        onChange={e => setBudgetTxnSearch(e.target.value)}
+                                        onClick={e => e.stopPropagation()}
+                                        style={{ ...S.input, width: "100%", fontSize: 12, padding: "7px 10px", marginBottom: 8, boxSizing: "border-box" }}
+                                      />
+                                      {(() => {
+                                        const q = budgetTxnSearch.toLowerCase().trim();
+                                        const candidates = monthTxns
+                                          .filter(t => t.amount < 0 && t.categoryId !== cat.id)
+                                          .filter(t => !q || (t.name || t.merchant || "").toLowerCase().includes(q) || (t.date || "").includes(q))
+                                          .sort((a, b) => b.date.localeCompare(a.date))
+                                          .slice(0, q ? 20 : 5);
+                                        if (!q && candidates.length === 0) return (
+                                          <div style={{ fontSize: 12, color: "var(--t3)" }}>All transactions in this month are already assigned here.</div>
+                                        );
+                                        return (
+                                          <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
+                                            {candidates.length === 0 && q && (
+                                              <div style={{ fontSize: 12, color: "var(--t3)" }}>No matching transactions found.</div>
+                                            )}
+                                            {candidates.map(t => (
+                                              <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
+                                                <div style={{ minWidth: 0 }}>
+                                                  <div style={{ fontSize: 12, fontWeight: 500, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
+                                                  <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 1 }}>
+                                                    {t.date}
+                                                    {t.categoryId && catMap[t.categoryId] && (
+                                                      <span style={{ marginLeft: 6, color: catMap[t.categoryId].color }}>· {catMap[t.categoryId].name}</span>
+                                                    )}
+                                                    {!t.categoryId && <span style={{ marginLeft: 6, color: "var(--t3)" }}>· Uncategorized</span>}
+                                                  </div>
+                                                </div>
+                                                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--red)", whiteSpace: "nowrap" }}>{fmt(Math.abs(t.amount))}</div>
+                                                <button
+                                                  onClick={() => { updateTxnCat(t.id, cat.id); setBudgetTxnSearch(""); showToast("Assigned to " + cat.name); }}
+                                                  style={{ ...S.btn("primary", true), padding: "4px 10px", fontSize: 11 }}>
+                                                  + Assign
+                                                </button>
+                                              </div>
+                                            ))}
+                                            {!q && <div style={{ fontSize: 11, color: "var(--t3)", textAlign: "center", paddingTop: 4 }}>Showing 5 most recent · search to find more</div>}
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+
                                   </div>
                                 )}
                               </div>
@@ -4102,7 +4108,7 @@ function AppInner() {
       left={
         <div>
           <div style={{...S.sectionHdr,marginBottom:8}}>
-            <div style={S.pageTitle}>Accounts</div>
+            <div style={S.sectionTitle}>Accounts</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank"/>
               <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
@@ -4229,7 +4235,7 @@ function AppInner() {
       left={
         <div>
           <div style={{...S.sectionHdr,marginBottom:6}}>
-            <div style={S.pageTitle}>Auto-Categorization Rules</div>
+            <div style={S.sectionTitle}>Auto-Categorization Rules</div>
             <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
           </div>
           <p style={{fontSize:12,color:"var(--t3)",marginBottom:4,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync. Manual rules always take priority over AI rules.</p>
@@ -4367,7 +4373,7 @@ function AppInner() {
     const MobileCalendarView = (
       <div>
         <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
-          <div style={S.pageTitle}>Recurring Calendar</div>
+          <div style={S.sectionTitle}>Recurring Calendar</div>
           <div style={{ fontSize: 13, color: "var(--t2)" }}>{recurringTxns.length} recurring</div>
         </div>
 
@@ -4824,7 +4830,7 @@ function AppInner() {
           }}
         >
           <div>
-            <div style={S.pageTitle}>
+            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--t1)" }}>
               Recurring Calendar
             </div>
             <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 4 }}>
@@ -5842,34 +5848,23 @@ function AppInner() {
   );
 
   const AiChatPage = (
-    <div style={{ display:"flex", flexDirection:"column", flex:1, minHeight:0 }}>
-      <div style={{...S.sectionHdr, marginBottom:16, flexShrink:0}}>
-        <div style={S.pageTitle}>Ask AI</div>
-      </div>
-      <AiChat
-        messages={aiChat.messages}
-        conversations={aiChat.conversations}
-        currentConvId={aiChat.currentConvId}
-        hasApiKey={aiChat.hasApiKey}
-        keyChecked={aiChat.keyChecked}
-        loading={aiChat.loading}
-        error={aiChat.error}
-        checkApiKey={aiChat.checkApiKey}
-        saveApiKey={aiChat.saveApiKey}
-        sendMessage={aiChat.sendMessage}
-        newConversation={aiChat.newConversation}
-        selectConversation={aiChat.selectConversation}
-        deleteConversation={aiChat.deleteConversation}
-        clearCurrentConversation={aiChat.clearCurrentConversation}
-        clearHistory={aiChat.clearHistory}
-        transactions={transactions}
-        categories={categories}
-        accounts={accounts}
-        catMap={catMap}
-        acctMap={acctMap}
-        isMobile={isMobile}
-      />
-    </div>
+    <AiChat
+      messages={aiChat.messages}
+      hasApiKey={aiChat.hasApiKey}
+      keyChecked={aiChat.keyChecked}
+      loading={aiChat.loading}
+      error={aiChat.error}
+      checkApiKey={aiChat.checkApiKey}
+      saveApiKey={aiChat.saveApiKey}
+      sendMessage={aiChat.sendMessage}
+      clearHistory={aiChat.clearHistory}
+      transactions={transactions}
+      categories={categories}
+      accounts={accounts}
+      catMap={catMap}
+      acctMap={acctMap}
+      isMobile={isMobile}
+    />
   );
 
   const AnalyticsPage = (
@@ -5886,10 +5881,7 @@ function AppInner() {
         scheduleSaveRef.current?.({ userProfile: p });
       }}
       aiInsights={analyticsInsights}
-      onSetAiInsights={insights => {
-        setAnalyticsInsights(insights);
-        scheduleSaveRef.current?.({ analyticsInsights: insights });
-      }}
+      onSetAiInsights={setAnalyticsInsights}
       todos={insightsTodos}
       onTodosChange={todos => {
         setInsightsTodos(todos);

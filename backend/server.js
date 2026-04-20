@@ -386,6 +386,27 @@ async function syncItemTransactions(userId, targetItemId = null) {
 async function applySyncResultsToDB(userId, added, modified, removed) {
   const existing  = (await getData(userId, "transactions")) || [];
   const removeIds = new Set(removed.map(r => r.transaction_id));
+
+  // Before filtering, capture metadata from removed transactions so we can
+  // carry it forward to newly-posted versions (pending → posted resolution)
+  const removedMeta = {};
+  existing.filter(t => removeIds.has(t.id)).forEach(t => {
+    const key = `${(t.merchant||t.name||"").toLowerCase().trim()}`;
+    // Only preserve if it had user-set fields worth keeping
+    if (t.recurring || t.categoryId || t.name || t.type) {
+      removedMeta[key] = {
+        categoryId:     t.categoryId,
+        name:           t.name,
+        type:           t.type,
+        recurring:      t.recurring,
+        recurringDay:   t.recurringDay,
+        recurringFreq:  t.recurringFreq,
+        recurringStart: t.recurringStart,
+        reviewed:       t.reviewed,
+      };
+    }
+  });
+
   let next = existing.filter(t => !removeIds.has(t.id));
   const modMap = Object.fromEntries(modified.map(t => [t.transaction_id, t]));
   next = next.map(t => { if (!modMap[t.id]) return t; const m = modMap[t.id]; return { ...t, date: m.date, pending: m.pending, amount: m.amount }; });
@@ -393,13 +414,23 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
   const fingerprints = new Set(next.map(t => `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`));
   const newTxns = added
     .filter(t => !existingIds.has(t.transaction_id))
-    .map(t => ({
-      id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
-      accountId: "a" + t.account_id, date: t.date || t.authorized_date,
-      merchant: t.merchant_name || t.name, name: "", amount: t.amount,
-      categoryId: null, pending: t.pending,
-      type: t.amount < 0 ? "expense" : "income", recurring: false, recurringDay: null,
-    }))
+    .map(t => {
+      const merKey = (t.merchant_name || t.name || "").toLowerCase().trim();
+      const meta   = removedMeta[merKey] || {};
+      return {
+        id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
+        accountId: "a" + t.account_id, date: t.date || t.authorized_date,
+        merchant: t.merchant_name || t.name, name: meta.name || "", amount: t.amount,
+        categoryId:     meta.categoryId    || null,
+        pending:        t.pending,
+        type:           meta.type          || (t.amount < 0 ? "expense" : "income"),
+        recurring:      meta.recurring     || false,
+        recurringDay:   meta.recurringDay  || null,
+        recurringFreq:  meta.recurringFreq || null,
+        recurringStart: meta.recurringStart|| null,
+        reviewed:       meta.reviewed      || false,
+      };
+    })
     .filter(t => {
       const fp = `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`;
       if (fingerprints.has(fp)) return false;

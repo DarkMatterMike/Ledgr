@@ -95,7 +95,7 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
     const key = makeMemoryKey(tA, tB);
     const conf = scanMemory.confirmed[key] || 0;
     const dism = scanMemory.dismissed[key] || 0;
-    return dism > conf + 1;
+    return dism > 0;
   }
 
   function memoryBoost(tA, tB) {

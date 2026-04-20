@@ -2068,6 +2068,8 @@ function AppInner() {
       if (data.userProfile)         setUserProfile(p => ({ ...p, ...data.userProfile }));
       if (data.insightsTodos)       setInsightsTodos(data.insightsTodos);
       if (data.analyticsInsights)   setAnalyticsInsights(data.analyticsInsights);
+      if (data.dismissedPairs)      setDismissedPairs(data.dismissedPairs);
+      if (data.scanMemory)          setScanMemory(data.scanMemory);
     },
   });
 
@@ -2229,6 +2231,7 @@ function AppInner() {
   /* ── Duplicate scan (via hook) ── */
   const {
     dismissedPairs, setDismissedPairs,
+    scanMemory, setScanMemory,
     duplicatePairs, setDuplicatePairs,
     duplicateScanActive, setDuplicateScanActive,
     showReconcile, setShowReconcile,
@@ -2240,6 +2243,15 @@ function AppInner() {
     dismissDuplicatePair, confirmDuplicateRemoval,
     pickRemove, isPreauth,
   } = useDuplicateScan(transactions, showToast, setTransactions);
+
+  // Persist dismissed pairs and scan memory so they survive page refresh
+  useEffect(() => {
+    if (dismissedPairs.length > 0) scheduleSaveRef.current?.({ dismissedPairs });
+  }, [dismissedPairs]);
+  useEffect(() => {
+    const hasData = Object.keys(scanMemory.confirmed).length > 0 || Object.keys(scanMemory.dismissed).length > 0;
+    if (hasData) scheduleSaveRef.current?.({ scanMemory });
+  }, [scanMemory]);
 
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {

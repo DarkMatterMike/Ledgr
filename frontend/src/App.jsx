@@ -5827,7 +5827,11 @@ function AppInner() {
   );
 
   const AiChatPage = (
-    <AiChat
+    <div>
+      <div style={{...S.sectionHdr, marginBottom:16}}>
+        <div style={S.sectionTitle}>Ask AI</div>
+      </div>
+      <AiChat
       messages={aiChat.messages}
       hasApiKey={aiChat.hasApiKey}
       keyChecked={aiChat.keyChecked}
@@ -5844,9 +5848,8 @@ function AppInner() {
       acctMap={acctMap}
       isMobile={isMobile}
     />
+    </div>
   );
-
-  const AnalyticsPage = (
     <Analytics
       transactions={transactions}
       categories={categories}

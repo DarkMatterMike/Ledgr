@@ -566,7 +566,8 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
 
       {/* ═══ SPENDING ════════════════════════════════════════════════ */}
       {tab === "spending" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
           <Card>
             <SectionHead title="Top merchants" sub="All time, by total spend" />
             {merchantTotals.map((m, i) => (
@@ -635,12 +636,18 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
               })}
             </div>
           </Card>
+          </div>
+          {!isMobile && (
+            <div style={{ minWidth:0 }}>
+              {/* Spending right column — cards coming soon */}
+            </div>
+          )}
         </div>
-      )}
 
       {/* ═══ BUDGET ══════════════════════════════════════════════════ */}
       {tab === "budget" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
           <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr 1fr":"repeat(3,1fr)", gap:10 }}>
             <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
               sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
@@ -755,12 +762,18 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
               </div>
             ))}
           </Card>
+          </div>
+          {!isMobile && (
+            <div style={{ minWidth:0 }}>
+              {/* Budget right column — cards coming soon */}
+            </div>
+          )}
         </div>
-      )}
 
       {/* ═══ INSIGHTS ════════════════════════════════════════════════ */}
       {tab === "insights" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
 
           {/* Spending velocity */}
           <Card>
@@ -888,8 +901,13 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
               </div>
             )}
           </Card>
+          </div>
+          {!isMobile && (
+            <div style={{ minWidth:0 }}>
+              {/* Insights right column — cards coming soon */}
+            </div>
+          )}
         </div>
-      )}
     </div>
   );
 

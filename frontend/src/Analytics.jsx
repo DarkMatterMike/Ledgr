@@ -885,40 +885,39 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
           {/* AI Insights */}
           <Card>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, gap:10, flexWrap:"wrap" }}>
+            <div style={{ marginBottom:12 }}>
               <SectionHead title="AI Financial Summary" sub="Claude analyzes your full financial picture" />
-              <button style={{
-                display:"flex", alignItems:"center", gap:6,
-                padding:"8px 14px", borderRadius:"var(--radius)",
-                fontSize:13, fontWeight:500,
-                border:"1px solid transparent",
-                background:hasApiKey?"var(--cyan)":"var(--surface)",
-                color:hasApiKey?"#000":"var(--t3)",
-                cursor:hasApiKey&&!aiLoading?"pointer":"default",
-                opacity:aiLoading?0.7:1, transition:"all 0.15s",
-              }} onClick={hasApiKey&&!aiLoading?runAiInsights:undefined} disabled={!hasApiKey||aiLoading}>
-                {aiLoading?"✦ Analyzing…":"✦ Generate Insights"}
-              </button>
             </div>
 
-            {/* User corrections */}
+            {/* User corrections + generate button */}
             {hasApiKey && (
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontSize:11, color:"var(--t3)", marginBottom:6, lineHeight:1.5 }}>
-                  <span style={{ fontWeight:600, color:"var(--t2)" }}>Corrections</span> — tell Claude anything it might get wrong (e.g. "rent $2,100 is not a subscription", "income is $6,500/mo after tax")
+                  <span style={{ fontWeight:600, color:"var(--t2)" }}>Corrections</span> — tell Claude anything it might get wrong before generating (e.g. "rent $2,100 is not a subscription", "income is $6,500/mo")
                 </div>
                 <textarea
                   value={userCorrections}
                   onChange={e => setUserCorrections(e.target.value)}
-                  placeholder='Optional: "My rent of $X is not a subscription" · "Ignore the transfer to savings account" · "Income is $X/mo"'
+                  placeholder='e.g. "My rent of $2,100 is not a subscription" · "Income is $6,500/mo after tax"'
                   rows={2}
                   style={{
                     width:"100%", background:"var(--surface)", border:"1px solid var(--border2)",
                     borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12,
                     color:"var(--t1)", resize:"vertical", fontFamily:"var(--font-body)",
                     lineHeight:1.5, outline:"none", boxSizing:"border-box",
+                    marginBottom:8,
                   }}
                 />
+                <button style={{
+                  width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                  padding:"10px 14px", borderRadius:"var(--radius)",
+                  fontSize:13, fontWeight:500, cursor:aiLoading?"default":"pointer",
+                  border:"1px solid transparent",
+                  background:"var(--cyan)", color:"#000",
+                  opacity:aiLoading?0.7:1, transition:"all 0.15s",
+                }} onClick={!aiLoading?runAiInsights:undefined} disabled={aiLoading}>
+                  {aiLoading?"✦ Analyzing…":aiInsights?"✦ Regenerate Insights":"✦ Generate Insights"}
+                </button>
               </div>
             )}
 
@@ -997,8 +996,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </div>
             )}
             {!aiInsights&&!aiLoading&&!aiError&&hasApiKey&&(
-              <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", padding:"24px 0" }}>
-                Click "Generate Insights" for a personalized financial health summary from Claude.
+              <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", padding:"16px 0" }}>
+                Add any corrections above, then tap Generate Insights.
               </div>
             )}
           </Card>

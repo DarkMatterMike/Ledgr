@@ -490,6 +490,7 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
         isMobile ? (
           /* Mobile: stacked */
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <Card><SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} /><LineChart points={netWorthSeries} height={90} /></Card>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
               <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
                 sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
@@ -503,7 +504,6 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
                 subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
                 accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
             </div>
-            <Card><SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} /><LineChart points={netWorthSeries} height={90} /></Card>
             <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             <CashFlowBarChart last6={last6} cashMax={cashMax} />
             <OverspendHighlights budgetGrid={budgetGrid} fmt={fmt} />
@@ -906,17 +906,9 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
       </div>
 
       {isMobile ? (
-        <div>
-          {MainContent}
-          <div style={{ marginTop:20, display:"flex", flexDirection:"column", gap:12 }}>
-            {Sidebar}
-          </div>
-        </div>
+        <div>{MainContent}</div>
       ) : (
-        <div style={{ display:"grid", gridTemplateColumns:`minmax(0,1fr) ${DESKTOP_RIGHT}px`, gap:DESKTOP_GAP, alignItems:"start" }}>
-          <div style={{ minWidth:0 }}>{MainContent}</div>
-          <div style={{ minWidth:0 }}>{Sidebar}</div>
-        </div>
+        <div style={{ width:"100%" }}>{MainContent}</div>
       )}
     </div>
   );

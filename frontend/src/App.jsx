@@ -2303,12 +2303,14 @@ function AppInner() {
     return [...categories].sort((a,b) => {
       const remA = a.limit-(spentByCat[a.id]||0);
       const remB = b.limit-(spentByCat[b.id]||0);
-      const groupA = remA<0 ? 0 : remA===0 ? 2 : 1; // 0=overspent, 1=in progress, 2=fully spent
-      const groupB = remB<0 ? 0 : remB===0 ? 2 : 1;
+      const compA = a.completedMonths?.includes(selectedMonth);
+      const compB = b.completedMonths?.includes(selectedMonth);
+      const groupA = compA ? 2 : remA<0 ? 0 : remA===0 ? 2 : 1; // 0=overspent, 1=in progress, 2=done
+      const groupB = compB ? 2 : remB<0 ? 0 : remB===0 ? 2 : 1;
       if (groupA!==groupB) return groupA-groupB;
-      return a.name.localeCompare(b.name); // alphabetize within each group
+      return a.name.localeCompare(b.name);
     });
-  }, [categories, spentByCat]);
+  }, [categories, spentByCat, selectedMonth]);
 
   const catTxns = useMemo(() =>
     drillCat ? monthTxns.filter(t=>t.categoryId===drillCat.id&&t.amount<0).sort((a,b)=>b.date.localeCompare(a.date)) : [],
@@ -2618,9 +2620,18 @@ function AppInner() {
   function openEditCat(c) { setCatForm({name:c.name,limit:String(c.limit),color:c.color}); setEditTarget(c); setModal("editCat"); }
   function saveCat() {
     if (!catForm.name.trim()||!catForm.limit) return;
-    if (modal==="addCat") setCategories(p=>[...p,{id:"c"+Date.now(),name:catForm.name.trim(),limit:parseFloat(catForm.limit),color:catForm.color}]);
+    if (modal==="addCat") setCategories(p=>[...p,{id:"c"+Date.now(),name:catForm.name.trim(),limit:parseFloat(catForm.limit),color:catForm.color,completedMonths:[]}]);
     else setCategories(p=>p.map(c=>c.id===editTarget.id?{...c,...catForm,limit:parseFloat(catForm.limit)}:c));
     setModal(null); showToast("Category saved");
+  }
+  function toggleCatComplete(catId, e) {
+    e?.stopPropagation();
+    setCategories(p => p.map(c => {
+      if (c.id !== catId) return c;
+      const months = c.completedMonths || [];
+      const already = months.includes(selectedMonth);
+      return { ...c, completedMonths: already ? months.filter(m => m !== selectedMonth) : [...months, selectedMonth] };
+    }));
   }
   function deleteCat(id) {
     const cat  = categories.find(c=>c.id===id);
@@ -3403,19 +3414,20 @@ function AppInner() {
               : sortedCategories.slice(0,6).map(cat=>{
                   const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
                   const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                  const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
                   return (
-                    <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
+                    <div key={cat.id} style={{marginBottom:16,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
                         <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
-                          <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                          <span style={{width:7,height:7,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
                           <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                          {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                          {complete?"✓ Done":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
                         </span>
                       </div>
                       <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
+                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:complete?"var(--green)":over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                         <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
@@ -3465,19 +3477,20 @@ function AppInner() {
               : sortedCategories.slice(0,8).map(cat=>{
                   const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
                   const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                  const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
                   return (
-                    <div key={cat.id} style={{marginBottom:14,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
+                    <div key={cat.id} style={{marginBottom:14,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
                         <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
-                          <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                          <span style={{width:7,height:7,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
                           <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                          {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                          {complete?"✓ Done":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
                         </span>
                       </div>
                       <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:3}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
+                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:complete?"var(--green)":over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                         <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
@@ -3949,9 +3962,9 @@ function AppInner() {
             <>
               {(() => {
                 const sections = [
-                  { key: "over", label: "Overspent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) < 0) },
-                  { key: "progress", label: "In Progress", cats: sortedCategories.filter(c => { const r = c.limit - (spentByCat[c.id] || 0); return r > 0; }) },
-                  { key: "done", label: "Fully Spent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) === 0) },
+                  { key: "over", label: "Overspent", cats: sortedCategories.filter(c => !c.completedMonths?.includes(selectedMonth) && (c.limit - (spentByCat[c.id] || 0)) < 0) },
+                  { key: "progress", label: "In Progress", cats: sortedCategories.filter(c => { const r = c.limit - (spentByCat[c.id] || 0); return !c.completedMonths?.includes(selectedMonth) && r > 0; }) },
+                  { key: "done", label: "Fully Spent", cats: sortedCategories.filter(c => c.completedMonths?.includes(selectedMonth) || (c.limit - (spentByCat[c.id] || 0)) === 0) },
                 ].filter(s => s.cats.length > 0);
 
                 return (
@@ -3971,9 +3984,11 @@ function AppInner() {
                             const over = remaining < 0;
                             const warn = pct >= 80 && !over && remaining !== 0;
                             const zero = remaining === 0 && !over;
-                            const barC = over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
-                            const remColor = over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
-                            const remBg = over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                            const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
+                            const barC = complete ? "var(--green)" : over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                            const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
+                            const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                            const displayPct = complete ? 100 : pct;
                             return (
                               <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -3989,12 +4004,13 @@ function AppInner() {
                                   <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 14, padding: "2px 4px", flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); }}>✕</button>
                                 </div>
                                 <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
-                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${pct}%`, transition: "width 0.5s" }} />
+                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                   <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
-                                    {over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
-                                    {zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
+                                    {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--green)" }}>✓ Complete ·</span>}
+                                    {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
+                                    {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
                                     Spent {fmt(spent)} /{" "}
                                     {editingLimitId === cat.id ? (
                                       <input type="number" autoFocus style={{ background: "none", border: "none", borderBottom: "1px solid var(--cyan)", fontSize: 12, color: "var(--t1)", outline: "none", width: 70, fontFamily: "var(--font-mono)" }} value={editingLimitVal} onChange={(e) => setEditingLimitVal(e.target.value)} onBlur={() => saveLimit(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveLimit(cat.id); if (e.key === "Escape") setEditingLimitId(null); }} onClick={(e) => e.stopPropagation()} />
@@ -4003,6 +4019,12 @@ function AppInner() {
                                     )}
                                   </span>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <button
+                                      title={complete ? "Mark incomplete" : "Mark complete for this month"}
+                                      onClick={(e) => toggleCatComplete(cat.id, e)}
+                                      style={{ ...S.btn("ghost", true), color: complete ? "var(--green)" : "var(--t3)", borderColor: complete ? "var(--green)" : undefined, padding: "4px 10px", fontSize: 13 }}>
+                                      {complete ? "✓ Done" : "Mark Done"}
+                                    </button>
                                     <button style={{ ...S.btn("ghost", true) }} onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}>Edit</button>
                                     <span className={`ledgr-chevron${budgetExpandedCatId === cat.id ? " ledgr-chevron-open" : ""}`} style={{ color: "var(--t3)", fontSize: 12 }}>▼</span>
                                   </div>
@@ -4103,9 +4125,9 @@ function AppInner() {
               <div style={{ minWidth: 0 }}>
                 {(() => {
                   const sections = [
-                    { key: "over", label: "Overspent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) < 0) },
-                    { key: "progress", label: "In Progress", cats: sortedCategories.filter(c => { const r = c.limit - (spentByCat[c.id] || 0); return r > 0; }) },
-                    { key: "done", label: "Fully Spent", cats: sortedCategories.filter(c => (c.limit - (spentByCat[c.id] || 0)) === 0) },
+                    { key: "over", label: "Overspent", cats: sortedCategories.filter(c => !c.completedMonths?.includes(selectedMonth) && (c.limit - (spentByCat[c.id] || 0)) < 0) },
+                    { key: "progress", label: "In Progress", cats: sortedCategories.filter(c => { const r = c.limit - (spentByCat[c.id] || 0); return !c.completedMonths?.includes(selectedMonth) && r > 0; }) },
+                    { key: "done", label: "Fully Spent", cats: sortedCategories.filter(c => c.completedMonths?.includes(selectedMonth) || (c.limit - (spentByCat[c.id] || 0)) === 0) },
                   ].filter(s => s.cats.length > 0);
 
                   return (
@@ -4124,9 +4146,11 @@ function AppInner() {
                               const over = remaining < 0;
                               const warn = pct >= 80 && !over && remaining !== 0;
                               const zero = remaining === 0 && !over;
-                              const barC = over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
-                              const remColor = over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
-                              const remBg = over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                              const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
+                              const barC = complete ? "var(--green)" : over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                              const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
+                              const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                              const displayPct = complete ? 100 : pct;
                               return (
                                 <div key={cat.id} onClick={() => setBudgetDrillCat(cat)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -4142,12 +4166,13 @@ function AppInner() {
                                     <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 14, padding: "2px 4px", flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); }}>✕</button>
                                   </div>
                                   <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
-                                    <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${pct}%`, transition: "width 0.5s" }} />
+                                    <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
-                                      {over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
-                                      {zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
+                                      {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--green)" }}>✓ Complete ·</span>}
+                                      {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
+                                      {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
                                       Spent {fmt(spent)} /{" "}
                                       {editingLimitId === cat.id ? (
                                         <input type="number" autoFocus style={{ background: "none", border: "none", borderBottom: "1px solid var(--cyan)", fontSize: 12, color: "var(--t1)", outline: "none", width: 70, fontFamily: "var(--font-mono)" }} value={editingLimitVal} onChange={(e) => setEditingLimitVal(e.target.value)} onBlur={() => saveLimit(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveLimit(cat.id); if (e.key === "Escape") setEditingLimitId(null); }} onClick={(e) => e.stopPropagation()} />
@@ -4155,6 +4180,12 @@ function AppInner() {
                                         <span onClick={(e) => startEditLimit(cat, e)} style={{ cursor: "text", color: "var(--t3)", textDecoration: "underline dotted", textUnderlineOffset: 2 }}>{fmt(cat.limit)}</span>
                                       )}
                                     </span>
+                                    <button
+                                      title={complete ? "Mark incomplete" : "Mark complete for this month"}
+                                      onClick={(e) => toggleCatComplete(cat.id, e)}
+                                      style={{ ...S.btn("ghost", true), color: complete ? "var(--green)" : "var(--t3)", borderColor: complete ? "var(--green)" : undefined, padding: "4px 10px", fontSize: 13 }}>
+                                      {complete ? "✓ Done" : "Mark Done"}
+                                    </button>
                                     <button style={{ ...S.btn("ghost", true) }} onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}>Edit</button>
                                   </div>
                                 </div>

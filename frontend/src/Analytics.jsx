@@ -5,6 +5,10 @@
 
 import { useState, useMemo, useCallback, useRef } from "react";
 
+// PageLayout and PAGE_RIGHT_COL_W are defined in App.jsx — replicate the grid here
+const DESKTOP_RIGHT = 340;
+const DESKTOP_GAP   = 16;
+
 const fmt   = (n) => n == null ? "$0" : "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits:0, maximumFractionDigits:0 });
 const pct   = (n, d) => d === 0 ? 0 : Math.round((n / d) * 100);
 const pad   = (n) => String(n).padStart(2, "0");
@@ -36,13 +40,15 @@ function StatCard({ label, value, sub, subColor, accent }) {
     </div>
   );
 }
-function Tab({ label, active, onClick }) {
+function Tab({ label, active, onClick, style }) {
   return (
     <button onClick={onClick} style={{
-      padding:"7px 14px", borderRadius:"var(--radius)", fontSize:13, fontWeight:500,
+      padding:"7px 8px", borderRadius:"var(--radius)", fontSize:12, fontWeight:500,
       cursor:"pointer", border:"1px solid transparent",
       background:active?"var(--cyan)":"transparent",
       color:active?"#000":"var(--t2)", transition:"all 0.15s", whiteSpace:"nowrap",
+      textAlign:"center",
+      ...style,
     }}>{label}</button>
   );
 }
@@ -310,20 +316,62 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
     } finally { setAiLoading(false); }
   }, [avgSpending, avgIncome, savingsRate, momChange, currentNetWorth, retirementProjection, subscriptionTotal, subscriptions, efficiencyScore, projectedSpend, totalBudget, budgetGrid]);
 
-  return (
-    <div style={{ width:"100%" }}
-      onTouchStart={isMobile ? handleTouchStart : undefined}
-      onTouchEnd={isMobile ? handleTouchEnd : undefined}>
+  /* ── Right sidebar content (desktop only) ─────────────────────── */
+  const Sidebar = (
+    <div style={{ display:"flex", flexDirection:"column", gap:12, position:"sticky", top:16 }}>
 
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:10 }}>
-        <div>
-          <div style={{ fontFamily:"var(--font-disp)", fontSize: isMobile ? 18 : 22, fontWeight:800, color:"var(--t1)" }}>Analytics</div>
-          <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{transactions.filter(t => t.amount < 0).length} transactions · {monthlyData.filter(m => m.spending > 0).length} months of data</div>
-        </div>
-        <div style={{ display:"flex", gap:4, background:"var(--surface)", borderRadius:"var(--radius)", padding:4, flexWrap:"wrap" }}>
+      {/* Net worth */}
+      <Card>
+        <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>Net Worth</div>
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{fmt(currentNetWorth)}</div>
+        <LineChart points={netWorthSeries} height={60} />
+      </Card>
+
+      {/* Key stats */}
+      {[
+        { label:"Avg monthly spend",  value:fmt(avgSpending),       color: momChange>0?"var(--red)":"var(--green)",  sub: momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:"" },
+        { label:"Savings rate",        value:savingsRate!=null?`${savingsRate}%`:"—", color:savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)", sub: savingsRate>20?"Great shape":savingsRate>0?"Room to improve":"Spending > income" },
+        { label:"Subscriptions",       value:fmt(subscriptionTotal), color:"var(--amber)",  sub:`${subscriptions.length} recurring · ${fmt(subscriptionTotal*12)}/yr` },
+        { label:"Budget efficiency",   value:efficiencyScore!=null?`${efficiencyScore}%`:"—", color:efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)", sub:efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention" },
+      ].map(s => (
+        <Card key={s.label} style={{ padding:"12px 14px" }}>
+          <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 }}>{s.label}</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:18, fontWeight:700, color:s.color, marginBottom:s.sub?2:0 }}>{s.value}</div>
+          {s.sub && <div style={{ fontSize:11, color:"var(--t3)" }}>{s.sub}</div>}
+        </Card>
+      ))}
+
+      {/* Retirement */}
+      {retirementProjection.target > 0 && (
+        <Card style={{ padding:"12px 14px" }}>
+          <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 }}>Retirement</div>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+            <span style={{ fontSize:11, color:"var(--t3)" }}>Projected</span>
+            <span style={{ fontSize:12, fontFamily:"var(--font-mono)", fontWeight:700, color:retirementProjection.fv>=retirementProjection.target?"var(--green)":"var(--amber)" }}>{fmt(retirementProjection.fv)}</span>
+          </div>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+            <span style={{ fontSize:11, color:"var(--t3)" }}>Target</span>
+            <span style={{ fontSize:12, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(retirementProjection.target)}</span>
+          </div>
+          <div style={{ height:4, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
+            <div style={{ height:"100%", borderRadius:99, transition:"width 0.5s",
+              width:`${Math.min(pct(retirementProjection.fv, retirementProjection.target), 100)}%`,
+              background:retirementProjection.fv>=retirementProjection.target?"var(--green)":"var(--cyan)" }} />
+          </div>
+          <div style={{ fontSize:10, color:"var(--t3)", marginTop:6, textAlign:"right" }}>{retirementProjection.years}y to retire</div>
+        </Card>
+      )}
+    </div>
+  );
+
+  /* ── Main tab content ──────────────────────────────────────────── */
+  const MainContent = (
+    <div>
+      {/* Tab bar */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:"flex", gap:4, background:"var(--surface)", borderRadius:"var(--radius)", padding:4, width:"100%" }}>
           {TABS.map(t => (
-            <Tab key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} active={tab===t} onClick={() => setTab(t)} />
+            <Tab key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} active={tab===t} onClick={() => setTab(t)} style={{ flex:1 }} />
           ))}
         </div>
       </div>
@@ -343,20 +391,24 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
       {/* ═══ OVERVIEW ═══════════════════════════════════════════════ */}
       {tab === "overview" && (
         <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-          <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr 1fr":"repeat(4,1fr)", gap:10 }}>
-            <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
-              sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
-            <StatCard label="Avg monthly income" value={fmt(avgIncome)}
-              sub={monthlyIncome>0?"From your profile":"From transactions"} accent="var(--green)" />
-            <StatCard label="Savings rate" value={savingsRate!=null?`${savingsRate}%`:"—"}
-              sub={savingsRate>20?"Great shape":savingsRate>0?"Room to improve":"Spending > income"}
-              subColor={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"}
-              accent={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"} />
-            <StatCard label="Recurring / month" value={fmt(subscriptionTotal)}
-              sub={`${subscriptions.length} subscriptions`} accent="var(--amber)" />
-          </div>
+          {/* Stat cards — mobile only (desktop has sidebar) */}
+          {isMobile && (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
+                sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
+              <StatCard label="Avg monthly income" value={fmt(avgIncome)}
+                sub={monthlyIncome>0?"From your profile":"From transactions"} accent="var(--green)" />
+              <StatCard label="Savings rate" value={savingsRate!=null?`${savingsRate}%`:"—"}
+                sub={savingsRate>20?"Great shape":savingsRate>0?"Room to improve":"Spending > income"}
+                subColor={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"}
+                accent={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"} />
+              <StatCard label="Recurring / month" value={fmt(subscriptionTotal)}
+                sub={`${subscriptions.length} subscriptions`} accent="var(--amber)" />
+            </div>
+          )}
 
-          <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"1fr 1fr", gap:16 }}>
+          {/* Net worth — mobile only, desktop shows in sidebar */}
+          {isMobile && (
             <Card>
               <SectionHead title="Net worth trend" sub={`Current: ${fmt(currentNetWorth)}`} />
               <LineChart points={netWorthSeries} height={100} />
@@ -366,7 +418,9 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
                 </div>
               )}
             </Card>
+          )}
 
+          <div>
             <Card>
               <SectionHead title="Monthly cash flow" sub="Last 6 months" />
               <div style={{ display:"grid", gridTemplateColumns:`repeat(${last6.length},1fr)`, gap:6, alignItems:"end" }}>
@@ -764,6 +818,34 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
               </div>
             )}
           </Card>
+        </div>
+      )}
+    </div>
+  );
+
+  /* ── Two-column layout on desktop, single on mobile ─────────────── */
+  return (
+    <div style={{ width:"100%" }}
+      onTouchStart={isMobile ? handleTouchStart : undefined}
+      onTouchEnd={isMobile ? handleTouchEnd : undefined}>
+
+      {/* Page title */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ fontFamily:"var(--font-disp)", fontSize: isMobile ? 18 : 22, fontWeight:800, color:"var(--t1)" }}>Analytics</div>
+        <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{transactions.filter(t => t.amount < 0).length} transactions · {monthlyData.filter(m => m.spending > 0).length} months of data</div>
+      </div>
+
+      {isMobile ? (
+        <div>
+          {MainContent}
+          <div style={{ marginTop:20, display:"flex", flexDirection:"column", gap:12 }}>
+            {Sidebar}
+          </div>
+        </div>
+      ) : (
+        <div style={{ display:"grid", gridTemplateColumns:`minmax(0,1fr) ${DESKTOP_RIGHT}px`, gap:DESKTOP_GAP, alignItems:"start" }}>
+          <div style={{ minWidth:0 }}>{MainContent}</div>
+          <div style={{ minWidth:0 }}>{Sidebar}</div>
         </div>
       )}
     </div>

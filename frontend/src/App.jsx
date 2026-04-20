@@ -786,7 +786,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
       <div style={{padding:"20px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-          <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",lineHeight:1}}>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
             ledgr<span style={{color:"var(--cyan)"}}>.</span>
           </div>
         </div>
@@ -2048,6 +2048,9 @@ function AppInner() {
       retirementTargetAmount:  0,
     },
   });
+
+  /* ── Analytics AI insights — persisted across tab/view switches ── */
+  const [analyticsInsights, setAnalyticsInsights] = useState(null);
 
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave } = useAppData({
@@ -5830,6 +5833,8 @@ function AppInner() {
         setUserProfile(p);
         scheduleSaveRef.current?.({ userProfile: p });
       }}
+      aiInsights={analyticsInsights}
+      onSetAiInsights={setAnalyticsInsights}
     />
   );
 
@@ -5898,7 +5903,7 @@ function AppInner() {
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
             <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",lineHeight:1}}>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
           </div>

@@ -106,12 +106,11 @@ function AdherenceCell({ spent, limit, label }) {
 /* ═══════════════════════════════════════════════════════════════════
    MAIN
 ═══════════════════════════════════════════════════════════════════ */
-export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile }) {
+export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights }) {
   const TABS = ["overview","spending","budget","insights"];
-  const [tab,        setTab]        = useState("overview");
-  const [aiInsights, setAiInsights] = useState(null);
-  const [aiLoading,  setAiLoading]  = useState(false);
-  const [aiError,    setAiError]    = useState(null);
+  const [tab,       setTab]       = useState("overview");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError,   setAiError]   = useState(null);
   const touchStartX = useRef(null);
   const today = new Date();
 
@@ -305,7 +304,7 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
           }
         }
       }
-      setAiInsights(JSON.parse(full.replace(/```json|```/g,"").trim()));
+      onSetAiInsights(JSON.parse(full.replace(/```json|```/g,"").trim()));
     } catch(e) {
       setAiError(e.message.includes("no_api_key") ? "Add your Claude API key on the Ask AI page." : e.message);
     } finally { setAiLoading(false); }

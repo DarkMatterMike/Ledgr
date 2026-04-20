@@ -1354,6 +1354,57 @@ Return ONLY valid JSON, no other text:
   }
 });
 
+// Financial insights summary — non-streaming JSON response
+app.post("/api/ai/insights", async (req, res) => {
+  try {
+    const { context = {} } = req.body;
+
+    const encryptedKey = await getData(req.user.id, "aiApiKey");
+    if (!encryptedKey) return res.status(402).json({ error: "no_api_key" });
+    const apiKey = decrypt(encryptedKey);
+    if (!apiKey) return res.status(402).json({ error: "no_api_key" });
+
+    const prompt = `You are a personal finance advisor. Write a concise honest financial health summary based on this data:
+${JSON.stringify(context, null, 2)}
+
+Return ONLY valid JSON (no markdown fences) with exactly this shape:
+{"headline":"one sentence summary","score":75,"scoreLabel":"Good","insights":[{"type":"positive|warning|neutral","title":"short title","body":"1-2 sentences with specific numbers","suggestion":"one concrete improvement action — omit this field entirely if type is positive"}],"recommendation":"one concrete action for this month"}
+Include 3-5 insights. Be specific. Use actual dollar amounts. Only include suggestion for warning/neutral insights.`;
+
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const err = await claudeRes.json().catch(() => ({}));
+      return res.status(claudeRes.status).json({ error: err.error?.message || "Claude API error" });
+    }
+
+    const data = await claudeRes.json();
+    const text = data.content?.[0]?.text || "{}";
+    const clean = text.replace(/```json|```/g, "").trim();
+    let insights = {};
+    try { insights = JSON.parse(clean); } catch { insights = {}; }
+
+    res.json(insights);
+  } catch (err) {
+    console.error("AI insights error:", err.message);
+    serverError(res, err);
+  }
+});
+
+
+
 
 app.get("/api/admin/users", requireOwner, async (_req, res) => {
   try {

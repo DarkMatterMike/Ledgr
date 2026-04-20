@@ -147,3 +147,10 @@ export function suggestLimits(categories, monthlySpending, avgMonthlyIncome) {
     body: JSON.stringify({ categories, monthlySpending, avgMonthlyIncome }),
   });
 }
+
+export function getAiInsights(context) {
+  return request("/api/ai/insights", {
+    method: "POST",
+    body: JSON.stringify({ context }),
+  });
+}

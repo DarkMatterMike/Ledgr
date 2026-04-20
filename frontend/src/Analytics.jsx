@@ -4,6 +4,7 @@
  */
 
 import { useState, useMemo, useCallback, useRef } from "react";
+import { getAiInsights } from "./api.js";
 
 // PageLayout and PAGE_RIGHT_COL_W are defined in App.jsx — replicate the grid here
 const DESKTOP_RIGHT = 340;
@@ -13,11 +14,6 @@ const fmt   = (n) => n == null ? "$0" : "$" + Math.abs(n).toLocaleString("en-US"
 const pct   = (n, d) => d === 0 ? 0 : Math.round((n / d) * 100);
 const pad   = (n) => String(n).padStart(2, "0");
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const BASE  = "https://ledgr-production-9e35.up.railway.app";
-function authHeaders() {
-  const token = localStorage.getItem("ledgr_token") || "";
-  return { "Content-Type":"application/json", ...(token ? { Authorization:`Bearer ${token}` } : {}) };
-}
 
 /* ── Shared components ────────────────────────────────────────────── */
 function Card({ children, style }) {
@@ -272,47 +268,26 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     setAiLoading(true); setAiError(null);
     try {
       const context = {
-        avgMonthlySpending:  Math.round(avgSpending),
-        avgMonthlyIncome:    Math.round(avgIncome),
+        avgMonthlySpending:      Math.round(avgSpending),
+        avgMonthlyIncome:        Math.round(avgIncome),
         savingsRate, momChange,
-        currentNetWorth:     Math.round(currentNetWorth),
-        projectedRetirement: Math.round(retirementProjection.fv),
-        retirementTarget:    retirementProjection.target,
-        yearsToRetire:       retirementProjection.years,
-        subscriptionTotal:   Math.round(subscriptionTotal),
-        topSubscriptions:    subscriptions.slice(0,5).map(s => `${s.name}: $${s.amount}/mo`),
-        budgetEfficiency:    efficiencyScore,
+        currentNetWorth:         Math.round(currentNetWorth),
+        projectedRetirement:     Math.round(retirementProjection.fv),
+        retirementTarget:        retirementProjection.target,
+        yearsToRetire:           retirementProjection.years,
+        subscriptionTotal:       Math.round(subscriptionTotal),
+        topSubscriptions:        subscriptions.slice(0,5).map(s => `${s.name}: $${s.amount}/mo`),
+        budgetEfficiency:        efficiencyScore,
         projectedSpendThisMonth: Math.round(projectedSpend),
         totalBudget,
-        consecutiveOverspend: budgetGrid.filter(r => r.streak >= 2).map(r => ({ name:r.cat.name, streak:r.streak })),
-        topCategories: budgetGrid.slice(0,5).map(r => ({ name:r.cat.name, avgSpend:Math.round(r.avgSp), limit:r.cat.limit, overMs:r.overMs })),
+        consecutiveOverspend:    budgetGrid.filter(r => r.streak >= 2).map(r => ({ name:r.cat.name, streak:r.streak })),
+        topCategories:           budgetGrid.slice(0,5).map(r => ({ name:r.cat.name, avgSpend:Math.round(r.avgSp), limit:r.cat.limit, overMs:r.overMs })),
       };
-
-      const prompt = `You are a personal finance advisor. Write a concise honest financial health summary based on this data:
-${JSON.stringify(context, null, 2)}
-
-Return ONLY valid JSON (no markdown fences) with exactly this shape:
-{"headline":"one sentence summary","score":75,"scoreLabel":"Good","insights":[{"type":"positive|warning|neutral","title":"short title","body":"1-2 sentences with specific numbers","suggestion":"one concrete improvement action — omit this field entirely if type is positive"}],"recommendation":"one concrete action for this month"}
-Include 3-5 insights. Be specific. Use actual dollar amounts. Only include suggestion for warning/neutral insights.`;
-
-      const res = await fetch(`${BASE}/api/ai/chat`, {
-        method:"POST", headers:authHeaders(),
-        body:JSON.stringify({ message:prompt, history:[], context:{} }),
-      });
-      if (!res.ok) throw new Error("Claude request failed");
-
-      const reader = res.body.getReader(); const decoder = new TextDecoder(); let full = "";
-      while (true) {
-        const { done, value } = await reader.read(); if (done) break;
-        for (const line of decoder.decode(value, { stream:true }).split("\n")) {
-          if (line.startsWith("data: ") && line !== "data: [DONE]") {
-            try { full += JSON.parse(line.slice(6)).delta || ""; } catch {}
-          }
-        }
-      }
-      onSetAiInsights(JSON.parse(full.replace(/```json|```/g,"").trim()));
+      const result = await getAiInsights(context);
+      if (result.error) throw new Error(result.error);
+      onSetAiInsights(result);
     } catch(e) {
-      setAiError(e.message.includes("no_api_key") ? "Add your Claude API key on the Ask AI page." : e.message);
+      setAiError(e.message === "no_api_key" ? "Add your Claude API key on the Ask AI page." : e.message);
     } finally { setAiLoading(false); }
   }, [avgSpending, avgIncome, savingsRate, momChange, currentNetWorth, retirementProjection, subscriptionTotal, subscriptions, efficiencyScore, projectedSpend, totalBudget, budgetGrid]);
 

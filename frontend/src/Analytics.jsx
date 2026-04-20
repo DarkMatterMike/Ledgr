@@ -643,6 +643,7 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
             </div>
           )}
         </div>
+      )}
 
       {/* ═══ BUDGET ══════════════════════════════════════════════════ */}
       {tab === "budget" && (
@@ -769,6 +770,7 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
             </div>
           )}
         </div>
+      )}
 
       {/* ═══ INSIGHTS ════════════════════════════════════════════════ */}
       {tab === "insights" && (
@@ -908,6 +910,7 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
             </div>
           )}
         </div>
+      )}
     </div>
   );
 

@@ -2002,6 +2002,7 @@ function AppInner() {
   const [drillCat,      setDrillCat]      = useState(null);
   const [budgetExpandedCatId, setBudgetExpandedCatId] = useState(null);
   const [budgetTxnSearch, setBudgetTxnSearch] = useState("");
+  const [budgetKebabId, setBudgetKebabId] = useState(null);
   const [drillTxnSearch, setDrillTxnSearch] = useState("");
   const [budgetDrillCat, setBudgetDrillCat] = useState(null);
   const [calendarDay,      setCalendarDay]      = useState(null);
@@ -2493,6 +2494,13 @@ function AppInner() {
     if (!initialized.current || !rules.length) return;
     setTransactions(prev => applyRules(prev, rules, { onlyUncategorized: true }));
   }, [rules]);
+
+  useEffect(() => {
+    if (!budgetKebabId) return;
+    const close = () => setBudgetKebabId(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [budgetKebabId]);
 
   /* ── Plaid ── */
   const doSync = useCallback(async (itemId) => {
@@ -4001,7 +4009,25 @@ function AppInner() {
                                     <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Tap to rename" style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text" }}>{cat.name}</span>
                                   )}
                                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: remColor, background: remBg, border: `1px solid ${remColor}33`, borderRadius: 6, padding: "3px 10px", flexShrink: 0 }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</span>
-                                  <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 14, padding: "2px 4px", flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); }}>✕</button>
+                                  <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }}
+                                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 18, padding: "2px 6px", lineHeight: 1, borderRadius: "var(--radius)" }}
+                                    >⋯</button>
+                                    {budgetKebabId === cat.id && (
+                                      <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--green)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                          {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                          Edit Category
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
+                                          Delete
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                                 <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
                                   <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
@@ -4018,16 +4044,7 @@ function AppInner() {
                                       <span onClick={(e) => startEditLimit(cat, e)} style={{ cursor: "text", color: "var(--t3)", textDecoration: "underline dotted", textUnderlineOffset: 2 }}>{fmt(cat.limit)}</span>
                                     )}
                                   </span>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <button
-                                      title={complete ? "Mark incomplete" : "Mark complete for this month"}
-                                      onClick={(e) => toggleCatComplete(cat.id, e)}
-                                      style={{ ...S.btn("ghost", true), color: complete ? "var(--green)" : "var(--t3)", borderColor: complete ? "var(--green)" : undefined, padding: "4px 10px", fontSize: 13 }}>
-                                      {complete ? "✓ Done" : "Mark Done"}
-                                    </button>
-                                    <button style={{ ...S.btn("ghost", true) }} onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}>Edit</button>
-                                    <span className={`ledgr-chevron${budgetExpandedCatId === cat.id ? " ledgr-chevron-open" : ""}`} style={{ color: "var(--t3)", fontSize: 12 }}>▼</span>
-                                  </div>
+                                  <span className={`ledgr-chevron${budgetExpandedCatId === cat.id ? " ledgr-chevron-open" : ""}`} style={{ color: "var(--t3)", fontSize: 12 }}>▼</span>
                                 </div>
 
                                 {budgetExpandedCatId === cat.id && (
@@ -4163,7 +4180,25 @@ function AppInner() {
                                       <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Click to rename" style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text" }}>{cat.name}</span>
                                     )}
                                     <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: remColor, background: remBg, border: `1px solid ${remColor}33`, borderRadius: 6, padding: "3px 10px", flexShrink: 0 }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</span>
-                                    <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 14, padding: "2px 4px", flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); }}>✕</button>
+                                    <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }}
+                                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 18, padding: "2px 6px", lineHeight: 1, borderRadius: "var(--radius)" }}
+                                      >⋯</button>
+                                      {budgetKebabId === cat.id && (
+                                        <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--green)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                            {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
+                                          </button>
+                                          <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                            Edit Category
+                                          </button>
+                                          <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
+                                            Delete
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                   <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
                                     <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
@@ -4180,13 +4215,7 @@ function AppInner() {
                                         <span onClick={(e) => startEditLimit(cat, e)} style={{ cursor: "text", color: "var(--t3)", textDecoration: "underline dotted", textUnderlineOffset: 2 }}>{fmt(cat.limit)}</span>
                                       )}
                                     </span>
-                                    <button
-                                      title={complete ? "Mark incomplete" : "Mark complete for this month"}
-                                      onClick={(e) => toggleCatComplete(cat.id, e)}
-                                      style={{ ...S.btn("ghost", true), color: complete ? "var(--green)" : "var(--t3)", borderColor: complete ? "var(--green)" : undefined, padding: "4px 10px", fontSize: 13 }}>
-                                      {complete ? "✓ Done" : "Mark Done"}
-                                    </button>
-                                    <button style={{ ...S.btn("ghost", true) }} onClick={(e) => { e.stopPropagation(); openEditCat(cat); }}>Edit</button>
+
                                   </div>
                                 </div>
                               );

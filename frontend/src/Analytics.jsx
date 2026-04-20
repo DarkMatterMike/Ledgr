@@ -130,11 +130,16 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
   /* ── 12-month data ─────────────────────────────────────────────── */
   const monthlyData = useMemo(() => {
+    // Build from the earliest transaction date, not just 12 months
+    const dates = transactions.map(t => t.date).filter(Boolean).sort();
+    const earliest = dates[0] ? new Date(dates[0] + "T12:00:00") : new Date(today.getFullYear(), today.getMonth() - 11, 1);
     const map = {};
-    for (let i = 11; i >= 0; i--) {
-      const d  = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const ym = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-      map[ym]  = { ym, label: d.toLocaleDateString("en-US", { month:"short", year:"2-digit" }), income:0, spending:0, byCategory:{}, txnCount:0 };
+    let cursor = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+    const end   = new Date(today.getFullYear(), today.getMonth(), 1);
+    while (cursor <= end) {
+      const ym = `${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`;
+      map[ym]  = { ym, label: cursor.toLocaleDateString("en-US", { month:"short", year:"2-digit" }), income:0, spending:0, byCategory:{}, txnCount:0 };
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
     }
     transactions.forEach(t => {
       if (!t.date) return;
@@ -264,7 +269,59 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   const cashMax      = Math.max(...last6.map(m => Math.max(m.income, m.spending)), 1);
   const biggestTxns  = useMemo(() => [...transactions].filter(t => t.amount < 0).sort((a,b) => a.amount-b.amount).slice(0,5), [transactions]);
 
-  /* ── AI Insights ───────────────────────────────────────────────── */
+  /* ── Extra analytics ──────────────────────────────────────────── */
+  const avgDailySpend = useMemo(() => {
+    const days = today.getDate();
+    return days > 0 ? Math.round((thisMonthD?.spending || 0) / days) : 0;
+  }, [thisMonthD]);
+
+  const spendingFreeDays = useMemo(() => {
+    const thisMonthStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+    const daysWithSpend = new Set(
+      transactions.filter(t => t.date?.startsWith(thisMonthStr) && t.amount < 0).map(t => t.date)
+    );
+    return today.getDate() - daysWithSpend.size;
+  }, [transactions]);
+
+  const topSpendingDay = useMemo(() => {
+    const byDay = {};
+    transactions.forEach(t => { if (t.amount < 0 && t.date) byDay[t.date] = (byDay[t.date]||0) + Math.abs(t.amount); });
+    const top = Object.entries(byDay).sort((a,b) => b[1]-a[1])[0];
+    return top ? { date: top[0], total: top[1] } : null;
+  }, [transactions]);
+
+  const catAcceleration = useMemo(() => {
+    const cur  = monthlyData[monthlyData.length - 1]?.byCategory || {};
+    const prev = monthlyData[monthlyData.length - 2]?.byCategory || {};
+    return categories.map(c => ({
+      ...c, curSpend: cur[c.id]||0, prevSpend: prev[c.id]||0,
+      delta: (cur[c.id]||0) - (prev[c.id]||0),
+    })).filter(c => c.curSpend > 0 || c.prevSpend > 0)
+      .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0,8);
+  }, [categories, monthlyData]);
+
+  const incomeSources = useMemo(() => {
+    const map = {};
+    transactions.filter(t => t.amount > 0 && (t.type==="income"||!t.type)).forEach(t => {
+      const key = (t.merchant||t.name||"Unknown").trim();
+      if (!map[key]) map[key] = { name:key, total:0, count:0 };
+      map[key].total += t.amount; map[key].count++;
+    });
+    return Object.values(map).sort((a,b) => b.total-a.total).slice(0,6);
+  }, [transactions]);
+
+  const monthlySavings = useMemo(() =>
+    last6.map(m => ({ label: m.label, value: Math.round(m.income - m.spending) }))
+  , [last6]);
+
+  const weekOfMonthData = useMemo(() => {
+    const weeks = [0,0,0,0,0];
+    transactions.filter(t => t.amount < 0 && t.date).forEach(t => {
+      const day = new Date(t.date+"T12:00:00").getDate();
+      weeks[Math.min(Math.floor((day-1)/7),4)] += Math.abs(t.amount);
+    });
+    return ["Wk 1","Wk 2","Wk 3","Wk 4","Wk 5"].map((label,i) => ({ label, total: weeks[i] }));
+  }, [transactions]);
   const runAiInsights = useCallback(async () => {
     setAiLoading(true); setAiError(null);
     try {
@@ -571,8 +628,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   </div>
                 )}
               </Card>
-              {/* Row 2: 4 mini stats */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              {/* Row 2: 6 mini stats */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
                 <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
                   sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
                 <StatCard label="Savings rate" value={savingsRate!=null?`${savingsRate}%`:"—"}
@@ -584,9 +641,35 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
                   subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
                   accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
+                <StatCard label="Avg daily spend" value={fmt(avgDailySpend)} sub="This month so far" accent="var(--cyan)" />
+                <StatCard label="Spend-free days" value={spendingFreeDays} sub="This month" accent={spendingFreeDays>=10?"var(--green)":spendingFreeDays>=5?"var(--amber)":"var(--red)"} />
               </div>
               {/* Row 3: Spending Breakdown */}
               <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
+              {/* Row 4: Monthly savings trend */}
+              <Card>
+                <SectionHead title="Monthly savings" sub="Income minus spending, last 6 months" />
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${monthlySavings.length},1fr)`, gap:6, alignItems:"end" }}>
+                  {monthlySavings.map(m => {
+                    const maxAbs = Math.max(...monthlySavings.map(x => Math.abs(x.value)), 1);
+                    const h = Math.round((Math.abs(m.value) / maxAbs) * 80);
+                    const positive = m.value >= 0;
+                    return (
+                      <div key={m.label} style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                        <div style={{ display:"flex", justifyContent:"center", height:80, alignItems:"flex-end" }}>
+                          <div style={{ width:"60%", height:Math.max(h,2), borderRadius:"3px 3px 0 0",
+                            background:positive?"var(--green)":"var(--red)", transition:"height 0.4s" }} />
+                        </div>
+                        <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center" }}>{m.label}</div>
+                        <div style={{ fontSize:10, fontFamily:"var(--font-mono)", textAlign:"center",
+                          color:positive?"var(--green)":"var(--red)", fontWeight:600 }}>
+                          {positive?"+":""}{fmt(m.value)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
             </div>
             {/* Column 2: Action items */}
             {ActionItemsSidebar}
@@ -666,6 +749,100 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               })}
             </div>
           </Card>
+
+          {/* Category acceleration */}
+          <Card>
+            <SectionHead title="Category momentum" sub="Month-over-month change" />
+            {catAcceleration.length === 0 ? (
+              <div style={{ fontSize:13, color:"var(--t3)" }}>Not enough data yet</div>
+            ) : catAcceleration.map(c => {
+              const maxDelta = Math.max(...catAcceleration.map(x => Math.abs(x.delta)), 1);
+              const barW = Math.round((Math.abs(c.delta) / maxDelta) * 100);
+              return (
+                <div key={c.id} style={{ marginBottom:12 }}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:3 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                      <span style={{ width:7, height:7, borderRadius:"50%", background:c.color, flexShrink:0 }} />
+                      <span style={{ fontSize:12, color:"var(--t1)" }}>{c.name}</span>
+                    </div>
+                    <span style={{ fontSize:12, fontFamily:"var(--font-mono)", fontWeight:600,
+                      color:c.delta>0?"var(--red)":c.delta<0?"var(--green)":"var(--t3)" }}>
+                      {c.delta>0?"+":""}{fmt(c.delta)}
+                    </span>
+                  </div>
+                  <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
+                    <div style={{ height:"100%", width:`${barW}%`,
+                      background:c.delta>0?"var(--red)":c.delta<0?"var(--green)":"var(--border2)",
+                      borderRadius:99, transition:"width 0.5s" }} />
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--t3)", marginTop:2 }}>
+                    <span>Last month: {fmt(c.prevSpend)}</span>
+                    <span>This month: {fmt(c.curSpend)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </Card>
+
+          {/* Spending by week of month */}
+          <Card>
+            <SectionHead title="Spending by week of month" sub="All time, which week you spend most" />
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:6, alignItems:"end" }}>
+              {weekOfMonthData.map(w => {
+                const wMax = Math.max(...weekOfMonthData.map(x=>x.total), 1);
+                const h = Math.round((w.total/wMax)*80);
+                const isTop = w.total === wMax;
+                return (
+                  <div key={w.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                    <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(w.total)}</div>
+                    <div style={{ width:"100%", height:80, display:"flex", alignItems:"flex-end" }}>
+                      <div style={{ width:"100%", height:Math.max(h,2), minHeight:w.total>0?3:0,
+                        background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
+                    </div>
+                    <div style={{ fontSize:11, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{w.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Income sources */}
+          {incomeSources.length > 0 && (
+            <Card>
+              <SectionHead title="Income sources" sub="All time, by total received" />
+              {incomeSources.map((s, i) => (
+                <div key={s.name} style={{ marginBottom:10 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, gap:8 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                      <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", flexShrink:0, width:16, textAlign:"right" }}>{i+1}</span>
+                      <span style={{ fontSize:13, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</span>
+                    </div>
+                    <div style={{ display:"flex", gap:12, flexShrink:0 }}>
+                      <span style={{ fontSize:11, color:"var(--t3)" }}>{s.count}×</span>
+                      <span style={{ fontSize:13, fontFamily:"var(--font-mono)", fontWeight:600, color:"var(--green)" }}>{fmt(s.total)}</span>
+                    </div>
+                  </div>
+                  <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden", marginLeft:24 }}>
+                    <div style={{ height:"100%", width:`${pct(s.total, incomeSources[0]?.total||1)}%`, background:"var(--green)", borderRadius:99, transition:"width 0.5s" }} />
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {/* Top spending day */}
+          {topSpendingDay && (
+            <Card>
+              <SectionHead title="Notable spending days" sub="Largest single day all time" />
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 0" }}>
+                <div>
+                  <div style={{ fontSize:13, color:"var(--t1)", fontWeight:600 }}>{topSpendingDay.date}</div>
+                  <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>Highest single-day total</div>
+                </div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:18, fontWeight:700, color:"var(--red)" }}>{fmt(topSpendingDay.total)}</div>
+              </div>
+            </Card>
+          )}
           </div>
           {!isMobile && ActionItemsSidebar}
         </div>

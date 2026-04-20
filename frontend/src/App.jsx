@@ -913,7 +913,8 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   catMap, acctMap, categories, accounts,
   needsReview, markReviewed, startRename, deleteTxn,
   updateTxnType, updateTxnCat, updateTxnAcct, updateTxnNotes,
-  openAddCat, toggleRecurring, updateRecurringDay, saveRename, isMobile }) {
+  openAddCat, toggleRecurring, updateRecurringDay, saveRename, isMobile,
+  isSelected, onToggleSelect, selectionActive }) {
 
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
@@ -924,11 +925,25 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
 
   return (
     <div style={{borderBottom:"1px solid var(--border)"}}>
-      <div onClick={()=>setExpandedTxnId(expanded?null:t.id)}
+      <div
+        onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
         style={{padding:"10px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
           borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
           paddingLeft:t.recurring||needsReview(t)?10:0,
+          background: isSelected ? "var(--cyan-dim)" : "transparent",
           transition:"background 0.1s"}}>
+        {/* Checkbox — always visible when selection active, hover otherwise */}
+        <div onClick={e=>{e.stopPropagation();onToggleSelect(t.id);}}
+          style={{width:16,height:16,borderRadius:3,flexShrink:0,cursor:"pointer",
+            border:`1.5px solid ${isSelected?"var(--cyan)":"var(--border2)"}`,
+            background:isSelected?"var(--cyan)":"transparent",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            opacity: selectionActive ? 1 : 0.3,
+            transition:"all 0.12s",
+            marginLeft: t.recurring||needsReview(t) ? 0 : 0,
+          }}>
+          {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
+        </div>
         <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)"}}/>
         <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
@@ -1982,6 +1997,8 @@ function AppInner() {
   const undoTimer = useRef(null);
   const [syncing,       setSyncing]       = useState(false);
   const [rulePrompt,    setRulePrompt]    = useState(null);
+  const [typeRulePrompt, setTypeRulePrompt] = useState(null); // {merchant, type}
+  const [selectedTxns,  setSelectedTxns]  = useState(new Set()); // bulk edit
   const [drillCat,      setDrillCat]      = useState(null);
   const [budgetExpandedCatId, setBudgetExpandedCatId] = useState(null);
   const [budgetTxnSearch, setBudgetTxnSearch] = useState("");
@@ -2066,9 +2083,12 @@ function AppInner() {
     onData: (data) => {
       portfolio.loadFromData(data);
       aiChat.loadFromData(data);
-      if (data.aiCatExamples) setAiCatExamples(data.aiCatExamples);
-      if (data.userProfile)   setUserProfile(p => ({ ...p, ...data.userProfile }));
-      if (data.insightsTodos) setInsightsTodos(data.insightsTodos);
+      if (data.aiCatExamples)      setAiCatExamples(data.aiCatExamples);
+      if (data.userProfile)        setUserProfile(p => ({ ...p, ...data.userProfile }));
+      if (data.insightsTodos)      setInsightsTodos(data.insightsTodos);
+      if (data.analyticsInsights)  setAnalyticsInsights(data.analyticsInsights);
+      if (data.dismissedPairs)     setDismissedPairs(data.dismissedPairs);
+      if (data.scanMemory)         setScanMemory(data.scanMemory);
     },
   });
 
@@ -2230,6 +2250,7 @@ function AppInner() {
   /* ── Duplicate scan (via hook) ── */
   const {
     dismissedPairs, setDismissedPairs,
+    scanMemory, setScanMemory,
     duplicatePairs, setDuplicatePairs,
     duplicateScanActive, setDuplicateScanActive,
     showReconcile, setShowReconcile,
@@ -2241,6 +2262,15 @@ function AppInner() {
     dismissDuplicatePair, confirmDuplicateRemoval,
     pickRemove, isPreauth,
   } = useDuplicateScan(transactions, showToast, setTransactions);
+
+  // Persist dismissed pairs + scan memory whenever they change
+  useEffect(() => {
+    if (dismissedPairs.length > 0) scheduleSaveRef.current?.({ dismissedPairs });
+  }, [dismissedPairs]);
+  useEffect(() => {
+    const hasData = Object.keys(scanMemory?.confirmed||{}).length > 0 || Object.keys(scanMemory?.dismissed||{}).length > 0;
+    if (hasData) scheduleSaveRef.current?.({ scanMemory });
+  }, [scanMemory]);
 
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
@@ -2372,9 +2402,8 @@ function AppInner() {
   function applyRules(txns, rs, opts = {}) {
     if (!rs?.length) return txns;
     const { onlyUncategorized = false } = opts;
-    // Manual rules always take priority over AI rules
-    const manualRules = rs.filter(r => r.source !== "ai");
-    const aiRules     = rs.filter(r => r.source === "ai");
+    const manualRules  = rs.filter(r => r.source !== "ai");
+    const aiRules      = rs.filter(r => r.source === "ai");
     const orderedRules = [...manualRules, ...aiRules];
     return txns.map(t => {
       if (onlyUncategorized && t.categoryId) return t;
@@ -2383,13 +2412,49 @@ function AppInner() {
         if (!r.enabled) continue;
         const pat = r.pattern.toLowerCase().trim();
         if (!pat) continue;
-        const match = r.matchType === "exact"   ? mer === pat
-                    : r.matchType === "starts"  ? mer.startsWith(pat)
+        const match = r.matchType === "exact"  ? mer === pat
+                    : r.matchType === "starts" ? mer.startsWith(pat)
                     : mer.includes(pat);
-        if (match) return { ...t, categoryId: r.categoryId || t.categoryId };
+        if (match) {
+          const updates = {};
+          if (r.categoryId)   updates.categoryId = r.categoryId;
+          if (r.typeOverride) { updates.type = r.typeOverride; updates.reviewed = true; }
+          if (Object.keys(updates).length) return { ...t, ...updates };
+        }
       }
       return t;
     });
+  }
+  function toggleSelectTxn(id) {
+    setSelectedTxns(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+  function selectAllVisible() { setSelectedTxns(new Set(filteredTxns.map(t => t.id))); }
+  function clearSelection()   { setSelectedTxns(new Set()); }
+  function bulkSetCategory(catId) {
+    setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, categoryId:catId||null, reviewed: catId ? true : t.reviewed} : t));
+    showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
+    clearSelection();
+  }
+  function bulkSetType(type) {
+    const autoReviewed = ["income","transfer","reimbursement"].includes(type);
+    setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, type, reviewed: autoReviewed ? true : t.reviewed} : t));
+    showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
+    clearSelection();
+  }
+  function bulkMarkReviewed(reviewed) {
+    setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, reviewed} : t));
+    showToast(`Marked ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""} ${reviewed?"reviewed":"unreviewed"}`);
+    clearSelection();
+  }
+  function bulkDelete() {
+    const removed = transactions.filter(t => selectedTxns.has(t.id));
+    setTransactions(p => p.filter(t => !selectedTxns.has(t.id)));
+    showUndoToast(`Deleted ${removed.length} transaction${removed.length!==1?"s":""}`, () => setTransactions(p => [...p, ...removed]));
+    clearSelection();
   }
   function promptSaveRule(txn, categoryId) {
     const mer=(txn.merchant||txn.name||"").toLowerCase().trim();
@@ -2400,6 +2465,19 @@ function AppInner() {
     if (!rulePrompt) return;
     setRules(p=>[...p,{id:"r"+Date.now(),pattern:rulePrompt.merchant,matchType:"contains",categoryId:rulePrompt.categoryId,enabled:true,createdAt:Date.now()}]);
     setRulePrompt(null); showToast("Rule saved");
+  }
+  function confirmTypeRule() {
+    if (!typeRulePrompt) return;
+    const { merchant, type } = typeRulePrompt;
+    // Add a rule that sets typeOverride for this merchant pattern
+    setRules(p => {
+      const pattern = merchant.toLowerCase();
+      // Replace existing type rule for this merchant if any
+      const filtered = p.filter(r => !(r.pattern.toLowerCase() === pattern && r.typeOverride));
+      return [...filtered, { id:"r"+Date.now(), pattern:merchant, matchType:"contains", typeOverride:type, categoryId:null, enabled:true, createdAt:Date.now() }];
+    });
+    setTypeRulePrompt(null);
+    showToast(`Rule saved — "${merchant}" will always be ${type}`);
   }
   function saveRule(rule)  { setRules(p=>[...p.filter(r=>r.id!==rule.id),rule]); showToast("Rule saved"); }
   function deleteRule(id)  {
@@ -2582,6 +2660,18 @@ function AppInner() {
       const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
       return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed};
     }));
+    // Offer to create a type rule for the merchant
+    const txn = transactions.find(t => t.id === id);
+    const merchant = (txn?.merchant || txn?.name || "").trim();
+    if (merchant && ["transfer","income","reimbursement"].includes(val)) {
+      // Check if a type rule already exists for this merchant
+      const alreadyHasRule = rules.some(r =>
+        r.pattern.toLowerCase() === merchant.toLowerCase() && r.typeOverride === val
+      );
+      if (!alreadyHasRule) {
+        setTypeRulePrompt({ merchant, type: val });
+      }
+    }
   }
   function updateTxnCat(id, val) {
     setTransactions(p => {
@@ -3363,71 +3453,70 @@ function AppInner() {
           </div>
         </div>
       ) : (
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0, 1fr) 340px",gap:16,alignItems:"start"}}>
-          <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
-            <div style={S.card} className="ledgr-card-anim">
-              <div style={{...S.sectionHdr,marginBottom:12}}>
-                <div style={S.cardTitle}>Budget Progress</div>
-                <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
-              </div>
-              {categories.length===0
-                ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-                : sortedCategories.slice(0,6).map(cat=>{
-                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                    return (
-                      <div key={cat.id} style={{marginBottom:16,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                          <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
-                            <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                            <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                          </div>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                            {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
-                          </span>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0, 1fr) minmax(0, 1fr) 340px",gap:16,alignItems:"start"}}>
+          {/* Col 1 — Budget Progress */}
+          <div style={S.card} className="ledgr-card-anim">
+            <div style={{...S.sectionHdr,marginBottom:12}}>
+              <div style={S.cardTitle}>Budget Progress</div>
+              <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
+            </div>
+            {categories.length===0
+              ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+              : sortedCategories.slice(0,8).map(cat=>{
+                  const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                  const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                  return (
+                    <div key={cat.id} style={{marginBottom:14,cursor:"pointer"}} onClick={()=>setDrillCat(cat)}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                        <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
+                          <span style={{width:7,height:7,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                          <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                         </div>
-                        <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
-                          <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
-                        </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                          <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
-                        </div>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                          {over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
+                        </span>
                       </div>
-                    );
-                  })
-              }
-            </div>
-
-            <div style={S.card}>
-              <div style={{...S.sectionHdr,marginBottom:12}}>
-                <div style={S.cardTitle}>Recent Transactions</div>
-                <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
-              </div>
-              {filteredTxns.slice(0,8).map(t=>(
-                <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
-                  <div style={{flex:1,minWidth:0,marginRight:10}}>
-                    <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
-                      {t.name||t.merchant}
+                      <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:3}}>
+                        <div style={{height:"100%",borderRadius:99,width:`${pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                        <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
+                      </div>
                     </div>
-                    <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
-                  </div>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
-                    {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                  </span>
-                </div>
-              ))}
-              {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
-            </div>
+                  );
+                })
+            }
           </div>
 
+          {/* Col 2 — Recent Transactions */}
+          <div style={S.card}>
+            <div style={{...S.sectionHdr,marginBottom:12}}>
+              <div style={S.cardTitle}>Recent Transactions</div>
+              <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
+            </div>
+            {filteredTxns.slice(0,10).map(t=>(
+              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+                <div style={{flex:1,minWidth:0,marginRight:10}}>
+                  <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
+                    {t.name||t.merchant}
+                  </div>
+                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
+                </div>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+                  {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
+                </span>
+              </div>
+            ))}
+            {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
+          </div>
+
+          {/* Col 3 — Analytics sidebar */}
           <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
-            {BudgetSummaryCard}
             {SpendingBreakdownCard}
             {CashFlowCard}
             {OverspendingHighlightsCard}
-            {/* Largest transactions */}
-            {(() => {
+            {(()=>{
               const largest = [...filteredTxns].filter(t => t.amount < 0).sort((a,b) => a.amount - b.amount).slice(0,5);
               if (!largest.length) return null;
               return (
@@ -3435,19 +3524,17 @@ function AppInner() {
                   <div style={{...S.sectionHdr, marginBottom:10}}>
                     <div style={S.cardTitle}>Largest Transactions</div>
                   </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                    {largest.map((t,i) => {
-                      const cat = catMap[t.categoryId];
-                      return (
-                        <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<largest.length-1?"1px solid var(--border)":"none"}}>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:68}}>{t.date}</div>
-                          <div style={{flex:1,minWidth:0,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                          {cat && <span style={{fontSize:11,color:cat.color,flexShrink:0,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>}
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {largest.map((t,i) => {
+                    const cat = catMap[t.categoryId];
+                    return (
+                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<largest.length-1?"1px solid var(--border)":"none"}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:68}}>{t.date}</div>
+                        <div style={{flex:1,minWidth:0,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                        {cat && <span style={{fontSize:11,color:cat.color,flexShrink:0,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>}
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -3631,6 +3718,11 @@ function AppInner() {
             <option value="all">All Accounts</option>
             {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
+          {/* Bulk select toggle */}
+          <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 12px",flexShrink:0}}
+            onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
+            {selectedTxns.size > 0 ? `✕ ${selectedTxns.size} selected` : "Select"}
+          </button>
         </div>
 
         {/* Grouped transaction list */}
@@ -3673,6 +3765,9 @@ function AppInner() {
                       openAddCat={openAddCat}
                       toggleRecurring={toggleRecurring} updateRecurringDay={updateRecurringDay}
                       saveRename={saveRename} isMobile={isMobile}
+                      isSelected={selectedTxns.has(t.id)}
+                      onToggleSelect={toggleSelectTxn}
+                      selectionActive={selectedTxns.size > 0}
                     />)}
                   </div>
                 </div>
@@ -5916,7 +6011,10 @@ function AppInner() {
         scheduleSaveRef.current?.({ userProfile: p });
       }}
       aiInsights={analyticsInsights}
-      onSetAiInsights={setAnalyticsInsights}
+      onSetAiInsights={insights => {
+        setAnalyticsInsights(insights);
+        scheduleSaveRef.current?.({ analyticsInsights: insights });
+      }}
       todos={insightsTodos}
       onTodosChange={todos => {
         setInsightsTodos(todos);
@@ -6071,6 +6169,50 @@ function AppInner() {
           </div>
           <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
           <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
+        </div>
+      )}
+
+      {typeRulePrompt&&(
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--amber)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:440,width:"90vw"}}>
+          <div style={{flex:1,fontSize:13}}>
+            <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Create a type rule?</div>
+            <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
+          </div>
+          <button style={{...S.btn("primary",true),background:"var(--amber)",borderColor:"var(--amber)"}} onClick={confirmTypeRule}>Save Rule</button>
+          <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>✕</button>
+        </div>
+      )}
+
+      {selectedTxns.size > 0 && (
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:210,
+          background:"var(--card)",border:"1px solid var(--border2)",borderRadius:12,
+          padding:"12px 18px",boxShadow:"0 8px 32px #00000090",
+          display:"flex",alignItems:"center",gap:10,maxWidth:640,width:"92vw",flexWrap:"wrap"}}>
+          <span style={{fontSize:13,fontWeight:700,color:"var(--cyan)",marginRight:4,flexShrink:0}}>
+            {selectedTxns.size} selected
+          </span>
+          {/* Category */}
+          <select style={{...S.select,padding:"6px 8px",fontSize:12,flex:1,minWidth:130}}
+            defaultValue=""
+            onChange={e=>{ if(e.target.value) bulkSetCategory(e.target.value); e.target.value=""; }}>
+            <option value="" disabled>Set category…</option>
+            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="__clear__">Clear category</option>
+          </select>
+          {/* Type */}
+          <select style={{...S.select,padding:"6px 8px",fontSize:12,flex:1,minWidth:120}}
+            defaultValue=""
+            onChange={e=>{ if(e.target.value) bulkSetType(e.target.value); e.target.value=""; }}>
+            <option value="" disabled>Set type…</option>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+            <option value="transfer">Transfer</option>
+            <option value="reimbursement">Reimbursement</option>
+            <option value="refund">Refund</option>
+          </select>
+          <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
+          <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
+          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✕</button>
         </div>
       )}
 

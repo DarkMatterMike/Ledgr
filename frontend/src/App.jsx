@@ -1986,6 +1986,7 @@ function AppInner() {
   const [budgetExpandedCatId, setBudgetExpandedCatId] = useState(null);
   const [budgetTxnSearch, setBudgetTxnSearch] = useState("");
   const [drillTxnSearch, setDrillTxnSearch] = useState("");
+  const [budgetDrillCat, setBudgetDrillCat] = useState(null);
   const [calendarDay,      setCalendarDay]      = useState(null);
   const [calendarAcctPopup,setCalendarAcctPopup]= useState(null);
   const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
@@ -2282,6 +2283,11 @@ function AppInner() {
   const catTxns = useMemo(() =>
     drillCat ? monthTxns.filter(t=>t.categoryId===drillCat.id&&t.amount<0).sort((a,b)=>b.date.localeCompare(a.date)) : [],
   [drillCat, monthTxns]);
+
+  // Separate from drillCat — used by budgets page right panel only, never triggers the dashboard modal
+  const budgetCatTxns = useMemo(() =>
+    budgetDrillCat ? monthTxns.filter(t=>t.categoryId===budgetDrillCat.id&&t.amount<0).sort((a,b)=>b.date.localeCompare(a.date)) : [],
+  [budgetDrillCat, monthTxns]);
 
   const recurringTxns = useMemo(() => transactions.filter(t=>t.recurring), [transactions]);
 
@@ -3417,6 +3423,34 @@ function AppInner() {
 
           <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
             {BudgetSummaryCard}
+            {SpendingBreakdownCard}
+            {CashFlowCard}
+            {OverspendingHighlightsCard}
+            {/* Largest transactions */}
+            {(() => {
+              const largest = [...filteredTxns].filter(t => t.amount < 0).sort((a,b) => a.amount - b.amount).slice(0,5);
+              if (!largest.length) return null;
+              return (
+                <div style={{...S.card, padding:18}}>
+                  <div style={{...S.sectionHdr, marginBottom:10}}>
+                    <div style={S.cardTitle}>Largest Transactions</div>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                    {largest.map((t,i) => {
+                      const cat = catMap[t.categoryId];
+                      return (
+                        <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<largest.length-1?"1px solid var(--border)":"none"}}>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:68}}>{t.date}</div>
+                          <div style={{flex:1,minWidth:0,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                          {cat && <span style={{fontSize:11,color:cat.color,flexShrink:0,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>}
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -3999,7 +4033,7 @@ function AppInner() {
                               const remColor = over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
                               const remBg = over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
                               return (
-                                <div key={cat.id} onClick={() => setDrillCat(cat)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
+                                <div key={cat.id} onClick={() => setBudgetDrillCat(cat)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                     {editingCatNameId === cat.id ? (
@@ -4042,28 +4076,28 @@ function AppInner() {
               <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
                 <div style={{ ...S.card, padding: 18 }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
-                    <div style={S.sectionTitle}>{drillCat ? `${drillCat.name} Transactions` : 'Category Transactions'}</div>
+                    <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
                   </div>
-                  {drillCat ? (
+                  {budgetDrillCat ? (
                     <>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,paddingBottom:12,borderBottom:"1px solid var(--border)"}}>
                         <div>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                            <span style={{width:9,height:9,borderRadius:"50%",background:drillCat.color,display:"inline-block"}} />
-                            <span style={{fontSize:14,fontWeight:700,color:"var(--t1)"}}>{drillCat.name}</span>
+                            <span style={{width:9,height:9,borderRadius:"50%",background:budgetDrillCat.color,display:"inline-block"}} />
+                            <span style={{fontSize:14,fontWeight:700,color:"var(--t1)"}}>{budgetDrillCat.name}</span>
                           </div>
-                          <div style={{fontSize:12,color:"var(--t3)"}}>{catTxns.length} transaction{catTxns.length!==1?"s":""} this month</div>
+                          <div style={{fontSize:12,color:"var(--t3)"}}>{budgetCatTxns.length} transaction{budgetCatTxns.length!==1?"s":""} this month</div>
                         </div>
                         <div style={{textAlign:"right"}}>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:800,color:(spentByCat[drillCat.id]||0)>drillCat.limit?"var(--red)":"var(--t1)"}}>{fmt(spentByCat[drillCat.id]||0)}</div>
-                          <div style={{fontSize:11,color:"var(--t3)"}}>of {fmt(drillCat.limit)}</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:800,color:(spentByCat[budgetDrillCat.id]||0)>budgetDrillCat.limit?"var(--red)":"var(--t1)"}}>{fmt(spentByCat[budgetDrillCat.id]||0)}</div>
+                          <div style={{fontSize:11,color:"var(--t3)"}}>of {fmt(budgetDrillCat.limit)}</div>
                         </div>
                       </div>
-                      {catTxns.length === 0 ? (
+                      {budgetCatTxns.length === 0 ? (
                         <div style={{ color: "var(--t3)", padding: "24px 0", textAlign:"center" }}>No transactions assigned this month.</div>
                       ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "70vh", overflowY: "auto", paddingRight: 2 }}>
-                          {catTxns.map((t) => (
+                          {budgetCatTxns.map((t) => (
                             <div key={t.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "start" }}>
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>

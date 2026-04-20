@@ -401,7 +401,7 @@ export default function AiChat({
   );
 
   return (
-    <div style={{ width: "100%", height: isMobile ? "calc(100vh - 120px)" : "calc(100vh - 80px)", display: "flex", flexDirection: "column" }}>
+    <div style={{ width: "100%", height: isMobile ? "calc(100vh - 120px)" : "calc(100vh - 92px)", display: "flex", flexDirection: "column" }}>
       {isMobile ? (
         <>
           {ChatPanel}

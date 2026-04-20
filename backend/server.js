@@ -386,27 +386,6 @@ async function syncItemTransactions(userId, targetItemId = null) {
 async function applySyncResultsToDB(userId, added, modified, removed) {
   const existing  = (await getData(userId, "transactions")) || [];
   const removeIds = new Set(removed.map(r => r.transaction_id));
-
-  // Before filtering, capture metadata from removed transactions so we can
-  // carry it forward to newly-posted versions (pending → posted resolution)
-  const removedMeta = {};
-  existing.filter(t => removeIds.has(t.id)).forEach(t => {
-    const key = `${(t.merchant||t.name||"").toLowerCase().trim()}`;
-    // Only preserve if it had user-set fields worth keeping
-    if (t.recurring || t.categoryId || t.name || t.type) {
-      removedMeta[key] = {
-        categoryId:     t.categoryId,
-        name:           t.name,
-        type:           t.type,
-        recurring:      t.recurring,
-        recurringDay:   t.recurringDay,
-        recurringFreq:  t.recurringFreq,
-        recurringStart: t.recurringStart,
-        reviewed:       t.reviewed,
-      };
-    }
-  });
-
   let next = existing.filter(t => !removeIds.has(t.id));
   const modMap = Object.fromEntries(modified.map(t => [t.transaction_id, t]));
   next = next.map(t => { if (!modMap[t.id]) return t; const m = modMap[t.id]; return { ...t, date: m.date, pending: m.pending, amount: m.amount }; });
@@ -414,23 +393,13 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
   const fingerprints = new Set(next.map(t => `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`));
   const newTxns = added
     .filter(t => !existingIds.has(t.transaction_id))
-    .map(t => {
-      const merKey = (t.merchant_name || t.name || "").toLowerCase().trim();
-      const meta   = removedMeta[merKey] || {};
-      return {
-        id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
-        accountId: "a" + t.account_id, date: t.date || t.authorized_date,
-        merchant: t.merchant_name || t.name, name: meta.name || "", amount: t.amount,
-        categoryId:     meta.categoryId    || null,
-        pending:        t.pending,
-        type:           meta.type          || (t.amount < 0 ? "expense" : "income"),
-        recurring:      meta.recurring     || false,
-        recurringDay:   meta.recurringDay  || null,
-        recurringFreq:  meta.recurringFreq || null,
-        recurringStart: meta.recurringStart|| null,
-        reviewed:       meta.reviewed      || false,
-      };
-    })
+    .map(t => ({
+      id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
+      accountId: "a" + t.account_id, date: t.date || t.authorized_date,
+      merchant: t.merchant_name || t.name, name: "", amount: t.amount,
+      categoryId: null, pending: t.pending,
+      type: t.amount < 0 ? "expense" : "income", recurring: false, recurringDay: null,
+    }))
     .filter(t => {
       const fp = `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`;
       if (fingerprints.has(fp)) return false;
@@ -845,6 +814,13 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "aiCatExamples"),      getData(uid, "userProfile"),
       getData(uid, "insightsTodos"),
     ]);
+    const [analyticsInsights, dismissedPairs, scanMemory, aiConversations, aiCurrentConvId] = await Promise.all([
+      getData(uid, "analyticsInsights"),
+      getData(uid, "dismissedPairs"),
+      getData(uid, "scanMemory"),
+      getData(uid, "aiConversations"),
+      getData(uid, "aiCurrentConvId"),
+    ]);
     res.json({
       transactions:       transactions       || [],
       categories:         categories         || [],
@@ -859,6 +835,11 @@ app.get("/api/data", async (req, res) => {
       aiCatExamples:      aiCatExamples      || [],
       userProfile:        userProfile        || null,
       insightsTodos:      insightsTodos      || [],
+      analyticsInsights:  analyticsInsights  || null,
+      dismissedPairs:     dismissedPairs     || [],
+      scanMemory:         scanMemory         || null,
+      aiConversations:    aiConversations    || [],
+      aiCurrentConvId:    aiCurrentConvId    || null,
       access:             getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -870,7 +851,8 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const uid = req.user.id;
     const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
-            userProfile, insightsTodos } = req.body;
+            userProfile, insightsTodos,
+            analyticsInsights, dismissedPairs, scanMemory, aiConversations, aiCurrentConvId } = req.body;
     const ops = [];
     if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
@@ -885,6 +867,11 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiCatExamples))      ops.push(setData(uid, "aiCatExamples",      aiCatExamples));
     if (userProfile !== undefined && userProfile !== null) ops.push(setData(uid, "userProfile", userProfile));
     if (Array.isArray(insightsTodos))      ops.push(setData(uid, "insightsTodos",      insightsTodos));
+    if (analyticsInsights !== undefined)   ops.push(setData(uid, "analyticsInsights",  analyticsInsights));
+    if (Array.isArray(dismissedPairs))     ops.push(setData(uid, "dismissedPairs",     dismissedPairs));
+    if (scanMemory !== undefined)          ops.push(setData(uid, "scanMemory",         scanMemory));
+    if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
+    if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }

@@ -3349,9 +3349,6 @@ function AppInner() {
 
           <div style={{display:"flex",flexDirection:"column",gap:16}}>
             {BudgetSummaryCard}
-            {SpendingBreakdownCard}
-            {CashFlowCard}
-            {OverspendingHighlightsCard}
           </div>
         </div>
       ) : (
@@ -3415,9 +3412,6 @@ function AppInner() {
 
           <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
             {BudgetSummaryCard}
-            {SpendingBreakdownCard}
-            {CashFlowCard}
-            {OverspendingHighlightsCard}
           </div>
         </div>
       )}

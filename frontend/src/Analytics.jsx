@@ -365,13 +365,110 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
   );
 
   /* ── Main tab content ──────────────────────────────────────────── */
+  /* ── Overview sub-components ─────────────────────────────────── */
+  function SpendingBreakdown({ catTrends }) {
+    const totalSpent = catTrends.reduce((s, c) => s + c.avg, 0);
+    if (!totalSpent) return <Card><SectionHead title="Spending breakdown" sub="No spending data yet" /></Card>;
+    const size = 160, stroke = 16, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+    let offsetAcc = 0;
+    return (
+      <Card>
+        <SectionHead title="Spending breakdown" sub="Avg monthly by category" />
+        <div style={{ display:"flex", justifyContent:"center", margin:"6px 0 12px" }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
+            {catTrends.slice(0,6).map(c => {
+              const frac = c.avg / totalSpent;
+              const dash = frac * circ, gap = circ - dash;
+              const el = <circle key={c.id} cx={size/2} cy={size/2} r={r} fill="none" stroke={c.color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offsetAcc} transform={`rotate(-90 ${size/2} ${size/2})`} />;
+              offsetAcc += dash;
+              return el;
+            })}
+            <text x="50%" y="46%" textAnchor="middle" fill="var(--t1)" style={{ fontSize:"11px", fontWeight:700, fontFamily:"var(--font-mono)" }}>{fmt(totalSpent)}</text>
+            <text x="50%" y="57%" textAnchor="middle" fill="var(--t3)" style={{ fontSize:"9px" }}>avg/mo</text>
+          </svg>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {catTrends.slice(0,5).map(c => (
+            <div key={c.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                <span style={{ width:9, height:9, borderRadius:"50%", background:c.color, flexShrink:0 }} />
+                <span style={{ fontSize:12, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</span>
+              </div>
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:12, fontWeight:700, color:"var(--t1)", flexShrink:0 }}>{fmt(c.avg)}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  function CashFlowBarChart({ last6, cashMax }) {
+    return (
+      <Card>
+        <SectionHead title="Cash flow" sub="Last 6 months · income vs spending" />
+        <div style={{ display:"grid", gridTemplateColumns:`repeat(${last6.length},1fr)`, gap:6, alignItems:"end" }}>
+          {last6.map(m => (
+            <div key={m.ym} style={{ display:"flex", flexDirection:"column", gap:3 }}>
+              <div style={{ display:"flex", gap:2, alignItems:"flex-end", height:100 }}>
+                {[{ v:m.income, c:"var(--green)" }, { v:m.spending, c:m.spending>m.income?"var(--red)":"var(--cyan)" }].map(({ v, c }, j) => (
+                  <div key={j} style={{ flex:1, display:"flex", alignItems:"flex-end" }}>
+                    <div style={{ width:"100%", height:cashMax>0?Math.round((v/cashMax)*100):0, minHeight:v>0?2:0, background:c, borderRadius:"2px 2px 0 0", transition:"height 0.4s" }} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center" }}>{m.label}</div>
+              <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center", color:m.income>=m.spending?"var(--green)":"var(--red)" }}>
+                {m.income>=m.spending?"+":"-"}{fmt(Math.abs(m.income-m.spending))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color:"var(--t3)" }}>
+          {[["var(--green)","Income"],["var(--cyan)","Spending"]].map(([c,l]) => (
+            <div key={l} style={{ display:"flex", alignItems:"center", gap:5 }}>
+              <div style={{ width:8, height:8, background:c, borderRadius:2 }} />{l}
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  function OverspendHighlights({ budgetGrid, fmt }) {
+    const overCats = budgetGrid.filter(r => r.streak >= 1 || r.overMs >= 2);
+    return (
+      <Card>
+        <SectionHead title="Overspending highlights" sub="Categories over budget recently" />
+        {overCats.length === 0 ? (
+          <div style={{ color:"var(--green)", fontSize:13 }}>No categories over budget.</div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {overCats.slice(0, 5).map(row => (
+              <div key={row.cat.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 12px" }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, marginBottom:4 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                    <span style={{ width:8, height:8, borderRadius:"50%", background:row.cat.color, flexShrink:0 }} />
+                    <span style={{ fontSize:12, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{row.cat.name}</span>
+                  </div>
+                  {row.streak >= 1 && <span style={{ fontSize:11, color:"var(--red)", fontWeight:600, flexShrink:0 }}>{row.streak}mo streak</span>}
+                </div>
+                <div style={{ fontSize:11, color:"var(--t3)" }}>Over budget {row.overMs} of {row.allMs} months · avg {fmt(row.avgSp)}/mo vs {fmt(row.cat.limit)} limit</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    );
+  }
+
   const MainContent = (
     <div>
-      {/* Tab bar */}
+      {/* Tab bar — original pill style, auto-width on desktop, full-width on mobile */}
       <div style={{ marginBottom:16 }}>
-        <div style={{ display:"flex", gap:4, background:"var(--surface)", borderRadius:"var(--radius)", padding:4, width:"100%" }}>
+        <div style={{ display:"flex", gap:4, background:"var(--surface)", borderRadius:"var(--radius)", padding:4, ...(isMobile ? { width:"100%" } : { display:"inline-flex" }) }}>
           {TABS.map(t => (
-            <Tab key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} active={tab===t} onClick={() => setTab(t)} style={{ flex:1 }} />
+            <Tab key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} active={tab===t} onClick={() => setTab(t)} style={isMobile ? { flex:1 } : {}} />
           ))}
         </div>
       </div>
@@ -390,108 +487,81 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
 
       {/* ═══ OVERVIEW ═══════════════════════════════════════════════ */}
       {tab === "overview" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-          {/* Stat cards — mobile only (desktop has sidebar) */}
-          {isMobile && (
+        isMobile ? (
+          /* Mobile: stacked */
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
               <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
                 sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
-              <StatCard label="Avg monthly income" value={fmt(avgIncome)}
-                sub={monthlyIncome>0?"From your profile":"From transactions"} accent="var(--green)" />
               <StatCard label="Savings rate" value={savingsRate!=null?`${savingsRate}%`:"—"}
                 sub={savingsRate>20?"Great shape":savingsRate>0?"Room to improve":"Spending > income"}
                 subColor={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"}
                 accent={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"} />
-              <StatCard label="Recurring / month" value={fmt(subscriptionTotal)}
-                sub={`${subscriptions.length} subscriptions`} accent="var(--amber)" />
+              <StatCard label="Subscriptions" value={fmt(subscriptionTotal)} sub={`${subscriptions.length} recurring`} accent="var(--amber)" />
+              <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
+                sub={efficiencyScore>=80?"On track":efficiencyScore>=60?"Some overspends":"Needs attention"}
+                subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
+                accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
             </div>
-          )}
-
-          {/* Net worth — mobile only, desktop shows in sidebar */}
-          {isMobile && (
-            <Card>
-              <SectionHead title="Net worth trend" sub={`Current: ${fmt(currentNetWorth)}`} />
-              <LineChart points={netWorthSeries} height={100} />
-              {(userProfile?.manualAssets||[]).length > 0 && (
-                <div style={{ fontSize:11, color:"var(--t3)", marginTop:8 }}>
-                  Assets: {fmt((userProfile.manualAssets||[]).reduce((s,a)=>s+(a.value||0),0))} · Liabilities: {fmt((userProfile.manualLiabilities||[]).reduce((s,l)=>s+(l.value||0),0))}
-                </div>
-              )}
-            </Card>
-          )}
-
-          <div>
-            <Card>
-              <SectionHead title="Monthly cash flow" sub="Last 6 months" />
-              <div style={{ display:"grid", gridTemplateColumns:`repeat(${last6.length},1fr)`, gap:6, alignItems:"end" }}>
-                {last6.map(m => (
-                  <div key={m.ym} style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                    <div style={{ display:"flex", gap:2, alignItems:"flex-end", height:70 }}>
-                      {[{ v:m.income, c:"var(--green)" }, { v:m.spending, c:m.spending>m.income?"var(--red)":"var(--cyan)" }].map(({ v, c }, j) => (
-                        <div key={j} style={{ flex:1, display:"flex", alignItems:"flex-end" }}>
-                          <div style={{ width:"100%", height: cashMax>0?Math.round((v/cashMax)*70):0,
-                            minHeight:v>0?2:0, background:c, borderRadius:"2px 2px 0 0", transition:"height 0.4s" }} />
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center" }}>{m.label}</div>
-                    <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center", color:m.income>=m.spending?"var(--green)":"var(--red)" }}>
-                      {m.income>=m.spending?"+":"-"}{fmt(Math.abs(m.income-m.spending))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color:"var(--t3)" }}>
-                {[["var(--green)","Income"],["var(--cyan)","Spending"]].map(([c,l]) => (
-                  <div key={l} style={{ display:"flex", alignItems:"center", gap:5 }}>
-                    <div style={{ width:8, height:8, background:c, borderRadius:2 }} />{l}
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <Card><SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} /><LineChart points={netWorthSeries} height={90} /></Card>
+            <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
+            <CashFlowBarChart last6={last6} cashMax={cashMax} />
+            <OverspendHighlights budgetGrid={budgetGrid} fmt={fmt} />
+            <Card><SectionHead title="Largest transactions" sub="All time" />{biggestTxns.map((t,i)=>{const cat=catMap[t.categoryId];return(<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}><div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:70}}>{t.date}</div><div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>{cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}<div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div></div>);})}</Card>
           </div>
-
-          {retirementProjection.target > 0 && (
-            <Card>
-              <SectionHead title="Retirement projection" sub={`Age ${userProfile?.targets?.retirementAge||65} target · 7% avg return assumed`} />
-              <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr 1fr":"repeat(4,1fr)", gap:10 }}>
-                {[
-                  { label:"Projected nest egg", value:fmt(retirementProjection.fv), color:retirementProjection.fv>=retirementProjection.target?"var(--green)":"var(--amber)" },
-                  { label:"Target", value:fmt(retirementProjection.target), color:"var(--t1)" },
-                  { label:"Years to retire", value:`${retirementProjection.years}y`, color:"var(--t1)" },
-                  { label:"Monthly savings", value:fmt(retirementProjection.monthlySavings), color:retirementProjection.monthlySavings>0?"var(--green)":"var(--red)" },
-                ].map(s => (
-                  <div key={s.label} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 12px" }}>
-                    <div style={{ fontSize:10, color:"var(--t3)", marginBottom:4 }}>{s.label}</div>
-                    <div style={{ fontFamily:"var(--font-mono)", fontSize:16, fontWeight:700, color:s.color }}>{s.value}</div>
+        ) : (
+          /* Desktop: two-column as specified */
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:16, alignItems:"start" }}>
+            {/* Column 1 */}
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              {/* Row 1: Net worth */}
+              <Card>
+                <SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} />
+                <LineChart points={netWorthSeries} height={90} />
+                {(userProfile?.manualAssets||[]).length > 0 && (
+                  <div style={{ fontSize:11, color:"var(--t3)", marginTop:8 }}>
+                    Assets: {fmt((userProfile.manualAssets||[]).reduce((s,a)=>s+(a.value||0),0))} · Liabilities: {fmt((userProfile.manualLiabilities||[]).reduce((s,l)=>s+(l.value||0),0))}
                   </div>
-                ))}
+                )}
+              </Card>
+              {/* Row 2: Spending Breakdown */}
+              <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
+              {/* Row 3: 4 mini stats */}
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
+                  sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
+                <StatCard label="Savings rate" value={savingsRate!=null?`${savingsRate}%`:"—"}
+                  sub={savingsRate>20?"Great shape":savingsRate>0?"Room to improve":"Spending > income"}
+                  subColor={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"}
+                  accent={savingsRate>20?"var(--green)":savingsRate>0?"var(--amber)":"var(--red)"} />
+                <StatCard label="Subscriptions" value={fmt(subscriptionTotal)} sub={`${subscriptions.length} recurring · ${fmt(subscriptionTotal*12)}/yr`} accent="var(--amber)" />
+                <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
+                  sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
+                  subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
+                  accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
               </div>
-              {retirementProjection.fv < retirementProjection.target && (
-                <div style={{ marginTop:10, fontSize:12, color:"var(--amber)", lineHeight:1.5 }}>
-                  ⚠ Projected {fmt(retirementProjection.fv)} — {fmt(retirementProjection.target-retirementProjection.fv)} short.
-                  Consider increasing monthly savings by {fmt((retirementProjection.target-retirementProjection.fv)/(retirementProjection.years*12))}/mo.
-                </div>
-              )}
-            </Card>
-          )}
-
-          <Card>
-            <SectionHead title="Largest transactions" sub="All time" />
-            {biggestTxns.map((t, i) => {
-              const cat = catMap[t.categoryId];
-              return (
-                <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0",
-                  borderBottom: i<biggestTxns.length-1?"1px solid var(--border)":"none" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", flexShrink:0, width:70 }}>{t.date}</div>
-                  <div style={{ flex:1, fontSize:13, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
-                  {cat && <span style={{ fontSize:11, color:cat.color, flexShrink:0 }}>{cat.name}</span>}
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--red)", flexShrink:0 }}>{fmt(Math.abs(t.amount))}</div>
-                </div>
-              );
-            })}
-          </Card>
-        </div>
+            </div>
+            {/* Column 2 */}
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <CashFlowBarChart last6={last6} cashMax={cashMax} />
+              <OverspendHighlights budgetGrid={budgetGrid} fmt={fmt} />
+              <Card>
+                <SectionHead title="Largest transactions" sub="All time" />
+                {biggestTxns.map((t,i)=>{
+                  const cat=catMap[t.categoryId];
+                  return(
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:70}}>{t.date}</div>
+                      <div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      {cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                    </div>
+                  );
+                })}
+              </Card>
+            </div>
+          </div>
+        )
       )}
 
       {/* ═══ SPENDING ════════════════════════════════════════════════ */}

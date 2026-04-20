@@ -231,15 +231,15 @@ function Modal({ title, onClose, children, actions }) {
   );
 }
 function Toast({ msg }) { return msg ? <div style={S.toast} className="ledgr-toast-anim">✓ {msg}</div> : null; }
-function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, style={} }) {
+function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={} }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState(null);
   const fetchToken = useCallback(async () => {
     setLoading(true); setError(null);
-    try { const { link_token } = await api.createLinkToken(products); setLinkToken(link_token); }
+    try { const { link_token } = await api.createLinkToken(products, itemId); setLinkToken(link_token); }
     catch (e) { setError(e.message); } finally { setLoading(false); }
-  }, [products]);
+  }, [products, itemId]);
   const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
@@ -4159,11 +4159,12 @@ function AppInner() {
                           </div>
                           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                             <PlaidButton
+                              itemId={item.item_id}
                               onSuccess={async (publicToken, institution) => {
-                                // Disconnect the stale item first, then connect the new one
-                                await disconnectItem(item.item_id);
-                                setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
+                                // Update mode: same item_id is preserved server-side
+                                // Just exchange the new public token — no disconnect needed
                                 await handlePlaidSuccess(publicToken, institution || item.institution);
+                                setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
                                 setReconnectingItemId(null);
                               }}
                               onExit={() => setReconnectingItemId(null)}

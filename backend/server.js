@@ -124,9 +124,12 @@ async function initDB() {
       access_token TEXT NOT NULL,
       institution  TEXT,
       cursor       TEXT,
-      created_at   BIGINT
+      created_at   BIGINT,
+      needs_reauth BOOLEAN DEFAULT false
     );
   `);
+  // Add needs_reauth column if missing (for existing DBs)
+  await pool.query(`ALTER TABLE plaid_items ADD COLUMN IF NOT EXISTS needs_reauth BOOLEAN DEFAULT false`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id           SERIAL PRIMARY KEY,
@@ -374,8 +377,17 @@ async function syncItemTransactions(userId, targetItemId = null) {
         allRemoved.push(...removed.map(t => ({ transaction_id: t.transaction_id })));
         cursor = next_cursor; hasMore = has_more;
         await updateCursor(item.item_id, cursor);
+        // Clear reauth flag on successful sync
+        await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [item.item_id]);
       } catch (err) {
-        console.error(`sync error for item ${item.item_id}:`, err.response?.data || err.message);
+        const code = err.response?.data?.error_code;
+        if (code === "ITEM_LOGIN_REQUIRED" || code === "ITEM_NOT_FOUND") {
+          // Mark item as needing re-auth so frontend can show the warning
+          await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item.item_id]);
+          console.error(`Item ${item.item_id} needs re-auth (${code})`);
+        } else {
+          console.error(`sync error for item ${item.item_id}:`, err.response?.data || err.message);
+        }
         hasMore = false;
       }
     }
@@ -877,16 +889,60 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
       if (!isPremium) return res.status(402).json({ error: "premium_required" });
     }
 
-    const response = await plaidClient.linkTokenCreate({
+    const params = {
       user: { client_user_id: req.user.id },
       client_name: "Ledgr Finance",
-      products: requestedProducts, country_codes: COUNTRY_CODES, language: "en",
+      country_codes: COUNTRY_CODES, language: "en",
       redirect_uri: process.env.FRONTEND_URL,
-    });
+      webhook: `${process.env.BACKEND_URL || "https://ledgr-production-9e35.up.railway.app"}/api/plaid/webhook`,
+    };
+
+    // Update mode — re-authenticate an existing item without creating a new one
+    if (req.body?.item_id) {
+      const item = await getItem(req.body.item_id);
+      if (!item || item.user_id !== req.user.id) return res.status(404).json({ error: "Item not found" });
+      params.access_token = item.access_token;
+      // No products needed for update mode
+    } else {
+      params.products = requestedProducts;
+    }
+
+    const response = await plaidClient.linkTokenCreate(params);
     res.json({ link_token: response.data.link_token });
   } catch (err) {
     console.error("create_link_token error:", err.response?.data || err.message);
     serverError(res, err, "Failed to create link token");
+  }
+});
+
+// Plaid webhook — handles token expiry and login required notifications
+app.post("/api/plaid/webhook", express.json(), async (req, res) => {
+  try {
+    const { webhook_type, webhook_code, item_id, error: plaidError } = req.body;
+    console.log("Plaid webhook:", webhook_type, webhook_code, item_id);
+
+    if (webhook_type === "ITEM") {
+      if (webhook_code === "ERROR" && plaidError?.error_code === "ITEM_LOGIN_REQUIRED") {
+        // Mark item as needing re-auth in DB so frontend can show the alert
+        await pool.query(
+          "UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1",
+          [item_id]
+        );
+        console.log(`Item ${item_id} marked needs_reauth via webhook`);
+      }
+      if (webhook_code === "PENDING_EXPIRATION") {
+        // Token expiring within ~7 days — mark for proactive warning
+        await pool.query(
+          "UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1",
+          [item_id]
+        );
+        console.log(`Item ${item_id} PENDING_EXPIRATION — marked needs_reauth`);
+      }
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Plaid webhook error:", err.message);
+    res.json({ ok: true }); // Always 200 to Plaid
   }
 });
 
@@ -896,6 +952,8 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
   try {
     const { data } = await plaidClient.itemPublicTokenExchange({ public_token });
     await saveItem(req.user.id, data.item_id, { access_token: data.access_token, institution: institution_name || "Unknown Bank", created_at: Date.now() });
+    // Clear needs_reauth flag — this item is now healthy
+    await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [data.item_id]);
     res.json({ item_id: data.item_id, institution: institution_name });
   } catch (err) {
     console.error("exchange_public_token error:", err.response?.data || err.message);
@@ -905,7 +963,7 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
 
 app.get("/api/plaid/items", async (req, res) => {
   try {
-    const items = (await getItemsForUser(req.user.id)).map(({ item_id, institution, created_at }) => ({ item_id, institution, created_at }));
+    const items = (await getItemsForUser(req.user.id)).map(({ item_id, institution, created_at, needs_reauth }) => ({ item_id, institution, created_at, needs_reauth: !!needs_reauth }));
     res.json({ items });
   } catch (err) { serverError(res, err); }
 });
@@ -1367,22 +1425,31 @@ app.post("/api/ai/insights", async (req, res) => {
     const apiKey = decrypt(encryptedKey);
     if (!apiKey) return res.status(402).json({ error: "no_api_key" });
 
-    const corrections = context.userCorrections ? `\n\nUSER CORRECTIONS — treat these as ground truth, override any conflicting data:\n${context.userCorrections}` : "";
+    // If user provided corrections, mark income as user-corrected so Claude doesn't flag it as approximate
+    const enrichedContext = { ...context };
+    if (context.userCorrections) {
+      enrichedContext.incomeSource = "user-corrected — treat userCorrections as ground truth, do not question income figures";
+    }
+
+    const correctionsBlock = context.userCorrections
+      ? `\nUSER CORRECTIONS (highest priority — override anything in the data below):\n${context.userCorrections}\n`
+      : "";
 
     const prompt = `You are a personal finance advisor. Write a concise honest financial health summary.
 
-IMPORTANT RULES:
-- Use the categoryBreakdown field to verify all spending numbers — do your own math, don't just trust pre-computed totals
-- The subscriptions list may include large recurring items like rent — cross-check against categoryBreakdown before calling anything a "subscription"
-- If incomeSource is "estimated from transactions", treat avgMonthlyIncome as approximate and say so
-- Never invent numbers — only reference figures present in the data${corrections}
-
+RULES (follow strictly):
+- USER CORRECTIONS override all computed data. If corrections state an income figure, use it without question and do NOT generate an insight telling the user to verify it.
+- Use categoryBreakdown to verify spending numbers — do your own math.
+- Cross-check subscriptions against categoryBreakdown before calling anything a subscription. Large recurring items like rent are NOT subscriptions.
+- Only flag income as approximate if incomeSource says "estimated" AND no userCorrections were provided.
+- Never invent numbers not present in the data.
+${correctionsBlock}
 Financial data:
-${JSON.stringify(context, null, 2)}
+${JSON.stringify(enrichedContext, null, 2)}
 
-Return ONLY valid JSON (no markdown fences) with exactly this shape:
-{"headline":"one sentence summary","score":75,"scoreLabel":"Good","insights":[{"type":"positive|warning|neutral","title":"short title","body":"1-2 sentences with specific numbers","suggestion":"one concrete improvement action — omit this field entirely if type is positive"}],"recommendation":"one concrete action for this month"}
-Include 3-5 insights. Be specific with actual dollar amounts from the data. Only include suggestion for warning/neutral insights.`;
+Return ONLY valid JSON (no markdown fences):
+{"headline":"one sentence summary","score":75,"scoreLabel":"Good","insights":[{"type":"positive|warning|neutral","title":"short title","body":"1-2 sentences with specific numbers","suggestion":"one concrete action — omit entirely if type is positive"}],"recommendation":"one concrete action for this month"}
+Include 3-5 insights. Be specific with dollar amounts. Only include suggestion for warning/neutral insights.`;
 
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

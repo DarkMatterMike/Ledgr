@@ -189,7 +189,7 @@ const S = {
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
   pageTitle:    { fontFamily:"var(--font-disp)", fontSize:17, fontWeight:700, letterSpacing:"-0.5px", color:"var(--t1)", lineHeight:1 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.1px", color:"var(--t1)" },
-  cardTitle:    { fontSize:13, fontWeight:700, color:"var(--t1)", marginBottom:12 },
+  cardTitle:    { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"10px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
   td:           { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
@@ -2064,9 +2064,10 @@ function AppInner() {
     onData: (data) => {
       portfolio.loadFromData(data);
       aiChat.loadFromData(data);
-      if (data.aiCatExamples) setAiCatExamples(data.aiCatExamples);
-      if (data.userProfile)   setUserProfile(p => ({ ...p, ...data.userProfile }));
-      if (data.insightsTodos) setInsightsTodos(data.insightsTodos);
+      if (data.aiCatExamples)       setAiCatExamples(data.aiCatExamples);
+      if (data.userProfile)         setUserProfile(p => ({ ...p, ...data.userProfile }));
+      if (data.insightsTodos)       setInsightsTodos(data.insightsTodos);
+      if (data.analyticsInsights)   setAnalyticsInsights(data.analyticsInsights);
     },
   });
 
@@ -5866,7 +5867,10 @@ function AppInner() {
         scheduleSaveRef.current?.({ userProfile: p });
       }}
       aiInsights={analyticsInsights}
-      onSetAiInsights={setAnalyticsInsights}
+      onSetAiInsights={insights => {
+        setAnalyticsInsights(insights);
+        scheduleSaveRef.current?.({ analyticsInsights: insights });
+      }}
       todos={insightsTodos}
       onTodosChange={todos => {
         setInsightsTodos(todos);

@@ -10,6 +10,7 @@ import { usePortfolio } from "./hooks/usePortfolio.js";
 import { useAiChat } from "./hooks/useAiChat.js";
 import PortfolioView from "./PortfolioView.jsx";
 import AiChat from "./AiChat.jsx";
+import Analytics from "./Analytics.jsx";
 
 /* ─── Mobile detection ──────────────────────────────────────────── */
 function useIsMobile() {
@@ -804,22 +805,36 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
             {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
           </button>
         ))}
-        {/* Admin nav — owner only */}
+        {/* Owner-only nav items */}
         {currentUser?.role === "owner" && (
-          <button onClick={()=>onNav("admin")}
-            style={{
-              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-              borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
-              border:`1px solid ${view==="admin"?"#00d4ff33":"transparent"}`,
-              background:view==="admin"?"var(--cyan-dim)":"transparent",
-              color:view==="admin"?"var(--cyan)":"var(--t2)",
-              width:"100%",textAlign:"left",transition:"all 0.15s",
-              marginTop:8, borderTop:"1px solid var(--border)",paddingTop:16,
-            }}>
-            <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>⬡</span>
-            <span>Admin</span>
-            {view==="admin"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
-          </button>
+          <div style={{ marginTop:8, borderTop:"1px solid var(--border)", paddingTop:8, display:"flex", flexDirection:"column", gap:2 }}>
+            <button onClick={()=>onNav("analytics")}
+              style={{
+                display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
+                borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+                border:`1px solid ${view==="analytics"?"#00d4ff33":"transparent"}`,
+                background:view==="analytics"?"var(--cyan-dim)":"transparent",
+                color:view==="analytics"?"var(--cyan)":"var(--t2)",
+                width:"100%",textAlign:"left",transition:"all 0.15s",
+              }}>
+              <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>◎</span>
+              <span>Analytics</span>
+              {view==="analytics"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
+            </button>
+            <button onClick={()=>onNav("admin")}
+              style={{
+                display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
+                borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+                border:`1px solid ${view==="admin"?"#00d4ff33":"transparent"}`,
+                background:view==="admin"?"var(--cyan-dim)":"transparent",
+                color:view==="admin"?"var(--cyan)":"var(--t2)",
+                width:"100%",textAlign:"left",transition:"all 0.15s",
+              }}>
+              <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>⬡</span>
+              <span>Admin</span>
+              {view==="admin"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
+            </button>
+          </div>
         )}
       </nav>
       <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:8}}>
@@ -1104,7 +1119,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -1115,6 +1130,9 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   const [pwSuccess,  setPwSuccess]  = useState(false);
   const [savingPw,   setSavingPw]   = useState(false);
   const [legalDoc,   setLegalDoc]   = useState(null); // "privacy" | "terms" | null
+
+  // Financial profile local state
+  const [profileForm, setProfileForm] = useState(null); // null = not editing
 
   async function saveName() {
     if (!name.trim()) return;
@@ -1315,6 +1333,117 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             {savingPw ? "Updating…" : "Update Password"}
           </button>
         </div>
+      </SettingsSection>
+
+      {/* Financial Profile */}
+      <SettingsSection title="Financial Profile">
+        <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14, lineHeight:1.6 }}>
+          Set your income and financial targets to power the Analytics page — savings rate, net worth projections, and retirement estimates.
+        </div>
+        {profileForm ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+
+            {/* Income */}
+            <div>
+              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:6 }}>Monthly Income (after tax)</div>
+              <input type="number" style={S.input} placeholder="0"
+                value={profileForm.monthlyIncome || ""}
+                onChange={e => setProfileForm(p => ({ ...p, monthlyIncome: parseFloat(e.target.value) || 0 }))} />
+            </div>
+
+            {/* Targets */}
+            <div>
+              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Targets</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                {[
+                  { key:"savingsGoal",            label:"Monthly savings goal" },
+                  { key:"emergencyFund",           label:"Emergency fund target" },
+                  { key:"netWorthTarget",          label:"Net worth target" },
+                  { key:"retirementTargetAmount",  label:"Retirement nest egg" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>{label}</div>
+                    <input type="number" style={{ ...S.input, fontSize:13 }} placeholder="0"
+                      value={profileForm.targets?.[key] || ""}
+                      onChange={e => setProfileForm(p => ({ ...p, targets: { ...p.targets, [key]: parseFloat(e.target.value) || 0 } }))} />
+                  </div>
+                ))}
+                <div>
+                  <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Retirement age</div>
+                  <input type="number" style={{ ...S.input, fontSize:13 }} placeholder="65"
+                    value={profileForm.targets?.retirementAge || ""}
+                    onChange={e => setProfileForm(p => ({ ...p, targets: { ...p.targets, retirementAge: parseInt(e.target.value) || 65 } }))} />
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Assets */}
+            <div>
+              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Manual Assets</div>
+              {(profileForm.manualAssets || []).map((a, i) => (
+                <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
+                  <input style={{ ...S.input, flex:2, fontSize:13 }} placeholder="Name (e.g. Home, Car)"
+                    value={a.name} onChange={e => setProfileForm(p => {
+                      const assets = [...p.manualAssets]; assets[i] = { ...assets[i], name: e.target.value }; return { ...p, manualAssets: assets };
+                    })} />
+                  <input type="number" style={{ ...S.input, flex:1, fontSize:13 }} placeholder="Value"
+                    value={a.value || ""} onChange={e => setProfileForm(p => {
+                      const assets = [...p.manualAssets]; assets[i] = { ...assets[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualAssets: assets };
+                    })} />
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>✕</button>
+                </div>
+              ))}
+              <button style={{ ...S.btn("ghost",true), width:"100%" }}
+                onClick={() => setProfileForm(p => ({ ...p, manualAssets: [...(p.manualAssets||[]), { name:"", value:0 }] }))}>
+                + Add Asset
+              </button>
+            </div>
+
+            {/* Manual Liabilities */}
+            <div>
+              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Manual Liabilities</div>
+              {(profileForm.manualLiabilities || []).map((l, i) => (
+                <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
+                  <input style={{ ...S.input, flex:2, fontSize:13 }} placeholder="Name (e.g. Mortgage, Loan)"
+                    value={l.name} onChange={e => setProfileForm(p => {
+                      const liabs = [...p.manualLiabilities]; liabs[i] = { ...liabs[i], name: e.target.value }; return { ...p, manualLiabilities: liabs };
+                    })} />
+                  <input type="number" style={{ ...S.input, flex:1, fontSize:13 }} placeholder="Amount"
+                    value={l.value || ""} onChange={e => setProfileForm(p => {
+                      const liabs = [...p.manualLiabilities]; liabs[i] = { ...liabs[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualLiabilities: liabs };
+                    })} />
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>✕</button>
+                </div>
+              ))}
+              <button style={{ ...S.btn("ghost",true), width:"100%" }}
+                onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: [...(p.manualLiabilities||[]), { name:"", value:0 }] }))}>
+                + Add Liability
+              </button>
+            </div>
+
+            <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+              <button style={S.btn("ghost")} onClick={() => setProfileForm(null)}>Cancel</button>
+              <button style={S.btn("primary")} onClick={() => { onSaveProfile(profileForm); setProfileForm(null); showToast("Profile saved"); }}>Save Profile</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+              {[
+                { label:"Monthly income", value: userProfile?.monthlyIncome ? `$${(userProfile.monthlyIncome).toLocaleString()}` : "Not set" },
+                { label:"Retirement age", value: userProfile?.targets?.retirementAge || "Not set" },
+                { label:"Net worth target", value: userProfile?.targets?.netWorthTarget ? `$${(userProfile.targets.netWorthTarget).toLocaleString()}` : "Not set" },
+                { label:"Retirement target", value: userProfile?.targets?.retirementTargetAmount ? `$${(userProfile.targets.retirementTargetAmount).toLocaleString()}` : "Not set" },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 12px" }}>
+                  <div style={{ fontSize:11, color:"var(--t3)", marginBottom:3 }}>{label}</div>
+                  <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", fontFamily:"var(--font-mono)" }}>{value}</div>
+                </div>
+              ))}
+            </div>
+            <button style={{ ...S.btn("ghost"), width:"100%" }} onClick={() => setProfileForm({ ...userProfile })}>Edit Profile</button>
+          </div>
+        )}
       </SettingsSection>
 
       {/* Data export */}
@@ -1903,6 +2032,20 @@ function AppInner() {
   const [aiCatExamples, setAiCatExamples] = useState([]);
   const [autoCatRunning, setAutoCatRunning] = useState(false);
 
+  /* ── User profile (income, assets, targets) ── */
+  const [userProfile, setUserProfile] = useState({
+    monthlyIncome: 0,
+    manualAssets:       [], // [{id, name, value}]
+    manualLiabilities:  [], // [{id, name, value}]
+    targets: {
+      savingsGoal:             0,
+      emergencyFund:           0,
+      netWorthTarget:          0,
+      retirementAge:           65,
+      retirementTargetAmount:  0,
+    },
+  });
+
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
@@ -1912,6 +2055,7 @@ function AppInner() {
       portfolio.loadFromData(data);
       aiChat.loadFromData(data);
       if (data.aiCatExamples) setAiCatExamples(data.aiCatExamples);
+      if (data.userProfile)   setUserProfile(p => ({ ...p, ...data.userProfile }));
     },
   });
 
@@ -5608,6 +5752,11 @@ function AppInner() {
       setPlaidItems={setPlaidItems}
       plaidItems={plaidItems}
       access={access}
+      userProfile={userProfile}
+      onSaveProfile={p => {
+        setUserProfile(p);
+        scheduleSaveRef.current?.({ userProfile: p });
+      }}
     />
   );
 
@@ -5665,9 +5814,25 @@ function AppInner() {
     />
   );
 
+  const AnalyticsPage = (
+    <Analytics
+      transactions={transactions}
+      categories={categories}
+      accounts={accounts}
+      catMap={catMap}
+      isMobile={isMobile}
+      hasApiKey={aiChat.hasApiKey}
+      userProfile={userProfile}
+      onSaveProfile={p => {
+        setUserProfile(p);
+        scheduleSaveRef.current?.({ userProfile: p });
+      }}
+    />
+  );
+
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, settings:SettingsPage, admin:AdminPage }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, settings:SettingsPage, admin:AdminPage };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>

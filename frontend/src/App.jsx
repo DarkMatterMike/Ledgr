@@ -188,7 +188,8 @@ const S = {
   toast:        { position:"fixed", bottom:24, right:16, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"12px 18px", fontSize:13, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
   monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 16px", display:"flex", alignItems:"center", gap:16, fontSize:12, color:"var(--t2)", marginBottom:20, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
-  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:16, fontWeight:700, letterSpacing:"-0.2px" },
+  pageTitle:    { fontFamily:"var(--font-disp)", fontSize:22, fontWeight:800, letterSpacing:"-0.5px", color:"var(--t1)" },
+  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.1px", color:"var(--t1)" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"10px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
   td:           { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
@@ -3472,7 +3473,7 @@ function AppInner() {
           <div>
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
-          <div style={S.sectionTitle}>All Transactions</div>
+          <div style={S.pageTitle}>All Transactions</div>
           <div style={{textAlign:"right"}}>
             <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
             <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Total Balance</div>
@@ -3750,7 +3751,7 @@ function AppInner() {
   const Budgets = (
     <div>
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
-        <div style={S.sectionTitle}>Budget Categories</div>
+        <div style={S.pageTitle}>Budget Categories</div>
         <div style={{ display:"flex", gap:8 }}>
           {aiChat.hasApiKey && (
             <button style={S.btn("ghost", true)} disabled={suggestingLimits}
@@ -4087,7 +4088,7 @@ function AppInner() {
       left={
         <div>
           <div style={{...S.sectionHdr,marginBottom:8}}>
-            <div style={S.sectionTitle}>Accounts</div>
+            <div style={S.pageTitle}>Accounts</div>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank"/>
               <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
@@ -4214,7 +4215,7 @@ function AppInner() {
       left={
         <div>
           <div style={{...S.sectionHdr,marginBottom:6}}>
-            <div style={S.sectionTitle}>Auto-Categorization Rules</div>
+            <div style={S.pageTitle}>Auto-Categorization Rules</div>
             <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
           </div>
           <p style={{fontSize:12,color:"var(--t3)",marginBottom:4,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync. Manual rules always take priority over AI rules.</p>
@@ -4352,7 +4353,7 @@ function AppInner() {
     const MobileCalendarView = (
       <div>
         <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
-          <div style={S.sectionTitle}>Recurring Calendar</div>
+          <div style={S.pageTitle}>Recurring Calendar</div>
           <div style={{ fontSize: 13, color: "var(--t2)" }}>{recurringTxns.length} recurring</div>
         </div>
 
@@ -4809,7 +4810,7 @@ function AppInner() {
           }}
         >
           <div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--t1)" }}>
+            <div style={S.pageTitle}>
               Recurring Calendar
             </div>
             <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 4 }}>
@@ -5829,7 +5830,7 @@ function AppInner() {
   const AiChatPage = (
     <div>
       <div style={{...S.sectionHdr, marginBottom:16}}>
-        <div style={S.sectionTitle}>Ask AI</div>
+        <div style={S.pageTitle}>Ask AI</div>
       </div>
       <AiChat
       messages={aiChat.messages}

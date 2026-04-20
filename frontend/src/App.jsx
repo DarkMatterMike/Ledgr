@@ -4098,7 +4098,7 @@ function AppInner() {
         </>
       )}
 
-      {DrillDownModal}
+      {/* DrillDownModal intentionally omitted — budgets page handles expansion inline */}
     </div>
   );
   /* ── Accounts ── */

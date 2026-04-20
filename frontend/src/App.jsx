@@ -5887,17 +5887,17 @@ function AppInner() {
       <>
         {/* Mobile top bar */}
         <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,letterSpacing:"-0.5px"}}>
+            <span style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,color:"var(--cyan)",lineHeight:1,letterSpacing:"-0.5px",marginTop:1}} className="ledgr-logo-pulse">ℓ</span>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:18,fontWeight:800,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
-            <span style={{fontSize:12,color:"var(--t3)",fontWeight:500}}>{NAV.find(n=>n.id===view)?.label}</span>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳</span>}

@@ -3,7 +3,7 @@
  * Owner-only during development.
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 
 const fmt   = (n) => n == null ? "$0" : "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits:0, maximumFractionDigits:0 });
 const pct   = (n, d) => d === 0 ? 0 : Math.round((n / d) * 100);
@@ -107,11 +107,24 @@ function AdherenceCell({ spent, limit, label }) {
    MAIN
 ═══════════════════════════════════════════════════════════════════ */
 export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile }) {
+  const TABS = ["overview","spending","budget","insights"];
   const [tab,        setTab]        = useState("overview");
   const [aiInsights, setAiInsights] = useState(null);
   const [aiLoading,  setAiLoading]  = useState(false);
   const [aiError,    setAiError]    = useState(null);
+  const touchStartX = useRef(null);
   const today = new Date();
+
+  function handleTouchStart(e) { touchStartX.current = e.touches[0].clientX; }
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 50) return;
+    const idx = TABS.indexOf(tab);
+    if (dx < 0 && idx < TABS.length - 1) setTab(TABS[idx + 1]);
+    if (dx > 0 && idx > 0)               setTab(TABS[idx - 1]);
+  }
 
   /* ── 12-month data ─────────────────────────────────────────────── */
   const monthlyData = useMemo(() => {
@@ -274,8 +287,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 ${JSON.stringify(context, null, 2)}
 
 Return ONLY valid JSON (no markdown fences) with exactly this shape:
-{"headline":"one sentence summary","score":75,"scoreLabel":"Good","insights":[{"type":"positive|warning|neutral","title":"short title","body":"1-2 sentences with specific numbers"}],"recommendation":"one concrete action for this month"}
-Include 3-5 insights. Be specific. Use actual dollar amounts.`;
+{"headline":"one sentence summary","score":75,"scoreLabel":"Good","insights":[{"type":"positive|warning|neutral","title":"short title","body":"1-2 sentences with specific numbers","suggestion":"one concrete improvement action — omit this field entirely if type is positive"}],"recommendation":"one concrete action for this month"}
+Include 3-5 insights. Be specific. Use actual dollar amounts. Only include suggestion for warning/neutral insights.`;
 
       const res = await fetch(`${BASE}/api/ai/chat`, {
         method:"POST", headers:authHeaders(),
@@ -298,9 +311,10 @@ Include 3-5 insights. Be specific. Use actual dollar amounts.`;
     } finally { setAiLoading(false); }
   }, [avgSpending, avgIncome, savingsRate, momChange, currentNetWorth, retirementProjection, subscriptionTotal, subscriptions, efficiencyScore, projectedSpend, totalBudget, budgetGrid]);
 
-  /* ── Render ────────────────────────────────────────────────────── */
   return (
-    <div style={{ padding: isMobile ? 16 : 28, maxWidth:1100, margin:"0 auto" }}>
+    <div style={{ padding: isMobile ? 16 : 28 }}
+      onTouchStart={isMobile ? handleTouchStart : undefined}
+      onTouchEnd={isMobile ? handleTouchEnd : undefined}>
 
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:10 }}>
@@ -309,11 +323,23 @@ Include 3-5 insights. Be specific. Use actual dollar amounts.`;
           <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{transactions.filter(t => t.amount < 0).length} transactions · {monthlyData.filter(m => m.spending > 0).length} months of data</div>
         </div>
         <div style={{ display:"flex", gap:4, background:"var(--surface)", borderRadius:"var(--radius)", padding:4, flexWrap:"wrap" }}>
-          {["overview","spending","budget","insights"].map(t => (
+          {TABS.map(t => (
             <Tab key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} active={tab===t} onClick={() => setTab(t)} />
           ))}
         </div>
       </div>
+      {/* Swipe dots (mobile only) */}
+      {isMobile && (
+        <div style={{ display:"flex", justifyContent:"center", gap:6, marginBottom:16 }}>
+          {TABS.map(t => (
+            <div key={t} onClick={() => setTab(t)} style={{
+              width: tab===t ? 20 : 6, height:6, borderRadius:3,
+              background: tab===t ? "var(--cyan)" : "var(--border2)",
+              transition:"all 0.2s", cursor:"pointer",
+            }} />
+          ))}
+        </div>
+      )}
 
       {/* ═══ OVERVIEW ═══════════════════════════════════════════════ */}
       {tab === "overview" && (
@@ -506,42 +532,79 @@ Include 3-5 insights. Be specific. Use actual dollar amounts.`;
 
           <Card>
             <SectionHead title="12-month budget adherence" sub="Green = under · Amber = 80–100% · Red = over" />
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ borderCollapse:"collapse", minWidth:480 }}>
-                <thead>
-                  <tr>
-                    <td style={{ width:120, fontSize:10, color:"var(--t3)", paddingBottom:6, paddingRight:8 }}>Category</td>
-                    {monthlyData.map(m => (
-                      <td key={m.ym} style={{ fontSize:9, color:"var(--t3)", textAlign:"center", paddingBottom:6, width:26 }}>{m.label}</td>
-                    ))}
-                    <td style={{ fontSize:10, color:"var(--t3)", paddingBottom:6, paddingLeft:8 }}>Score</td>
-                  </tr>
-                </thead>
-                <tbody>
-                  {budgetGrid.map(row => (
-                    <tr key={row.cat.id}>
-                      <td style={{ paddingRight:8, paddingBottom:4 }}>
+            {isMobile ? (
+              /* Mobile: stacked category list with mini bar per month */
+              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                {budgetGrid.map(row => {
+                  const score = row.allMs > 0 ? Math.round((1 - row.overMs/row.allMs)*100) : null;
+                  const scoreColor = row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)";
+                  return (
+                    <div key={row.cat.id}>
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                           <span style={{ width:7, height:7, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
-                          <span style={{ fontSize:11, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:100 }}>{row.cat.name}</span>
+                          <span style={{ fontSize:12, color:"var(--t1)", fontWeight:600 }}>{row.cat.name}</span>
                         </div>
-                      </td>
-                      {row.months.map(m => (
-                        <td key={m.ym} style={{ padding:"0 1px 4px" }}>
-                          <AdherenceCell spent={m.spent} limit={m.limit} label={`${m.label}: ${fmt(m.spent)}/${fmt(m.limit)}`} />
-                        </td>
+                        {score!=null && <span style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700, color:scoreColor }}>{score}%</span>}
+                      </div>
+                      <div style={{ display:"flex", gap:2 }}>
+                        {row.months.map(m => {
+                          const ratio = m.limit > 0 ? m.spent/m.limit : 0;
+                          const color = ratio > 1 ? "var(--red)" : ratio > 0.85 ? "var(--amber)" : m.spent > 0 ? "var(--green)" : "var(--surface)";
+                          return (
+                            <div key={m.ym} title={`${m.label}: ${fmt(m.spent)}/${fmt(m.limit)}`}
+                              style={{ flex:1, height:8, borderRadius:2, background:color,
+                                opacity: m.limit > 0 ? clamp(0.3 + ratio*0.7, 0.3, 1) : 0.15 }} />
+                          );
+                        })}
+                      </div>
+                      <div style={{ display:"flex", justifyContent:"space-between", marginTop:3, fontSize:9, color:"var(--t3)" }}>
+                        <span>{monthlyData[0]?.label}</span>
+                        <span>{monthlyData[monthlyData.length-1]?.label}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Desktop: full heatmap table */
+              <div style={{ overflowX:"auto" }}>
+                <table style={{ borderCollapse:"collapse", minWidth:480 }}>
+                  <thead>
+                    <tr>
+                      <td style={{ width:120, fontSize:10, color:"var(--t3)", paddingBottom:6, paddingRight:8 }}>Category</td>
+                      {monthlyData.map(m => (
+                        <td key={m.ym} style={{ fontSize:9, color:"var(--t3)", textAlign:"center", paddingBottom:6, width:26 }}>{m.label}</td>
                       ))}
-                      <td style={{ paddingLeft:8, paddingBottom:4 }}>
-                        <span style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700,
-                          color:row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)" }}>
-                          {row.allMs>0?`${Math.round((1-row.overMs/row.allMs)*100)}%`:"—"}
-                        </span>
-                      </td>
+                      <td style={{ fontSize:10, color:"var(--t3)", paddingBottom:6, paddingLeft:8 }}>Score</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {budgetGrid.map(row => (
+                      <tr key={row.cat.id}>
+                        <td style={{ paddingRight:8, paddingBottom:4 }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                            <span style={{ width:7, height:7, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
+                            <span style={{ fontSize:11, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:100 }}>{row.cat.name}</span>
+                          </div>
+                        </td>
+                        {row.months.map(m => (
+                          <td key={m.ym} style={{ padding:"0 1px 4px" }}>
+                            <AdherenceCell spent={m.spent} limit={m.limit} label={`${m.label}: ${fmt(m.spent)}/${fmt(m.limit)}`} />
+                          </td>
+                        ))}
+                        <td style={{ paddingLeft:8, paddingBottom:4 }}>
+                          <span style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700,
+                            color:row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)" }}>
+                            {row.allMs>0?`${Math.round((1-row.overMs/row.allMs)*100)}%`:"—"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Card>
 
           {budgetGrid.filter(r => r.streak >= 2).length > 0 && (
@@ -665,14 +728,24 @@ Include 3-5 insights. Be specific. Use actual dollar amounts.`;
 
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                   {(aiInsights.insights||[]).map((ins, i) => (
-                    <div key={i} style={{ display:"flex", gap:10, padding:"11px 14px", background:"var(--surface)", borderRadius:"var(--radius)",
+                    <div key={i} style={{ padding:"11px 14px", background:"var(--surface)", borderRadius:"var(--radius)",
                       borderLeft:`3px solid ${ins.type==="positive"?"var(--green)":ins.type==="warning"?"var(--amber)":"var(--border)"}` }}>
-                      <span style={{ fontSize:13, flexShrink:0, color:ins.type==="positive"?"var(--green)":ins.type==="warning"?"var(--amber)":"var(--t3)" }}>
-                        {ins.type==="positive"?"✓":ins.type==="warning"?"⚠":"→"}
-                      </span>
-                      <div>
-                        <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", marginBottom:2 }}>{ins.title}</div>
-                        <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>{ins.body}</div>
+                      <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                        <span style={{ fontSize:13, flexShrink:0, marginTop:1, color:ins.type==="positive"?"var(--green)":ins.type==="warning"?"var(--amber)":"var(--t3)" }}>
+                          {ins.type==="positive"?"✓":ins.type==="warning"?"⚠":"→"}
+                        </span>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", marginBottom:2 }}>{ins.title}</div>
+                          <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>{ins.body}</div>
+                          {ins.suggestion && (
+                            <div style={{ marginTop:8, display:"flex", gap:8, alignItems:"flex-start",
+                              background:"var(--card)", borderRadius:"var(--radius)", padding:"8px 10px",
+                              border:"1px solid var(--border)" }}>
+                              <span style={{ fontSize:11, color:"var(--cyan)", flexShrink:0, marginTop:1 }}>↗</span>
+                              <div style={{ fontSize:11, color:"var(--t2)", lineHeight:1.5 }}>{ins.suggestion}</div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

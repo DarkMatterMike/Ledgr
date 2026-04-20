@@ -450,6 +450,48 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     );
   }
 
+  /* ── Shared Action Items sidebar (right column on all tabs) ───── */
+  const ActionItemsSidebar = (
+    <div style={{ position:"sticky", top:16 }}>
+      <Card>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+          <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : null} />
+          {todos.length > 0 && (
+            <button onClick={() => onTodosChange([])}
+              style={{ fontSize:11, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>
+              Clear all
+            </button>
+          )}
+        </div>
+        {todos.length === 0 ? (
+          <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
+            Go to <strong style={{color:"var(--t1)"}}>Insights</strong>, generate AI analysis,<br/>
+            then tap <span style={{ color:"var(--cyan)" }}>+ Add to To-Do</span> on any suggestion.
+          </div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {todos.map(todo => (
+              <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                <button onClick={() => removeTodo(todo.id)} style={{
+                  width:18, height:18, borderRadius:4,
+                  border:"1.5px solid var(--border2)", background:"none",
+                  cursor:"pointer", flexShrink:0, marginTop:2,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  transition:"all 0.15s",
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background="var(--cyan)"; e.currentTarget.style.borderColor="var(--cyan)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background="none"; e.currentTarget.style.borderColor="var(--border2)"; }}>
+                  <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
+                </button>
+                <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+
   const MainContent = (
     <div>
       {/* Tab bar — original pill style, auto-width on desktop, full-width on mobile */}
@@ -493,9 +535,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
             </div>
             <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
-            <CashFlowBarChart last6={last6} cashMax={cashMax} />
-            <OverspendHighlights budgetGrid={budgetGrid} fmt={fmt} />
-            <Card><SectionHead title="Largest transactions" sub="All time" />{biggestTxns.map((t,i)=>{const cat=catMap[t.categoryId];return(<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}><div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:70}}>{t.date}</div><div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>{cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}<div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div></div>);})}</Card>
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
@@ -529,25 +568,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               {/* Row 3: Spending Breakdown */}
               <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             </div>
-            {/* Column 2 */}
-            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-              <CashFlowBarChart last6={last6} cashMax={cashMax} />
-              <OverspendHighlights budgetGrid={budgetGrid} fmt={fmt} />
-              <Card>
-                <SectionHead title="Largest transactions" sub="All time" />
-                {biggestTxns.map((t,i)=>{
-                  const cat=catMap[t.categoryId];
-                  return(
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:70}}>{t.date}</div>
-                      <div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                      {cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
-                    </div>
-                  );
-                })}
-              </Card>
-            </div>
+            {/* Column 2: Action items */}
+            {ActionItemsSidebar}
           </div>
         )
       )}
@@ -625,11 +647,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
           </Card>
           </div>
-          {!isMobile && (
-            <div style={{ minWidth:0 }}>
-              {/* Spending right column — cards coming soon */}
-            </div>
-          )}
+          {!isMobile && ActionItemsSidebar}
         </div>
       )}
 
@@ -805,10 +823,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </Card>
             </div>
 
-            {/* Column 3: placeholder */}
-            <div style={{ minWidth:0 }}>
-              {/* Budget right column — cards coming soon */}
-            </div>
+            {/* Column 3: Action items */}
+            {ActionItemsSidebar}
           </div>
         )
       )}
@@ -986,46 +1002,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           )}
 
           </div>
-          {!isMobile && (
-            <div style={{ minWidth:0, position:"sticky", top:16 }}>
-              <Card>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                  <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : null} />
-                  {todos.length > 0 && (
-                    <button onClick={() => onTodosChange([])}
-                      style={{ fontSize:11, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>
-                      Clear all
-                    </button>
-                  )}
-                </div>
-                {todos.length === 0 ? (
-                  <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
-                    Generate insights, then tap<br/>
-                    <span style={{ color:"var(--cyan)" }}>+ Add to To-Do</span> on any suggestion.
-                  </div>
-                ) : (
-                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                    {todos.map(todo => (
-                      <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-                        <button onClick={() => removeTodo(todo.id)} style={{
-                          width:18, height:18, borderRadius:4,
-                          border:"1.5px solid var(--border2)", background:"none",
-                          cursor:"pointer", flexShrink:0, marginTop:2,
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          transition:"all 0.15s",
-                        }}
-                          onMouseEnter={e => { e.currentTarget.style.background="var(--cyan)"; e.currentTarget.style.borderColor="var(--cyan)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background="none"; e.currentTarget.style.borderColor="var(--border2)"; }}>
-                          <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
-                        </button>
-                        <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            </div>
-          )}
+          {!isMobile && ActionItemsSidebar}
         </div>
       )}
     </div>

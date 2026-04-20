@@ -2867,6 +2867,32 @@ function AppInner() {
     };
   }, [categories, spentByCat, transactions, selectedMonth]);
 
+  const biggestTxns = useMemo(() =>
+    [...transactions].filter(t => t.amount < 0).sort((a,b) => a.amount - b.amount).slice(0,5),
+    [transactions]
+  );
+
+  const LargestTransactionsCard = (
+    <div style={{...S.card, padding:18}}>
+      <div style={{...S.sectionHdr, marginBottom:10}}>
+        <div style={S.cardTitle}>Largest Transactions</div>
+      </div>
+      {biggestTxns.length === 0 ? (
+        <div style={{color:"var(--t3)", fontSize:13, padding:"12px 0"}}>No transactions yet.</div>
+      ) : biggestTxns.map((t,i) => {
+        const cat = catMap[t.categoryId];
+        return (
+          <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:64}}>{t.date}</div>
+            <div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+            {cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}
+            <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   const BudgetSummaryCard = (
     <div
       style={{
@@ -3415,7 +3441,9 @@ function AppInner() {
           </div>
 
           <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
-            {BudgetSummaryCard}
+            {CashFlowCard}
+            {OverspendingHighlightsCard}
+            {LargestTransactionsCard}
           </div>
         </div>
       )}

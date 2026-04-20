@@ -1016,7 +1016,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* Page title */}
       <div style={{ marginBottom:16 }}>
-        <div style={{ fontFamily:"var(--font-disp)", fontSize:22, fontWeight:800, letterSpacing:"-0.5px", color:"var(--t1)" }}>Analytics</div>
+        <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:700, letterSpacing:"-0.5px", color:"var(--t1)", lineHeight:1 }}>Analytics</div>
         <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{transactions.filter(t => t.amount < 0).length} transactions · {monthlyData.filter(m => m.spending > 0).length} months of data</div>
       </div>
 

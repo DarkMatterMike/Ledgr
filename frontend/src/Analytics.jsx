@@ -647,9 +647,10 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
 
       {/* ═══ BUDGET ══════════════════════════════════════════════════ */}
       {tab === "budget" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
-          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
-          <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr 1fr":"repeat(3,1fr)", gap:10 }}>
+        isMobile ? (
+          /* Mobile: stacked */
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
               sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
               subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
@@ -663,79 +664,38 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
 
           <Card>
             <SectionHead title="12-month budget adherence" sub="Green = under · Amber = 80–100% · Red = over" />
-            {isMobile ? (
-              /* Mobile: stacked category list with mini bar per month */
-              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                {budgetGrid.map(row => {
-                  const score = row.allMs > 0 ? Math.round((1 - row.overMs/row.allMs)*100) : null;
-                  const scoreColor = row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)";
-                  return (
-                    <div key={row.cat.id}>
-                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                          <span style={{ width:7, height:7, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
-                          <span style={{ fontSize:12, color:"var(--t1)", fontWeight:600 }}>{row.cat.name}</span>
-                        </div>
-                        {score!=null && <span style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700, color:scoreColor }}>{score}%</span>}
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              {budgetGrid.map(row => {
+                const score = row.allMs > 0 ? Math.round((1 - row.overMs/row.allMs)*100) : null;
+                const scoreColor = row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)";
+                return (
+                  <div key={row.cat.id}>
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <span style={{ width:7, height:7, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
+                        <span style={{ fontSize:12, color:"var(--t1)", fontWeight:600 }}>{row.cat.name}</span>
                       </div>
-                      <div style={{ display:"flex", gap:2 }}>
-                        {row.months.map(m => {
-                          const ratio = m.limit > 0 ? m.spent/m.limit : 0;
-                          const color = ratio > 1 ? "var(--red)" : ratio > 0.85 ? "var(--amber)" : m.spent > 0 ? "var(--green)" : "var(--surface)";
-                          return (
-                            <div key={m.ym} title={`${m.label}: ${fmt(m.spent)}/${fmt(m.limit)}`}
-                              style={{ flex:1, height:8, borderRadius:2, background:color,
-                                opacity: m.limit > 0 ? clamp(0.3 + ratio*0.7, 0.3, 1) : 0.15 }} />
-                          );
-                        })}
-                      </div>
-                      <div style={{ display:"flex", justifyContent:"space-between", marginTop:3, fontSize:9, color:"var(--t3)" }}>
-                        <span>{monthlyData[0]?.label}</span>
-                        <span>{monthlyData[monthlyData.length-1]?.label}</span>
-                      </div>
+                      {score!=null && <span style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700, color:scoreColor }}>{score}%</span>}
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              /* Desktop: full heatmap table */
-              <div style={{ overflowX:"auto" }}>
-                <table style={{ borderCollapse:"collapse", minWidth:480 }}>
-                  <thead>
-                    <tr>
-                      <td style={{ width:120, fontSize:10, color:"var(--t3)", paddingBottom:6, paddingRight:8 }}>Category</td>
-                      {monthlyData.map(m => (
-                        <td key={m.ym} style={{ fontSize:9, color:"var(--t3)", textAlign:"center", paddingBottom:6, width:26 }}>{m.label}</td>
-                      ))}
-                      <td style={{ fontSize:10, color:"var(--t3)", paddingBottom:6, paddingLeft:8 }}>Score</td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {budgetGrid.map(row => (
-                      <tr key={row.cat.id}>
-                        <td style={{ paddingRight:8, paddingBottom:4 }}>
-                          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                            <span style={{ width:7, height:7, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
-                            <span style={{ fontSize:11, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:100 }}>{row.cat.name}</span>
-                          </div>
-                        </td>
-                        {row.months.map(m => (
-                          <td key={m.ym} style={{ padding:"0 1px 4px" }}>
-                            <AdherenceCell spent={m.spent} limit={m.limit} label={`${m.label}: ${fmt(m.spent)}/${fmt(m.limit)}`} />
-                          </td>
-                        ))}
-                        <td style={{ paddingLeft:8, paddingBottom:4 }}>
-                          <span style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700,
-                            color:row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)" }}>
-                            {row.allMs>0?`${Math.round((1-row.overMs/row.allMs)*100)}%`:"—"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    <div style={{ display:"flex", gap:2 }}>
+                      {row.months.map(m => {
+                        const ratio = m.limit > 0 ? m.spent/m.limit : 0;
+                        const color = ratio > 1 ? "var(--red)" : ratio > 0.85 ? "var(--amber)" : m.spent > 0 ? "var(--green)" : "var(--surface)";
+                        return (
+                          <div key={m.ym} title={`${m.label}: ${fmt(m.spent)}/${fmt(m.limit)}`}
+                            style={{ flex:1, height:8, borderRadius:2, background:color,
+                              opacity: m.limit > 0 ? clamp(0.3 + ratio*0.7, 0.3, 1) : 0.15 }} />
+                        );
+                      })}
+                    </div>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginTop:3, fontSize:9, color:"var(--t3)" }}>
+                      <span>{monthlyData[0]?.label}</span>
+                      <span>{monthlyData[monthlyData.length-1]?.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
 
           {budgetGrid.filter(r => r.streak >= 2).length > 0 && (
@@ -764,12 +724,105 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
             ))}
           </Card>
           </div>
-          {!isMobile && (
+        ) : (
+          /* Desktop: 3-column — col1 heatmap, col2 overspend+consistent, col3 placeholder */
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+
+            {/* Column 1: stat cards + heatmap */}
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+                <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
+                  sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
+                  subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
+                  accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
+                <StatCard label="Spending pace" value={velocityPct!=null?`${velocityPct}%`:"—"}
+                  sub={`Projected ${fmt(projectedSpend)} vs ${fmt(totalBudget)} budget`}
+                  subColor={velocityPct>100?"var(--red)":velocityPct>85?"var(--amber)":"var(--green)"}
+                  accent={velocityPct>100?"var(--red)":velocityPct>85?"var(--amber)":"var(--cyan)"} />
+                <StatCard label="Monthly budget" value={fmt(totalBudget)} sub={`${categories.length} categories`} accent="var(--t3)" />
+              </div>
+
+              <Card>
+                <SectionHead title="12-month budget adherence" sub="Green = under · Amber = 80–100% · Red = over" />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ borderCollapse:"collapse", minWidth:480 }}>
+                    <thead>
+                      <tr>
+                        <td style={{ width:120, fontSize:10, color:"var(--t3)", paddingBottom:6, paddingRight:8 }}>Category</td>
+                        {monthlyData.map(m => (
+                          <td key={m.ym} style={{ fontSize:9, color:"var(--t3)", textAlign:"center", paddingBottom:6, width:26 }}>{m.label}</td>
+                        ))}
+                        <td style={{ fontSize:10, color:"var(--t3)", paddingBottom:6, paddingLeft:8 }}>Score</td>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {budgetGrid.map(row => (
+                        <tr key={row.cat.id}>
+                          <td style={{ paddingRight:8, paddingBottom:4 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                              <span style={{ width:7, height:7, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
+                              <span style={{ fontSize:11, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:100 }}>{row.cat.name}</span>
+                            </div>
+                          </td>
+                          {row.months.map(m => (
+                            <td key={m.ym} style={{ padding:"0 1px 4px" }}>
+                              <AdherenceCell spent={m.spent} limit={m.limit} label={`${m.label}: ${fmt(m.spent)}/${fmt(m.limit)}`} />
+                            </td>
+                          ))}
+                          <td style={{ paddingLeft:8, paddingBottom:4 }}>
+                            <span style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700,
+                              color:row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)" }}>
+                              {row.allMs>0?`${Math.round((1-row.overMs/row.allMs)*100)}%`:"—"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+
+            {/* Column 2: consecutive overspend + most consistent */}
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              {budgetGrid.filter(r => r.streak >= 2).length > 0 ? (
+                <Card style={{ borderLeft:"3px solid var(--red)" }}>
+                  <SectionHead title="Consecutive overspend" sub="Categories overspent 2+ months in a row" />
+                  {budgetGrid.filter(r => r.streak >= 2).map(row => (
+                    <div key={row.cat.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8, flexWrap:"wrap" }}>
+                      <span style={{ width:8, height:8, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
+                      <span style={{ fontSize:13, color:"var(--t1)", flex:1 }}>{row.cat.name}</span>
+                      <span style={{ fontSize:12, color:"var(--red)", fontWeight:600 }}>{row.streak} months in a row</span>
+                      <div style={{ width:"100%", fontSize:12, color:"var(--t3)" }}>avg {fmt(row.avgSp)}/mo · limit {fmt(row.cat.limit)}</div>
+                    </div>
+                  ))}
+                </Card>
+              ) : (
+                <Card style={{ borderLeft:"3px solid var(--green)" }}>
+                  <SectionHead title="Consecutive overspend" sub="Categories overspent 2+ months in a row" />
+                  <div style={{ color:"var(--green)", fontSize:13 }}>No consecutive overspends — great work.</div>
+                </Card>
+              )}
+
+              <Card>
+                <SectionHead title="Most consistent categories" sub="Stayed under budget most reliably" />
+                {[...budgetGrid].sort((a,b) => (b.allMs-b.overMs)-(a.allMs-a.overMs)).slice(0,5).map(row => (
+                  <div key={row.cat.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8, flexWrap:"wrap" }}>
+                    <span style={{ width:8, height:8, borderRadius:"50%", background:row.cat.color, flexShrink:0, display:"inline-block" }} />
+                    <span style={{ fontSize:13, color:"var(--t1)", flex:1 }}>{row.cat.name}</span>
+                    <span style={{ fontSize:12, color:"var(--green)", fontWeight:600 }}>{row.allMs-row.overMs}/{row.allMs} months under</span>
+                    <div style={{ width:"100%", fontSize:12, color:"var(--t3)" }}>avg {fmt(row.avgSp)}/mo</div>
+                  </div>
+                ))}
+              </Card>
+            </div>
+
+            {/* Column 3: placeholder */}
             <div style={{ minWidth:0 }}>
               {/* Budget right column — cards coming soon */}
             </div>
-          )}
-        </div>
+          </div>
+        )
       )}
 
       {/* ═══ INSIGHTS ════════════════════════════════════════════════ */}

@@ -2070,6 +2070,7 @@ function AppInner() {
       if (data.analyticsInsights)   setAnalyticsInsights(data.analyticsInsights);
       if (data.dismissedPairs)      setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)          setScanMemory(data.scanMemory);
+      // aiConversations are loaded inside useAiChat.loadFromData — it handles both legacy aiMessages and new format
     },
   });
 
@@ -5841,27 +5842,33 @@ function AppInner() {
   );
 
   const AiChatPage = (
-    <div>
-      <div style={{...S.sectionHdr, marginBottom:16}}>
+    <div style={{ display:"flex", flexDirection:"column", flex:1, minHeight:0 }}>
+      <div style={{...S.sectionHdr, marginBottom:16, flexShrink:0}}>
         <div style={S.pageTitle}>Ask AI</div>
       </div>
       <AiChat
-      messages={aiChat.messages}
-      hasApiKey={aiChat.hasApiKey}
-      keyChecked={aiChat.keyChecked}
-      loading={aiChat.loading}
-      error={aiChat.error}
-      checkApiKey={aiChat.checkApiKey}
-      saveApiKey={aiChat.saveApiKey}
-      sendMessage={aiChat.sendMessage}
-      clearHistory={aiChat.clearHistory}
-      transactions={transactions}
-      categories={categories}
-      accounts={accounts}
-      catMap={catMap}
-      acctMap={acctMap}
-      isMobile={isMobile}
-    />
+        messages={aiChat.messages}
+        conversations={aiChat.conversations}
+        currentConvId={aiChat.currentConvId}
+        hasApiKey={aiChat.hasApiKey}
+        keyChecked={aiChat.keyChecked}
+        loading={aiChat.loading}
+        error={aiChat.error}
+        checkApiKey={aiChat.checkApiKey}
+        saveApiKey={aiChat.saveApiKey}
+        sendMessage={aiChat.sendMessage}
+        newConversation={aiChat.newConversation}
+        selectConversation={aiChat.selectConversation}
+        deleteConversation={aiChat.deleteConversation}
+        clearCurrentConversation={aiChat.clearCurrentConversation}
+        clearHistory={aiChat.clearHistory}
+        transactions={transactions}
+        categories={categories}
+        accounts={accounts}
+        catMap={catMap}
+        acctMap={acctMap}
+        isMobile={isMobile}
+      />
     </div>
   );
 

@@ -2,7 +2,8 @@
  * AiChat.jsx
  *
  * AI assistant page — chat with Claude about your financial data.
- * Includes API key management at the top of the page.
+ * Desktop: two-column layout (chat left, conversation history right).
+ * Mobile: single column with a history drawer.
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -16,8 +17,8 @@ const S = {
       transition: "all 0.15s", userSelect: "none", whiteSpace: "nowrap",
       WebkitTapHighlightColor: "transparent",
     };
-    if (v === "primary") return { ...base, background: "var(--cyan)", color: "#000", borderColor: "var(--cyan)" };
-    if (v === "danger")  return { ...base, background: "var(--red-dim)", color: "var(--red)", borderColor: "#ff4d6d44" };
+    if (v === "primary") return { ...base, background: "var(--cyan)",    color: "#000",        borderColor: "var(--cyan)" };
+    if (v === "danger")  return { ...base, background: "var(--red-dim)", color: "var(--red)",  borderColor: "#ff4d6d44" };
     return { ...base, background: "transparent", color: "var(--t2)", borderColor: "var(--border2)" };
   },
   input: {
@@ -26,52 +27,39 @@ const S = {
   },
   card: {
     background: "var(--card)", border: "1px solid var(--border)",
-    borderRadius: "var(--radius-lg)", padding: 16,
+    borderRadius: "var(--radius)", padding: 16,
   },
 };
 
 function ApiKeySection({ hasApiKey, keyChecked, onSave, isMobile }) {
-  const [editing, setEditing]   = useState(false);
-  const [keyVal,  setKeyVal]    = useState("");
-  const [saving,  setSaving]    = useState(false);
-  const [error,   setError]     = useState(null);
-  const [saved,   setSaved]     = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [keyVal,  setKeyVal]  = useState("");
+  const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState(null);
+  const [saved,   setSaved]   = useState(false);
 
-  // Once the key check resolves, show input only if no key exists
-  useEffect(() => {
-    if (keyChecked) setEditing(!hasApiKey);
-  }, [keyChecked, hasApiKey]);
+  useEffect(() => { if (keyChecked) setEditing(!hasApiKey); }, [keyChecked, hasApiKey]);
 
   async function handleSave() {
     if (!keyVal.trim()) return;
     setSaving(true); setError(null);
     try {
       await onSave(keyVal.trim());
-      setSaved(true);
-      setKeyVal("");
-      setEditing(false);
+      setSaved(true); setKeyVal(""); setEditing(false);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
       setError(e.message);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }
 
   if (!keyChecked) return null;
-
   return (
-    <div style={{ ...S.card, marginBottom: 16 }}>
+    <div style={{ ...S.card, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: editing ? 12 : 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 8, height: 8, borderRadius: "50%",
-            background: hasApiKey ? "var(--green)" : "var(--t3)",
-          }} />
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: hasApiKey ? "var(--green)" : "var(--t3)" }} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>
-              Claude API Key
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>Claude API Key</div>
             <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 1 }}>
               {hasApiKey ? "Key saved — your data stays private" : "Required to use the AI assistant"}
             </div>
@@ -83,39 +71,27 @@ function ApiKeySection({ hasApiKey, keyChecked, onSave, isMobile }) {
           </button>
         )}
       </div>
-
       {editing && (
         <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
-          <input
-            style={{ ...S.input, flex: 1, fontFamily: "var(--font-mono)", fontSize: 12 }}
-            type="password"
-            placeholder="sk-ant-api03-..."
-            value={keyVal}
-            onChange={e => setKeyVal(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSave()}
-            autoFocus
-          />
+          <input style={{ ...S.input, flex: 1, fontFamily: "var(--font-mono)", fontSize: 12 }}
+            type="password" placeholder="sk-ant-api03-…"
+            value={keyVal} onChange={e => setKeyVal(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSave()} autoFocus />
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {hasApiKey && (
-              <button style={S.btn("ghost", true)} onClick={() => { setEditing(false); setKeyVal(""); }}>
-                Cancel
-              </button>
-            )}
+            {hasApiKey && <button style={S.btn("ghost", true)} onClick={() => { setEditing(false); setKeyVal(""); }}>Cancel</button>}
             <button style={S.btn("primary", true)} onClick={handleSave} disabled={saving || !keyVal.trim()}>
               {saving ? "Saving…" : "Save Key"}
             </button>
           </div>
         </div>
       )}
-
       {error && <div style={{ fontSize: 12, color: "var(--red)", marginTop: 8 }}>{error}</div>}
-
       {!hasApiKey && !editing && (
         <div style={{ marginTop: 10, fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
           Get your API key at{" "}
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer"
-            style={{ color: "var(--cyan)" }}>console.anthropic.com</a>.
-          Your key is encrypted and stored securely — it's never exposed to the browser after saving.
+          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
+            console.anthropic.com
+          </a>. Your key is encrypted and stored securely.
         </div>
       )}
     </div>
@@ -125,11 +101,7 @@ function ApiKeySection({ hasApiKey, keyChecked, onSave, isMobile }) {
 function MessageBubble({ msg }) {
   const isUser = msg.role === "user";
   return (
-    <div style={{
-      display: "flex",
-      justifyContent: isUser ? "flex-end" : "flex-start",
-      marginBottom: 12,
-    }}>
+    <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 12 }}>
       {!isUser && (
         <div style={{
           width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
@@ -137,9 +109,7 @@ function MessageBubble({ msg }) {
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 13, fontWeight: 800, color: "var(--cyan)",
           fontFamily: "var(--font-disp)", marginRight: 8, marginTop: 2,
-        }}>
-          ℓ
-        </div>
+        }}>ℓ</div>
       )}
       <div style={{
         maxWidth: "80%",
@@ -147,20 +117,78 @@ function MessageBubble({ msg }) {
         color: isUser ? "#000" : "var(--t1)",
         border: isUser ? "none" : "1px solid var(--border)",
         borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-        padding: "10px 14px",
-        fontSize: 14,
-        lineHeight: 1.6,
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
+        padding: "10px 14px", fontSize: 14, lineHeight: 1.6,
+        whiteSpace: "pre-wrap", wordBreak: "break-word",
       }}>
         {msg.content || (
           <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <span style={{ animation: "ledgr-breathe 1s ease-in-out infinite", display: "inline-block" }}>●</span>
-            <span style={{ animation: "ledgr-breathe 1s ease-in-out 0.2s infinite", display: "inline-block" }}>●</span>
-            <span style={{ animation: "ledgr-breathe 1s ease-in-out 0.4s infinite", display: "inline-block" }}>●</span>
+            {[0, 0.2, 0.4].map((d, i) => (
+              <span key={i} style={{ animation: `ledgr-breathe 1s ease-in-out ${d}s infinite`, display: "inline-block" }}>●</span>
+            ))}
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+function ConversationItem({ conv, isActive, onSelect, onDelete }) {
+  const preview = conv.messages.find(m => m.role === "user")?.content || "Empty conversation";
+  const date    = new Date(conv.createdAt);
+  const now     = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const dateStr = isToday
+    ? date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  return (
+    <div
+      onClick={() => onSelect(conv.id)}
+      style={{
+        padding: "10px 12px",
+        borderRadius: "var(--radius)",
+        background: isActive ? "var(--cyan-dim)" : "transparent",
+        border: `1px solid ${isActive ? "var(--cyan)33" : "transparent"}`,
+        cursor: "pointer",
+        transition: "background 0.12s",
+        position: "relative",
+      }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--surface)"; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600,
+          color: isActive ? "var(--cyan)" : "var(--t1)",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
+        }}>
+          {conv.title || "Untitled"}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: 10, color: "var(--t3)", whiteSpace: "nowrap" }}>{dateStr}</span>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: "var(--t3)", fontSize: 12, padding: "1px 3px", lineHeight: 1,
+              opacity: 0, transition: "opacity 0.1s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "var(--red)"; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = "0"; e.currentTarget.style.color = "var(--t3)"; }}>
+            ✕
+          </button>
+        </div>
+      </div>
+      <div style={{
+        fontSize: 11, color: "var(--t3)",
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      }}>
+        {preview.slice(0, 60)}{preview.length > 60 ? "…" : ""}
+      </div>
+      {conv.messages.length > 0 && (
+        <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>
+          {Math.ceil(conv.messages.length / 2)} message{Math.ceil(conv.messages.length / 2) !== 1 ? "s" : ""}
+        </div>
+      )}
     </div>
   );
 }
@@ -175,62 +203,42 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function AiChat({
-  messages, hasApiKey, keyChecked, loading, error,
-  checkApiKey, saveApiKey, sendMessage, clearHistory,
+  messages, conversations, currentConvId,
+  hasApiKey, keyChecked, loading, error,
+  checkApiKey, saveApiKey, sendMessage,
+  newConversation, selectConversation, deleteConversation, clearCurrentConversation,
+  clearHistory,
   transactions, categories, accounts, catMap, acctMap,
   isMobile,
 }) {
-  const [input, setInput] = useState("");
-  const bottomRef         = useRef(null);
-  const inputRef          = useRef(null);
+  const [input,       setInput]       = useState("");
+  const [showHistory, setShowHistory] = useState(false); // mobile history drawer
+  const bottomRef = useRef(null);
+  const inputRef  = useRef(null);
 
   useEffect(() => { checkApiKey(); }, []);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   function buildContext() {
-    // Send a summary of user data — not the full dataset to save tokens
-    const now = new Date();
-    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthStr = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}`;
-
+    const now          = new Date();
+    const thisMonth    = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const lastMonthD   = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthStr = `${lastMonthD.getFullYear()}-${String(lastMonthD.getMonth() + 1).padStart(2, "0")}`;
     const thisMonthTxns = transactions.filter(t => t.date?.startsWith(thisMonth));
     const lastMonthTxns = transactions.filter(t => t.date?.startsWith(lastMonthStr));
-
     const spentByCat = {};
     transactions.forEach(t => {
-      if (t.amount < 0 && t.categoryId) {
+      if (t.amount < 0 && t.categoryId)
         spentByCat[t.categoryId] = (spentByCat[t.categoryId] || 0) + Math.abs(t.amount);
-      }
     });
-
     return {
       currentMonth: thisMonth,
-      categories: categories.map(c => ({
-        id: c.id, name: c.name, limit: c.limit,
-        spent: Math.round((spentByCat[c.id] || 0) * 100) / 100,
-      })),
+      categories: categories.map(c => ({ id: c.id, name: c.name, limit: c.limit, spent: Math.round((spentByCat[c.id] || 0) * 100) / 100 })),
       accounts: accounts.map(a => ({ name: a.name, type: a.type, balance: a.balance })),
-      thisMonthTransactions: thisMonthTxns.slice(0, 100).map(t => ({
-        date: t.date,
-        merchant: t.name || t.merchant,
-        amount: t.amount,
-        category: catMap[t.categoryId]?.name || null,
-        pending: t.pending || false,
-      })),
-      lastMonthTransactions: lastMonthTxns.slice(0, 50).map(t => ({
-        date: t.date,
-        merchant: t.name || t.merchant,
-        amount: t.amount,
-        category: catMap[t.categoryId]?.name || null,
-      })),
+      thisMonthTransactions: thisMonthTxns.slice(0, 100).map(t => ({ date: t.date, merchant: t.name || t.merchant, amount: t.amount, category: catMap[t.categoryId]?.name || null, pending: t.pending || false })),
+      lastMonthTransactions: lastMonthTxns.slice(0, 50).map(t => ({ date: t.date, merchant: t.name || t.merchant, amount: t.amount, category: catMap[t.categoryId]?.name || null })),
       totalTransactions: transactions.length,
-      recentTransactions: transactions.slice(0, 20).map(t => ({
-        date: t.date,
-        merchant: t.name || t.merchant,
-        amount: t.amount,
-        category: catMap[t.categoryId]?.name || null,
-      })),
+      recentTransactions: transactions.slice(0, 20).map(t => ({ date: t.date, merchant: t.name || t.merchant, amount: t.amount, category: catMap[t.categoryId]?.name || null })),
     };
   }
 
@@ -241,21 +249,51 @@ export default function AiChat({
   }
 
   const isEmpty = messages.length === 0;
+  const sortedConvs = [...(conversations || [])].sort((a, b) => b.createdAt - a.createdAt);
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", maxHeight: isMobile ? "calc(100vh - 120px)" : "calc(100vh - 80px)" }}>
+  // ── History panel (used in both mobile drawer and desktop right column) ──
+  const HistoryPanel = (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Header */}
+      <div style={{ padding: "0 0 12px", borderBottom: "1px solid var(--border)", marginBottom: 12, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "2px" }}>
+            Conversations
+          </div>
+          <button
+            style={{ ...S.btn("primary", true), fontSize: 12, padding: "5px 12px" }}
+            onClick={() => { newConversation(); setShowHistory(false); }}>
+            + New
+          </button>
+        </div>
+      </div>
+      {/* List */}
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+        {sortedConvs.length === 0 ? (
+          <div style={{ fontSize: 12, color: "var(--t3)", textAlign: "center", padding: "24px 8px" }}>
+            No conversations yet
+          </div>
+        ) : sortedConvs.map(conv => (
+          <ConversationItem
+            key={conv.id}
+            conv={conv}
+            isActive={conv.id === currentConvId}
+            onSelect={id => { selectConversation(id); setShowHistory(false); }}
+            onDelete={deleteConversation}
+          />
+        ))}
+      </div>
+    </div>
+  );
 
-      {/* API Key section */}
-      <ApiKeySection
-        hasApiKey={hasApiKey}
-        keyChecked={keyChecked}
-        onSave={saveApiKey}
-        isMobile={isMobile}
-      />
+  // ── Chat panel ──────────────────────────────────────────────────
+  const ChatPanel = (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* API Key */}
+      <ApiKeySection hasApiKey={hasApiKey} keyChecked={keyChecked} onSave={saveApiKey} isMobile={isMobile} />
 
       {/* Chat area */}
       <div style={{ ...S.card, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }}>
-
         {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
           {isEmpty && hasApiKey && (
@@ -270,12 +308,8 @@ export default function AiChat({
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
                 {SUGGESTED_QUESTIONS.map(q => (
                   <button key={q}
-                    style={{
-                      ...S.btn("ghost", true),
-                      fontSize: 12, textAlign: "left", whiteSpace: "normal",
-                      maxWidth: isMobile ? "100%" : 220,
-                    }}
-                    onClick={() => { sendMessage(q, buildContext()); }}>
+                    style={{ ...S.btn("ghost", true), fontSize: 12, textAlign: "left", whiteSpace: "normal", maxWidth: isMobile ? "100%" : 220 }}
+                    onClick={() => sendMessage(q, buildContext())}>
                     {q}
                   </button>
                 ))}
@@ -287,69 +321,33 @@ export default function AiChat({
             <div style={{ padding: "24px 8px", maxWidth: 480, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 24 }}>
                 <div style={{ fontSize: 28, marginBottom: 10 }}>✦</div>
-                <div style={{ fontFamily: "var(--font-disp)", fontSize: 17, fontWeight: 800, color: "var(--t1)", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-disp)", fontSize: 17, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>
                   Set up your AI assistant
                 </div>
                 <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>
                   Ledgr uses Claude by Anthropic to answer questions about your financial data.
-                  You'll need a free API key to get started — it takes about 2 minutes.
+                  You'll need a free API key to get started.
                 </div>
               </div>
-
-              {/* Steps */}
               <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
                 {[
-                  {
-                    step: "1",
-                    title: "Create an Anthropic account",
-                    body: "Go to console.anthropic.com and sign up for a free account.",
-                    link: { label: "Open Anthropic Console →", url: "https://console.anthropic.com" },
-                  },
-                  {
-                    step: "2",
-                    title: "Generate an API key",
-                    body: "Once logged in, go to API Keys in the left sidebar and click \"Create Key\". Give it any name you like.",
-                  },
-                  {
-                    step: "3",
-                    title: "Paste it above",
-                    body: "Copy your key — it starts with sk-ant-api03- — and paste it into the field above, then click Save Key.",
-                  },
+                  { step: "1", title: "Create an Anthropic account", body: "Go to console.anthropic.com and sign up for a free account.", link: { label: "Open Anthropic Console →", url: "https://console.anthropic.com" } },
+                  { step: "2", title: "Generate an API key",         body: "Once logged in, go to API Keys and click \"Create Key\"." },
+                  { step: "3", title: "Paste it above",              body: "Copy your key (starts with sk-ant-api03-) and paste it into the field above." },
                 ].map(s => (
-                  <div key={s.step} style={{
-                    display: "flex", gap: 12, alignItems: "flex-start",
-                    background: "var(--surface)", borderRadius: "var(--radius)", padding: "12px 14px",
-                  }}>
-                    <div style={{
-                      width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-                      background: "var(--cyan)", color: "#000",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 12, fontWeight: 800, fontFamily: "var(--font-mono)",
-                    }}>{s.step}</div>
+                  <div key={s.step} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "var(--surface)", borderRadius: "var(--radius)", padding: "12px 14px" }}>
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, background: "var(--cyan)", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, fontFamily: "var(--font-mono)" }}>{s.step}</div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", marginBottom: 3 }}>{s.title}</div>
                       <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.5 }}>{s.body}</div>
-                      {s.link && (
-                        <a href={s.link.url} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 12, color: "var(--cyan)", marginTop: 6, display: "inline-block" }}>
-                          {s.link.label}
-                        </a>
-                      )}
+                      {s.link && <a href={s.link.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--cyan)", marginTop: 6, display: "inline-block" }}>{s.link.label}</a>}
                     </div>
                   </div>
                 ))}
               </div>
-
-              {/* Pricing note */}
-              <div style={{
-                background: "var(--card)", border: "1px solid var(--border)",
-                borderRadius: "var(--radius)", padding: "12px 14px",
-                fontSize: 12, color: "var(--t3)", lineHeight: 1.6,
-              }}>
+              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 14px", fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
                 <span style={{ color: "var(--t2)", fontWeight: 600 }}>What does it cost?</span>{" "}
-                Anthropic offers $5 in free credits when you sign up — enough for thousands of questions.
-                After that, usage is pay-as-you-go and very inexpensive. A typical conversation costs less than a fraction of a cent.
-                Your key is stored encrypted on our servers and never shared.
+                Anthropic offers $5 in free credits when you sign up — enough for thousands of questions. Your key is encrypted on our servers.
               </div>
             </div>
           )}
@@ -357,19 +355,12 @@ export default function AiChat({
           {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
 
           {error && (
-            <div style={{
-              background: "var(--red-dim)", border: "1px solid #ff4d6d44",
-              borderRadius: "var(--radius)", padding: "10px 14px",
-              fontSize: 13, color: "var(--red)", marginBottom: 12,
-            }}>
-              {error.includes("invalid_api_key") || error.includes("401")
-                ? "Invalid API key — please check your key and try again."
-                : error.includes("overloaded")
-                ? "Claude is busy right now — try again in a moment."
+            <div style={{ background: "var(--red-dim)", border: "1px solid #ff4d6d44", borderRadius: "var(--radius)", padding: "10px 14px", fontSize: 13, color: "var(--red)", marginBottom: 12 }}>
+              {error.includes("invalid_api_key") || error.includes("401") ? "Invalid API key — please check your key and try again."
+                : error.includes("overloaded") ? "Claude is busy right now — try again in a moment."
                 : error}
             </div>
           )}
-
           <div ref={bottomRef} />
         </div>
 
@@ -378,42 +369,69 @@ export default function AiChat({
 
         {/* Input */}
         <div style={{ padding: "12px 16px", display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0 }}>
+          {/* Mobile: history button */}
+          {isMobile && (
+            <button style={{ ...S.btn("ghost", true), padding: "10px 12px", flexShrink: 0 }} onClick={() => setShowHistory(true)}>
+              ☰
+            </button>
+          )}
           <textarea
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-            }}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={hasApiKey ? "Ask about your spending, budgets, or transactions…" : "Add your API key above to start chatting"}
             disabled={!hasApiKey || loading}
             rows={1}
-            style={{
-              ...S.input,
-              flex: 1, resize: "none", lineHeight: 1.5,
-              fontFamily: "var(--font-body)", fontSize: 14,
-              maxHeight: 120, overflow: "auto",
-              opacity: hasApiKey ? 1 : 0.5,
-            }}
+            style={{ ...S.input, flex: 1, resize: "none", lineHeight: 1.5, fontFamily: "var(--font-body)", fontSize: 14, maxHeight: 120, overflow: "auto", opacity: hasApiKey ? 1 : 0.5 }}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-            <button
-              style={{ ...S.btn("primary", true), padding: "10px 14px" }}
-              onClick={handleSend}
-              disabled={!hasApiKey || !input.trim() || loading}>
+            <button style={{ ...S.btn("primary", true), padding: "10px 14px" }} onClick={handleSend} disabled={!hasApiKey || !input.trim() || loading}>
               {loading ? "…" : "↑"}
             </button>
             {messages.length > 0 && (
-              <button
-                style={{ ...S.btn("ghost", true), padding: "6px 10px", fontSize: 11 }}
-                onClick={clearHistory}
-                title="Clear conversation">
-                ✕
-              </button>
+              <button style={{ ...S.btn("ghost", true), padding: "6px 10px", fontSize: 11 }}
+                onClick={() => clearCurrentConversation?.() || clearHistory?.()}
+                title="Clear conversation">✕</button>
             )}
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <div style={{ width: "100%", height: isMobile ? "calc(100vh - 120px)" : "calc(100vh - 80px)", display: "flex", flexDirection: "column" }}>
+      {isMobile ? (
+        <>
+          {ChatPanel}
+          {/* Mobile history drawer */}
+          {showHistory && (
+            <div style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 200, display: "flex" }}
+              onClick={e => { if (e.target === e.currentTarget) setShowHistory(false); }}>
+              <div style={{ width: "80%", maxWidth: 300, background: "var(--card)", height: "100%", padding: 16, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <span style={{ fontWeight: 700, color: "var(--t1)" }}>Conversations</span>
+                  <button style={{ ...S.btn("ghost", true), padding: "4px 8px" }} onClick={() => setShowHistory(false)}>✕</button>
+                </div>
+                {HistoryPanel}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Desktop: two-column layout */
+        <div style={{ display: "flex", gap: 16, height: "100%", alignItems: "stretch" }}>
+          {/* Left: chat */}
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+            {ChatPanel}
+          </div>
+          {/* Right: conversation history */}
+          <div style={{ width: 280, flexShrink: 0, background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            {HistoryPanel}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

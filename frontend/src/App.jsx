@@ -783,11 +783,14 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
   return (
     <>
-      <div style={{padding:"24px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
-        <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:800,letterSpacing:"-0.5px"}}>
-          ledgr<span style={{color:"var(--cyan)"}}>.</span>
+      <div style={{padding:"20px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",lineHeight:1}}>
+            ledgr<span style={{color:"var(--cyan)"}}>.</span>
+          </div>
         </div>
-        <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>personal finance</div>
+        <div style={{fontSize:11,color:"var(--t3)",marginTop:6,paddingLeft:1}}>personal finance</div>
       </div>
       <nav style={{flex:1,padding:"12px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
         {NAV.map(n=>(
@@ -1586,7 +1589,7 @@ function AdminPanel() {
   const pagedUsers    = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div style={{padding:"24px 16px",maxWidth:900}}>
+    <div style={{width:"100%"}}>
       <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:24,letterSpacing:"-0.3px"}}>
         Admin Panel
       </div>
@@ -5887,15 +5890,15 @@ function AppInner() {
       <>
         {/* Mobile top bar */}
         <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
-            <span style={{fontFamily:"var(--font-script)",fontSize:26,fontWeight:700,color:"var(--cyan)",lineHeight:1,letterSpacing:"0px",marginTop:1}} className="ledgr-logo-pulse">ℓ</span>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:18,fontWeight:800,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+            <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
           </div>

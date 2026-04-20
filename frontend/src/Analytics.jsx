@@ -312,7 +312,7 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
   }, [avgSpending, avgIncome, savingsRate, momChange, currentNetWorth, retirementProjection, subscriptionTotal, subscriptions, efficiencyScore, projectedSpend, totalBudget, budgetGrid]);
 
   return (
-    <div style={{ padding: isMobile ? 16 : 28 }}
+    <div style={{ width:"100%" }}
       onTouchStart={isMobile ? handleTouchStart : undefined}
       onTouchEnd={isMobile ? handleTouchEnd : undefined}>
 

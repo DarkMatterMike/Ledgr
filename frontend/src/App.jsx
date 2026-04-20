@@ -2052,6 +2052,9 @@ function AppInner() {
   /* ── Analytics AI insights — persisted across tab/view switches ── */
   const [analyticsInsights, setAnalyticsInsights] = useState(null);
 
+  /* ── Insights to-do list ── */
+  const [insightsTodos, setInsightsTodos] = useState([]);
+
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
@@ -2062,6 +2065,7 @@ function AppInner() {
       aiChat.loadFromData(data);
       if (data.aiCatExamples) setAiCatExamples(data.aiCatExamples);
       if (data.userProfile)   setUserProfile(p => ({ ...p, ...data.userProfile }));
+      if (data.insightsTodos) setInsightsTodos(data.insightsTodos);
     },
   });
 
@@ -5829,6 +5833,11 @@ function AppInner() {
       }}
       aiInsights={analyticsInsights}
       onSetAiInsights={setAnalyticsInsights}
+      todos={insightsTodos}
+      onTodosChange={todos => {
+        setInsightsTodos(todos);
+        scheduleSaveRef.current?.({ insightsTodos: todos });
+      }}
     />
   );
 

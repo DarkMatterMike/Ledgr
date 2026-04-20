@@ -805,13 +805,14 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [transactions, categories, accounts, plaidItems, rules, calendarAccounts,
            investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
-           userProfile] = await Promise.all([
+           userProfile, insightsTodos] = await Promise.all([
       getData(uid, "transactions"), getData(uid, "categories"),
       getData(uid, "accounts"),     getData(uid, "plaidItems"),
       getData(uid, "rules"),        getData(uid, "calendarAccounts"),
       getData(uid, "investmentAccounts"), getData(uid, "holdings"),
       getData(uid, "netWorthSnapshots"),  getData(uid, "aiMessages"),
       getData(uid, "aiCatExamples"),      getData(uid, "userProfile"),
+      getData(uid, "insightsTodos"),
     ]);
     res.json({
       transactions:       transactions       || [],
@@ -826,6 +827,7 @@ app.get("/api/data", async (req, res) => {
       aiMessages:         aiMessages         || [],
       aiCatExamples:      aiCatExamples      || [],
       userProfile:        userProfile        || null,
+      insightsTodos:      insightsTodos      || [],
       access:             getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -837,7 +839,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const uid = req.user.id;
     const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
-            userProfile } = req.body;
+            userProfile, insightsTodos } = req.body;
     const ops = [];
     if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
@@ -851,6 +853,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiMessages))         ops.push(setData(uid, "aiMessages",         aiMessages));
     if (Array.isArray(aiCatExamples))      ops.push(setData(uid, "aiCatExamples",      aiCatExamples));
     if (userProfile !== undefined && userProfile !== null) ops.push(setData(uid, "userProfile", userProfile));
+    if (Array.isArray(insightsTodos))      ops.push(setData(uid, "insightsTodos",      insightsTodos));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }

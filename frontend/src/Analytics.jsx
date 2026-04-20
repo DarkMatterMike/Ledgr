@@ -108,7 +108,7 @@ function AdherenceCell({ spent, limit, label }) {
 /* ═══════════════════════════════════════════════════════════════════
    MAIN
 ═══════════════════════════════════════════════════════════════════ */
-export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights }) {
+export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange }) {
   const TABS = ["overview","spending","budget","insights"];
   const [tab,       setTab]       = useState("overview");
   const [aiLoading, setAiLoading] = useState(false);
@@ -290,6 +290,19 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       setAiError(e.message === "no_api_key" ? "Add your Claude API key on the Ask AI page." : e.message);
     } finally { setAiLoading(false); }
   }, [avgSpending, avgIncome, savingsRate, momChange, currentNetWorth, retirementProjection, subscriptionTotal, subscriptions, efficiencyScore, projectedSpend, totalBudget, budgetGrid]);
+
+  function addTodo(text) {
+    if (!text?.trim()) return;
+    if (todos.some(t => t.text === text.trim())) return;
+    const next = [...todos, { id: Date.now().toString(), text: text.trim(), addedAt: Date.now() }];
+    onTodosChange(next);
+  }
+  function removeTodo(id) {
+    onTodosChange(todos.filter(t => t.id !== id));
+  }
+  function isTodoAdded(text) {
+    return todos.some(t => t.text === text?.trim());
+  }
 
   /* ── Right sidebar content (desktop only) ─────────────────────── */
   const Sidebar = (
@@ -904,11 +917,18 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                           <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", marginBottom:2 }}>{ins.title}</div>
                           <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>{ins.body}</div>
                           {ins.suggestion && (
-                            <div style={{ marginTop:8, display:"flex", gap:8, alignItems:"flex-start",
-                              background:"var(--card)", borderRadius:"var(--radius)", padding:"8px 10px",
-                              border:"1px solid var(--border)" }}>
-                              <span style={{ fontSize:11, color:"var(--cyan)", flexShrink:0, marginTop:1 }}>↗</span>
-                              <div style={{ fontSize:11, color:"var(--t2)", lineHeight:1.5 }}>{ins.suggestion}</div>
+                            <div style={{ marginTop:8, background:"var(--card)", borderRadius:"var(--radius)", padding:"8px 10px", border:"1px solid var(--border)" }}>
+                              <div style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
+                                <span style={{ fontSize:11, color:"var(--cyan)", flexShrink:0, marginTop:1 }}>↗</span>
+                                <div style={{ fontSize:11, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{ins.suggestion}</div>
+                              </div>
+                              <button
+                                onClick={() => addTodo(ins.suggestion)}
+                                style={{ marginTop:8, fontSize:11, fontWeight:600, cursor:"pointer",
+                                  background:"none", border:"none", padding:0,
+                                  color: isTodoAdded(ins.suggestion) ? "var(--green)" : "var(--cyan)" }}>
+                                {isTodoAdded(ins.suggestion) ? "✓ Added to To-Do" : "+ Add to To-Do"}
+                              </button>
                             </div>
                           )}
                         </div>
@@ -920,7 +940,13 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 {aiInsights.recommendation && (
                   <div style={{ background:"var(--cyan-dim)", border:"1px solid var(--cyan)44", borderRadius:"var(--radius)", padding:"12px 14px" }}>
                     <div style={{ fontSize:11, fontWeight:700, color:"var(--cyan)", textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:4 }}>This month's action</div>
-                    <div style={{ fontSize:13, color:"var(--t1)", lineHeight:1.5 }}>{aiInsights.recommendation}</div>
+                    <div style={{ fontSize:13, color:"var(--t1)", lineHeight:1.5, marginBottom:8 }}>{aiInsights.recommendation}</div>
+                    <button
+                      onClick={() => addTodo(aiInsights.recommendation)}
+                      style={{ fontSize:11, fontWeight:600, cursor:"pointer", background:"none", border:"none", padding:0,
+                        color: isTodoAdded(aiInsights.recommendation) ? "var(--green)" : "var(--cyan)" }}>
+                      {isTodoAdded(aiInsights.recommendation) ? "✓ Added to To-Do" : "+ Add to To-Do"}
+                    </button>
                   </div>
                 )}
               </div>
@@ -931,10 +957,73 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </div>
             )}
           </Card>
+
+          {/* To-Do list — mobile: show below AI card */}
+          {isMobile && (
+            <Card>
+              <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : "Add suggestions from insights above"} />
+              {todos.length === 0 ? (
+                <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"20px 0" }}>
+                  Generate insights and tap "+ Add to To-Do" on any suggestion.
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {todos.map(todo => (
+                    <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                      <button onClick={() => removeTodo(todo.id)} style={{
+                        width:18, height:18, borderRadius:4, border:"1.5px solid var(--border2)",
+                        background:"none", cursor:"pointer", flexShrink:0, marginTop:2,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                      }}>
+                        <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
+                      </button>
+                      <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
           </div>
           {!isMobile && (
-            <div style={{ minWidth:0 }}>
-              {/* Insights right column — cards coming soon */}
+            <div style={{ minWidth:0, position:"sticky", top:16 }}>
+              <Card>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                  <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : null} />
+                  {todos.length > 0 && (
+                    <button onClick={() => onTodosChange([])}
+                      style={{ fontSize:11, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>
+                      Clear all
+                    </button>
+                  )}
+                </div>
+                {todos.length === 0 ? (
+                  <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
+                    Generate insights, then tap<br/>
+                    <span style={{ color:"var(--cyan)" }}>+ Add to To-Do</span> on any suggestion.
+                  </div>
+                ) : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                    {todos.map(todo => (
+                      <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                        <button onClick={() => removeTodo(todo.id)} style={{
+                          width:18, height:18, borderRadius:4,
+                          border:"1.5px solid var(--border2)", background:"none",
+                          cursor:"pointer", flexShrink:0, marginTop:2,
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          transition:"all 0.15s",
+                        }}
+                          onMouseEnter={e => { e.currentTarget.style.background="var(--cyan)"; e.currentTarget.style.borderColor="var(--cyan)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background="none"; e.currentTarget.style.borderColor="var(--border2)"; }}>
+                          <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
+                        </button>
+                        <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </div>
           )}
         </div>

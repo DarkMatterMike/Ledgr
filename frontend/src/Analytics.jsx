@@ -510,8 +510,8 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
             <Card><SectionHead title="Largest transactions" sub="All time" />{biggestTxns.map((t,i)=>{const cat=catMap[t.categoryId];return(<div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<biggestTxns.length-1?"1px solid var(--border)":"none"}}><div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:70}}>{t.date}</div><div style={{flex:1,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>{cat&&<span style={{fontSize:11,color:cat.color,flexShrink:0}}>{cat.name}</span>}<div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div></div>);})}</Card>
           </div>
         ) : (
-          /* Desktop: two-column as specified */
-          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:16, alignItems:"start" }}>
+          /* Desktop: larger left, narrower right — matching PageLayout */
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
             {/* Column 1 */}
             <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
               {/* Row 1: Net worth */}
@@ -524,9 +524,7 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
                   </div>
                 )}
               </Card>
-              {/* Row 2: Spending Breakdown */}
-              <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
-              {/* Row 3: 4 mini stats */}
+              {/* Row 2: 4 mini stats */}
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
                   sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
@@ -540,6 +538,8 @@ Include 3-5 insights. Be specific. Use actual dollar amounts. Only include sugge
                   subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
                   accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
               </div>
+              {/* Row 3: Spending Breakdown */}
+              <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             </div>
             {/* Column 2 */}
             <div style={{ display:"flex", flexDirection:"column", gap:16 }}>

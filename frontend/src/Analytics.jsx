@@ -921,10 +921,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   }}
                 />
                 <button style={{
-                  width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-                  padding:"10px 14px", borderRadius:"var(--radius)",
+                  display:"flex", alignItems:"center", justifyContent:"flex-end", gap:6,
+                  padding:"8px 14px", borderRadius:"var(--radius)",
                   fontSize:13, fontWeight:500, cursor:aiLoading?"default":"pointer",
-                  border:"1px solid transparent",
+                  border:"1px solid transparent", marginLeft:"auto",
                   background:"var(--cyan)", color:"#000",
                   opacity:aiLoading?0.7:1, transition:"all 0.15s",
                 }} onClick={!aiLoading?runAiInsights:undefined} disabled={aiLoading}>

@@ -3466,7 +3466,7 @@ function AppInner() {
                         </span>
                       </div>
                       <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:complete?"var(--green)":over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
+                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                         <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
@@ -3529,7 +3529,7 @@ function AppInner() {
                         </span>
                       </div>
                       <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:3}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:complete?"var(--green)":over?"var(--red)":warn?"var(--amber)":remaining===0?"var(--t3)":cat.color}}/>
+                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
                       </div>
                       <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                         <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
@@ -3903,59 +3903,6 @@ function AppInner() {
 
   const Budgets = (
     <div>
-      {/* ── Budget Gauge ─────────────────────────────────────── */}
-      {categories.length > 0 && totalBudget > 0 && (() => {
-        const rawPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
-        const clampedPct = Math.min(rawPct, 1);
-        const displayPct = Math.round(rawPct * 100);
-        const over = rawPct > 1;
-        const onBudget = rawPct >= 0.9 && rawPct <= 1;
-        const gaugeColor = over ? "var(--red)" : onBudget ? "var(--green)" : "var(--cyan)";
-
-        // cx=100 cy=90 r=68 sw=13
-        // Arc sweeps CCW from left (π) through top (3π/2) to right (2π)
-        // sweep-flag=1 in SVG (y-down) = clockwise on screen = goes UP through the top ✓
-        const cx=100, cy=90, r=68, sw=13;
-        const lx=cx-r, ly=cy;           // left  tip (32, 90)
-        const rx=cx+r, ry=cy;           // right tip (168, 90)
-        const a = Math.PI * (1 + clampedPct); // π→2π as p goes 0→1
-        const ex = cx + r * Math.cos(a);
-        const ey = cy + r * Math.sin(a);
-
-        return (
-          <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:20 }}>
-            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>
-              Budget Progress
-            </div>
-            <div style={{ display:"flex", justifyContent:"center" }}>
-              {/* viewBox shows y=14 (top stroke edge) to y=97 (bottom stroke edge), x=20 to x=180 */}
-              <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
-                {/* Track arc: left → CCW through top → right */}
-                <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`}
-                  fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
-                {/* Fill arc */}
-                {clampedPct > 0.01 && (
-                  <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
-                    fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
-                    style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>
-                )}
-              </svg>
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>
-                {displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}
-              </div>
-              <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>
-                {fmt(totalSpent)}
-              </div>
-              <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
-                of {fmt(totalBudget)} budgeted
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
         <div style={S.sectionTitle}>Budget Categories</div>
         <div style={{ display:"flex", gap:8 }}>
@@ -4052,6 +3999,36 @@ function AppInner() {
         <>
           {isMobile ? (
             <>
+              {/* Gauge — mobile: full width within content padding */}
+              {categories.length > 0 && totalBudget > 0 && (() => {
+                const rawPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
+                const clampedPct = Math.min(rawPct, 1);
+                const displayPct = Math.round(rawPct * 100);
+                const over = rawPct > 1;
+                const onBudget = rawPct >= 0.9 && rawPct <= 1;
+                const gaugeColor = over ? "var(--red)" : onBudget ? "var(--green)" : "var(--cyan)";
+                const cx=100, cy=90, r=68, sw=13;
+                const lx=cx-r, ly=cy, rx=cx+r, ry=cy;
+                const a = Math.PI * (1 + clampedPct);
+                const ex = cx + r * Math.cos(a);
+                const ey = cy + r * Math.sin(a);
+                return (
+                  <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                    <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
+                    <div style={{ display:"flex", justifyContent:"center" }}>
+                      <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
+                        <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
+                        {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round" style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>}
+                      </svg>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>{displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}</div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(totalSpent)}</div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of {fmt(totalBudget)} budgeted</div>
+                    </div>
+                  </div>
+                );
+              })()}
               {(() => {
                 const sections = [
                   { key: "over", label: "Overspent", cats: sortedCategories.filter(c => !c.completedMonths?.includes(selectedMonth) && (c.limit - (spentByCat[c.id] || 0)) < 0) },
@@ -4224,6 +4201,36 @@ function AppInner() {
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 16, alignItems: "start" }}>
               <div style={{ minWidth: 0 }}>
+                {/* Gauge — desktop: constrained to left column width */}
+                {categories.length > 0 && totalBudget > 0 && (() => {
+                  const rawPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
+                  const clampedPct = Math.min(rawPct, 1);
+                  const displayPct = Math.round(rawPct * 100);
+                  const over = rawPct > 1;
+                  const onBudget = rawPct >= 0.9 && rawPct <= 1;
+                  const gaugeColor = over ? "var(--red)" : onBudget ? "var(--green)" : "var(--cyan)";
+                  const cx=100, cy=90, r=68, sw=13;
+                  const lx=cx-r, ly=cy, rx=cx+r, ry=cy;
+                  const a = Math.PI * (1 + clampedPct);
+                  const ex = cx + r * Math.cos(a);
+                  const ey = cy + r * Math.sin(a);
+                  return (
+                    <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                      <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
+                      <div style={{ display:"flex", justifyContent:"center" }}>
+                        <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
+                          <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
+                          {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round" style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>}
+                        </svg>
+                      </div>
+                      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>{displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}</div>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(totalSpent)}</div>
+                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of {fmt(totalBudget)} budgeted</div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {(() => {
                   const sections = [
                     { key: "over", label: "Overspent", cats: sortedCategories.filter(c => !c.completedMonths?.includes(selectedMonth) && (c.limit - (spentByCat[c.id] || 0)) < 0) },

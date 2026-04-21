@@ -4123,7 +4123,7 @@ function AppInner() {
                             const warn = pct >= 80 && !over && remaining !== 0;
                             const zero = remaining === 0 && !over;
                             const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
-                            const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
+                            const barC = over ? "var(--red)" : complete ? "var(--t3)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
                             const remColor = (complete || zero) ? "var(--t3)" : over ? "var(--red)" : "var(--green)";
                             const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                             const displayPct = complete ? 100 : pct;
@@ -4146,7 +4146,7 @@ function AppInner() {
                                     >⋯</button>
                                     {budgetKebabId === cat.id && (
                                       <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--t2)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
                                           {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
                                         </button>
                                         <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
@@ -4324,7 +4324,7 @@ function AppInner() {
                               const warn = pct >= 80 && !over && remaining !== 0;
                               const zero = remaining === 0 && !over;
                               const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
-                              const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
+                              const barC = over ? "var(--red)" : complete ? "var(--t3)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
                               const remColor = (complete || zero) ? "var(--t3)" : over ? "var(--red)" : "var(--green)";
                               const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                               const displayPct = complete ? 100 : pct;
@@ -4347,7 +4347,7 @@ function AppInner() {
                                       >⋯</button>
                                       {budgetKebabId === cat.id && (
                                         <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--t2)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
                                             {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
                                           </button>
                                           <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>

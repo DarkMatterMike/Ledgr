@@ -2409,6 +2409,7 @@ function AppInner() {
     const aiRules      = rs.filter(r => r.source === "ai");
     const orderedRules = [...manualRules, ...aiRules];
     return txns.map(t => {
+      if (t.userCategorized) return t; // never touch manually-categorized txns
       if (onlyUncategorized && t.categoryId) return t;
       const mer = (t.merchant || t.name || "").toLowerCase().trim();
       for (const r of orderedRules) {
@@ -2438,7 +2439,7 @@ function AppInner() {
   function selectAllVisible() { setSelectedTxns(new Set(filteredTxns.map(t => t.id))); }
   function clearSelection()   { setSelectedTxns(new Set()); }
   function bulkSetCategory(catId) {
-    setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, categoryId:catId||null, reviewed: catId ? true : t.reviewed} : t));
+    setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, categoryId:catId||null, reviewed: catId ? true : t.reviewed, userCategorized: !!catId} : t));
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
   }
@@ -2508,6 +2509,16 @@ function AppInner() {
     try {
       const {added,modified,removed} = await api.syncTransactions(itemId);
       setTransactions(prev => {
+        // Normalise merchant name for fingerprinting — matches server logic
+        function normMerchant(t) {
+          return (t.merchant || t.name || "")
+            .toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+        }
+        function fp(t) {
+          const date = t.authorized_date || t.date || "";
+          return `${date}__${t.amount}__${normMerchant(t)}`;
+        }
+
         let next=[...prev];
         const removeIds=new Set(removed.map(r=>r.transaction_id));
         next=next.filter(t=>!removeIds.has(t.id));
@@ -2517,22 +2528,32 @@ function AppInner() {
           const updated = plaidTxnToLocal(modMap[t.id],catMap);
           const merged = {
             ...t,
-            ...updated,
-            categoryId: t.categoryId || updated.categoryId || null,
+            // Only update the fields Plaid owns — never touch user fields
+            date:       updated.date       || t.date,
+            authorized_date: updated.authorized_date || t.authorized_date || null,
+            amount:     updated.amount,
+            pending:    updated.pending,
+            // Merchant: only update if user hasn't renamed
+            merchant:   t.name ? t.merchant : (updated.merchant || t.merchant),
+            // User fields: never touch
+            categoryId:     t.categoryId,
+            userCategorized: t.userCategorized || false,
+            name:       t.name  || "",
+            notes:      t.notes || "",
+            reviewed:   t.reviewed || false,
           };
+          // Only apply rules if user hasn't manually categorized this txn
           return applyRules([merged], rules, { onlyUncategorized: true })[0];
         });
-        const existing=new Set(next.map(t=>t.id));
-        // Also deduplicate by fingerprint (date+amount+merchant) to prevent
-        // duplicates when the same bank is reconnected with new transaction_ids
-        const fingerprints=new Set(next.map(t=>`${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`));
+        const existingIds=new Set(next.map(t=>t.id));
+        const fingerprints=new Set(next.map(t=>fp(t)));
         const rawNew=added
-          .filter(t=>!existing.has(t.transaction_id))
+          .filter(t=>!existingIds.has(t.transaction_id))
           .map(t=>plaidTxnToLocal(t,catMap))
           .filter(t=>{
-            const fp=`${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`;
-            if(fingerprints.has(fp)) return false;
-            fingerprints.add(fp);
+            const f=fp(t);
+            if(fingerprints.has(f)) return false;
+            fingerprints.add(f);
             return true;
           });
         return [...applyRules(rawNew, rules, { onlyUncategorized: true }),...next];
@@ -2599,11 +2620,13 @@ function AppInner() {
     } catch(e) { showToast("Connection failed: "+e.message); }
   }, [doSync]);
   function plaidTxnToLocal(t,cm) {
-    const pc=(t.category||"").toLowerCase();
-    const matched=Object.values(cm).find(c=>pc.includes(c.name.toLowerCase().split(" ")[0]));
+    // Do NOT use Plaid's category string — it's too vague and causes false matches.
+    // Rules (manual + AI) are the single source of truth for categorization.
+    void cm;
     return {id:t.transaction_id,plaidAccountId:t.account_id,plaidItemId:t.item_id,accountId:"a"+t.account_id,
-      date:t.date||t.authorized_date,merchant:t.merchant_name||t.name,name:"",
-      amount:t.amount,categoryId:matched?.id||null,pending:t.pending,recurring:false,recurringDay:null,
+      date:t.date||t.authorized_date,authorized_date:t.authorized_date||null,
+      merchant:t.merchant_name||t.name,name:"",
+      amount:t.amount,categoryId:null,pending:t.pending,recurring:false,recurringDay:null,
       type:t.amount<0?"expense":"income"};
   }
   async function disconnectItem(itemId) {
@@ -2694,7 +2717,8 @@ function AppInner() {
   }
   function updateTxnCat(id, val) {
     setTransactions(p => {
-      const next = p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed } : t);
+      // userCategorized:true locks this txn from being re-categorized by rules or sync
+      const next = p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed, userCategorized: !!val } : t);
       // Save immediately — don't rely on debounce, a sync could arrive within 800ms
       api.saveData({ transactions: next });
       return next;

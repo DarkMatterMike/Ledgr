@@ -398,26 +398,66 @@ async function syncItemTransactions(userId, targetItemId = null) {
 async function applySyncResultsToDB(userId, added, modified, removed) {
   const existing  = (await getData(userId, "transactions")) || [];
   const removeIds = new Set(removed.map(r => r.transaction_id));
+
+  // Fingerprint uses ONLY date + amount + merchant — NOT authorized_date.
+  // Plaid sometimes adds authorized_date later (via modify), which would change
+  // the fingerprint and cause a duplicate if we used it here.
+  function normMerchant(t) {
+    return (t.merchant || t.merchant_name || t.name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  function fp(t) {
+    const date = t.date || "";   // always use post date for consistency
+    return `${date}__${t.amount}__${normMerchant(t)}`;
+  }
+
+  // Remove first — before building the fingerprint set, so a pending→posted
+  // transition (remove old ID + add new ID, same amount/date/merchant) is
+  // handled correctly: the old record is gone before we check for duplicates.
   let next = existing.filter(t => !removeIds.has(t.id));
+
   const modMap = Object.fromEntries(modified.map(t => [t.transaction_id, t]));
-  next = next.map(t => { if (!modMap[t.id]) return t; const m = modMap[t.id]; return { ...t, date: m.date, pending: m.pending, amount: m.amount }; });
-  const existingIds = new Set(next.map(t => t.id));
-  const fingerprints = new Set(next.map(t => `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`));
+
+  // Apply modifications — preserve ALL user fields, only update Plaid-owned fields.
+  next = next.map(t => {
+    if (!modMap[t.id]) return t;
+    const m = modMap[t.id];
+    return {
+      ...t,
+      date:             m.date || t.date,
+      authorized_date:  m.authorized_date || t.authorized_date || null,
+      pending:          m.pending,
+      amount:           m.amount,
+      // Merchant: only update if user hasn't renamed (t.name is the user rename field)
+      merchant: t.name ? t.merchant : (m.merchant_name || m.name || t.merchant),
+      // NEVER touch: categoryId, userCategorized, name, notes, reviewed, recurring, type
+    };
+  });
+
+  const existingIds  = new Set(next.map(t => t.id));
+  const fingerprints = new Set(next.map(t => fp(t)));
+
   const newTxns = added
     .filter(t => !existingIds.has(t.transaction_id))
     .map(t => ({
       id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
-      accountId: "a" + t.account_id, date: t.date || t.authorized_date,
+      accountId: "a" + t.account_id,
+      date: t.date,
+      authorized_date: t.authorized_date || null,
       merchant: t.merchant_name || t.name, name: "", amount: t.amount,
-      categoryId: null, pending: t.pending,
+      categoryId: null, userCategorized: false, pending: t.pending,
       type: t.amount < 0 ? "expense" : "income", recurring: false, recurringDay: null,
     }))
     .filter(t => {
-      const fp = `${t.date}__${t.amount}__${(t.merchant||t.name||"").toLowerCase().trim()}`;
-      if (fingerprints.has(fp)) return false;
-      fingerprints.add(fp);
+      const f = fp(t);
+      if (fingerprints.has(f)) return false;
+      fingerprints.add(f);
       return true;
     });
+
   next = [...newTxns, ...next];
   await setData(userId, "transactions", next);
   try {

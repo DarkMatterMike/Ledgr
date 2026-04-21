@@ -1260,16 +1260,16 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     </div>
                   </div>
 
-                  <div style={{ display:"grid", gridTemplateColumns:isMobile?"minmax(0,1fr)":"minmax(0,1fr) minmax(0,1fr)", gap:10 }}>
-                    <div style={{ minWidth:0 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:10 }}>
+                    <div style={{ minWidth:0, overflow:"hidden" }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Start date</div>
-                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block" }}
+                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"6px 8px", fontSize:11, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block", WebkitAppearance:"none", appearance:"none", overflow:"hidden" }}
                         value={goalForm.startDate||""}
                         onChange={e=>setGoalForm(f=>({...f, startDate:e.target.value, periodAmount:"" }))} />
                     </div>
-                    <div style={{ minWidth:0 }}>
+                    <div style={{ minWidth:0, overflow:"hidden" }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Deadline (optional)</div>
-                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block" }}
+                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"6px 8px", fontSize:11, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block", WebkitAppearance:"none", appearance:"none", overflow:"hidden" }}
                         value={goalForm.deadline||""}
                         onChange={e=>setGoalForm(f=>({...f, deadline:e.target.value, periodAmount:"" }))} />
                     </div>
@@ -1473,7 +1473,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       </div>
 
       {isMobile ? (
-        <div>{MainContent}</div>
+        <div style={{ width:"100%", overflowX:"hidden" }}>{MainContent}</div>
       ) : (
         <div style={{ width:"100%" }}>{MainContent}</div>
       )}

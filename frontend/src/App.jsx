@@ -39,8 +39,8 @@ button {
   appearance: none;
   -webkit-tap-highlight-color: transparent;
 }
-    .ledgr-content   { padding: 28px; }
-    .ledgr-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    .ledgr-content   { padding: 20px; }
+    .ledgr-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
     .ledgr-dash-cards { display: flex; flex-direction: column; gap: 16px; }
     .ledgr-acct-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .ledgr-budget-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
@@ -168,36 +168,36 @@ button {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:20 },
-  cardTitle:    { fontFamily:"var(--font-disp)", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:16 },
-  grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
-  grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 },
-  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"20px 22px" },
-  statLabel:    { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 },
-  statValue:    { fontFamily:"var(--font-mono)", fontSize:26, fontWeight:600 },
-  statSub:      { fontSize:12, color:"var(--t2)", marginTop:4 },
+  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"12px 16px" },
+  cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
+  grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
+  grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
+  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 14px" },
+  statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 },
+  statValue:    { fontFamily:"var(--font-mono)", fontSize:20, fontWeight:600 },
+  statSub:      { fontSize:11, color:"var(--t2)", marginTop:2 },
   btn: (variant="ghost", sm=false) => {
-    const base = { display:"inline-flex", alignItems:"center", gap:6, padding:sm?"5px 12px":"8px 16px", borderRadius:"var(--radius)", fontSize:13, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none", lineHeight:"1.4", whiteSpace:"nowrap" };
+    const base = { display:"inline-flex", alignItems:"center", gap:5, padding:sm?"3px 8px":"5px 11px", borderRadius:"var(--radius)", fontSize:12, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none", lineHeight:"1.4", whiteSpace:"nowrap" };
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"#ff4d6d44" };
     if (variant==="amber")   return { ...base, background:"#fbbf2422", color:"var(--amber)", borderColor:"#fbbf2444" };
     return { ...base, background:"transparent", color:"var(--t2)", borderColor:"var(--border2)" };
   },
-  input:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 12px", fontSize:13, color:"var(--t1)", outline:"none", width:"100%" },
-  select:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"6px 10px", fontSize:12, color:"var(--t1)", outline:"none" },
-  field:        { display:"flex", flexDirection:"column", gap:6 },
+  input:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
+  select:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
+  field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
   overlay:      { position:"fixed", inset:0, background:"#00000088", backdropFilter:"blur(4px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
-  modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:28, width:500, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
-  modalTitle:   { fontFamily:"var(--font-disp)", fontSize:18, fontWeight:800, marginBottom:20, letterSpacing:"-0.3px" },
+  modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
+  modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:24, right:16, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"12px 18px", fontSize:13, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
-  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 16px", display:"flex", alignItems:"center", gap:16, fontSize:12, color:"var(--t2)", marginBottom:20, flexWrap:"wrap" },
-  sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
-  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:16, fontWeight:700, letterSpacing:"-0.2px" },
-  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"10px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
-  td:           { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
-  filterRow:    { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
+  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 14px", fontSize:12, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
+  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"7px 12px", display:"flex", alignItems:"center", gap:12, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 },
+  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
+  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
+  td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
+  filterRow:    { display:"flex", gap:8, flexWrap:"wrap", marginBottom:10, alignItems:"center" },
 };
 
 /* ─── Constants ─────────────────────────────────────────────────── */
@@ -790,27 +790,27 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
   return (
     <>
-      <div style={{padding:"20px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+      <div style={{padding:"12px 14px 10px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-          <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+          <span style={{fontFamily:"var(--font-script)",fontSize:22,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
+          <div style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
             ledgr<span style={{color:"var(--cyan)"}}>.</span>
           </div>
         </div>
-        <div style={{fontSize:11,color:"var(--t3)",marginTop:6,paddingLeft:1}}>personal finance</div>
+        <div style={{fontSize:10,color:"var(--t3)",marginTop:3,paddingLeft:1}}>personal finance</div>
       </div>
-      <nav style={{flex:1,padding:"12px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
+      <nav style={{flex:1,padding:"8px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}
             style={{
-              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-              borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+              display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+              borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
               border:`1px solid ${view===n.id?"#00d4ff33":"transparent"}`,
               background:view===n.id?"var(--cyan-dim)":"transparent",
               color:view===n.id?"var(--cyan)":"var(--t2)",
               width:"100%",textAlign:"left",transition:"all 0.15s",
             }}>
-            <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+            <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>{n.icon}</span>
             <span>{n.label}</span>
             {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
           </button>
@@ -820,21 +820,21 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
           <div style={{ marginTop:8, borderTop:"1px solid var(--border)", paddingTop:8, display:"flex", flexDirection:"column", gap:2 }}>
             <button onClick={()=>onNav("admin")}
               style={{
-                display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-                borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+                borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
                 border:`1px solid ${view==="admin"?"#00d4ff33":"transparent"}`,
                 background:view==="admin"?"var(--cyan-dim)":"transparent",
                 color:view==="admin"?"var(--cyan)":"var(--t2)",
                 width:"100%",textAlign:"left",transition:"all 0.15s",
               }}>
-              <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>⬡</span>
+              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>⬡</span>
               <span>Admin</span>
               {view==="admin"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
             </button>
           </div>
         )}
       </nav>
-      <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:8}}>
+      <div style={{padding:"8px 8px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:6}}>
         <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
           onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
           {syncing?"⟳ Syncing…":"⟳ Sync All"}
@@ -922,7 +922,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
     <div style={{borderBottom:"1px solid var(--border)"}}>
       <div
         onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
-        style={{padding:"10px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
+        style={{padding:"7px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
           borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
           paddingLeft:t.recurring||needsReview(t)?10:0,
           background: isSelected ? "var(--cyan-dim)" : "transparent",
@@ -1614,7 +1614,7 @@ function AdminPanel() {
 
   return (
     <div style={{width:"100%"}}>
-      <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:24,letterSpacing:"-0.3px"}}>
+      <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:14,letterSpacing:"-0.3px"}}>
         Admin Panel
       </div>
 
@@ -3380,7 +3380,7 @@ function AppInner() {
         </div>
       ) : (
         /* Desktop: 2-col — left has month bar + 2x2 stats, right has notifications spanning full height */
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20,alignItems:"stretch"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20,alignItems:"stretch"}}>
           {/* Left column: month bar + 2x2 stat grid */}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div style={{...S.monthBar,marginBottom:0,justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -3471,7 +3471,7 @@ function AppInner() {
       {isMobile ? (
         <div className="ledgr-dash-cards">
           <div style={S.card} className="ledgr-card-anim">
-            <div style={{...S.sectionHdr,marginBottom:12}}>
+            <div style={{...S.sectionHdr,marginBottom:8}}>
               <div style={S.cardTitle}>Budget Progress</div>
               <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
             </div>
@@ -3505,7 +3505,7 @@ function AppInner() {
           </div>
 
           <div style={S.card}>
-            <div style={{...S.sectionHdr,marginBottom:12}}>
+            <div style={{...S.sectionHdr,marginBottom:8}}>
               <div style={S.cardTitle}>Recent Transactions</div>
               <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
             </div>
@@ -3529,7 +3529,7 @@ function AppInner() {
       ) : (
         <div style={{display:"flex",flexDirection:"column",gap:0}}>
           {/* Row 1: Spending Breakdown + Cash Flow — 50/50 */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
             {SpendingBreakdownCard}
             {CashFlowCard}
           </div>
@@ -3544,10 +3544,10 @@ function AppInner() {
             }).sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).slice(0,8);
 
             return (
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
                 {/* Pending Transactions */}
                 <div style={{...S.card,padding:18}}>
-                  <div style={{...S.sectionHdr,marginBottom:12}}>
+                  <div style={{...S.sectionHdr,marginBottom:8}}>
                     <div style={S.cardTitle}>Transactions to Review</div>
                     {reviewCount > 0 && (
                       <button style={S.btn("ghost",true)} onClick={()=>{ setFilterReview(true); navigate("transactions"); }}>Review all →</button>
@@ -3576,7 +3576,7 @@ function AppInner() {
 
                 {/* Upcoming recurring */}
                 <div style={{...S.card,padding:18}}>
-                  <div style={{...S.sectionHdr,marginBottom:12}}>
+                  <div style={{...S.sectionHdr,marginBottom:8}}>
                     <div style={S.cardTitle}>Upcoming</div>
                   </div>
                   {upcomingTxns.length === 0 ? (
@@ -3605,7 +3605,7 @@ function AppInner() {
 
                 {/* Goals Needing Attention */}
                 <div style={{...S.card,padding:18}}>
-                  <div style={{...S.sectionHdr,marginBottom:12}}>
+                  <div style={{...S.sectionHdr,marginBottom:8}}>
                     <div style={S.cardTitle}>Goals Needing Attention</div>
                     <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
                   </div>
@@ -3664,7 +3664,7 @@ function AppInner() {
           {/* Row 3: Budget Progress + Recent Transactions */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}}>
             <div style={S.card} className="ledgr-card-anim">
-              <div style={{...S.sectionHdr,marginBottom:12}}>
+              <div style={{...S.sectionHdr,marginBottom:8}}>
                 <div style={S.cardTitle}>Budget Progress</div>
                 <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
               </div>
@@ -3698,7 +3698,7 @@ function AppInner() {
             </div>
 
             <div style={S.card}>
-              <div style={{...S.sectionHdr,marginBottom:12}}>
+              <div style={{...S.sectionHdr,marginBottom:8}}>
                 <div style={S.cardTitle}>Recent Transactions</div>
                 <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
               </div>
@@ -4188,7 +4188,7 @@ function AppInner() {
                             const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
                             const displayPct = complete ? 100 : pct;
                             return (
-                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer" }}>
+                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 10px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                   {editingCatNameId === cat.id ? (
@@ -4238,7 +4238,7 @@ function AppInner() {
                                 </div>
 
                                 {budgetExpandedCatId === cat.id && (
-                                  <div className="ledgr-expand" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+                                  <div className="ledgr-expand" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
 
                                     {/* Assigned transactions */}
                                     {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).length === 0 ? (
@@ -6348,7 +6348,7 @@ function AppInner() {
     : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage };
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
       <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">ℓ</div>
       <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
@@ -6408,7 +6408,7 @@ function AppInner() {
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
             <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
           </div>

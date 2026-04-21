@@ -17,7 +17,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /* ── Shared components ────────────────────────────────────────────── */
 function Card({ children, style }) {
-  return <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:16, ...style }}>{children}</div>;
+  return <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 14px", ...style }}>{children}</div>;
 }
 function SectionHead({ title, sub }) {
   return (
@@ -575,7 +575,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     <div>
       {/* Tab bar — original pill style, auto-width on desktop, full-width on mobile */}
       <div style={{ marginBottom:16 }}>
-        <div style={{ display:"flex", gap:4, background:"var(--surface)", borderRadius:"var(--radius)", padding:4, ...(isMobile ? { width:"100%" } : { display:"inline-flex" }) }}>
+        <div style={{ display:"flex", gap:3, background:"var(--surface)", borderRadius:"var(--radius)", padding:4, ...(isMobile ? { width:"100%" } : { display:"inline-flex" }) }}>
           {TABS.map(t => (
             <Tab key={t} label={t.charAt(0).toUpperCase()+t.slice(1)} active={tab===t} onClick={() => setTab(t)} style={isMobile ? { flex:1 } : {}} />
           ))}
@@ -598,7 +598,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {tab === "overview" && (
         isMobile ? (
           /* Mobile: stacked */
-          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             <Card><SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} /><LineChart points={netWorthSeries} height={90} /></Card>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
               <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
@@ -617,9 +617,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
-          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
             {/* Column 1 */}
-            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {/* Row 1: Net worth */}
               <Card>
                 <SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} />
@@ -681,7 +681,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ SPENDING ════════════════════════════════════════════════ */}
       {tab === "spending" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
           <Card>
             <SectionHead title="Top merchants" sub="All time, by total spend" />
@@ -854,7 +854,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {tab === "budget" && (
         isMobile ? (
           /* Mobile: stacked */
-          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
               sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
@@ -931,10 +931,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           </div>
         ) : (
           /* Desktop: 3-column — col1 heatmap, col2 overspend+consistent, col3 placeholder */
-          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
 
             {/* Column 1: stat cards + heatmap */}
-            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr", gap:10 }}>
                 <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
                   sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
@@ -989,7 +989,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
 
             {/* Column 2: consecutive overspend + most consistent */}
-            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {budgetGrid.filter(r => r.streak >= 2).length > 0 ? (
                 <Card style={{ borderLeft:"3px solid var(--red)" }}>
                   <SectionHead title="Consecutive overspend" sub="Categories overspent 2+ months in a row" />
@@ -1030,13 +1030,13 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ INSIGHTS ════════════════════════════════════════════════ */}
       {tab === "insights" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
 
           {/* Spending velocity */}
           <Card>
             <SectionHead title="This month's spending pace" sub={`Day ${dayOfMonth} of ${daysInMonth_} — projected to end of month`} />
-            <div style={{ display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
               <div style={{ flex:1, minWidth:200 }}>
                 <div style={{ height:10, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:8 }}>
                   <div style={{ height:"100%", width:`${Math.min(velocityPct||0,100)}%`,
@@ -1121,8 +1121,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               <div style={{ fontSize:13, color:"var(--red)", padding:"10px 14px", background:"var(--red-dim)", borderRadius:"var(--radius)" }}>{aiError}</div>
             )}
             {aiInsights && (
-              <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:16, background:"var(--surface)", borderRadius:"var(--radius)", padding:"14px 16px" }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, background:"var(--surface)", borderRadius:"var(--radius)", padding:"14px 16px" }}>
                   <div style={{ position:"relative", width:64, height:64, flexShrink:0 }}>
                     <svg viewBox="0 0 64 64" style={{ width:64, height:64, transform:"rotate(-90deg)" }}>
                       <circle cx="32" cy="32" r="28" fill="none" stroke="var(--border)" strokeWidth="6" />
@@ -1136,7 +1136,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   </div>
                   <div>
                     <div style={{ fontSize:16, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{aiInsights.scoreLabel}</div>
-                    <div style={{ fontSize:13, color:"var(--t2)", lineHeight:1.5 }}>{aiInsights.headline}</div>
+                    <div style={{ fontSize:11, color:"var(--t2)", lineHeight:1.5 }}>{aiInsights.headline}</div>
                   </div>
                 </div>
 
@@ -1227,8 +1227,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ GOALS ════════════════════════════════════════════════════ */}
       {tab === "goals" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
-          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {goalForm !== null && (
               <Card style={{ border:"1px solid var(--cyan)44" }}>
                 <SectionHead title={goalForm.id ? "Edit goal" : "New goal"} />

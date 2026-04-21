@@ -4033,7 +4033,7 @@ function AppInner() {
                                   ) : (
                                     <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Tap to rename" style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text" }}>{cat.name}</span>
                                   )}
-                                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: remColor, background: remBg, border: `1px solid ${remColor}33`, borderRadius: 6, padding: "3px 10px", flexShrink: 0 }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</span>
+                                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: remColor, background: remBg, border: `1px solid ${remColor}33`, borderRadius: 6, padding: "2px 7px", flexShrink: 0 }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</span>
                                   <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }}
@@ -4204,7 +4204,7 @@ function AppInner() {
                                     ) : (
                                       <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Click to rename" style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text" }}>{cat.name}</span>
                                     )}
-                                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: remColor, background: remBg, border: `1px solid ${remColor}33`, borderRadius: 6, padding: "3px 10px", flexShrink: 0 }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</span>
+                                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: remColor, background: remBg, border: `1px solid ${remColor}33`, borderRadius: 6, padding: "2px 7px", flexShrink: 0 }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</span>
                                     <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }}
@@ -4400,35 +4400,34 @@ function AppInner() {
           )}
           {accounts.length===0
             ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
-            : <div className="ledgr-acct-grid">
+            : <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:isMobile?10:16}}>
                 {accounts.map(acct=>{
                   const spent=spentByAcct[acct.id]||0;
                   const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
                   const daily=today.getDate()>0?spent/today.getDate():0;
                   const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
                   return (
-                    <div key={acct.id} style={{...S.card,padding:"12px 16px"}}>
-                      {/* Row 1: name + balance + actions */}
-                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div key={acct.id} style={{...S.card,padding:"12px 14px"}}>
+                      {/* Row 1: icon+name left, balance+actions right */}
+                      <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:6}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-                            <span style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</span>
-                            {acct.institution&&<span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{acct.institution}</span>}
-                          </div>
+                          <div style={{fontSize:14,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
+                          {acct.institution&&<div style={{fontSize:11,color:"var(--t3)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.institution}</div>}
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:"var(--cyan)",flexShrink:0}}>{fmt(acct.balance)}</span>
-                        <div style={{display:"flex",gap:4,flexShrink:0}}>
-                          <button style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"3px 6px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
+                          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 8px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
-                      {/* Row 2: stats */}
-                      <div style={{display:"flex",gap:16,marginTop:6,flexWrap:"wrap"}}>
+                      {/* Row 2: compact stats — wrap naturally on small screens */}
+                      <div style={{display:"flex",gap:10,flexWrap:"wrap",rowGap:3}}>
                         <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}</span>
-                        {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>Avail {fmt(acct.available)}</span>}
-                        <span style={{fontSize:11,color:"var(--t3)"}}>Spent {fmt(spent)}</span>
-                        {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>+{fmt(income)}</span>}
-                        <span style={{fontSize:11,color:"var(--t3)"}}>~{fmt(daily)}/day · proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>
+                        {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
+                        <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
+                        {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
+                        <span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day</span>
+                        <span style={{fontSize:11,color:"var(--t3)"}}>· proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>
                       </div>
                     </div>
                   );
@@ -4480,24 +4479,22 @@ function AppInner() {
                         : "3px solid var(--border2)",
                       opacity:rule.enabled?1:0.45,
                     }}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
-                      {/* Left: pattern + destination */}
-                      <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:6,overflow:"hidden"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",flexShrink:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>"{rule.pattern}"</span>
+                    <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0}}>
+                      {/* Line 1: pattern → destination + meta */}
+                      <div style={{display:"flex",alignItems:"center",gap:5,minWidth:0,overflow:"hidden"}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0,flex:1}}>"{rule.pattern}"</span>
                         <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>→</span>
                         {rule.typeOverride
                           ? <span style={{fontSize:11,color:"var(--amber)",textTransform:"capitalize",flexShrink:0,whiteSpace:"nowrap"}}>{rule.typeOverride}</span>
-                          : cat ? <span style={{fontSize:11,color:cat.color,flexShrink:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:100}}>{cat.name}</span>
-                          : <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>No category</span>
-                        }
-                        <span style={{fontSize:10,color:"var(--t3)",flexShrink:0,whiteSpace:"nowrap"}}>{rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts":"contains"}</span>
-                        {isAi && <span style={{fontSize:9,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",borderRadius:99,padding:"1px 5px",flexShrink:0}}>AI</span>}
+                          : cat ? <span style={{fontSize:11,color:cat.color,flexShrink:0,whiteSpace:"nowrap",maxWidth:90,overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
+                          : <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>No category</span>}
                       </div>
-                      {/* Right: actions */}
-                      <div style={{display:"flex",gap:4,flexShrink:0}}>
-                        <button style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px",color:rule.enabled?"var(--t2)":"var(--t3)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-                        <button style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px"}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-                        <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"3px 6px"}} onClick={()=>deleteRule(rule.id)}>✕</button>
+                      {/* Line 2: match type + AI badge + actions */}
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:10,color:"var(--t3)",flex:1}}>{rule.matchType==="exact"?"Exact":rule.matchType==="starts"?"Starts with":"Contains"}{isAi?" · ✦ AI":""}</span>
+                        <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
+                        <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)"}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+                        <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px"}} onClick={()=>deleteRule(rule.id)}>✕</button>
                       </div>
                     </div>
                   </div>

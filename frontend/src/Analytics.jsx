@@ -147,8 +147,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       if (!t.date) return;
       const ym = t.date.slice(0, 7);
       if (!map[ym]) return;
+      const isNonExpense = ["transfer","income","reimbursement"].includes(t.type);
       if (t.amount > 0 && (t.type === "income" || !t.type)) map[ym].income += t.amount;
-      if (t.amount < 0) {
+      if (t.amount < 0 && !isNonExpense) {
         map[ym].spending += Math.abs(t.amount);
         map[ym].txnCount++;
         if (t.categoryId) map[ym].byCategory[t.categoryId] = (map[ym].byCategory[t.categoryId] || 0) + Math.abs(t.amount);

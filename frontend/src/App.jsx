@@ -3379,12 +3379,18 @@ function AppInner() {
 
           {/* ── Mobile notification strip ── */}
           {(()=>{
-            const now = Date.now();
+            // Same logic as the desktop notifications card —
+            // only flag goals where today is a scheduled contribution date
+            const todayStr = today.toISOString().slice(0,10);
             const atRiskGoals = (goals||[]).filter(g => {
-              const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
-              const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
-              const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
-              return pct < 0.9 && (daysLeft === null || daysLeft < 90);
+              if (!g.startDate || !g.deadline || !g.period) return false;
+              const start = new Date(g.startDate + "T12:00:00");
+              const end   = new Date(g.deadline  + "T12:00:00");
+              const periodDays = { week:7, biweekly:14, month:30, quarter:91, year:365 }[g.period] || 30;
+              const dates = [];
+              let d = new Date(end);
+              while (d >= start) { dates.unshift(d.toISOString().slice(0,10)); d = new Date(d.getTime() - periodDays*86400000); }
+              return dates.includes(todayStr);
             });
             const chips = [
               ...(reviewCount > 0 ? [{

@@ -3363,7 +3363,7 @@ function AppInner() {
               <button onClick={()=>{setView("transactions");setFilterReview(true);setSearch("");setFilterCat("all");setFilterAcct("all");}} style={{background:"none",color:"var(--cyan)",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>Review ›</button>
             </div>
           )}
-          <div className="ledgr-stat-grid" style={{marginBottom:20}}>
+          <div className="ledgr-stat-grid" style={{marginBottom:10}}>
             {[
               {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
               {label:"Spent",       value:fmt(totalSpent), sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"  },
@@ -3380,7 +3380,7 @@ function AppInner() {
         </div>
       ) : (
         /* Desktop: 2-col — left has month bar + 2x2 stats, right has notifications spanning full height */
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20,alignItems:"stretch"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10,alignItems:"stretch"}}>
           {/* Left column: month bar + 2x2 stat grid */}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <div style={{...S.monthBar,marginBottom:0,justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
@@ -3546,7 +3546,7 @@ function AppInner() {
             return (
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
                 {/* Pending Transactions */}
-                <div style={{...S.card,padding:18}}>
+                <div style={{...S.card}}>
                   <div style={{...S.sectionHdr,marginBottom:8}}>
                     <div style={S.cardTitle}>Transactions to Review</div>
                     {reviewCount > 0 && (
@@ -3575,7 +3575,7 @@ function AppInner() {
                 </div>
 
                 {/* Upcoming recurring */}
-                <div style={{...S.card,padding:18}}>
+                <div style={{...S.card}}>
                   <div style={{...S.sectionHdr,marginBottom:8}}>
                     <div style={S.cardTitle}>Upcoming</div>
                   </div>
@@ -3604,7 +3604,7 @@ function AppInner() {
                 </div>
 
                 {/* Goals Needing Attention */}
-                <div style={{...S.card,padding:18}}>
+                <div style={{...S.card}}>
                   <div style={{...S.sectionHdr,marginBottom:8}}>
                     <div style={S.cardTitle}>Goals Needing Attention</div>
                     <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>

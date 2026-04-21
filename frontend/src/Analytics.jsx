@@ -1059,21 +1059,115 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
           </Card>
 
-          {/* Subscriptions */}
-          <Card>
-            <SectionHead title="Recurring subscriptions"
-              sub={`${subscriptions.length} detected · ${fmt(subscriptionTotal)}/mo · ${fmt(subscriptionTotal*12)}/yr`} />
-            {subscriptions.length === 0 ? (
-              <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", padding:"24px 0" }}>No recurring transactions detected yet</div>
-            ) : subscriptions.map((s, i) => (
-              <div key={s.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0",
-                borderBottom:i<subscriptions.length-1?"1px solid var(--border)":"none" }}>
-                <div style={{ flex:1, fontSize:13, color:"var(--t1)" }}>{s.name}</div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:600, color:"var(--amber)" }}>{fmt(s.amount)}/mo</div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", width:60, textAlign:"right" }}>{fmt(s.amount*12)}/yr</div>
-              </div>
-            ))}
-          </Card>
+          {/* Chronic overspenders */}
+          {(()=>{
+            const chronic = budgetGrid.filter(r => r.streak >= 2).sort((a,b) => b.streak - a.streak);
+            if (!chronic.length) return null;
+            return (
+              <Card>
+                <SectionHead title="Chronic overspending" sub="Categories over budget 2+ months in a row" />
+                {chronic.slice(0,5).map((r, i) => {
+                  const avgOver = r.avgSp - r.cat.limit;
+                  return (
+                    <div key={r.cat.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0",
+                      borderBottom:i<Math.min(chronic.length,5)-1?"1px solid var(--border)":"none" }}>
+                      <span style={{ width:8, height:8, borderRadius:"50%", background:r.cat.color, flexShrink:0, display:"inline-block" }}/>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.cat.name}</div>
+                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
+                          {r.streak} month streak · avg {fmt(r.avgSp)}/mo vs {fmt(r.cat.limit)} limit
+                        </div>
+                      </div>
+                      <div style={{ textAlign:"right", flexShrink:0 }}>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:700, color:"var(--red)" }}>+{fmt(avgOver)}</div>
+                        <div style={{ fontSize:10, color:"var(--t3)" }}>avg over</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+            );
+          })()}
+
+          {/* Biggest transactions this month */}
+          {(()=>{
+            const thisYm = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+            const bigTxns = transactions
+              .filter(t => t.amount < 0 && t.date?.startsWith(thisYm) && !["transfer","income","reimbursement"].includes(t.type))
+              .sort((a,b) => a.amount - b.amount)
+              .slice(0,6);
+            if (!bigTxns.length) return null;
+            const monthTotal = bigTxns.reduce((s,t) => s + Math.abs(t.amount), 0);
+            const thisMonthSpending = thisMonthD?.spending || 1;
+            return (
+              <Card>
+                <SectionHead title="Biggest transactions this month" sub={`Top ${bigTxns.length} account for ${Math.round(monthTotal/thisMonthSpending*100)}% of spending`} />
+                {bigTxns.map((t, i) => {
+                  const cat = catMap[t.categoryId];
+                  return (
+                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0",
+                      borderBottom:i<bigTxns.length-1?"1px solid var(--border)":"none" }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:500, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
+                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1, display:"flex", alignItems:"center", gap:5 }}>
+                          <span>{t.date}</span>
+                          {cat && <><span>·</span><span style={{ color:cat.color }}>{cat.name}</span></>}
+                        </div>
+                      </div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--red)", flexShrink:0 }}>
+                        {fmt(Math.abs(t.amount))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+            );
+          })()}
+
+          {/* Savings rate trend */}
+          {(()=>{
+            const months = monthlySavings.filter(m => m.value !== 0);
+            if (months.length < 2) return null;
+            const maxAbs = Math.max(...months.map(m => Math.abs(m.value)), 1);
+            const improving = months.length >= 2 && months[months.length-1].value > months[months.length-2].value;
+            const avgSavings = Math.round(months.reduce((s,m) => s+m.value, 0) / months.length);
+            return (
+              <Card>
+                <SectionHead
+                  title="Net savings trend"
+                  sub={`6-month avg: ${avgSavings >= 0 ? "+" : ""}${fmt(avgSavings)}/mo · ${improving ? "↑ improving" : "↓ declining"}`}
+                />
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4, alignItems:"end", height:60, marginBottom:6 }}>
+                  {months.map((m, i) => {
+                    const positive = m.value >= 0;
+                    const h = Math.max(Math.round((Math.abs(m.value)/maxAbs)*52), 3);
+                    return (
+                      <div key={m.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                        <div style={{ width:"100%", height:52, display:"flex", alignItems: positive?"flex-end":"flex-start" }}>
+                          <div style={{ width:"100%", height:h,
+                            background: positive ? "var(--green)" : "var(--red)",
+                            borderRadius: positive ? "3px 3px 0 0" : "0 0 3px 3px",
+                            opacity: i === months.length-1 ? 1 : 0.55,
+                            transition:"height 0.4s",
+                          }}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4 }}>
+                  {months.map((m, i) => (
+                    <div key={m.label} style={{ textAlign:"center" }}>
+                      <div style={{ fontSize:9, color:"var(--t3)", overflow:"hidden" }}>{m.label.split(" ")[0]}</div>
+                      {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color: m.value>=0?"var(--green)":"var(--red)" }}>
+                        {m.value>=0?"+":""}{fmt(m.value)}
+                      </div>}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            );
+          })()}
 
           {/* AI Insights */}
           <Card>

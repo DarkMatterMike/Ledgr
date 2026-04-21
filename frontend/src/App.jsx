@@ -48,12 +48,18 @@ button {
 
     /* ── Animations ───────────────────────────────────────────── */
 
-    /* Loading screen — pulsing cyan glow on the ℓ logo */
+    /* Sidebar logo — pulsing cyan glow */
     @keyframes ledgr-pulse-glow {
       0%, 100% { text-shadow: 0 0 8px #00d4ff44, 0 0 24px #00d4ff22; opacity: 1; }
       50%       { text-shadow: 0 0 24px #00d4ffcc, 0 0 48px #00d4ff66, 0 0 72px #00d4ff33; opacity: 0.85; }
     }
     .ledgr-logo-pulse { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
+    /* Loading screen — bounce */
+    @keyframes ledgr-bounce {
+      0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.33,0,0.66,0); }
+      50%       { transform: translateY(-22px); animation-timing-function: cubic-bezier(0.33,1,0.66,1); }
+    }
+    .ledgr-logo-bounce { animation: ledgr-bounce 0.9s infinite; text-shadow: 0 0 24px #00d4ffcc, 0 0 48px #00d4ff66; }
 
     /* Loading text — subtle fade in/out */
     @keyframes ledgr-breathe {
@@ -944,8 +950,8 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           }}>
           {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
         </div>
-        <span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":reviewed?"var(--green)":"var(--cyan)"}}/>
-        <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
+        {(t.recurring||!reviewed)&&<span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":"var(--cyan)"}}/>}
+        <span style={{fontSize:13,fontWeight:500,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>        {(!noCategory && cat) ? (
@@ -3897,6 +3903,65 @@ function AppInner() {
 
   const Budgets = (
     <div>
+      {/* ── Budget Gauge ─────────────────────────────────────── */}
+      {categories.length > 0 && totalBudget > 0 && (() => {
+        const rawPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
+        const clampedPct = Math.min(rawPct, 1);           // for arc fill (caps at 100%)
+        const displayPct = Math.round(rawPct * 100);       // shown number (can exceed 100)
+        const over = rawPct > 1;
+        const onBudget = rawPct >= 0.9 && rawPct <= 1;
+        const gaugeColor = over ? "var(--red)" : onBudget ? "var(--green)" : "var(--cyan)";
+        const trackColor = "rgba(255,255,255,0.07)";
+
+        // SVG semicircle: center (100,100), radius 72, stroke 14
+        // Arc goes from 180° (left) sweeping clockwise to 0° (right) = π radians
+        const cx = 100, cy = 100, r = 72, stroke = 14;
+        const startAngle = Math.PI;                        // left = 180°
+        const sweepAngle = Math.PI * clampedPct;           // sweeps up to π at 100%
+        const endAngle   = startAngle - sweepAngle;        // subtract because SVG Y flips
+        const x1 = cx + r * Math.cos(startAngle);
+        const y1 = cy + r * Math.sin(startAngle);
+        const x2 = cx + r * Math.cos(endAngle);
+        const y2 = cy + r * Math.sin(endAngle);
+        const largeArc = sweepAngle > Math.PI ? 1 : 0;
+
+        return (
+          <div style={{ display:"flex", justifyContent:"center", marginBottom:20 }}>
+            <div style={{ position:"relative", width:200, height:108 }}>
+              <svg width={200} height={108} viewBox="0 0 200 108" style={{ overflow:"visible" }}>
+                {/* Track arc */}
+                <path
+                  d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+                  fill="none" stroke={trackColor} strokeWidth={stroke}
+                  strokeLinecap="round"
+                />
+                {/* Filled arc */}
+                {clampedPct > 0.01 && (
+                  <path
+                    d={`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 0 ${x2} ${y2}`}
+                    fill="none" stroke={gaugeColor} strokeWidth={stroke}
+                    strokeLinecap="round"
+                    style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}66)`, transition:"stroke 0.4s, d 0.4s" }}
+                  />
+                )}
+              </svg>
+              {/* Center text */}
+              <div style={{ position:"absolute", left:0, right:0, bottom:0, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:13, color:gaugeColor, fontWeight:700, opacity:0.85 }}>
+                  {displayPct}%
+                </div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:19, fontWeight:700, color:"var(--t1)", lineHeight:1 }}>
+                  {fmt(totalSpent)}
+                </div>
+                <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
+                  {fmt(totalBudget)} budget
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
         <div style={S.sectionTitle}>Budget Categories</div>
         <div style={{ display:"flex", gap:8 }}>
@@ -6147,7 +6212,7 @@ function AppInner() {
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
-      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-pulse">ℓ</div>
+      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">ℓ</div>
       <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>

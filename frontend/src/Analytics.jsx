@@ -3,7 +3,7 @@
  * Owner-only during development.
  */
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { getAiInsights } from "./api.js";
 
 // PageLayout and PAGE_RIGHT_COL_W are defined in App.jsx — replicate the grid here
@@ -108,14 +108,15 @@ function AdherenceCell({ spent, limit, label }) {
 /* ═══════════════════════════════════════════════════════════════════
    MAIN
 ═══════════════════════════════════════════════════════════════════ */
-export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange, goals = [], onSaveGoal, onDeleteGoal }) {
+export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange, goals = [], onSaveGoal, onDeleteGoal, defaultTab = "overview" }) {
   const TABS = ["overview","spending","budget","insights","goals"];
-  const [tab,       setTab]       = useState("overview");
+  const [tab, setTab] = useState(defaultTab);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError,   setAiError]   = useState(null);
   const [userCorrections, setUserCorrections] = useState("");
   const [goalForm, setGoalForm]   = useState(null); // null = closed, {} = new, {id,...} = edit
   const touchStartX = useRef(null);
+  useEffect(() => { if (defaultTab && TABS.includes(defaultTab)) setTab(defaultTab); }, [defaultTab]);
   const today = new Date();
 
   function handleTouchStart(e) { touchStartX.current = e.touches[0].clientX; }

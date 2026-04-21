@@ -2081,6 +2081,7 @@ function AppInner() {
 
   /* ── Analytics AI insights — persisted across tab/view switches ── */
   const [analyticsInsights, setAnalyticsInsights] = useState(null);
+  const [analyticsTab, setAnalyticsTab] = useState("overview");
 
   /* ── Insights to-do list ── */
   const [insightsTodos, setInsightsTodos] = useState([]);
@@ -3456,7 +3457,7 @@ function AppInner() {
                             Contribute <span style={{color:"var(--amber)",fontWeight:600}}>{fmt(n.goal.periodAmount)}</span> toward <span style={{color:"var(--t2)",fontWeight:500}}>{n.goal.title}</span>
                           </div>
                         </div>
-                        <button onClick={()=>navigate("analytics")} style={{background:"none",color:"var(--amber)",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>View ›</button>
+                        <button onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }} style={{background:"none",color:"var(--amber)",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>View ›</button>
                       </div>
                     ))}
                   </div>
@@ -3606,13 +3607,13 @@ function AppInner() {
                 <div style={{...S.card,padding:18}}>
                   <div style={{...S.sectionHdr,marginBottom:12}}>
                     <div style={S.cardTitle}>Goals Needing Attention</div>
-                    <button style={S.btn("ghost",true)} onClick={()=>navigate("analytics")}>All →</button>
+                    <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
                   </div>
                   {goals.length === 0 ? (
                     <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"32px 0",gap:10}}>
                       <span style={{fontSize:28,opacity:0.3}}>🎯</span>
                       <div style={{fontSize:13,color:"var(--t3)",textAlign:"center"}}>No goals yet</div>
-                      <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>navigate("analytics")}>Create a goal →</button>
+                      <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>Create a goal →</button>
                     </div>
                   ) : (()=>{
                     const now = Date.now();
@@ -6338,6 +6339,7 @@ function AppInner() {
       goals={goals}
       onSaveGoal={saveGoal}
       onDeleteGoal={deleteGoal}
+      defaultTab={analyticsTab}
     />
   );
 

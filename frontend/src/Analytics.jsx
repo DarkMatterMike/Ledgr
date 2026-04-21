@@ -1237,39 +1237,105 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     <input style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-body)", outline:"none" }}
                       placeholder="e.g. Emergency fund, Vacation, New car" value={goalForm.title||""} onChange={e=>setGoalForm(f=>({...f,title:e.target.value}))} />
                   </div>
+
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                     <div>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Target amount</div>
                       <input type="number" min="0" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
-                        placeholder="0" value={goalForm.targetAmount||""} onChange={e=>setGoalForm(f=>({...f,targetAmount:parseFloat(e.target.value)||0}))} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Deadline (optional)</div>
-                      <input type="date" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none" }}
-                        value={goalForm.deadline||""} onChange={e=>setGoalForm(f=>({...f,deadline:e.target.value}))} />
-                    </div>
-                  </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                    <div>
-                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Set aside each period</div>
-                      <input type="number" min="0" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
-                        placeholder="0" value={goalForm.periodAmount||""} onChange={e=>setGoalForm(f=>({...f,periodAmount:parseFloat(e.target.value)||0}))} />
+                        placeholder="0" value={goalForm.targetAmount||""}
+                        onChange={e=>setGoalForm(f=>({...f, targetAmount:parseFloat(e.target.value)||0, periodAmount:"" }))} />
                     </div>
                     <div>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Period</div>
                       <select style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box" }}
-                        value={goalForm.period||"month"} onChange={e=>setGoalForm(f=>({...f,period:e.target.value}))}>
+                        value={goalForm.period||"month"}
+                        onChange={e=>setGoalForm(f=>({...f, period:e.target.value, periodAmount:"" }))}>
                         <option value="week">Weekly</option>
+                        <option value="biweekly">Bi-weekly</option>
                         <option value="month">Monthly</option>
                         <option value="quarter">Quarterly</option>
                         <option value="year">Yearly</option>
                       </select>
                     </div>
                   </div>
+
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                    <div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Start date</div>
+                      <input type="date" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none" }}
+                        value={goalForm.startDate||""}
+                        onChange={e=>setGoalForm(f=>({...f, startDate:e.target.value, periodAmount:"" }))} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Deadline (optional)</div>
+                      <input type="date" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none" }}
+                        value={goalForm.deadline||""}
+                        onChange={e=>setGoalForm(f=>({...f, deadline:e.target.value, periodAmount:"" }))} />
+                    </div>
+                  </div>
+
+                  {/* Auto-calculated period amount */}
+                  {(()=>{
+                    const target = goalForm.targetAmount || 0;
+                    const start  = goalForm.startDate ? new Date(goalForm.startDate + "T12:00:00") : null;
+                    const end    = goalForm.deadline  ? new Date(goalForm.deadline  + "T12:00:00") : null;
+                    let suggested = null;
+                    let periodsCount = null;
+                    if (target > 0 && start && end && end > start) {
+                      const msPerDay = 86400000;
+                      const days = Math.ceil((end - start) / msPerDay);
+                      const periodDays = { week:7, biweekly:14, month:30.44, quarter:91.31, year:365.25 }[goalForm.period||"month"];
+                      periodsCount = Math.floor(days / periodDays);
+                      if (periodsCount > 0) suggested = Math.ceil((target / periodsCount) * 100) / 100;
+                    }
+                    const auto = suggested !== null && !goalForm._periodManual;
+                    return (
+                      <div>
+                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                          <div style={{ fontSize:11, color:"var(--t3)" }}>Set aside each period</div>
+                          {suggested !== null && (
+                            <div style={{ fontSize:10, color:auto?"var(--cyan)":"var(--t3)" }}>
+                              {periodsCount} period{periodsCount!==1?"s":""} · auto-calculated
+                              {!auto && <button onClick={()=>setGoalForm(f=>({...f, periodAmount:suggested, _periodManual:false }))}
+                                style={{ marginLeft:6, fontSize:10, color:"var(--cyan)", background:"none", border:"none", cursor:"pointer", padding:0, textDecoration:"underline" }}>
+                                Reset
+                              </button>}
+                            </div>
+                          )}
+                        </div>
+                        <input type="number" min="0" step="0.01"
+                          style={{ width:"100%", background:"var(--surface)", border:`1px solid ${auto?"var(--cyan)44":"var(--border2)"}`, borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
+                          placeholder={suggested !== null ? `${suggested.toFixed(2)} (suggested)` : "0"}
+                          value={auto ? (suggested||"").toString() : (goalForm.periodAmount||"")}
+                          onChange={e=>setGoalForm(f=>({...f, periodAmount:parseFloat(e.target.value)||0, _periodManual:true }))}
+                        />
+                        {suggested !== null && goalForm._periodManual && goalForm.periodAmount > 0 && goalForm.periodAmount !== suggested && (
+                          <div style={{ fontSize:10, color:"var(--t3)", marginTop:3 }}>
+                            Suggested: {fmt(suggested)}/period · Total: {fmt(goalForm.periodAmount * periodsCount)} over {periodsCount} periods
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:4 }}>
                     <button onClick={()=>setGoalForm(null)} style={{ padding:"8px 14px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:13, cursor:"pointer" }}>Cancel</button>
                     <button disabled={!goalForm.title?.trim()||!goalForm.targetAmount}
-                      onClick={()=>{ onSaveGoal(goalForm); setGoalForm(null); }}
+                      onClick={()=>{
+                        // Resolve periodAmount: use auto-calculated if not manually set
+                        const target = goalForm.targetAmount || 0;
+                        const start  = goalForm.startDate ? new Date(goalForm.startDate + "T12:00:00") : null;
+                        const end    = goalForm.deadline  ? new Date(goalForm.deadline  + "T12:00:00") : null;
+                        let resolvedAmount = goalForm.periodAmount || 0;
+                        if (!goalForm._periodManual && target > 0 && start && end && end > start) {
+                          const days = Math.ceil((end - start) / 86400000);
+                          const periodDays = { week:7, biweekly:14, month:30.44, quarter:91.31, year:365.25 }[goalForm.period||"month"];
+                          const periods = Math.floor(days / periodDays);
+                          if (periods > 0) resolvedAmount = Math.ceil((target / periods) * 100) / 100;
+                        }
+                        onSaveGoal({ ...goalForm, periodAmount: resolvedAmount });
+                        setGoalForm(null);
+                      }}
                       style={{ padding:"8px 16px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", opacity:(!goalForm.title?.trim()||!goalForm.targetAmount)?0.5:1 }}>
                       {goalForm.id ? "Save changes" : "Create goal"}
                     </button>
@@ -1283,7 +1349,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   <span style={{ fontSize:36, opacity:0.3 }}>🎯</span>
                   <div style={{ fontSize:15, fontWeight:600, color:"var(--t1)" }}>No goals yet</div>
                   <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", maxWidth:280 }}>Create a savings goal to track progress and assign transactions toward it.</div>
-                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,deadline:"",periodAmount:0,period:"month"})}
+                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
                     style={{ padding:"10px 20px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", marginTop:4 }}>
                     + Create first goal
                   </button>
@@ -1365,7 +1431,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <div style={{ fontSize:11, fontWeight:600, color:"var(--t2)", marginBottom:6 }}>How progress is tracked</div>
                 <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6 }}>When you transfer to savings, find that transaction and tap ⋯ → Add to goal to count it toward your target.</div>
                 {goalForm === null && (
-                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,deadline:"",periodAmount:0,period:"month"})}
+                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
                     style={{ width:"100%", marginTop:12, padding:"9px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer" }}>
                     + New goal
                   </button>

@@ -3906,56 +3906,68 @@ function AppInner() {
       {/* ── Budget Gauge ─────────────────────────────────────── */}
       {categories.length > 0 && totalBudget > 0 && (() => {
         const rawPct = totalBudget > 0 ? totalSpent / totalBudget : 0;
-        const clampedPct = Math.min(rawPct, 1);           // for arc fill (caps at 100%)
-        const displayPct = Math.round(rawPct * 100);       // shown number (can exceed 100)
+        const clampedPct = Math.min(rawPct, 1);
+        const displayPct = Math.round(rawPct * 100);
         const over = rawPct > 1;
         const onBudget = rawPct >= 0.9 && rawPct <= 1;
         const gaugeColor = over ? "var(--red)" : onBudget ? "var(--green)" : "var(--cyan)";
-        const trackColor = "rgba(255,255,255,0.07)";
+        const trackColor = "rgba(255,255,255,0.08)";
 
-        // SVG semicircle: center (100,100), radius 72, stroke 14
-        // Arc goes from 180° (left) sweeping clockwise to 0° (right) = π radians
-        const cx = 100, cy = 100, r = 72, stroke = 14;
-        const startAngle = Math.PI;                        // left = 180°
-        const sweepAngle = Math.PI * clampedPct;           // sweeps up to π at 100%
-        const endAngle   = startAngle - sweepAngle;        // subtract because SVG Y flips
+        // Semicircle: arc from left (180°) counterclockwise to right (0°)
+        // cx=100 cy=80 r=58 stroke=12 → top of arc = 80-58=22, bottom = 80
+        // viewBox = "0 8 200 80" clips neatly to just the arc
+        const cx = 100, cy = 80, r = 58, sw = 12;
+        const startAngle = Math.PI;
+        const sweepAngle = Math.PI * clampedPct;
+        const endAngle   = startAngle - sweepAngle;
         const x1 = cx + r * Math.cos(startAngle);
-        const y1 = cy + r * Math.sin(startAngle);
+        const y1 = cy - r * Math.sin(0);   // = cy (left tip, y=80)
         const x2 = cx + r * Math.cos(endAngle);
         const y2 = cy + r * Math.sin(endAngle);
         const largeArc = sweepAngle > Math.PI ? 1 : 0;
 
+        // Arc tip coords: SVG y-axis is inverted so sin is negated
+        const lx = cx - r;                              // left tip  x
+        const ly = cy;                                   // left tip  y  (sin(π)=0)
+        const rx = cx + r;                              // right tip x
+        const ry = cy;                                   // right tip y
+        const ex = cx + r * Math.cos(endAngle);         // filled arc end x
+        const ey = cy - r * Math.sin(endAngle);          // filled arc end y (negate for SVG)
+
         return (
-          <div style={{ display:"flex", justifyContent:"center", marginBottom:20 }}>
-            <div style={{ position:"relative", width:200, height:108 }}>
-              <svg width={200} height={108} viewBox="0 0 200 108" style={{ overflow:"visible" }}>
-                {/* Track arc */}
+          <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:20 }}>
+            {/* Title */}
+            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:10 }}>
+              Budget Progress
+            </div>
+            {/* SVG gauge — contained, no overflow */}
+            <div style={{ display:"flex", justifyContent:"center" }}>
+              <svg width={180} height={96} viewBox="10 22 180 58" style={{ display:"block", overflow:"hidden" }}>
+                {/* Track */}
                 <path
-                  d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-                  fill="none" stroke={trackColor} strokeWidth={stroke}
-                  strokeLinecap="round"
+                  d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`}
+                  fill="none" stroke={trackColor} strokeWidth={sw} strokeLinecap="round"
                 />
-                {/* Filled arc */}
-                {clampedPct > 0.01 && (
+                {/* Fill */}
+                {clampedPct > 0.015 && (
                   <path
-                    d={`M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 0 ${x2} ${y2}`}
-                    fill="none" stroke={gaugeColor} strokeWidth={stroke}
-                    strokeLinecap="round"
-                    style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}66)`, transition:"stroke 0.4s, d 0.4s" }}
+                    d={`M ${lx} ${ly} A ${r} ${r} 0 ${largeArc} 0 ${ex} ${ey}`}
+                    fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
+                    style={{ filter:`drop-shadow(0 0 5px ${gaugeColor}88)` }}
                   />
                 )}
               </svg>
-              {/* Center text */}
-              <div style={{ position:"absolute", left:0, right:0, bottom:0, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:13, color:gaugeColor, fontWeight:700, opacity:0.85 }}>
-                  {displayPct}%
-                </div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:19, fontWeight:700, color:"var(--t1)", lineHeight:1 }}>
-                  {fmt(totalSpent)}
-                </div>
-                <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
-                  {fmt(totalBudget)} budget
-                </div>
+            </div>
+            {/* Text below arc */}
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:1, marginTop:6 }}>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>
+                {displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}
+              </div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>
+                {fmt(totalSpent)}
+              </div>
+              <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>
+                of {fmt(totalBudget)} budgeted
               </div>
             </div>
           </div>

@@ -58,9 +58,19 @@ export function useAppData({
         }
         const loadedRules = data.rules || [];
         const loadedTxns  = data.transactions || [];
+
+        // Strip categoryId from any transaction whose type is transfer/income/reimbursement.
+        // These may exist from before the no-category rule was enforced.
+        const NON_CAT_TYPES = new Set(["transfer", "income", "reimbursement"]);
+        const cleanedTxns = loadedTxns.map(t =>
+          NON_CAT_TYPES.has(t.type) && t.categoryId
+            ? { ...t, categoryId: null, userCategorized: false }
+            : t
+        );
+
         setAccounts(data.accounts              || []);
         setCategories(data.categories          || []);
-        setTransactions(applyRules(loadedTxns, loadedRules));
+        setTransactions(applyRules(cleanedTxns, loadedRules));
         setPlaidItems(data.plaidItems          || []);
         setRules(loadedRules);
         setCalendarAccounts(data.calendarAccounts || null);

@@ -2751,11 +2751,16 @@ function AppInner() {
   }
   function updateTxnType(id,val) {
     const clearCat = ["income","transfer","reimbursement"].includes(val);
-    setTransactions(p=>p.map(t=>{
-      if (t.id!==id) return t;
-      const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
-      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, categoryId: clearCat ? null : t.categoryId, userCategorized: clearCat ? false : t.userCategorized};
-    }));
+    setTransactions(p=>{
+      const next = p.map(t=>{
+        if (t.id!==id) return t;
+        const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
+        return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, categoryId: clearCat ? null : t.categoryId, userCategorized: clearCat ? false : t.userCategorized};
+      });
+      // Save immediately when clearing category — don't rely on debounce
+      if (clearCat) api.saveData({ transactions: next });
+      return next;
+    });
     // Offer to create a type rule for the merchant
     const txn = transactions.find(t => t.id === id);
     const merchant = (txn?.merchant || txn?.name || "").trim();

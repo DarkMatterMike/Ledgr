@@ -3379,7 +3379,7 @@ function AppInner() {
         </div>
       ) : (
         /* Desktop: 2-col — left has month bar + 2x2 stats, right has notifications spanning full height */
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 340px",gap:16,marginBottom:20,alignItems:"stretch"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20,alignItems:"stretch"}}>
           {/* Left column: month bar + 2x2 stat grid */}
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div style={{...S.monthBar,marginBottom:0,justifyContent:"space-between",flexWrap:"wrap",gap:8}}>

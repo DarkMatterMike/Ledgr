@@ -12,8 +12,8 @@ const S = {
   btn: (v = "ghost", sm = false) => {
     const base = {
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      gap: 6, padding: sm ? "6px 14px" : "10px 18px", borderRadius: "var(--radius)",
-      fontSize: 13, fontWeight: 500, cursor: "pointer", border: "1px solid transparent",
+      gap: 5, padding: sm ? "3px 8px" : "5px 11px", borderRadius: "var(--radius)",
+      fontSize: 12, fontWeight: 500, cursor: "pointer", border: "1px solid transparent",
       transition: "all 0.15s", userSelect: "none", whiteSpace: "nowrap",
       WebkitTapHighlightColor: "transparent",
     };
@@ -23,11 +23,11 @@ const S = {
   },
   input: {
     background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: "var(--radius)",
-    padding: "10px 12px", fontSize: 14, color: "var(--t1)", outline: "none", width: "100%",
+    padding: "7px 10px", fontSize: 12, color: "var(--t1)", outline: "none", width: "100%",
   },
   card: {
     background: "var(--card)", border: "1px solid var(--border)",
-    borderRadius: "var(--radius)", padding: 16,
+    borderRadius: "var(--radius)", padding: "10px 14px",
   },
 };
 
@@ -117,7 +117,7 @@ function MessageBubble({ msg }) {
         color: isUser ? "#000" : "var(--t1)",
         border: isUser ? "none" : "1px solid var(--border)",
         borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-        padding: "10px 14px", fontSize: 14, lineHeight: 1.6,
+        padding: "8px 12px", fontSize: 13, lineHeight: 1.55,
         whiteSpace: "pre-wrap", wordBreak: "break-word",
       }}>
         {msg.content || (
@@ -145,7 +145,7 @@ function ConversationItem({ conv, isActive, onSelect, onDelete }) {
     <div
       onClick={() => onSelect(conv.id)}
       style={{
-        padding: "10px 12px",
+        padding: "7px 10px",
         borderRadius: "var(--radius)",
         background: isActive ? "var(--cyan-dim)" : "transparent",
         border: `1px solid ${isActive ? "var(--cyan)33" : "transparent"}`,
@@ -295,14 +295,14 @@ export default function AiChat({
       {/* Chat area */}
       <div style={{ ...S.card, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }}>
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
           {isEmpty && hasApiKey && (
             <div style={{ textAlign: "center", padding: "32px 16px" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>✦</div>
-              <div style={{ fontFamily: "var(--font-disp)", fontSize: 16, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>✦</div>
+              <div style={{ fontFamily: "var(--font-disp)", fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4 }}>
                 Ask me anything about your finances
               </div>
-              <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 24, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12, color: "var(--t3)", marginBottom: 14, lineHeight: 1.5 }}>
                 I have access to your transactions, budgets, and accounts for this conversation.
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
@@ -319,9 +319,9 @@ export default function AiChat({
 
           {isEmpty && !hasApiKey && keyChecked && (
             <div style={{ padding: "24px 8px", maxWidth: 480, margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 24 }}>
-                <div style={{ fontSize: 28, marginBottom: 10 }}>✦</div>
-                <div style={{ fontFamily: "var(--font-disp)", fontSize: 17, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>
+              <div style={{ textAlign: "center", marginBottom: 14 }}>
+                <div style={{ fontSize: 22, marginBottom: 8 }}>✦</div>
+                <div style={{ fontFamily: "var(--font-disp)", fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4 }}>
                   Set up your AI assistant
                 </div>
                 <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>
@@ -329,13 +329,13 @@ export default function AiChat({
                   You'll need a free API key to get started.
                 </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
                 {[
                   { step: "1", title: "Create an Anthropic account", body: "Go to console.anthropic.com and sign up for a free account.", link: { label: "Open Anthropic Console →", url: "https://console.anthropic.com" } },
                   { step: "2", title: "Generate an API key",         body: "Once logged in, go to API Keys and click \"Create Key\"." },
                   { step: "3", title: "Paste it above",              body: "Copy your key (starts with sk-ant-api03-) and paste it into the field above." },
                 ].map(s => (
-                  <div key={s.step} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "var(--surface)", borderRadius: "var(--radius)", padding: "12px 14px" }}>
+                  <div key={s.step} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "var(--surface)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
                     <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, background: "var(--cyan)", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, fontFamily: "var(--font-mono)" }}>{s.step}</div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", marginBottom: 3 }}>{s.title}</div>
@@ -368,10 +368,10 @@ export default function AiChat({
         <div style={{ height: 1, background: "var(--border)", flexShrink: 0 }} />
 
         {/* Input */}
-        <div style={{ padding: "12px 16px", display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0 }}>
+        <div style={{ padding: "8px 12px", display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0 }}>
           {/* Mobile: history button */}
           {isMobile && (
-            <button style={{ ...S.btn("ghost", true), padding: "10px 12px", flexShrink: 0 }} onClick={() => setShowHistory(true)}>
+            <button style={{ ...S.btn("ghost", true), padding: "7px 10px", flexShrink: 0 }} onClick={() => setShowHistory(true)}>
               ☰
             </button>
           )}
@@ -383,10 +383,10 @@ export default function AiChat({
             placeholder={hasApiKey ? "Ask about your spending, budgets, or transactions…" : "Add your API key above to start chatting"}
             disabled={!hasApiKey || loading}
             rows={1}
-            style={{ ...S.input, flex: 1, resize: "none", lineHeight: 1.5, fontFamily: "var(--font-body)", fontSize: 14, maxHeight: 120, overflow: "auto", opacity: hasApiKey ? 1 : 0.5 }}
+            style={{ ...S.input, flex: 1, resize: "none", lineHeight: 1.5, fontFamily: "var(--font-body)", fontSize: 13, maxHeight: 120, overflow: "auto", opacity: hasApiKey ? 1 : 0.5 }}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-            <button style={{ ...S.btn("primary", true), padding: "10px 14px" }} onClick={handleSend} disabled={!hasApiKey || !input.trim() || loading}>
+            <button style={{ ...S.btn("primary", true), padding: "6px 12px" }} onClick={handleSend} disabled={!hasApiKey || !input.trim() || loading}>
               {loading ? "…" : "↑"}
             </button>
             {messages.length > 0 && (
@@ -409,7 +409,7 @@ export default function AiChat({
           {showHistory && (
             <div style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 200, display: "flex" }}
               onClick={e => { if (e.target === e.currentTarget) setShowHistory(false); }}>
-              <div style={{ width: "80%", maxWidth: 300, background: "var(--card)", height: "100%", padding: 16, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+              <div style={{ width: "80%", maxWidth: 300, background: "var(--card)", height: "100%", padding: "10px 14px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <span style={{ fontWeight: 700, color: "var(--t1)" }}>Conversations</span>
                   <button style={{ ...S.btn("ghost", true), padding: "4px 8px" }} onClick={() => setShowHistory(false)}>✕</button>
@@ -427,7 +427,7 @@ export default function AiChat({
             {ChatPanel}
           </div>
           {/* Right: conversation history */}
-          <div style={{ width: 280, flexShrink: 0, background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: 16, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ width: 280, flexShrink: 0, background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {HistoryPanel}
           </div>
         </div>

@@ -385,7 +385,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
   /* ── Right sidebar content (desktop only) ─────────────────────── */
   const Sidebar = (
-    <div style={{ display:"flex", flexDirection:"column", gap:12, position:"sticky", top:16 }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:10, position:"sticky", top:16 }}>
 
       {/* Net worth */}
       <Card>
@@ -491,7 +491,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
           ))}
         </div>
-        <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color:"var(--t3)" }}>
+        <div style={{ display:"flex", gap:10, marginTop:8, fontSize:11, color:"var(--t3)" }}>
           {[["var(--green)","Income"],["var(--cyan)","Spending"]].map(([c,l]) => (
             <div key={l} style={{ display:"flex", alignItems:"center", gap:5 }}>
               <div style={{ width:8, height:8, background:c, borderRadius:2 }} />{l}
@@ -617,7 +617,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
-          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
             {/* Column 1 */}
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {/* Row 1: Net worth */}
@@ -681,7 +681,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ SPENDING ════════════════════════════════════════════════ */}
       {tab === "spending" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
           <Card>
             <SectionHead title="Top merchants" sub="All time, by total spend" />
@@ -692,7 +692,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", flexShrink:0, width:16, textAlign:"right" }}>{i+1}</span>
                     <span style={{ fontSize:12, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{m.name}</span>
                   </div>
-                  <div style={{ display:"flex", gap:12, flexShrink:0 }}>
+                  <div style={{ display:"flex", gap:10, flexShrink:0 }}>
                     <span style={{ fontSize:11, color:"var(--t3)" }}>{m.count}×</span>
                     <span style={{ fontSize:13, fontFamily:"var(--font-mono)", fontWeight:600, color:"var(--t1)" }}>{fmt(m.total)}</span>
                   </div>
@@ -725,11 +725,11 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
           <Card>
             <SectionHead title="Category trends" sub="Last 3 months" />
-            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {catTrends.map(c => {
                 const maxSp = Math.max(...c.monthly, 1);
                 return (
-                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:12, flexWrap: isMobile?"wrap":"nowrap" }}>
+                  <div key={c.id} style={{ display:"flex", alignItems:"center", gap:10, flexWrap: isMobile?"wrap":"nowrap" }}>
                     <div style={{ display:"flex", alignItems:"center", gap:6, width: isMobile?"100%":140, flexShrink:0 }}>
                       <span style={{ width:8, height:8, borderRadius:"50%", background:c.color, flexShrink:0, display:"inline-block" }} />
                       <span style={{ fontSize:12, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</span>
@@ -819,7 +819,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                       <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", flexShrink:0, width:16, textAlign:"right" }}>{i+1}</span>
                       <span style={{ fontSize:12, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{s.name}</span>
                     </div>
-                    <div style={{ display:"flex", gap:12, flexShrink:0 }}>
+                    <div style={{ display:"flex", gap:10, flexShrink:0 }}>
                       <span style={{ fontSize:11, color:"var(--t3)" }}>{s.count}×</span>
                       <span style={{ fontSize:13, fontFamily:"var(--font-mono)", fontWeight:600, color:"var(--green)" }}>{fmt(s.total)}</span>
                     </div>
@@ -869,7 +869,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
           <Card>
             <SectionHead title="12-month budget adherence" sub="Green = under · Amber = 80–100% · Red = over" />
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {budgetGrid.map(row => {
                 const score = row.allMs > 0 ? Math.round((1 - row.overMs/row.allMs)*100) : null;
                 const scoreColor = row.overMs===0?"var(--green)":row.overMs<=2?"var(--amber)":"var(--red)";
@@ -931,7 +931,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           </div>
         ) : (
           /* Desktop: 3-column — col1 heatmap, col2 overspend+consistent, col3 placeholder */
-          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
 
             {/* Column 1: stat cards + heatmap */}
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -1030,7 +1030,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ INSIGHTS ════════════════════════════════════════════════ */}
       {tab === "insights" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
 
           {/* Spending velocity */}
@@ -1227,7 +1227,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ GOALS ════════════════════════════════════════════════════ */}
       {tab === "goals" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:12, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {goalForm !== null && (
               <Card style={{ border:"1px solid var(--cyan)44" }}>
@@ -1361,7 +1361,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             )}
             {goals.length === 0 && goalForm === null ? (
               <Card>
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"40px 0", gap:12 }}>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"40px 0", gap:10 }}>
                   <span style={{ fontSize:36, opacity:0.3 }}>🎯</span>
                   <div style={{ fontSize:15, fontWeight:600, color:"var(--t1)" }}>No goals yet</div>
                   <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", maxWidth:280 }}>Create a savings goal to track progress and assign transactions toward it.</div>
@@ -1426,7 +1426,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             })}
           </div>
           {!isMobile && (
-            <div style={{ display:"flex", flexDirection:"column", gap:12, position:"sticky", top:16 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, position:"sticky", top:16 }}>
               {goals.length > 0 && (
                 <Card style={{ padding:"14px 16px" }}>
                   <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 }}>Summary</div>

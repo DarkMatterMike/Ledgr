@@ -41,8 +41,8 @@ button {
 }
     .ledgr-content   { padding: 20px; }
     .ledgr-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-    .ledgr-dash-cards { display: flex; flex-direction: column; gap: 16px; }
-    .ledgr-acct-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ledgr-dash-cards { display: flex; flex-direction: column; gap: 10px; }
+    .ledgr-acct-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .ledgr-budget-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
     .ledgr-cal-cell  { min-height: 80px; padding: 8px; }
 
@@ -192,7 +192,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 14px", fontSize:12, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
-  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"7px 12px", display:"flex", alignItems:"center", gap:12, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"7px 12px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
@@ -259,7 +259,7 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null,
 
 
 const PAGE_RIGHT_COL_W = 340;
-const PAGE_COL_GAP = 16;
+const PAGE_COL_GAP = 10;
 const SHARED_LEFT_WIDTH = `calc(100% - ${PAGE_RIGHT_COL_W + PAGE_COL_GAP}px)`;
 
 function PageLayout({ left, right = null, isMobile = false }) {
@@ -659,7 +659,7 @@ function AuthGate({ onAuth }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:12}}>
+        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:10}}>
           {/* Email field — login, register, forgot */}
           {mode !== "reset" && (
             <input type="email" placeholder="Email address" value={email} autoFocus
@@ -1001,7 +1001,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           <div style={{display:"flex", flexDirection: isMobile ? "column" : "row", gap:8}}>
             {/* Left: dropdowns */}
             <div style={{display:"flex", flexDirection:"column", gap:8, flex:1}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
                   value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
                   <option value="expense">Expense</option>
@@ -1245,7 +1245,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 
       {/* Profile */}
       <SettingsSection title="Profile">
-        <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
           <div style={{
             width:56, height:56, borderRadius:"50%", flexShrink:0,
             background:avatarColor+"33", border:`2px solid ${avatarColor}`,
@@ -1279,7 +1279,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       {/* Subscription */}
       <SettingsSection title="Subscription">
         {user?.role === "owner" ? (
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
             <div>
               <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Owner — Lifetime Access</div>
@@ -1287,8 +1287,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </div>
           </div>
         ) : user?.subscription_status === "active" ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Active — $4.99/month</div>
@@ -1301,8 +1301,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </button>
           </div>
         ) : user?.subscription_status === "trialing" ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--amber)", flexShrink:0 }}/>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Free Trial</div>
@@ -1319,8 +1319,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </button>
           </div>
         ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--red)", flexShrink:0 }}/>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", textTransform:"capitalize" }}>
@@ -1368,7 +1368,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           Set your income and financial targets to power the Analytics page — savings rate, net worth projections, and retirement estimates.
         </div>
         {profileForm ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
 
             {/* Income */}
             <div>
@@ -1619,7 +1619,7 @@ function AdminPanel() {
       </div>
 
       {/* Stats — 2x2 on mobile, 4 columns on desktop */}
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:24}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10,marginBottom:24}}>
         {[
           { label:"Total Users", value:stats.total,                  color:"var(--t1)"    },
           { label:"Active",      value:stats.active,                  color:"var(--green)" },
@@ -1679,7 +1679,7 @@ function AdminPanel() {
                 {/* Info row */}
                 {editing !== user.id ? (
                   <>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:10}}>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:10}}>
                       <div>
                         <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Role</div>
                         <span style={{fontSize:12,color:roleColor(user.role),fontWeight:700}}>{user.role}</span>
@@ -1949,9 +1949,9 @@ function InstallPrompt() {
           Add Ledgr to your home screen for a faster, app-like experience — no browser bar, instant launch.
         </div>
 
-        <div style={{display:"flex", flexDirection:"column", gap:12, marginBottom:20}}>
+        <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:20}}>
           {steps.map((s, i) => (
-            <div key={i} style={{display:"flex", alignItems:"center", gap:12}}>
+            <div key={i} style={{display:"flex", alignItems:"center", gap:10}}>
               <div style={{
                 flexShrink:0, width:28, height:28, borderRadius:"50%",
                 background:"var(--cyan)", color:"#000",
@@ -2941,7 +2941,7 @@ function AppInner() {
           </div>
           <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12,flexShrink:0}}>
           {[
             {label:"Spent",value:fmt(spentByCat[drillCat.id]||0),color:drillCat.color},
             {label:"Budget",value:fmt(drillCat.limit),color:"var(--t2)"},
@@ -3215,7 +3215,7 @@ function AppInner() {
         const maxVal = Math.max(1, ...budgetAnalytics.cashFlowSeries.flatMap((m) => [m.income, m.spending]));
         return (
           <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 14, marginBottom: 10, fontSize: 12, color: "var(--t2)" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap:10, marginBottom: 10, fontSize: 12, color: "var(--t2)" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
                 Income
@@ -3231,7 +3231,7 @@ function AppInner() {
                 height: 220,
                 display: "flex",
                 alignItems: "flex-end",
-                gap: 12,
+                gap:10,
                 padding: "10px 4px 0",
                 borderTop: "1px solid var(--border)",
                 overflowX: isMobile ? "auto" : "visible",
@@ -3342,7 +3342,7 @@ function AppInner() {
         /* Mobile: stacked month bar + stats */
         <div>
           <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between",marginBottom:8}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,justifyContent:"center",width:"100%"}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
               <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:90,textAlign:"center"}}>
                 📅 {monthLabel(selectedMonth)}
@@ -3350,7 +3350,7 @@ function AppInner() {
               </span>
               <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
             </div>
-            <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
+            <div className="ledgr-monthbar-meta" style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
               {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
               <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
               <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
@@ -3382,9 +3382,9 @@ function AppInner() {
         /* Desktop: 2-col — left has month bar + 2x2 stats, right has notifications spanning full height */
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20,alignItems:"stretch"}}>
           {/* Left column: month bar + 2x2 stat grid */}
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <div style={{...S.monthBar,marginBottom:0,justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
-              <div style={{display:"flex",alignItems:"center",gap:12,flex:1,justifyContent:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,flex:1,justifyContent:"center"}}>
                 <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
                 <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:180,textAlign:"center"}}>
                   📅 {monthLabel(selectedMonth)}
@@ -3392,7 +3392,7 @@ function AppInner() {
                 </span>
                 <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
               </div>
-              <div style={{display:"flex",gap:16,fontSize:12,color:"var(--t2)",flexWrap:"wrap",justifyContent:"center",width:"100%"}}>
+              <div style={{display:"flex",gap:10,fontSize:12,color:"var(--t2)",flexWrap:"wrap",justifyContent:"center",width:"100%"}}>
                 {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
                 <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
                 <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
@@ -3400,7 +3400,7 @@ function AppInner() {
               </div>
             </div>
             {/* 2x2 stat grid */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,flex:1}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,flex:1}}>
               {[
                 {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
                 {label:"Spent",       value:fmt(totalSpent), sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"  },
@@ -3632,7 +3632,7 @@ function AppInner() {
                       </div>
                     );
                     return (
-                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
                         {atRisk.slice(0,3).map(g => {
                           const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
                           const deadline = g.deadline ? new Date(g.deadline) : null;
@@ -3662,7 +3662,7 @@ function AppInner() {
           })()}
 
           {/* Row 3: Budget Progress + Recent Transactions */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:16}}>
             <div style={S.card} className="ledgr-card-anim">
               <div style={{...S.sectionHdr,marginBottom:8}}>
                 <div style={S.cardTitle}>Budget Progress</div>
@@ -4070,7 +4070,7 @@ function AppInner() {
               const diffColor = diff > 0 ? "var(--amber)" : diff < 0 ? "var(--green)" : "var(--t3)";
               return (
                 <div key={s.categoryId} style={{
-                  display:"flex", alignItems:"center", gap:12, flexWrap:"wrap",
+                  display:"flex", alignItems:"center", gap:10, flexWrap:"wrap",
                   background:"var(--surface)", borderRadius:"var(--radius)", padding:"10px 14px",
                   borderLeft:`3px solid ${cat.color}`,
                 }}>
@@ -4166,7 +4166,7 @@ function AppInner() {
                 ].filter(s => s.cats.length > 0);
 
                 return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
                       <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
@@ -4328,7 +4328,7 @@ function AppInner() {
 
             </>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 16, alignItems: "start" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap:10, alignItems: "start" }}>
               <div style={{ minWidth: 0 }}>
                 {/* Gauge — desktop: constrained to left column width */}
                 {categories.length > 0 && totalBudget > 0 && (() => {
@@ -4368,7 +4368,7 @@ function AppInner() {
                   ].filter(s => s.cats.length > 0);
 
                   return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
                         <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
@@ -4448,7 +4448,7 @@ function AppInner() {
                 })()}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
                 <div style={{ ...S.card, padding: 18 }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                     <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
@@ -4628,7 +4628,7 @@ function AppInner() {
                   })
                 ) : (
                   /* Desktop: 2-column grid */
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:12}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:12}}>
                     {accounts.map(acct=>{
                       const spent=spentByAcct[acct.id]||0;
                       const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
@@ -4679,7 +4679,7 @@ function AppInner() {
           </div>
           <p style={{fontSize:12,color:"var(--t3)",marginBottom:4,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync. Manual rules always take priority over AI rules.</p>
           {rules.length > 0 && (
-            <div style={{fontSize:11,color:"var(--t3)",marginBottom:16,display:"flex",gap:12}}>
+            <div style={{fontSize:11,color:"var(--t3)",marginBottom:16,display:"flex",gap:10}}>
               <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
               <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
             </div>
@@ -4692,7 +4692,7 @@ function AppInner() {
               <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
             </div>
           ) : (
-            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:10}}>
               {rules.map((rule)=>{
                 const cat = catMap[rule.categoryId];
                 const isAi = rule.source === "ai";
@@ -5254,13 +5254,13 @@ function AppInner() {
     );
 
     const DesktopCalendarView = (
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 12,
+            gap:10,
           }}
         >
           <div>
@@ -5284,12 +5284,12 @@ function AppInner() {
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) 340px",
-            gap: 16,
+            gap:10,
             alignItems: "start",
           }}
         >
           {/* LEFT COLUMN: calendar + recurring list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
             {/* Calendar card */}
             <div
               style={{
@@ -5603,7 +5603,7 @@ function AppInner() {
                         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap:10, flex: 1, minWidth: 0 }}>
                           <div
                             style={{
                               width: 30,
@@ -5656,7 +5656,7 @@ function AppInner() {
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap:10, flexShrink: 0, marginLeft: 10 }}>
                           <span
                             style={{
                               fontFamily: "var(--font-mono)",
@@ -5678,7 +5678,7 @@ function AppInner() {
           </div>
 
           {/* RIGHT COLUMN: sidebar */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
             <div
               style={{
                 background: "var(--card)",
@@ -6029,7 +6029,7 @@ function AppInner() {
                   const freq=t.recurringFreq||"monthly";
                   const freqLabel=freq==="biweekly"?"Bi-weekly":freq==="weekly"?"Weekly":freq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
                   return (
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat?.color||"var(--cyan)"}`}}>
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat?.color||"var(--cyan)"}`}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                         <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{freqLabel}{cat&&<span style={{color:cat.color}}> · {cat.name}</span>}</div>
@@ -6071,7 +6071,7 @@ function AppInner() {
           setModal(null);setEditTarget(null);showToast("Updated");
         }}>Save</button>
       </>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={{padding:"10px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",fontSize:12,color:"var(--t3)"}}>
           Original: <span style={{color:"var(--t1)",fontWeight:500}}>{editTarget.merchant}</span>
         </div>
@@ -6121,7 +6121,7 @@ function AppInner() {
           setModal(null);
         }}>Save</button>
       </>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}>
           <label style={S.label}>Merchant Pattern</label>
           <input style={S.input} placeholder='e.g. "Netflix"' value={ruleForm.pattern} onChange={e=>setRuleForm(p=>({...p,pattern:e.target.value}))}/>
@@ -6160,7 +6160,7 @@ function AppInner() {
   const CatModal = (
     <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Groceries" value={catForm.name} onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}/></div>
         <div style={S.field}><label style={S.label}>Monthly Limit ($)</label><input style={S.input} type="number" placeholder="500" value={catForm.limit} onChange={e=>setCatForm(p=>({...p,limit:e.target.value}))}/></div>
         <div style={S.field}>
@@ -6178,7 +6178,7 @@ function AppInner() {
   const AcctModal = (
     <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
         <div style={S.field}><label style={S.label}>Type</label>
           <select style={{...S.input,padding:"9px 12px"}} value={acctForm.type} onChange={e=>setAcctForm(p=>({...p,type:e.target.value}))}>
@@ -6193,9 +6193,9 @@ function AppInner() {
   const TxnModal = (
     <Modal title="Add Transaction" onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}><label style={S.label}>Type</label>
             <select style={{...S.input,padding:"9px 12px"}} value={txnForm.sign} onChange={e=>setTxnForm(p=>({...p,sign:e.target.value}))}>
               <option value="-1">Expense (−)</option><option value="1">Income (+)</option>
@@ -6204,7 +6204,7 @@ function AppInner() {
           <div style={S.field}><label style={S.label}>Amount ($)</label><input style={S.input} type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/></div>
         </div>
         <div style={S.field}><label style={S.label}>Date</label><input style={S.input} type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}><label style={S.label}>Category</label>
             <select style={{...S.input,padding:"9px 12px"}} value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
               <option value="">None</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
@@ -6369,7 +6369,7 @@ function AppInner() {
         flexShrink:0, background: trialDaysLeft <= 1 ? "var(--red-dim)" : "#fbbf2415",
         borderBottom:`1px solid ${trialDaysLeft <= 1 ? "#ff4d6d44" : "#fbbf2433"}`,
         padding:"8px 16px", display:"flex", alignItems:"center",
-        justifyContent:"space-between", gap:12,
+        justifyContent:"space-between", gap:10,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color: trialDaysLeft <= 1 ? "var(--red)" : "var(--amber)"}}>
           <span style={{fontSize:14}}>{trialDaysLeft <= 1 ? "⚠️" : "⏳"}</span>
@@ -6452,7 +6452,7 @@ function AppInner() {
           <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t3)",letterSpacing:"-0.2px"}}>
             {NAV.find(n=>n.id===view)?.label}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
             {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
             <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
               {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} · {daysLeft()}d left
@@ -6482,7 +6482,7 @@ function AppInner() {
       {EditRecurringModal}
 
       {rulePrompt&&(
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:10,maxWidth:420,width:"90vw"}}>
           <div style={{flex:1,fontSize:13}}>
             <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Save as a rule?</div>
             <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; → <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>
@@ -6493,7 +6493,7 @@ function AppInner() {
       )}
 
       {typeRulePrompt&&(
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--amber)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:440,width:"90vw"}}>
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--amber)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:10,maxWidth:440,width:"90vw"}}>
           <div style={{flex:1,fontSize:13}}>
             <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Create a type rule?</div>
             <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
@@ -6542,7 +6542,7 @@ function AppInner() {
           zIndex:300,background:"var(--cyan)",color:"#000",
           borderRadius:12,padding:"12px 20px",
           boxShadow:"0 8px 32px #00000080",
-          display:"flex",alignItems:"center",gap:14,
+          display:"flex",alignItems:"center",gap:10,
           maxWidth:400,width:"90vw",cursor:"pointer",
         }} onClick={()=>{ setView("transactions"); setNewTxnCount(0); }}>
           <span style={{fontSize:18}}>⇅</span>
@@ -6561,7 +6561,7 @@ function AppInner() {
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:500,
           background:"var(--card)",border:"1px solid var(--border2)",borderRadius:12,
           padding:"12px 16px",boxShadow:"0 8px 32px #00000080",
-          display:"flex",alignItems:"center",gap:14,maxWidth:380,width:"90vw"}}>
+          display:"flex",alignItems:"center",gap:10,maxWidth:380,width:"90vw"}}>
           <span style={{fontSize:13,color:"var(--t1)",flex:1}}>{undoAction.label}</span>
           <button onClick={()=>{ undoAction.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}
             style={{...S.btn("primary",true),flexShrink:0}}>

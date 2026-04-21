@@ -3362,12 +3362,6 @@ function AppInner() {
               <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
             </div>
           </div>
-          {reviewCount > 0 && (
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--cyan-dim)",borderLeft:"3px solid var(--cyan)",borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
-              <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}><span style={{color:"var(--cyan)",fontWeight:700}}>{reviewCount}</span> transactions need review</span>
-              <button onClick={()=>{setView("transactions");setFilterReview(true);setSearch("");setFilterCat("all");setFilterAcct("all");}} style={{background:"none",color:"var(--cyan)",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>Review ›</button>
-            </div>
-          )}
           <div className="ledgr-stat-grid" style={{marginBottom:10}}>
             {[
               {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
@@ -3382,6 +3376,47 @@ function AppInner() {
               </div>
             ))}
           </div>
+
+          {/* ── Mobile notification strip ── */}
+          {(()=>{
+            const now = Date.now();
+            const atRiskGoals = (goals||[]).filter(g => {
+              const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
+              const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
+              const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
+              return pct < 0.9 && (daysLeft === null || daysLeft < 90);
+            });
+            const chips = [
+              ...(reviewCount > 0 ? [{
+                key:"review", color:"var(--cyan)", dim:"var(--cyan-dim)",
+                label: `${reviewCount} to review`,
+                action: ()=>{ setView("transactions"); setFilterReview(true); setSearch(""); setFilterCat("all"); setFilterAcct("all"); },
+              }] : []),
+              ...(atRiskGoals.length > 0 ? [{
+                key:"goals", color:"var(--amber)", dim:"var(--amber-dim)",
+                label: `${atRiskGoals.length} goal${atRiskGoals.length!==1?"s":""} need attention`,
+                action: ()=>{ setAnalyticsTab("goals"); navigate("analytics"); },
+              }] : []),
+            ];
+            if (!chips.length) return null;
+            return (
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                {chips.map(chip => (
+                  <button key={chip.key} onClick={chip.action} style={{
+                    display:"inline-flex", alignItems:"center", gap:5,
+                    background:chip.dim, border:`1px solid ${chip.color}55`,
+                    borderRadius:99, padding:"5px 12px",
+                    fontSize:12, fontWeight:600, color:chip.color,
+                    cursor:"pointer", whiteSpace:"nowrap",
+                  }}>
+                    <span style={{width:5,height:5,borderRadius:"50%",background:chip.color,flexShrink:0,display:"inline-block"}}/>
+                    {chip.label}
+                    <span style={{fontSize:11,opacity:0.7}}>›</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       ) : (
         /* Desktop: 2-col — left has month bar + 2x2 stats, right has notifications spanning full height */

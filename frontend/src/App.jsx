@@ -3467,9 +3467,7 @@ function AppInner() {
         })()}
         {DrillDownModal}
       </div>
-    )} right={(
-      {/* Right column: Action Items — sticky */}
-      {!isMobile && (
+    )} right={!isMobile ? (
         <div style={{position:"sticky",top:16,display:"flex",flexDirection:"column",gap:10}}>
           <div style={{...S.card}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
@@ -3503,8 +3501,7 @@ function AppInner() {
             )}
           </div>
         </div>
-      )}
-    )}
+      ) : null}
     />
   );
 

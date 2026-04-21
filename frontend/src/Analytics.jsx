@@ -482,10 +482,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center" }}>{m.label}</div>
-              <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center", color:m.income>=m.spending?"var(--green)":"var(--red)" }}>
+              <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center", whiteSpace:"nowrap", overflow:"hidden" }}>{isMobile ? m.label.split(" ")[0] : m.label}</div>
+              {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center", color:m.income>=m.spending?"var(--green)":"var(--red)" }}>
                 {m.income>=m.spending?"+":"-"}{fmt(Math.abs(m.income-m.spending))}
-              </div>
+              </div>}
             </div>
           ))}
         </div>
@@ -629,7 +629,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 )}
               </Card>
               {/* Row 2: 6 mini stats */}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+              <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr", gap:10 }}>
                 <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
                   sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
                 <StatCard label="Savings rate" value={savingsRate!=null?`${savingsRate}%`:"—"}
@@ -661,10 +661,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                             background:positive?"var(--green)":"var(--red)", transition:"height 0.4s" }} />
                         </div>
                         <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center" }}>{m.label}</div>
-                        <div style={{ fontSize:10, fontFamily:"var(--font-mono)", textAlign:"center",
+                        {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center",
                           color:positive?"var(--green)":"var(--red)", fontWeight:600 }}>
                           {positive?"+":""}{fmt(m.value)}
-                        </div>
+                        </div>}
                       </div>
                     );
                   })}
@@ -688,7 +688,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, gap:8 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
                     <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", flexShrink:0, width:16, textAlign:"right" }}>{i+1}</span>
-                    <span style={{ fontSize:13, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name}</span>
+                    <span style={{ fontSize:12, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{m.name}</span>
                   </div>
                   <div style={{ display:"flex", gap:12, flexShrink:0 }}>
                     <span style={{ fontSize:11, color:"var(--t3)" }}>{m.count}×</span>
@@ -704,17 +704,17 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
           <Card>
             <SectionHead title="Spending by day of week" sub="Total, all time" />
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:6, alignItems:"end" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, alignItems:"end" }}>
               {dowData.map(d => {
-                const h = dowMax>0?Math.round((d.total/dowMax)*80):0;
+                const h = dowMax>0?Math.round((d.total/dowMax)*72):0;
                 const isTop = d.total === Math.max(...dowData.map(x=>x.total));
                 return (
-                  <div key={d.day} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-                    <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--t3)" }}>{fmt(d.total)}</div>
-                    <div style={{ width:"100%", height:80, display:"flex", alignItems:"flex-end" }}>
+                  <div key={d.day} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+                    {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%", textAlign:"center" }}>{fmt(d.total)}</div>}
+                    <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
                       <div style={{ width:"100%", height:h, minHeight:d.total>0?3:0, background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
                     </div>
-                    <div style={{ fontSize:11, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{d.day}</div>
+                    <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{d.day.slice(0,3)}</div>
                   </div>
                 );
               })}
@@ -739,8 +739,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                           <div style={{ height:32, background:"var(--border)", borderRadius:"var(--radius)", overflow:"hidden", position:"relative" }}>
                             <div style={{ position:"absolute", bottom:0, left:0, right:0, height:`${pct(spent,maxSp)}%`, background:c.color+"99", borderRadius:"var(--radius)", transition:"height 0.4s" }} />
                           </div>
-                          <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center", marginTop:2 }}>{last3Labels[i]}</div>
-                          <div style={{ fontSize:10, fontFamily:"var(--font-mono)", textAlign:"center", color:"var(--t2)" }}>{fmt(spent)}</div>
+                          <div style={{ fontSize:8, color:"var(--t3)", textAlign:"center", marginTop:2, overflow:"hidden" }}>{last3Labels[i]}</div>
+                          {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center", color:"var(--t2)" }}>{fmt(spent)}</div>}
                         </div>
                       ))}
                     </div>
@@ -775,10 +775,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                       background:c.delta>0?"var(--red)":c.delta<0?"var(--green)":"var(--border2)",
                       borderRadius:99, transition:"width 0.5s" }} />
                   </div>
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--t3)", marginTop:2 }}>
-                    <span>Last month: {fmt(c.prevSpend)}</span>
-                    <span>This month: {fmt(c.curSpend)}</span>
-                  </div>
+                  {!isMobile && <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--t3)", marginTop:2 }}>
+                    <span>Last: {fmt(c.prevSpend)}</span>
+                    <span>Now: {fmt(c.curSpend)}</span>
+                  </div>}
                 </div>
               );
             })}
@@ -787,19 +787,19 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           {/* Spending by week of month */}
           <Card>
             <SectionHead title="Spending by week of month" sub="All time, which week you spend most" />
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:6, alignItems:"end" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:4, alignItems:"end" }}>
               {weekOfMonthData.map(w => {
                 const wMax = Math.max(...weekOfMonthData.map(x=>x.total), 1);
-                const h = Math.round((w.total/wMax)*80);
+                const h = Math.round((w.total/wMax)*72);
                 const isTop = w.total === wMax;
                 return (
-                  <div key={w.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-                    <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(w.total)}</div>
-                    <div style={{ width:"100%", height:80, display:"flex", alignItems:"flex-end" }}>
+                  <div key={w.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+                    {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(w.total)}</div>}
+                    <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
                       <div style={{ width:"100%", height:Math.max(h,2), minHeight:w.total>0?3:0,
                         background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
                     </div>
-                    <div style={{ fontSize:11, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{w.label}</div>
+                    <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{w.label}</div>
                   </div>
                 );
               })}
@@ -815,7 +815,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, gap:8 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
                       <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", flexShrink:0, width:16, textAlign:"right" }}>{i+1}</span>
-                      <span style={{ fontSize:13, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</span>
+                      <span style={{ fontSize:12, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{s.name}</span>
                     </div>
                     <div style={{ display:"flex", gap:12, flexShrink:0 }}>
                       <span style={{ fontSize:11, color:"var(--t3)" }}>{s.count}×</span>
@@ -933,7 +933,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
             {/* Column 1: stat cards + heatmap */}
             <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+              <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr", gap:10 }}>
                 <StatCard label="Budget efficiency" value={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
                   sub={efficiencyScore>=80?"Consistently on track":efficiencyScore>=60?"Some overspends":"Needs attention"}
                   subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}

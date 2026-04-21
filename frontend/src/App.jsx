@@ -4344,7 +4344,7 @@ function AppInner() {
                     }}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:14,fontWeight:600,color:"var(--t1)"}}>
+                          <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                             🏦 {item.institution}
                           </div>
                           {isStale&&(
@@ -4353,14 +4353,14 @@ function AppInner() {
                             </div>
                           )}
                         </div>
-                        <div style={{display:"flex",gap:8,flexShrink:0}}>
+                        <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
                           {!isStale&&(
-                            <button style={{...S.btn("ghost",true),minWidth:64}}
+                            <button style={{...S.btn("ghost",true),fontSize:12,padding:"4px 10px"}}
                               onClick={()=>doSync(item.item_id)} disabled={syncing}>
                               {syncing?"…":"⟳ Sync"}
                             </button>
                           )}
-                          <button style={{...S.btn("danger",true),minWidth:isMobile?80:64}}
+                          <button style={{...S.btn("danger",true),fontSize:12,padding:"4px 10px"}}
                             onClick={()=>disconnectItem(item.item_id)}>
                             Disconnect
                           </button>

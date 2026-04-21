@@ -948,7 +948,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
         <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
-        </span>        {cat ? (
+        </span>        {(!noCategory && cat) ? (
           <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
         ) : (
           <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0,textTransform:"capitalize"}}>{typeVal}</span>
@@ -2025,7 +2025,7 @@ function AppInner() {
   const [catForm,  setCatForm]  = useState({ name:"", limit:"", color:CAT_COLORS[0] });
   const [acctForm, setAcctForm] = useState({ name:"", balance:"", type:"Checking" });
   const [txnForm,  setTxnForm]  = useState({ merchant:"", amount:"", date:"", categoryId:"", accountId:"", sign:"-1" });
-  const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", enabled:true });
+  const [ruleForm, setRuleForm] = useState({ pattern:"", matchType:"contains", categoryId:"", typeOverride:"", enabled:true });
   const [editingLimitId,   setEditingLimitId]   = useState(null);
   const [editingLimitVal,  setEditingLimitVal]  = useState("");
   const [editingCatNameId, setEditingCatNameId] = useState(null);
@@ -2232,7 +2232,7 @@ function AppInner() {
 
   const spentByCat = useMemo(() => {
     const m = {};
-    monthTxns.forEach(t => { if (t.amount<0 && t.categoryId) m[t.categoryId]=(m[t.categoryId]||0)+Math.abs(t.amount); });
+    monthTxns.forEach(t => { if (t.amount<0 && t.categoryId && t.type!=="transfer" && t.type!=="income" && t.type!=="reimbursement") m[t.categoryId]=(m[t.categoryId]||0)+Math.abs(t.amount); });
     return m;
   }, [monthTxns]);
 
@@ -2697,10 +2697,11 @@ function AppInner() {
     setEditingId(null); showToast("Name updated");
   }
   function updateTxnType(id,val) {
+    const clearCat = ["income","transfer","reimbursement"].includes(val);
     setTransactions(p=>p.map(t=>{
       if (t.id!==id) return t;
       const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
-      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed};
+      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, categoryId: clearCat ? null : t.categoryId, userCategorized: clearCat ? false : t.userCategorized};
     }));
     // Offer to create a type rule for the merchant
     const txn = transactions.find(t => t.id === id);
@@ -4017,7 +4018,7 @@ function AppInner() {
                             const warn = pct >= 80 && !over && remaining !== 0;
                             const zero = remaining === 0 && !over;
                             const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
-                            const barC = complete ? "var(--green)" : over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                            const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
                             const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
                             const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
                             const displayPct = complete ? 100 : pct;
@@ -4188,7 +4189,7 @@ function AppInner() {
                               const warn = pct >= 80 && !over && remaining !== 0;
                               const zero = remaining === 0 && !over;
                               const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
-                              const barC = complete ? "var(--green)" : over ? "var(--red)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                              const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
                               const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
                               const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
                               const displayPct = complete ? 100 : pct;
@@ -4406,30 +4407,28 @@ function AppInner() {
                   const daily=today.getDate()>0?spent/today.getDate():0;
                   const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
                   return (
-                    <div key={acct.id} style={S.card}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                        <div>
-                          <div style={{fontSize:12,color:"var(--t3)",marginBottom:4}}>{typeIcon} {acct.type}{acct.institution?` · ${acct.institution}`:""}</div>
-                          <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700}}>{acct.name}</div>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?20:24,fontWeight:600,color:"var(--cyan)",margin:"8px 0"}}>{fmt(acct.balance)}</div>
-                          {acct.available!=null&&<div style={{fontSize:11,color:"var(--t3)"}}>Available: {fmt(acct.available)}</div>}
+                    <div key={acct.id} style={{...S.card,padding:"12px 16px"}}>
+                      {/* Row 1: name + balance + actions */}
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+                            <span style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</span>
+                            {acct.institution&&<span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap"}}>{acct.institution}</span>}
+                          </div>
                         </div>
-                        <div style={{display:"flex",gap:6}}>
-                          <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
-                          <button style={S.btn("ghost",true)} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:"var(--cyan)",flexShrink:0}}>{fmt(acct.balance)}</span>
+                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                          <button style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px"}} onClick={()=>openEditAcct(acct)}>Edit</button>
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"3px 6px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
-                      <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)"}}>
-                        {[
-                          ["Spent this month",fmt(spent),"var(--t1)"],
-                          ["Income this month",fmt(income),"var(--green)"],
-                          ["Daily avg spend",`${fmt(daily)}/day`,"var(--t1)"],
-                          ["Projected month end",fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1)),"var(--t1)"],
-                        ].map(([label,value,color])=>(
-                          <div key={label} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--t2)",marginBottom:6}}>
-                            <span>{label}</span><span style={{fontFamily:"var(--font-mono)",color}}>{value}</span>
-                          </div>
-                        ))}
+                      {/* Row 2: stats */}
+                      <div style={{display:"flex",gap:16,marginTop:6,flexWrap:"wrap"}}>
+                        <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}</span>
+                        {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>Avail {fmt(acct.available)}</span>}
+                        <span style={{fontSize:11,color:"var(--t3)"}}>Spent {fmt(spent)}</span>
+                        {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>+{fmt(income)}</span>}
+                        <span style={{fontSize:11,color:"var(--t3)"}}>~{fmt(daily)}/day · proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>
                       </div>
                     </div>
                   );
@@ -4475,36 +4474,30 @@ function AppInner() {
                   <div key={rule.id}
                     style={{
                       background:"var(--card)",border:"1px solid var(--border)",
-                      borderRadius:"var(--radius)",padding:"13px 16px",
+                      borderRadius:"var(--radius)",padding:"9px 14px",
                       borderLeft:rule.enabled
-                        ? `3px solid ${cat?.color||"var(--cyan)"}`
+                        ? `3px solid ${cat?.color||rule.typeOverride?"var(--amber)":"var(--cyan)"}`
                         : "3px solid var(--border2)",
                       opacity:rule.enabled?1:0.45,
                     }}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:12,color:"var(--t3)",marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
-                          {rule.matchType==="exact"?"Exact":"Contains"} match
-                          {isAi && (
-                            <span style={{fontSize:10,fontWeight:700,color:"var(--cyan)",
-                              background:"var(--cyan-dim)",borderRadius:99,padding:"1px 6px",
-                              letterSpacing:"0.5px"}}>
-                              ✦ AI
-                            </span>
-                          )}
-                        </div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",marginBottom:8,wordBreak:"break-word"}}>
-                          "{rule.pattern}"
-                        </div>
-                        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                          <span style={{fontSize:11,color:"var(--t3)"}}>→</span>
-                          {cat ? <CategoryBadge cat={cat}/> : <span style={{fontSize:12,color:"var(--t3)"}}>No category</span>}
-                        </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+                      {/* Left: pattern + destination */}
+                      <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:6,overflow:"hidden"}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t1)",flexShrink:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>"{rule.pattern}"</span>
+                        <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>→</span>
+                        {rule.typeOverride
+                          ? <span style={{fontSize:11,color:"var(--amber)",textTransform:"capitalize",flexShrink:0,whiteSpace:"nowrap"}}>{rule.typeOverride}</span>
+                          : cat ? <span style={{fontSize:11,color:cat.color,flexShrink:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:100}}>{cat.name}</span>
+                          : <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>No category</span>
+                        }
+                        <span style={{fontSize:10,color:"var(--t3)",flexShrink:0,whiteSpace:"nowrap"}}>{rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts":"contains"}</span>
+                        {isAi && <span style={{fontSize:9,fontWeight:700,color:"var(--cyan)",background:"var(--cyan-dim)",borderRadius:99,padding:"1px 5px",flexShrink:0}}>AI</span>}
                       </div>
-                      <div style={{display:"flex",gap:6,flexShrink:0}}>
-                        <button style={S.btn("ghost",true)} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-                        <button style={S.btn("ghost",true)} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-                        <button style={S.btn("ghost",true)} onClick={()=>deleteRule(rule.id)}>✕</button>
+                      {/* Right: actions */}
+                      <div style={{display:"flex",gap:4,flexShrink:0}}>
+                        <button style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px",color:rule.enabled?"var(--t2)":"var(--t3)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
+                        <button style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px"}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+                        <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"3px 6px"}} onClick={()=>deleteRule(rule.id)}>✕</button>
                       </div>
                     </div>
                   </div>
@@ -5896,7 +5889,7 @@ function AppInner() {
       actions={<>
         <button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button>
         <button style={S.btn("primary")} onClick={()=>{
-          if(!ruleForm.pattern.trim()||!ruleForm.categoryId) return;
+          if(!ruleForm.pattern.trim()||(!ruleForm.categoryId&&!ruleForm.typeOverride)) return;
           saveRule({id:modal==="editRule"?editTarget.id:"r"+Date.now(),...ruleForm,pattern:ruleForm.pattern.trim(),createdAt:modal==="editRule"?editTarget.createdAt:Date.now()});
           setModal(null);
         }}>Save</button>
@@ -5914,13 +5907,25 @@ function AppInner() {
             <option value="exact">Exact match</option>
           </select>
         </div>
-        <div style={S.field}>
-          <label style={S.label}>Assign Category</label>
-          <select style={{...S.input,padding:"9px 12px"}} value={ruleForm.categoryId} onChange={e=>setRuleForm(p=>({...p,categoryId:e.target.value}))}>
-            <option value="">— Select —</option>
-            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
+        {ruleForm.typeOverride || (editTarget?.typeOverride && !editTarget?.categoryId) ? (
+          <div style={S.field}>
+            <label style={S.label}>Assign Type</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={ruleForm.typeOverride} onChange={e=>setRuleForm(p=>({...p,typeOverride:e.target.value,categoryId:""}))}>
+              <option value="">— Select —</option>
+              <option value="transfer">Transfer</option>
+              <option value="income">Income</option>
+              <option value="reimbursement">Reimbursement</option>
+            </select>
+          </div>
+        ) : (
+          <div style={S.field}>
+            <label style={S.label}>Assign Category</label>
+            <select style={{...S.input,padding:"9px 12px"}} value={ruleForm.categoryId} onChange={e=>setRuleForm(p=>({...p,categoryId:e.target.value,typeOverride:""}))}>
+              <option value="">— Select —</option>
+              {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        )}
       </div>
     </Modal>
   );

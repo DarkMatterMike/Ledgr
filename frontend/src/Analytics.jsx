@@ -1232,23 +1232,23 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {goalForm !== null && (
               <Card style={{ border:"1px solid var(--cyan)44" }}>
                 <SectionHead title={goalForm.id ? "Edit goal" : "New goal"} />
-                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                  <div>
+                <div style={{ display:"flex", flexDirection:"column", gap:10, minWidth:0, width:"100%" }}>
+                  <div style={{ minWidth:0 }}>
                     <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Title</div>
-                    <input style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-body)", outline:"none" }}
+                    <input style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-body)", outline:"none", display:"block" }}
                       placeholder="e.g. Emergency fund, Vacation, New car" value={goalForm.title||""} onChange={e=>setGoalForm(f=>({...f,title:e.target.value}))} />
                   </div>
 
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                    <div>
+                  <div style={{ display:"grid", gridTemplateColumns:isMobile?"minmax(0,1fr)":"minmax(0,1fr) minmax(0,1fr)", gap:10 }}>
+                    <div style={{ minWidth:0 }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Target amount</div>
-                      <input type="number" min="0" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
+                      <input type="number" min="0" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none", display:"block" }}
                         placeholder="0" value={goalForm.targetAmount||""}
                         onChange={e=>setGoalForm(f=>({...f, targetAmount:parseFloat(e.target.value)||0, periodAmount:"" }))} />
                     </div>
-                    <div>
+                    <div style={{ minWidth:0 }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Period</div>
-                      <select style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box" }}
+                      <select style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", display:"block" }}
                         value={goalForm.period||"month"}
                         onChange={e=>setGoalForm(f=>({...f, period:e.target.value, periodAmount:"" }))}>
                         <option value="week">Weekly</option>
@@ -1260,16 +1260,16 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     </div>
                   </div>
 
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                    <div>
+                  <div style={{ display:"grid", gridTemplateColumns:isMobile?"minmax(0,1fr)":"minmax(0,1fr) minmax(0,1fr)", gap:10 }}>
+                    <div style={{ minWidth:0 }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Start date</div>
-                      <input type="date" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none" }}
+                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block" }}
                         value={goalForm.startDate||""}
                         onChange={e=>setGoalForm(f=>({...f, startDate:e.target.value, periodAmount:"" }))} />
                     </div>
-                    <div>
+                    <div style={{ minWidth:0 }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Deadline (optional)</div>
-                      <input type="date" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none" }}
+                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block" }}
                         value={goalForm.deadline||""}
                         onChange={e=>setGoalForm(f=>({...f, deadline:e.target.value, periodAmount:"" }))} />
                     </div>
@@ -1301,7 +1301,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     const firstLabel = firstDate ? firstDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : null;
                     return (
                       <div>
-                        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                        <div style={{ display:"flex", alignItems:isMobile?"flex-start":"center", justifyContent:"space-between", flexWrap:"wrap", gap:4, marginBottom:4 }}>
                           <div style={{ fontSize:11, color:"var(--t3)" }}>Set aside each period</div>
                           {suggested !== null && (
                             <div style={{ fontSize:10, color:auto?"var(--cyan)":"var(--t3)" }}>
@@ -1314,7 +1314,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                           )}
                         </div>
                         <input type="number" min="0" step="0.01"
-                          style={{ width:"100%", background:"var(--surface)", border:`1px solid ${auto?"var(--cyan)44":"var(--border2)"}`, borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
+                          style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:`1px solid ${auto?"var(--cyan)44":"var(--border2)"}`, borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none", display:"block" }}
                           placeholder={suggested !== null ? `${suggested.toFixed(2)} (suggested)` : "0"}
                           value={auto ? suggested.toString() : (goalForm.periodAmount||"")}
                           onChange={e=>setGoalForm(f=>({...f, periodAmount:parseFloat(e.target.value)||0, _periodManual:true }))}
@@ -1334,8 +1334,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     );
                   })()}
 
-                  <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:4 }}>
-                    <button onClick={()=>setGoalForm(null)} style={{ padding:"8px 14px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:13, cursor:"pointer" }}>Cancel</button>
+                  <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:4, flexWrap:"wrap" }}>
+                    <button onClick={()=>setGoalForm(null)} style={{ padding:"8px 14px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:13, cursor:"pointer", flex:isMobile?"1":"none" }}>Cancel</button>
                     <button disabled={!goalForm.title?.trim()||!goalForm.targetAmount}
                       onClick={()=>{
                         // Resolve periodAmount using same backwards enumeration
@@ -1352,7 +1352,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                         onSaveGoal({ ...goalForm, periodAmount: resolvedAmount });
                         setGoalForm(null);
                       }}
-                      style={{ padding:"8px 16px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", opacity:(!goalForm.title?.trim()||!goalForm.targetAmount)?0.5:1 }}>
+                      style={{ padding:"8px 16px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", opacity:(!goalForm.title?.trim()||!goalForm.targetAmount)?0.5:1, flex:isMobile?"1":"none" }}>
                       {goalForm.id ? "Save changes" : "Create goal"}
                     </button>
                   </div>

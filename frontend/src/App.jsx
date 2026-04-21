@@ -3911,62 +3911,44 @@ function AppInner() {
         const over = rawPct > 1;
         const onBudget = rawPct >= 0.9 && rawPct <= 1;
         const gaugeColor = over ? "var(--red)" : onBudget ? "var(--green)" : "var(--cyan)";
-        const trackColor = "rgba(255,255,255,0.08)";
 
-        // Semicircle: arc from left (180°) counterclockwise to right (0°)
-        // cx=100 cy=80 r=58 stroke=12 → top of arc = 80-58=22, bottom = 80
-        // viewBox = "0 8 200 80" clips neatly to just the arc
-        const cx = 100, cy = 80, r = 58, sw = 12;
-        const startAngle = Math.PI;
-        const sweepAngle = Math.PI * clampedPct;
-        const endAngle   = startAngle - sweepAngle;
-        const x1 = cx + r * Math.cos(startAngle);
-        const y1 = cy - r * Math.sin(0);   // = cy (left tip, y=80)
-        const x2 = cx + r * Math.cos(endAngle);
-        const y2 = cy + r * Math.sin(endAngle);
-        const largeArc = sweepAngle > Math.PI ? 1 : 0;
-
-        // Arc tip coords: SVG y-axis is inverted so sin is negated
-        const lx = cx - r;                              // left tip  x
-        const ly = cy;                                   // left tip  y  (sin(π)=0)
-        const rx = cx + r;                              // right tip x
-        const ry = cy;                                   // right tip y
-        const ex = cx + r * Math.cos(endAngle);         // filled arc end x
-        const ey = cy - r * Math.sin(endAngle);          // filled arc end y (negate for SVG)
+        // cx=100 cy=90 r=68 sw=13
+        // Arc sweeps CCW from left (π) through top (3π/2) to right (2π)
+        // sweep-flag=0 in SVG = counterclockwise = goes through the top ✓
+        const cx=100, cy=90, r=68, sw=13;
+        const lx=cx-r, ly=cy;           // left  tip (32, 90)
+        const rx=cx+r, ry=cy;           // right tip (168, 90)
+        const a = Math.PI * (1 + clampedPct); // π→2π as p goes 0→1
+        const ex = cx + r * Math.cos(a);
+        const ey = cy + r * Math.sin(a);
 
         return (
           <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:20 }}>
-            {/* Title */}
-            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:10 }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>
               Budget Progress
             </div>
-            {/* SVG gauge — contained, no overflow */}
             <div style={{ display:"flex", justifyContent:"center" }}>
-              <svg width={180} height={96} viewBox="10 22 180 58" style={{ display:"block", overflow:"hidden" }}>
-                {/* Track */}
-                <path
-                  d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`}
-                  fill="none" stroke={trackColor} strokeWidth={sw} strokeLinecap="round"
-                />
-                {/* Fill */}
-                {clampedPct > 0.015 && (
-                  <path
-                    d={`M ${lx} ${ly} A ${r} ${r} 0 ${largeArc} 0 ${ex} ${ey}`}
+              {/* viewBox shows y=14 (top stroke edge) to y=97 (bottom stroke edge), x=20 to x=180 */}
+              <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
+                {/* Track arc: left → CCW through top → right */}
+                <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 0 ${rx} ${ry}`}
+                  fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
+                {/* Fill arc */}
+                {clampedPct > 0.01 && (
+                  <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 0 ${ex} ${ey}`}
                     fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
-                    style={{ filter:`drop-shadow(0 0 5px ${gaugeColor}88)` }}
-                  />
+                    style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>
                 )}
               </svg>
             </div>
-            {/* Text below arc */}
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:1, marginTop:6 }}>
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>
                 {displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}
               </div>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>
                 {fmt(totalSpent)}
               </div>
-              <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>
+              <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
                 of {fmt(totalBudget)} budgeted
               </div>
             </div>

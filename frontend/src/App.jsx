@@ -3474,7 +3474,73 @@ function AppInner() {
       )}
 
       {isMobile ? (
-        <div className="ledgr-dash-cards">
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {/* Spending Breakdown */}
+          {SpendingBreakdownCard}
+
+          {/* Cash Flow */}
+          {CashFlowCard}
+
+          {/* Transactions to Review */}
+          <div style={S.card}>
+            <div style={{...S.sectionHdr,marginBottom:8}}>
+              <div style={S.cardTitle}>Transactions to Review</div>
+              {reviewCount > 0 && <button style={S.btn("ghost",true)} onClick={()=>{ setFilterReview(true); navigate("transactions"); }}>Review all →</button>}
+            </div>
+            {reviewCount === 0 ? (
+              <div style={{display:"flex",alignItems:"center",gap:8,color:"var(--t3)"}}>
+                <span style={{fontSize:16,opacity:0.4}}>✓</span>
+                <div style={{fontSize:12}}>All caught up</div>
+              </div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                {filteredTxns.filter(t=>needsReview(t)).slice(0,5).map((t,i,arr)=>(
+                  <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 0",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date}</div>
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>{t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}</div>
+                  </div>
+                ))}
+                {reviewCount > 5 && <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",paddingTop:6}}>+{reviewCount-5} more</div>}
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming */}
+          {(()=>{
+            const today_d = today.getDate();
+            const upcomingTxns = recurringTxns.filter(t=>(t.recurringDay||0)>today_d).sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).slice(0,5);
+            return (
+              <div style={S.card}>
+                <div style={{...S.sectionHdr,marginBottom:8}}>
+                  <div style={S.cardTitle}>Upcoming</div>
+                  <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar →</button>
+                </div>
+                {upcomingTxns.length === 0 ? (
+                  <div style={{fontSize:12,color:"var(--t3)"}}>No upcoming transactions this month</div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                    {upcomingTxns.map((t,i)=>(
+                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<upcomingTxns.length-1?"1px solid var(--border)":"none"}}>
+                        <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                          <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Budget Progress */}
           <div style={S.card} className="ledgr-card-anim">
             <div style={{...S.sectionHdr,marginBottom:8}}>
               <div style={S.cardTitle}>Budget Progress</div>
@@ -3487,21 +3553,18 @@ function AppInner() {
                   const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
                   const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
                   return (
-                    <div key={cat.id} style={{marginBottom:16,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                    <div key={cat.id} style={{marginBottom:12,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
                         <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
                           <span style={{width:7,height:7,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
                           <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
                           {complete?"✓ Done":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
                         </span>
                       </div>
-                      <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
+                      <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
                         <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
-                      </div>
-                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                        <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
                       </div>
                     </div>
                   );
@@ -3509,13 +3572,14 @@ function AppInner() {
             }
           </div>
 
+          {/* Recent Transactions */}
           <div style={S.card}>
             <div style={{...S.sectionHdr,marginBottom:8}}>
               <div style={S.cardTitle}>Recent Transactions</div>
               <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
             </div>
             {filteredTxns.slice(0,8).map(t=>(
-              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
+              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:8,marginBottom:8,borderBottom:"1px solid var(--border)"}}>
                 <div style={{flex:1,minWidth:0,marginRight:10}}>
                   <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                     {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
@@ -3528,7 +3592,7 @@ function AppInner() {
                 </span>
               </div>
             ))}
-            {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
+            {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:24}}>No transactions yet</div>}
           </div>
         </div>
       ) : (
@@ -5268,12 +5332,10 @@ function AppInner() {
             gap:10,
           }}
         >
-          <div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--t1)" }}>
-              Recurring Calendar
-            </div>
-            <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 4 }}>
-              {recurringTxns.length} recurring transactions
+          <div style={{...S.sectionHdr, marginBottom:0}}>
+            <div style={S.sectionTitle}>Calendar</div>
+            <div style={{ fontSize: 11, color: "var(--t3)", fontFamily:"var(--font-mono)" }}>
+              {recurringTxns.length} recurring
             </div>
           </div>
 

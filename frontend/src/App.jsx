@@ -3421,43 +3421,208 @@ function AppInner() {
                 })
             }
           </div>
+
+          {/* Goals */}
+          {goals.length > 0 && (()=>{
+            const now = Date.now();
+            const atRisk = goals.filter(g => {
+              const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
+              const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
+              const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
+              return pct < 0.9 && (daysLeft === null || daysLeft < 90);
+            });
+            return (
+              <div style={S.card}>
+                <div style={{...S.sectionHdr,marginBottom:8}}>
+                  <div style={S.cardTitle}>Goals</div>
+                  <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
+                </div>
+                {atRisk.length === 0 ? (
+                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
+                    <div style={{width:22,height:22,borderRadius:"50%",background:"var(--green-dim)",border:"1px solid var(--green)44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:10,color:"var(--green)"}}>✓</span>
+                    </div>
+                    <div style={{fontSize:12,color:"var(--t2)"}}>All goals on track</div>
+                  </div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {atRisk.slice(0,3).map(g => {
+                      const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+                      const deadline = g.deadline ? new Date(g.deadline) : null;
+                      const daysLeft = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
+                      return (
+                        <div key={g.id}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                            <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
+                            <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
+                          </div>
+                          <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
+                            <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                            <span>{fmt(g.savedAmount||0)} saved</span>
+                            <span>{daysLeft!=null?`${daysLeft}d left`:fmt(g.targetAmount)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {/* Upcoming recurring */}
+          {(()=>{
+            const todayD = today.getDate();
+            const upcoming = recurringTxns
+              .filter(t => (t.recurringDay||0) > todayD)
+              .sort((a,b) => (a.recurringDay||0) - (b.recurringDay||0))
+              .slice(0,5);
+            if (!upcoming.length) return null;
+            return (
+              <div style={S.card}>
+                <div style={{...S.sectionHdr,marginBottom:8}}>
+                  <div style={S.cardTitle}>Upcoming</div>
+                  <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar →</button>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  {upcoming.map((t,i) => (
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
+                      <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                        <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ) : (
         /* Desktop: 3-column grid */
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
-          {/* Col 1: Spending Breakdown */}
-          <div>{SpendingBreakdownCard}</div>
-
-          {/* Col 2: Budget Progress */}
-          <div style={S.card} className="ledgr-card-anim">
-            <div style={{...S.sectionHdr,marginBottom:8}}>
-              <div style={S.cardTitle}>Budget Progress</div>
-              <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
-            </div>
-            {categories.length===0
-              ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-              : sortedCategories.slice(0,10).map(cat=>{
-                  const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                  const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                  const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                  return (
-                    <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                          <span style={{width:6,height:6,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                        </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                          {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
-                        </span>
+          {/* Col 1: Spending Breakdown + Goals */}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {SpendingBreakdownCard}
+            {/* Goals */}
+            {goals.length > 0 && (()=>{
+              const now = Date.now();
+              const atRisk = goals.filter(g => {
+                const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
+                const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
+                const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
+                return pct < 0.9 && (daysLeft === null || daysLeft < 90);
+              });
+              return (
+                <div style={S.card}>
+                  <div style={{...S.sectionHdr,marginBottom:8}}>
+                    <div style={S.cardTitle}>Goals</div>
+                    <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
+                  </div>
+                  {atRisk.length === 0 ? (
+                    <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
+                      <div style={{width:22,height:22,borderRadius:"50%",background:"var(--green-dim)",border:"1px solid var(--green)44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{fontSize:10,color:"var(--green)"}}>✓</span>
                       </div>
-                      <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
-                      </div>
+                      <div style={{fontSize:12,color:"var(--t2)"}}>All goals on track</div>
                     </div>
-                  );
-                })
-            }
+                  ) : (
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {atRisk.slice(0,3).map(g => {
+                        const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+                        const deadline = g.deadline ? new Date(g.deadline) : null;
+                        const daysLeft = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
+                        return (
+                          <div key={g.id}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                              <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
+                              <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
+                            </div>
+                            <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
+                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                              <span>{fmt(g.savedAmount||0)} saved</span>
+                              <span>{daysLeft!=null?`${daysLeft}d left`:fmt(g.targetAmount)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Col 2: Budget Progress + Upcoming */}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={S.card} className="ledgr-card-anim">
+              <div style={{...S.sectionHdr,marginBottom:8}}>
+                <div style={S.cardTitle}>Budget Progress</div>
+                <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
+              </div>
+              {categories.length===0
+                ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+                : sortedCategories.slice(0,10).map(cat=>{
+                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
+                    return (
+                      <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
+                            <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                          </div>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                            {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
+                          </span>
+                        </div>
+                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
+                        </div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+            {/* Upcoming recurring */}
+            {(()=>{
+              const todayD = today.getDate();
+              const upcoming = recurringTxns
+                .filter(t => (t.recurringDay||0) > todayD)
+                .sort((a,b) => (a.recurringDay||0) - (b.recurringDay||0))
+                .slice(0,5);
+              if (!upcoming.length) return null;
+              return (
+                <div style={S.card}>
+                  <div style={{...S.sectionHdr,marginBottom:8}}>
+                    <div style={S.cardTitle}>Upcoming</div>
+                    <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar →</button>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                    {upcoming.map((t,i) => (
+                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
+                        <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                          <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Col 3: Action Items */}

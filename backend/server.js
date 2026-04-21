@@ -858,7 +858,7 @@ app.get("/api/data", async (req, res) => {
     const [transactions, categories, accounts, plaidItems, rules, calendarAccounts,
            investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
            userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
-           aiConversations, aiCurrentConvId] = await Promise.all([
+           aiConversations, aiCurrentConvId, goals] = await Promise.all([
       getData(uid, "transactions"), getData(uid, "categories"),
       getData(uid, "accounts"),     getData(uid, "plaidItems"),
       getData(uid, "rules"),        getData(uid, "calendarAccounts"),
@@ -868,6 +868,7 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "insightsTodos"),      getData(uid, "analyticsInsights"),
       getData(uid, "dismissedPairs"),     getData(uid, "scanMemory"),
       getData(uid, "aiConversations"),    getData(uid, "aiCurrentConvId"),
+      getData(uid, "goals"),
     ]);
     res.json({
       transactions:       transactions       || [],
@@ -888,6 +889,7 @@ app.get("/api/data", async (req, res) => {
       scanMemory:         scanMemory         || null,
       aiConversations:    aiConversations    || [],
       aiCurrentConvId:    aiCurrentConvId    || null,
+      goals:              goals              || [],
       access:             getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -900,7 +902,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
-            aiConversations, aiCurrentConvId } = req.body;
+            aiConversations, aiCurrentConvId, goals } = req.body;
     const ops = [];
     if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
@@ -920,6 +922,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (scanMemory !== undefined)          ops.push(setData(uid, "scanMemory",         scanMemory));
     if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
+    if (Array.isArray(goals))              ops.push(setData(uid, "goals",             goals));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }

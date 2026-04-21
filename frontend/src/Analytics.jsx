@@ -108,12 +108,13 @@ function AdherenceCell({ spent, limit, label }) {
 /* ═══════════════════════════════════════════════════════════════════
    MAIN
 ═══════════════════════════════════════════════════════════════════ */
-export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange }) {
-  const TABS = ["overview","spending","budget","insights"];
+export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange, goals = [], onSaveGoal, onDeleteGoal }) {
+  const TABS = ["overview","spending","budget","insights","goals"];
   const [tab,       setTab]       = useState("overview");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError,   setAiError]   = useState(null);
   const [userCorrections, setUserCorrections] = useState("");
+  const [goalForm, setGoalForm]   = useState(null); // null = closed, {} = new, {id,...} = edit
   const touchStartX = useRef(null);
   const today = new Date();
 
@@ -1220,6 +1221,158 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
           </div>
           {!isMobile && ActionItemsSidebar}
+        </div>
+      )}
+
+      {/* ═══ GOALS ════════════════════════════════════════════════════ */}
+      {tab === "goals" && (
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:16, alignItems:"start" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            {goalForm !== null && (
+              <Card style={{ border:"1px solid var(--cyan)44" }}>
+                <SectionHead title={goalForm.id ? "Edit goal" : "New goal"} />
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  <div>
+                    <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Title</div>
+                    <input style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-body)", outline:"none" }}
+                      placeholder="e.g. Emergency fund, Vacation, New car" value={goalForm.title||""} onChange={e=>setGoalForm(f=>({...f,title:e.target.value}))} />
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                    <div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Target amount</div>
+                      <input type="number" min="0" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
+                        placeholder="0" value={goalForm.targetAmount||""} onChange={e=>setGoalForm(f=>({...f,targetAmount:parseFloat(e.target.value)||0}))} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Deadline (optional)</div>
+                      <input type="date" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12, color:"var(--t1)", boxSizing:"border-box", outline:"none" }}
+                        value={goalForm.deadline||""} onChange={e=>setGoalForm(f=>({...f,deadline:e.target.value}))} />
+                    </div>
+                  </div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                    <div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Set aside each period</div>
+                      <input type="number" min="0" style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
+                        placeholder="0" value={goalForm.periodAmount||""} onChange={e=>setGoalForm(f=>({...f,periodAmount:parseFloat(e.target.value)||0}))} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Period</div>
+                      <select style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box" }}
+                        value={goalForm.period||"month"} onChange={e=>setGoalForm(f=>({...f,period:e.target.value}))}>
+                        <option value="week">Weekly</option>
+                        <option value="month">Monthly</option>
+                        <option value="quarter">Quarterly</option>
+                        <option value="year">Yearly</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:4 }}>
+                    <button onClick={()=>setGoalForm(null)} style={{ padding:"8px 14px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:13, cursor:"pointer" }}>Cancel</button>
+                    <button disabled={!goalForm.title?.trim()||!goalForm.targetAmount}
+                      onClick={()=>{ onSaveGoal(goalForm); setGoalForm(null); }}
+                      style={{ padding:"8px 16px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", opacity:(!goalForm.title?.trim()||!goalForm.targetAmount)?0.5:1 }}>
+                      {goalForm.id ? "Save changes" : "Create goal"}
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            )}
+            {goals.length === 0 && goalForm === null ? (
+              <Card>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"40px 0", gap:12 }}>
+                  <span style={{ fontSize:36, opacity:0.3 }}>🎯</span>
+                  <div style={{ fontSize:15, fontWeight:600, color:"var(--t1)" }}>No goals yet</div>
+                  <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", maxWidth:280 }}>Create a savings goal to track progress and assign transactions toward it.</div>
+                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,deadline:"",periodAmount:0,period:"month"})}
+                    style={{ padding:"10px 20px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", marginTop:4 }}>
+                    + Create first goal
+                  </button>
+                </div>
+              </Card>
+            ) : goals.map(g => {
+              const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+              const deadline = g.deadline ? new Date(g.deadline + "T12:00:00") : null;
+              const daysLeft = deadline ? Math.ceil((deadline.getTime()-Date.now())/86400000) : null;
+              const barColor = pct>=100?"var(--green)":pct>=60?"var(--cyan)":pct>=30?"var(--amber)":"var(--red)";
+              const assignedTxns = transactions.filter(t=>(g.assignedTxnIds||[]).includes(t.id));
+              return (
+                <Card key={g.id}>
+                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12, gap:10 }}>
+                    <div>
+                      <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)", marginBottom:2 }}>{g.title}</div>
+                      <div style={{ fontSize:12, color:"var(--t3)" }}>
+                        {g.periodAmount>0 && <span>{fmt(g.periodAmount)} / {g.period||"month"}</span>}
+                        {deadline && <span style={{ marginLeft:8 }}>· due {deadline.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
+                        {daysLeft!=null && daysLeft>0 && <span style={{ color:daysLeft<30?"var(--amber)":"var(--t3)", marginLeft:4 }}>({daysLeft}d left)</span>}
+                        {daysLeft!=null && daysLeft<=0 && <span style={{ color:"var(--red)", marginLeft:4 }}>(past deadline)</span>}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                      <button onClick={()=>setGoalForm({...g})} style={{ padding:"5px 10px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:11, cursor:"pointer" }}>Edit</button>
+                      <button onClick={()=>onDeleteGoal(g.id)} style={{ padding:"5px 8px", borderRadius:"var(--radius)", border:"none", background:"none", color:"var(--t3)", fontSize:14, cursor:"pointer" }}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6, fontSize:12 }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontWeight:700, color:barColor }}>{fmt(g.savedAmount||0)} saved</span>
+                    <span style={{ color:"var(--t3)" }}>of {fmt(g.targetAmount)}</span>
+                  </div>
+                  <div style={{ height:8, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:6 }}>
+                    <div style={{ height:"100%", borderRadius:99, width:`${pct}%`, background:barColor, transition:"width 0.5s" }} />
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--t3)", marginBottom:assignedTxns.length>0?12:0 }}>
+                    <span>{pct}% complete</span>
+                    {pct<100 && <span>{fmt((g.targetAmount||0)-(g.savedAmount||0))} remaining</span>}
+                    {pct>=100 && <span style={{ color:"var(--green)", fontWeight:600 }}>Goal reached!</span>}
+                  </div>
+                  {assignedTxns.length > 0 && (
+                    <div style={{ borderTop:"1px solid var(--border)", paddingTop:10 }}>
+                      <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Assigned transactions</div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                        {assignedTxns.slice(0,5).map(t=>(
+                          <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12 }}>
+                            <span style={{ color:"var(--t3)", flexShrink:0, width:68, fontFamily:"var(--font-mono)", fontSize:11 }}>{t.date}</span>
+                            <span style={{ flex:1, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</span>
+                            <span style={{ fontFamily:"var(--font-mono)", color:"var(--green)", fontWeight:600, flexShrink:0 }}>{fmt(Math.abs(t.amount))}</span>
+                          </div>
+                        ))}
+                        {assignedTxns.length>5 && <div style={{ fontSize:11, color:"var(--t3)" }}>+{assignedTxns.length-5} more</div>}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+          {!isMobile && (
+            <div style={{ display:"flex", flexDirection:"column", gap:12, position:"sticky", top:16 }}>
+              {goals.length > 0 && (
+                <Card style={{ padding:"14px 16px" }}>
+                  <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 }}>Summary</div>
+                  {[
+                    { label:"Total goals",  value:goals.length },
+                    { label:"Total saved",  value:fmt(goals.reduce((s,g)=>s+(g.savedAmount||0),0)) },
+                    { label:"Total target", value:fmt(goals.reduce((s,g)=>s+(g.targetAmount||0),0)) },
+                    { label:"Completed",    value:goals.filter(g=>(g.savedAmount||0)>=(g.targetAmount||1)&&g.targetAmount>0).length },
+                  ].map(s=>(
+                    <div key={s.label} style={{ display:"flex", justifyContent:"space-between", marginBottom:8, fontSize:12 }}>
+                      <span style={{ color:"var(--t3)" }}>{s.label}</span>
+                      <span style={{ fontFamily:"var(--font-mono)", fontWeight:600, color:"var(--t1)" }}>{s.value}</span>
+                    </div>
+                  ))}
+                </Card>
+              )}
+              <Card style={{ padding:"14px 16px" }}>
+                <div style={{ fontSize:11, fontWeight:600, color:"var(--t2)", marginBottom:6 }}>How progress is tracked</div>
+                <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6 }}>When you transfer to savings, find that transaction and tap ⋯ → Add to goal to count it toward your target.</div>
+                {goalForm === null && (
+                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,deadline:"",periodAmount:0,period:"month"})}
+                    style={{ width:"100%", marginTop:12, padding:"9px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer" }}>
+                    + New goal
+                  </button>
+                )}
+              </Card>
+            </div>
+          )}
         </div>
       )}
     </div>

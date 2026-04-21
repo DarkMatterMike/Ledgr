@@ -216,6 +216,7 @@ const NAV = [
   { id:"rules",        icon:"◎", label:"Rules"        },
   { id:"calendar",     icon:"▦", label:"Calendar"     },
   { id:"ai",           icon:"✦", label:"Ask AI"       },
+  { id:"analytics",   icon:"◎", label:"Analytics"    },
 ];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
@@ -817,19 +818,6 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         {/* Owner-only nav items */}
         {currentUser?.role === "owner" && (
           <div style={{ marginTop:8, borderTop:"1px solid var(--border)", paddingTop:8, display:"flex", flexDirection:"column", gap:2 }}>
-            <button onClick={()=>onNav("analytics")}
-              style={{
-                display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-                borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
-                border:`1px solid ${view==="analytics"?"#00d4ff33":"transparent"}`,
-                background:view==="analytics"?"var(--cyan-dim)":"transparent",
-                color:view==="analytics"?"var(--cyan)":"var(--t2)",
-                width:"100%",textAlign:"left",transition:"all 0.15s",
-              }}>
-              <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>◎</span>
-              <span>Analytics</span>
-              {view==="analytics"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
-            </button>
             <button onClick={()=>onNav("admin")}
               style={{
                 display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
@@ -920,7 +908,8 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   needsReview, markReviewed, startRename, deleteTxn,
   updateTxnType, updateTxnCat, updateTxnAcct, updateTxnNotes,
   openAddCat, toggleRecurring, updateRecurringDay, saveRename, isMobile,
-  isSelected, onToggleSelect, selectionActive }) {
+  isSelected, onToggleSelect, selectionActive,
+  goals, assignTxnToGoal }) {
 
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
@@ -975,6 +964,20 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               </button>
               <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+              {goals && goals.length > 0 && (
+                <div style={{borderTop:"1px solid var(--border)",paddingTop:4,paddingBottom:4}}>
+                  <div style={{padding:"6px 14px 4px",fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Add to goal</div>
+                  {goals.map(g => {
+                    const isAssigned = (g.assignedTxnIds||[]).includes(t.id);
+                    return (
+                      <button key={g.id} onClick={()=>{assignTxnToGoal(t.id, g.id);setEllipsisId(null);}}
+                        style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:isAssigned?"var(--cyan)":"var(--t2)"}}>
+                        {isAssigned?"✓ ":""}{g.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
             </div>
@@ -2081,6 +2084,7 @@ function AppInner() {
 
   /* ── Insights to-do list ── */
   const [insightsTodos, setInsightsTodos] = useState([]);
+  const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave } = useAppData({
@@ -2093,6 +2097,7 @@ function AppInner() {
       if (data.aiCatExamples)      setAiCatExamples(data.aiCatExamples);
       if (data.userProfile)        setUserProfile(p => ({ ...p, ...data.userProfile }));
       if (data.insightsTodos)      setInsightsTodos(data.insightsTodos);
+      if (data.goals)              setGoals(data.goals);
       if (data.analyticsInsights)  setAnalyticsInsights(data.analyticsInsights);
       if (data.dismissedPairs)     setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)         setScanMemory(data.scanMemory);
@@ -2496,6 +2501,47 @@ function AppInner() {
     showUndoToast("Rule deleted", ()=>setRules(p=>[...p,rule]));
   }
   function toggleRule(id)  { setRules(p=>p.map(r=>r.id===id?{...r,enabled:!r.enabled}:r)); }
+
+  /* ── Goals ── */
+  function saveGoal(goal) {
+    const isNew = !goals.find(g => g.id === goal.id);
+    const next = isNew
+      ? [...goals, { ...goal, id: "g" + Date.now(), createdAt: Date.now(), savedAmount: 0, assignedTxnIds: [] }]
+      : goals.map(g => g.id === goal.id ? { ...g, ...goal } : g);
+    setGoals(next);
+    scheduleSaveRef.current?.({ goals: next });
+    showToast(isNew ? "Goal created" : "Goal updated");
+  }
+  function deleteGoal(id) {
+    const next = goals.filter(g => g.id !== id);
+    setGoals(next);
+    scheduleSaveRef.current?.({ goals: next });
+    showToast("Goal deleted");
+  }
+  function assignTxnToGoal(txnId, goalId) {
+    const next = goals.map(g => {
+      const assigned = new Set(g.assignedTxnIds || []);
+      if (g.id === goalId) {
+        assigned.add(txnId);
+        const totalSaved = transactions
+          .filter(t => assigned.has(t.id))
+          .reduce((s, t) => s + Math.abs(t.amount), 0);
+        return { ...g, assignedTxnIds: [...assigned], savedAmount: totalSaved };
+      }
+      // Remove from any other goal
+      if (assigned.has(txnId)) {
+        assigned.delete(txnId);
+        const totalSaved = transactions
+          .filter(t => assigned.has(t.id))
+          .reduce((s, t) => s + Math.abs(t.amount), 0);
+        return { ...g, assignedTxnIds: [...assigned], savedAmount: totalSaved };
+      }
+      return g;
+    });
+    setGoals(next);
+    scheduleSaveRef.current?.({ goals: next });
+    showToast("Transaction assigned to goal");
+  }
 
   useEffect(() => {
     if (!initialized.current || !rules.length) return;
@@ -3507,46 +3553,34 @@ function AppInner() {
             {CashFlowCard}
           </div>
 
-          {/* Row 2: Pending Transactions + Upcoming + Goals — 3 equal cols */}
+          {/* Row 2: Transactions to Review + Upcoming + Goals — 3 equal cols */}
           {(()=>{
-            // Pending transactions
-            const pendingTxns = filteredTxns.filter(t => t.pending);
-
-            // Upcoming recurring (future days this month + next month)
+            // Upcoming recurring (future days this month)
             const today_d = today.getDate();
             const upcomingTxns = recurringTxns.filter(t => {
               const day = t.recurringDay || 0;
               return day > today_d;
             }).sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).slice(0,8);
 
-            // Goals from userProfile targets
-            const goals = [
-              { label:"Savings goal", target:userProfile?.targets?.savingsGoal, current: Math.max(0, totalIncome - totalSpent), type:"monthly" },
-              { label:"Emergency fund", target:userProfile?.targets?.emergencyFund, current: accounts.filter(a=>a.balance>0).reduce((s,a)=>s+a.balance,0), type:"balance" },
-              { label:"Net worth target", target:userProfile?.targets?.netWorthTarget, current: accounts.reduce((s,a)=>s+(a.balance||0),0), type:"balance" },
-            ].filter(g => g.target > 0);
-            const goalsOffTrack = goals.filter(g => g.current < g.target * 0.9);
-
             return (
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
                 {/* Pending Transactions */}
                 <div style={{...S.card,padding:18}}>
                   <div style={{...S.sectionHdr,marginBottom:12}}>
-                    <div style={S.cardTitle}>Pending Transactions</div>
-                    {pendingTxns.length > 0 && (
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:99,padding:"2px 8px"}}>{pendingTxns.length}</span>
+                    <div style={S.cardTitle}>Transactions to Review</div>
+                    {reviewCount > 0 && (
+                      <button style={S.btn("ghost",true)} onClick={()=>{ setFilterReview(true); navigate("transactions"); }}>Review all →</button>
                     )}
                   </div>
-                  {pendingTxns.length === 0 ? (
+                  {reviewCount === 0 ? (
                     <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"32px 0",color:"var(--t3)",gap:10}}>
                       <span style={{fontSize:24,opacity:0.3}}>✓</span>
-                      <div style={{fontSize:13,textAlign:"center"}}>No pending transactions</div>
+                      <div style={{fontSize:13,textAlign:"center"}}>All caught up</div>
                     </div>
                   ) : (
                     <div style={{display:"flex",flexDirection:"column",gap:0,maxHeight:300,overflowY:"auto"}}>
-                      {pendingTxns.map((t,i)=>(
-                        <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:i<pendingTxns.length-1?"1px solid var(--border)":"none"}}>
-                          <span style={{fontSize:14,color:"var(--t3)",flexShrink:0,marginTop:1}}>⏱</span>
+                      {filteredTxns.filter(t=>needsReview(t)).slice(0,8).map((t,i,arr)=>(
+                        <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"10px 0",borderBottom:i<arr.length-1?"1px solid var(--border)":"none"}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                             <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · {acctMap[t.accountId]?.name||""}</div>
@@ -3554,6 +3588,7 @@ function AppInner() {
                           <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>{t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}</div>
                         </div>
                       ))}
+                      {reviewCount > 8 && <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",paddingTop:8}}>+{reviewCount-8} more</div>}
                     </div>
                   )}
                 </div>
@@ -3591,44 +3626,55 @@ function AppInner() {
                 <div style={{...S.card,padding:18}}>
                   <div style={{...S.sectionHdr,marginBottom:12}}>
                     <div style={S.cardTitle}>Goals Needing Attention</div>
+                    <button style={S.btn("ghost",true)} onClick={()=>navigate("analytics")}>All →</button>
                   </div>
                   {goals.length === 0 ? (
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"32px 0",color:"var(--t3)",gap:10}}>
-                      <div style={{width:44,height:44,borderRadius:"50%",background:"var(--green-dim)",border:"2px solid var(--green)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                        <span style={{fontSize:20,color:"var(--green)"}}>✓</span>
-                      </div>
-                      <div style={{fontSize:13,fontWeight:600,color:"var(--t2)",textAlign:"center"}}>All goals on track</div>
-                      <div style={{fontSize:12,color:"var(--t3)",textAlign:"center"}}>You're meeting all your targets</div>
-                    </div>
-                  ) : goalsOffTrack.length === 0 ? (
                     <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"32px 0",gap:10}}>
-                      <div style={{width:44,height:44,borderRadius:"50%",background:"var(--green-dim)",border:"2px solid var(--green)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                        <span style={{fontSize:20,color:"var(--green)"}}>✓</span>
+                      <span style={{fontSize:28,opacity:0.3}}>🎯</span>
+                      <div style={{fontSize:13,color:"var(--t3)",textAlign:"center"}}>No goals yet</div>
+                      <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>navigate("analytics")}>Create a goal →</button>
+                    </div>
+                  ) : (()=>{
+                    const now = Date.now();
+                    const atRisk = goals.filter(g => {
+                      const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
+                      const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
+                      const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
+                      return pct < 0.9 && (daysLeft === null || daysLeft < 90);
+                    });
+                    if (atRisk.length === 0) return (
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"24px 0",gap:10}}>
+                        <div style={{width:40,height:40,borderRadius:"50%",background:"var(--green-dim)",border:"2px solid var(--green)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <span style={{fontSize:18,color:"var(--green)"}}>✓</span>
+                        </div>
+                        <div style={{fontSize:13,fontWeight:600,color:"var(--t2)",textAlign:"center"}}>All goals on track</div>
                       </div>
-                      <div style={{fontSize:13,fontWeight:600,color:"var(--t2)",textAlign:"center"}}>All goals on track</div>
-                      <div style={{fontSize:12,color:"var(--t3)",textAlign:"center"}}>You're meeting all your targets</div>
-                    </div>
-                  ) : (
-                    <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                      {goalsOffTrack.map(g=>{
-                        const pct = Math.min(Math.round((g.current/g.target)*100),100);
-                        return (
-                          <div key={g.label}>
-                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                              <span style={{fontSize:12,color:"var(--t2)",fontWeight:500}}>{g.label}</span>
-                              <span style={{fontSize:12,fontFamily:"var(--font-mono)",color:"var(--t3)"}}>{pct}%</span>
+                    );
+                    return (
+                      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                        {atRisk.slice(0,3).map(g => {
+                          const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+                          const deadline = g.deadline ? new Date(g.deadline) : null;
+                          const daysLeft = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
+                          return (
+                            <div key={g.id}>
+                              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                                <span style={{fontSize:12,color:"var(--t2)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
+                                <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
+                              </div>
+                              <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:3}}>
+                                <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                              </div>
+                              <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                                <span>{fmt(g.savedAmount||0)} saved</span>
+                                <span>{daysLeft!=null?`${daysLeft}d left`:fmt(g.targetAmount)}</span>
+                              </div>
                             </div>
-                            <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:3}}>
-                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct>=80?"var(--amber)":"var(--red)",transition:"width 0.5s"}}/>
-                            </div>
-                            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                              <span>{fmt(g.current)}</span><span>target {fmt(g.target)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -3921,6 +3967,7 @@ function AppInner() {
                       isSelected={selectedTxns.has(t.id)}
                       onToggleSelect={toggleSelectTxn}
                       selectionActive={selectedTxns.size > 0}
+                      goals={goals} assignTxnToGoal={assignTxnToGoal}
                     />)}
                   </div>
                 </div>
@@ -6308,6 +6355,9 @@ function AppInner() {
         setInsightsTodos(todos);
         scheduleSaveRef.current?.({ insightsTodos: todos });
       }}
+      goals={goals}
+      onSaveGoal={saveGoal}
+      onDeleteGoal={deleteGoal}
     />
   );
 

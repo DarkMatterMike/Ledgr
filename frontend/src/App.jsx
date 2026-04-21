@@ -1990,6 +1990,8 @@ function AppInner() {
   /* ── State ── */
   const [view,          setView]          = useState("dashboard");
   const [drawerOpen,    setDrawerOpen]    = useState(false);
+  const [notifOpen,     setNotifOpen]     = useState(false);
+  const [dismissedNotifs, setDismissedNotifs] = useState(new Set()); // Set of notif ids dismissed this session
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
   const [transactions,  setTransactions]  = useState([]);
@@ -3305,6 +3307,31 @@ function AppInner() {
   );
 
   const reviewCount = transactions.filter(t => needsReview(t)).length;
+
+  // Notification list — shared by bell popout and dashboard cards
+  const notifList = useMemo(() => {
+    const todayStr = today.toISOString().slice(0,10);
+    const goalReminders = (goals||[]).flatMap(g => {
+      if (!g.startDate || !g.deadline || !g.period) return [];
+      const start = new Date(g.startDate + "T12:00:00");
+      const end   = new Date(g.deadline  + "T12:00:00");
+      const periodDays = { week:7, biweekly:14, month:30, quarter:91, year:365 }[g.period] || 30;
+      const dates = [];
+      let d = new Date(end);
+      while (d >= start) { dates.unshift(d.toISOString().slice(0,10)); d = new Date(d.getTime() - periodDays*86400000); }
+      return dates.includes(todayStr) ? [{ id:`goal-${g.id}`, type:"goal", goal:g }] : [];
+    });
+    return [
+      ...(reviewCount > 0 ? [{ id:"review", type:"review", count:reviewCount }] : []),
+      ...goalReminders,
+    ];
+  }, [reviewCount, goals, today]);
+
+  const visibleNotifs = useMemo(
+    () => notifList.filter(n => !dismissedNotifs.has(n.id)),
+    [notifList, dismissedNotifs]
+  );
+  const notifCount = visibleNotifs.length;
   const isNewUser = transactions.length === 0 && plaidItems.length === 0 && accounts.length === 0;
 
   // Onboarding steps — checked off as user completes them
@@ -6523,6 +6550,66 @@ function AppInner() {
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳</span>}
             <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)"}}>{daysLeft()}d left</div>
+            <div style={{position:"relative"}}>
+                <button
+                  onClick={()=>setNotifOpen(p=>!p)}
+                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                  {notifCount > 0 && (
+                    <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
+                      {notifCount}
+                    </span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <>
+                    <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
+                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
+                      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
+                        {visibleNotifs.length > 0 && (
+                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
+                        )}
+                      </div>
+                      {visibleNotifs.length === 0 ? (
+                        <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
+                          <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>🔔</div>
+                          You're all caught up
+                        </div>
+                      ) : (
+                        <div style={{maxHeight:360,overflowY:"auto"}}>
+                          {visibleNotifs.map((n,i) => (
+                            <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
+                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
+                                {n.type==="review"?"📋":"🎯"}
+                              </div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
+                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : "Goal contribution due today"}
+                                </div>
+                                <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
+                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                </div>
+                                <button
+                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                                  {n.type==="review"?"Review now →":"View goals →"}
+                                </button>
+                              </div>
+                              <button
+                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
+                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
           </div>
         </div>
 
@@ -6565,6 +6652,66 @@ function AppInner() {
             <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
               {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} · {daysLeft()}d left
             </div>
+            <div style={{position:"relative"}}>
+                <button
+                  onClick={()=>setNotifOpen(p=>!p)}
+                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                  {notifCount > 0 && (
+                    <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
+                      {notifCount}
+                    </span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <>
+                    <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
+                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
+                      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
+                        {visibleNotifs.length > 0 && (
+                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
+                        )}
+                      </div>
+                      {visibleNotifs.length === 0 ? (
+                        <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
+                          <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>🔔</div>
+                          You're all caught up
+                        </div>
+                      ) : (
+                        <div style={{maxHeight:360,overflowY:"auto"}}>
+                          {visibleNotifs.map((n,i) => (
+                            <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
+                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
+                                {n.type==="review"?"📋":"🎯"}
+                              </div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
+                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : "Goal contribution due today"}
+                                </div>
+                                <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
+                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                </div>
+                                <button
+                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                                  {n.type==="review"?"Review now →":"View goals →"}
+                                </button>
+                              </div>
+                              <button
+                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
+                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
           </div>
         </div>
 

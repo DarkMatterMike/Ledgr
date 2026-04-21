@@ -615,6 +615,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
             </div>
             <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
+            <CashFlowBarChart last6={last6} cashMax={cashMax} />
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
@@ -649,6 +650,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </div>
               {/* Row 3: Spending Breakdown */}
               <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
+              {/* Row 3b: Cash Flow */}
+              <CashFlowBarChart last6={last6} cashMax={cashMax} />
               {/* Row 4: Monthly savings trend */}
               <Card>
                 <SectionHead title="Monthly savings" sub="Income minus spending, last 6 months" />

@@ -3406,10 +3406,10 @@ function AppInner() {
                     <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
                         <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                          <span style={{width:6,height:6,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
+                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                           <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
                           {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
                         </span>
                       </div>
@@ -3577,10 +3577,10 @@ function AppInner() {
                       <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
                           <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                            <span style={{width:6,height:6,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
                             <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                           </div>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
                             {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
                           </span>
                         </div>
@@ -4124,8 +4124,8 @@ function AppInner() {
                             const zero = remaining === 0 && !over;
                             const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
                             const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
-                            const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
-                            const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                            const remColor = (complete || zero) ? "var(--t3)" : over ? "var(--red)" : "var(--green)";
+                            const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                             const displayPct = complete ? 100 : pct;
                             return (
                               <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 10px", cursor: "pointer" }}>
@@ -4146,7 +4146,7 @@ function AppInner() {
                                     >⋯</button>
                                     {budgetKebabId === cat.id && (
                                       <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--green)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--t2)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
                                           {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
                                         </button>
                                         <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
@@ -4164,7 +4164,7 @@ function AppInner() {
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                   <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
-                                    {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--green)" }}>✓ Complete ·</span>}
+                                    {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--t3)" }}>✓ Complete ·</span>}
                                     {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
                                     {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
                                     Spent {fmt(spent)} /{" "}
@@ -4325,8 +4325,8 @@ function AppInner() {
                               const zero = remaining === 0 && !over;
                               const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
                               const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
-                              const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
-                              const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                              const remColor = (complete || zero) ? "var(--t3)" : over ? "var(--red)" : "var(--green)";
+                              const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                               const displayPct = complete ? 100 : pct;
                               return (
                                 <div key={cat.id} onClick={() => setBudgetDrillCat(cat)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
@@ -4347,7 +4347,7 @@ function AppInner() {
                                       >⋯</button>
                                       {budgetKebabId === cat.id && (
                                         <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--green)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--t2)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
                                             {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
                                           </button>
                                           <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
@@ -4365,7 +4365,7 @@ function AppInner() {
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
-                                      {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--green)" }}>✓ Complete ·</span>}
+                                      {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--t3)" }}>✓ Complete ·</span>}
                                       {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
                                       {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
                                       Spent {fmt(spent)} /{" "}

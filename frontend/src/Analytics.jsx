@@ -1281,21 +1281,30 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     const end    = goalForm.deadline  ? new Date(goalForm.deadline  + "T12:00:00") : null;
                     let suggested = null;
                     let periodsCount = null;
-                    if (target > 0 && start && end && end > start) {
-                      const msPerDay = 86400000;
-                      const days = Math.ceil((end - start) / msPerDay);
-                      const periodDays = { week:7, biweekly:14, month:30.44, quarter:91.31, year:365.25 }[goalForm.period||"month"];
-                      periodsCount = Math.floor(days / periodDays);
+                    let contributionDates = [];
+
+                    if (target > 0 && start && end && end >= start) {
+                      // Step backwards from deadline counting dates >= start
+                      // This ensures both start and end are counted if they land on period boundaries
+                      const periodDays = { week:7, biweekly:14, month:30, quarter:91, year:365 }[goalForm.period||"month"];
+                      let d = new Date(end);
+                      while (d >= start) {
+                        contributionDates.unshift(new Date(d));
+                        d = new Date(d.getTime() - periodDays * 86400000);
+                      }
+                      periodsCount = contributionDates.length;
                       if (periodsCount > 0) suggested = Math.ceil((target / periodsCount) * 100) / 100;
                     }
                     const auto = suggested !== null && !goalForm._periodManual;
+                    const firstDate = contributionDates[0];
+                    const firstLabel = firstDate ? firstDate.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : null;
                     return (
                       <div>
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
                           <div style={{ fontSize:11, color:"var(--t3)" }}>Set aside each period</div>
                           {suggested !== null && (
                             <div style={{ fontSize:10, color:auto?"var(--cyan)":"var(--t3)" }}>
-                              {periodsCount} period{periodsCount!==1?"s":""} · auto-calculated
+                              {periodsCount} contribution{periodsCount!==1?"s":""} · auto-calculated
                               {!auto && <button onClick={()=>setGoalForm(f=>({...f, periodAmount:suggested, _periodManual:false }))}
                                 style={{ marginLeft:6, fontSize:10, color:"var(--cyan)", background:"none", border:"none", cursor:"pointer", padding:0, textDecoration:"underline" }}>
                                 Reset
@@ -1306,12 +1315,18 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                         <input type="number" min="0" step="0.01"
                           style={{ width:"100%", background:"var(--surface)", border:`1px solid ${auto?"var(--cyan)44":"var(--border2)"}`, borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none" }}
                           placeholder={suggested !== null ? `${suggested.toFixed(2)} (suggested)` : "0"}
-                          value={auto ? (suggested||"").toString() : (goalForm.periodAmount||"")}
+                          value={auto ? suggested.toString() : (goalForm.periodAmount||"")}
                           onChange={e=>setGoalForm(f=>({...f, periodAmount:parseFloat(e.target.value)||0, _periodManual:true }))}
                         />
-                        {suggested !== null && goalForm._periodManual && goalForm.periodAmount > 0 && goalForm.periodAmount !== suggested && (
+                        {firstLabel && auto && (
+                          <div style={{ fontSize:10, color:"var(--t3)", marginTop:4 }}>
+                            First contribution: <span style={{ color:"var(--cyan)" }}>{firstLabel}</span>
+                            {periodsCount > 1 && ` · then every ${goalForm.period==="biweekly"?"2 weeks":goalForm.period||"month"}`}
+                          </div>
+                        )}
+                        {suggested !== null && goalForm._periodManual && goalForm.periodAmount > 0 && (
                           <div style={{ fontSize:10, color:"var(--t3)", marginTop:3 }}>
-                            Suggested: {fmt(suggested)}/period · Total: {fmt(goalForm.periodAmount * periodsCount)} over {periodsCount} periods
+                            Suggested {fmt(suggested)}/period · your total: {fmt(goalForm.periodAmount * periodsCount)} over {periodsCount} contributions
                           </div>
                         )}
                       </div>
@@ -1322,16 +1337,16 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     <button onClick={()=>setGoalForm(null)} style={{ padding:"8px 14px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:13, cursor:"pointer" }}>Cancel</button>
                     <button disabled={!goalForm.title?.trim()||!goalForm.targetAmount}
                       onClick={()=>{
-                        // Resolve periodAmount: use auto-calculated if not manually set
+                        // Resolve periodAmount using same backwards enumeration
                         const target = goalForm.targetAmount || 0;
                         const start  = goalForm.startDate ? new Date(goalForm.startDate + "T12:00:00") : null;
                         const end    = goalForm.deadline  ? new Date(goalForm.deadline  + "T12:00:00") : null;
                         let resolvedAmount = goalForm.periodAmount || 0;
-                        if (!goalForm._periodManual && target > 0 && start && end && end > start) {
-                          const days = Math.ceil((end - start) / 86400000);
-                          const periodDays = { week:7, biweekly:14, month:30.44, quarter:91.31, year:365.25 }[goalForm.period||"month"];
-                          const periods = Math.floor(days / periodDays);
-                          if (periods > 0) resolvedAmount = Math.ceil((target / periods) * 100) / 100;
+                        if (!goalForm._periodManual && target > 0 && start && end && end >= start) {
+                          const periodDays = { week:7, biweekly:14, month:30, quarter:91, year:365 }[goalForm.period||"month"];
+                          let count = 0, d = new Date(end);
+                          while (d >= start) { count++; d = new Date(d.getTime() - periodDays * 86400000); }
+                          if (count > 0) resolvedAmount = Math.ceil((target / count) * 100) / 100;
                         }
                         onSaveGoal({ ...goalForm, periodAmount: resolvedAmount });
                         setGoalForm(null);

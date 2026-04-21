@@ -3914,7 +3914,7 @@ function AppInner() {
 
         // cx=100 cy=90 r=68 sw=13
         // Arc sweeps CCW from left (π) through top (3π/2) to right (2π)
-        // sweep-flag=0 in SVG = counterclockwise = goes through the top ✓
+        // sweep-flag=1 in SVG (y-down) = clockwise on screen = goes UP through the top ✓
         const cx=100, cy=90, r=68, sw=13;
         const lx=cx-r, ly=cy;           // left  tip (32, 90)
         const rx=cx+r, ry=cy;           // right tip (168, 90)
@@ -3931,11 +3931,11 @@ function AppInner() {
               {/* viewBox shows y=14 (top stroke edge) to y=97 (bottom stroke edge), x=20 to x=180 */}
               <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
                 {/* Track arc: left → CCW through top → right */}
-                <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 0 ${rx} ${ry}`}
+                <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`}
                   fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
                 {/* Fill arc */}
                 {clampedPct > 0.01 && (
-                  <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 0 ${ex} ${ey}`}
+                  <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
                     fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
                     style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>
                 )}

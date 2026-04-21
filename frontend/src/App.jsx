@@ -3366,9 +3366,9 @@ function AppInner() {
       ) : (
         /* Desktop: 2-column — month/stats left, notifications right */
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 340px",gap:16,marginBottom:0,alignItems:"start"}}>
-          {/* Left: month selector + stats */}
-          <div style={{...S.monthBar,flexDirection:"column",gap:10,alignItems:"center",justifyContent:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
+          {/* Left: month selector + stats — centered, not stretched */}
+          <div style={{...S.monthBar,flexDirection:"column",gap:10,alignItems:"center",justifyContent:"center",marginBottom:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
               <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:180,textAlign:"center"}}>
                 📅 {monthLabel(selectedMonth)}
@@ -3376,7 +3376,7 @@ function AppInner() {
               </span>
               <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
             </div>
-            <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
+            <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center"}}>
               {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
               <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
               <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>

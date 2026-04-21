@@ -3336,22 +3336,112 @@ function AppInner() {
 
   const Dashboard = (
     <div>
-      <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
-          <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
-          <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:isMobile?90:180,textAlign:"center"}}>
-            📅 {monthLabel(selectedMonth)}
-            {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
-          </span>
-          <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
+      {/* ── Dashboard header: month selector + notifications ── */}
+      {isMobile ? (
+        /* Mobile: stacked */
+        <div>
+          <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
+              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
+              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:90,textAlign:"center"}}>
+                📅 {monthLabel(selectedMonth)}
+                {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
+              </span>
+              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
+            </div>
+            <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
+              {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
+              <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
+              <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
+              <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+            </div>
+          </div>
+          {reviewCount > 0 && (
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--cyan-dim)",borderLeft:"3px solid var(--cyan)",borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
+              <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}><span style={{color:"var(--cyan)",fontWeight:700}}>{reviewCount}</span> transactions need review</span>
+              <button onClick={()=>{setView("transactions");setFilterReview(true);setSearch("");setFilterCat("all");setFilterAcct("all");}} style={{background:"none",color:"var(--cyan)",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>Review ›</button>
+            </div>
+          )}
         </div>
-        <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
-          {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
-          <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
-          <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
-          <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+      ) : (
+        /* Desktop: 2-column — month/stats left, notifications right */
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 340px",gap:16,marginBottom:0,alignItems:"start"}}>
+          {/* Left: month selector + stats */}
+          <div style={{...S.monthBar,flexDirection:"column",gap:10,alignItems:"center",justifyContent:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
+              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
+              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:180,textAlign:"center"}}>
+                📅 {monthLabel(selectedMonth)}
+                {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
+              </span>
+              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
+            </div>
+            <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
+              {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
+              <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
+              <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
+              <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+            </div>
+          </div>
+
+          {/* Right: notifications card */}
+          {(()=>{
+            const todayStr = today.toISOString().slice(0,10);
+            // Compute goal reminders: which goals have a contribution date today?
+            const goalReminders = goals.flatMap(g => {
+              if (!g.startDate || !g.deadline || !g.period) return [];
+              const start = new Date(g.startDate + "T12:00:00");
+              const end   = new Date(g.deadline  + "T12:00:00");
+              const periodDays = { week:7, biweekly:14, month:30, quarter:91, year:365 }[g.period] || 30;
+              const dates = [];
+              let d = new Date(end);
+              while (d >= start) { dates.unshift(d.toISOString().slice(0,10)); d = new Date(d.getTime() - periodDays*86400000); }
+              return dates.includes(todayStr) ? [g] : [];
+            });
+
+            const notifications = [
+              ...(reviewCount > 0 ? [{ id:"review", type:"review" }] : []),
+              ...goalReminders.map(g => ({ id:g.id, type:"goal", goal:g })),
+            ];
+
+            return (
+              <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 16px",minHeight:80}}>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:notifications.length>0?10:0}}>
+                  Notifications
+                </div>
+                {notifications.length === 0 ? (
+                  <div style={{fontSize:12,color:"var(--t3)",padding:"8px 0"}}>No notifications today — you're all caught up.</div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {notifications.map(n => n.type === "review" ? (
+                      <div key="review" style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--cyan-dim)",borderLeft:"3px solid var(--cyan)",borderRadius:"var(--radius)",padding:"9px 12px"}}>
+                        <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
+                          <span style={{color:"var(--cyan)",fontWeight:700}}>{reviewCount}</span> transaction{reviewCount!==1?"s":""} need review
+                        </span>
+                        <button onClick={()=>{setView("transactions");setFilterReview(true);setSearch("");setFilterCat("all");setFilterAcct("all");}}
+                          style={{background:"none",color:"var(--cyan)",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>Review ›</button>
+                      </div>
+                    ) : (
+                      <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,background:"var(--surface)",borderLeft:"3px solid var(--amber)",borderRadius:"var(--radius)",padding:"9px 12px"}}>
+                        <span style={{fontSize:16,flexShrink:0,lineHeight:1.2}}>🎯</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,color:"var(--t1)",fontWeight:600}}>Goal contribution due today</div>
+                          <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>
+                            Contribute <span style={{color:"var(--amber)",fontWeight:600}}>{fmt(n.goal.periodAmount)}</span> toward <span style={{color:"var(--t2)",fontWeight:500}}>{n.goal.title}</span>
+                          </div>
+                        </div>
+                        <button onClick={()=>{ navigate("analytics"); }}
+                          style={{background:"none",color:"var(--amber)",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>View ›</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
-      </div>
+      )}
+
 {/* Onboarding — show until all steps done */}
 {!onboardingComplete && (
   <div style={{
@@ -3387,7 +3477,6 @@ function AppInner() {
           transition:"all 0.2s",
         }}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            {/* Check / icon */}
             <div style={{
               width:32, height:32, borderRadius:"50%", flexShrink:0,
               display:"flex", alignItems:"center", justifyContent:"center",
@@ -3397,7 +3486,6 @@ function AppInner() {
             }}>
               {s.done ? <span style={{color:"var(--cyan)",fontWeight:800,fontSize:14}}>✓</span> : s.icon}
             </div>
-            {/* Text */}
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",textDecoration:s.done?"line-through":"none"}}>
                 {s.title}
@@ -3406,7 +3494,6 @@ function AppInner() {
                 <div style={{fontSize:12,color:"var(--t3)",marginTop:2,lineHeight:1.4}}>{s.desc}</div>
               )}
             </div>
-            {/* CTA — inline on desktop, below on mobile */}
             {!s.done && !isMobile && (
               <button onClick={s.action} style={{
                 ...S.btn("ghost",true), flexShrink:0, whiteSpace:"nowrap",
@@ -3416,7 +3503,6 @@ function AppInner() {
               </button>
             )}
           </div>
-          {/* CTA below on mobile */}
           {!s.done && isMobile && (
             <button onClick={s.action} style={{
               ...S.btn("ghost",true), marginTop:10, width:"100%",
@@ -3428,48 +3514,6 @@ function AppInner() {
         </div>
       ))}
     </div>
-  </div>
-)}
-
-{reviewCount > 0 && (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      background: "var(--cyan-dim)",
-      borderLeft: "3px solid var(--cyan)",
-      borderRadius: "var(--radius)",
-      padding: "10px 14px",
-      marginBottom: 16,
-    }}
-  >
-    <span style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>
-      <span style={{ color: "var(--cyan)", fontWeight: 700 }}>
-        {reviewCount}
-      </span>{" "}
-      transactions need review
-    </span>
-
-    <button
-      onClick={() => {
-        setView("transactions");
-        setFilterReview(true);
-        setSearch("");
-        setFilterCat("all");
-        setFilterAcct("all");
-      }}
-      style={{
-        background: "none",
-        color: "var(--cyan)",
-        border: "none",
-        cursor: "pointer",
-        fontSize: 13,
-        fontWeight: 600,
-      }}
-    >
-      Review ›
-    </button>
   </div>
 )}
       <div className="ledgr-stat-grid" style={{marginBottom:20}}>

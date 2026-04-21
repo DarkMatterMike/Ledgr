@@ -3336,9 +3336,9 @@ function AppInner() {
 
   const Dashboard = (
     <div>
-      {/* ── Dashboard header: month selector + notifications ── */}
+      {/* ── Dashboard header + stats: unified 2-col on desktop ── */}
       {isMobile ? (
-        /* Mobile: stacked */
+        /* Mobile: stacked month bar + stats */
         <div>
           <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between",marginBottom:8}}>
             <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
@@ -3362,32 +3362,62 @@ function AppInner() {
               <button onClick={()=>{setView("transactions");setFilterReview(true);setSearch("");setFilterCat("all");setFilterAcct("all");}} style={{background:"none",color:"var(--cyan)",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>Review ›</button>
             </div>
           )}
+          <div className="ledgr-stat-grid" style={{marginBottom:20}}>
+            {[
+              {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
+              {label:"Spent",       value:fmt(totalSpent), sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"  },
+              {label:"Income",      value:fmt(totalIncome),sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)"},
+              {label:"Transactions",value:monthTxns.length,sub:monthLabel(selectedMonth),                 color:"var(--t1)"   },
+            ].map(s=>(
+              <div key={s.label} style={S.stat} className="ledgr-card-anim">
+                <div style={S.statLabel}>{s.label}</div>
+                <div style={{...S.statValue,color:s.color,fontSize:17}}>{s.value}</div>
+                <div style={{...S.statSub,fontSize:10}}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
-        /* Desktop: 2-column — month/stats left, notifications right */
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 340px",gap:16,marginBottom:0,alignItems:"start"}}>
-          {/* Left: month selector + stats — centered, not stretched */}
-          <div style={{...S.monthBar,flexDirection:"column",gap:10,alignItems:"center",justifyContent:"center",marginBottom:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
-              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:180,textAlign:"center"}}>
-                📅 {monthLabel(selectedMonth)}
-                {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
-              </span>
-              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
+        /* Desktop: 2-col — left has month bar + 2x2 stats, right has notifications spanning full height */
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 340px",gap:16,marginBottom:20,alignItems:"stretch"}}>
+          {/* Left column: month bar + 2x2 stat grid */}
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{...S.monthBar,marginBottom:0,justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,flex:1,justifyContent:"center"}}>
+                <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
+                <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:180,textAlign:"center"}}>
+                  📅 {monthLabel(selectedMonth)}
+                  {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
+                </span>
+                <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
+              </div>
+              <div style={{display:"flex",gap:16,fontSize:12,color:"var(--t2)",flexWrap:"wrap",justifyContent:"center",width:"100%"}}>
+                {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
+                <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
+                <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
+                <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+              </div>
             </div>
-            <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center"}}>
-              {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
-              <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
-              <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
-              <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+            {/* 2x2 stat grid */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,flex:1}}>
+              {[
+                {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
+                {label:"Spent",       value:fmt(totalSpent), sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"  },
+                {label:"Income",      value:fmt(totalIncome),sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)"},
+                {label:"Transactions",value:monthTxns.length,sub:monthLabel(selectedMonth),                 color:"var(--t1)"   },
+              ].map(s=>(
+                <div key={s.label} style={S.stat} className="ledgr-card-anim">
+                  <div style={S.statLabel}>{s.label}</div>
+                  <div style={{...S.statValue,color:s.color,fontSize:26}}>{s.value}</div>
+                  <div style={{...S.statSub,fontSize:12}}>{s.sub}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Right: notifications card */}
+          {/* Right column: notifications card spanning full height */}
           {(()=>{
             const todayStr = today.toISOString().slice(0,10);
-            // Compute goal reminders: which goals have a contribution date today?
             const goalReminders = goals.flatMap(g => {
               if (!g.startDate || !g.deadline || !g.period) return [];
               const start = new Date(g.startDate + "T12:00:00");
@@ -3398,19 +3428,15 @@ function AppInner() {
               while (d >= start) { dates.unshift(d.toISOString().slice(0,10)); d = new Date(d.getTime() - periodDays*86400000); }
               return dates.includes(todayStr) ? [g] : [];
             });
-
             const notifications = [
               ...(reviewCount > 0 ? [{ id:"review", type:"review" }] : []),
               ...goalReminders.map(g => ({ id:g.id, type:"goal", goal:g })),
             ];
-
             return (
-              <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 16px",minHeight:80}}>
-                <div style={{fontSize:11,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:notifications.length>0?10:0}}>
-                  Notifications
-                </div>
+              <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px"}}>Notifications</div>
                 {notifications.length === 0 ? (
-                  <div style={{fontSize:12,color:"var(--t3)",padding:"8px 0"}}>No notifications today — you're all caught up.</div>
+                  <div style={{fontSize:12,color:"var(--t3)",flex:1,display:"flex",alignItems:"center"}}>No notifications today — you're all caught up.</div>
                 ) : (
                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
                     {notifications.map(n => n.type === "review" ? (
@@ -3430,8 +3456,7 @@ function AppInner() {
                             Contribute <span style={{color:"var(--amber)",fontWeight:600}}>{fmt(n.goal.periodAmount)}</span> toward <span style={{color:"var(--t2)",fontWeight:500}}>{n.goal.title}</span>
                           </div>
                         </div>
-                        <button onClick={()=>{ navigate("analytics"); }}
-                          style={{background:"none",color:"var(--amber)",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>View ›</button>
+                        <button onClick={()=>navigate("analytics")} style={{background:"none",color:"var(--amber)",border:"none",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>View ›</button>
                       </div>
                     ))}
                   </div>
@@ -3441,95 +3466,6 @@ function AppInner() {
           })()}
         </div>
       )}
-
-{/* Onboarding — show until all steps done */}
-{!onboardingComplete && (
-  <div style={{
-    background:"var(--card)", border:"1px solid var(--border)",
-    borderRadius:"var(--radius-lg)", padding:"20px", marginBottom:16,
-  }}>
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-      <div>
-        <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:800,color:"var(--t1)"}}>
-          Get started with ledgr.
-        </div>
-        <div style={{fontSize:12,color:"var(--t3)",marginTop:3}}>
-          {onboardingProgress} of {onboardingSteps.length} steps complete
-        </div>
-      </div>
-      <div style={{display:"flex",gap:6}}>
-        {onboardingSteps.map(s => (
-          <div key={s.id} style={{
-            width:8, height:8, borderRadius:"50%",
-            background: s.done ? "var(--cyan)" : "var(--border2)",
-            transition:"background 0.3s",
-          }}/>
-        ))}
-      </div>
-    </div>
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {onboardingSteps.map(s => (
-        <div key={s.id} style={{
-          padding:"12px 14px", borderRadius:"var(--radius)",
-          background: s.done ? "transparent" : "var(--surface)",
-          border:`1px solid ${s.done ? "transparent" : "var(--border)"}`,
-          opacity: s.done ? 0.5 : 1,
-          transition:"all 0.2s",
-        }}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{
-              width:32, height:32, borderRadius:"50%", flexShrink:0,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              background: s.done ? "#00d4ff22" : "var(--card)",
-              border:`1.5px solid ${s.done ? "var(--cyan)" : "var(--border2)"}`,
-              fontSize:15,
-            }}>
-              {s.done ? <span style={{color:"var(--cyan)",fontWeight:800,fontSize:14}}>✓</span> : s.icon}
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",textDecoration:s.done?"line-through":"none"}}>
-                {s.title}
-              </div>
-              {!s.done && (
-                <div style={{fontSize:12,color:"var(--t3)",marginTop:2,lineHeight:1.4}}>{s.desc}</div>
-              )}
-            </div>
-            {!s.done && !isMobile && (
-              <button onClick={s.action} style={{
-                ...S.btn("ghost",true), flexShrink:0, whiteSpace:"nowrap",
-                borderColor:"var(--cyan)", color:"var(--cyan)",
-              }}>
-                {s.cta}
-              </button>
-            )}
-          </div>
-          {!s.done && isMobile && (
-            <button onClick={s.action} style={{
-              ...S.btn("ghost",true), marginTop:10, width:"100%",
-              justifyContent:"center", borderColor:"var(--cyan)", color:"var(--cyan)",
-            }}>
-              {s.cta}
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-      <div className="ledgr-stat-grid" style={{marginBottom:20}}>
-        {[
-          {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
-          {label:"Spent",       value:fmt(totalSpent), sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"  },
-          {label:"Income",      value:fmt(totalIncome),sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)"},
-          {label:"Transactions",value:monthTxns.length,sub:monthLabel(selectedMonth),                 color:"var(--t1)"   },
-        ].map(s=>(
-          <div key={s.label} style={S.stat} className="ledgr-card-anim">
-            <div style={S.statLabel}>{s.label}</div>
-            <div style={{...S.statValue,color:s.color,fontSize:isMobile?17:26}}>{s.value}</div>
-            <div style={{...S.statSub,fontSize:isMobile?10:12}}>{s.sub}</div>
-          </div>
-        ))}
-      </div>
 
       {isMobile ? (
         <div className="ledgr-dash-cards">

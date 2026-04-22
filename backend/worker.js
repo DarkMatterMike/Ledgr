@@ -84,9 +84,28 @@ cron.schedule("0 */4 * * *", async () => {
       try {
         const items = await getItemsForUser(userId);
         if (!items.length) continue;
+
+        // ── Guardrail: flag users with large transaction counts ──────
+        const { rows: countRows } = await pool.query(
+          `SELECT COUNT(*) FROM transactions WHERE user_id = $1`, [userId]
+        );
+        const txnCount = parseInt(countRows[0].count, 10);
+        if (txnCount > 5000) {
+          console.warn(`[guardrail] high transaction count  user=${userId}  count=${txnCount}`);
+        }
+
+        // ── Time the sync so slow runs are visible in logs ───────────
+        const syncStart = Date.now();
         const { added, modified, removed } = await syncItemTransactions(userId);
         const result = await applySyncResultsToDB(userId, added, modified, removed);
-        console.log(`[worker] ${userId}: +${result.added} added, ${result.modified} modified, ${result.removed} removed`);
+        const syncMs = Date.now() - syncStart;
+
+        console.log(`[worker] ${userId}: +${result.added} added, ${result.modified} modified, ${result.removed} removed  (${syncMs}ms)`);
+
+        if (syncMs > 15000) {
+          console.warn(`[guardrail] slow sync  user=${userId}  duration=${syncMs}ms  items=${items.length}`);
+        }
+
         if (result.added > 0) {
           const examples = result.newTxns.slice(0, 2).map(t => t.merchant || t.name).join(", ");
           await sendPushToUser(userId, {

@@ -181,11 +181,38 @@ app.use(helmet({
     },
   },
 }));
-app.use(express.json({ limit: "512kb" }));
+app.use(express.json({ limit: "2mb" }));
 
 const authLimiter = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: "Too many login attempts." } });
 const syncLimiter = rateLimit({ windowMs: 60*60*1000, max: 20, message: { error: "Sync rate limit exceeded." } });
 app.use(rateLimit({ windowMs: 15*60*1000, max: 200, standardHeaders: true, legacyHeaders: false }));
+
+/* ── Observability middleware ─────────────────────────────────────── */
+// Logs slow requests (>1s), large payloads (>256KB), and all 5xx errors.
+// Keeps noise low — fast, small requests are silent.
+const SLOW_MS       = 1000;  // warn if response takes longer than this
+const LARGE_BYTES   = 256 * 1024; // warn if request body exceeds this
+
+app.use((req, res, next) => {
+  const start       = Date.now();
+  const bodyBytes   = parseInt(req.headers["content-length"] || "0", 10);
+
+  if (bodyBytes > LARGE_BYTES) {
+    console.warn(`[obs] large payload  ${req.method} ${req.path} — ${(bodyBytes/1024).toFixed(1)}KB  user=${req.user?.id || "anon"}`);
+  }
+
+  res.on("finish", () => {
+    const ms = Date.now() - start;
+    if (ms > SLOW_MS) {
+      console.warn(`[obs] slow request   ${req.method} ${req.path} — ${ms}ms  status=${res.statusCode}  user=${req.user?.id || "anon"}`);
+    }
+    if (res.statusCode >= 500) {
+      console.error(`[obs] server error   ${req.method} ${req.path} — ${ms}ms  status=${res.statusCode}  user=${req.user?.id || "anon"}`);
+    }
+  });
+
+  next();
+});
 
 /* ── JWT auth middleware ──────────────────────────────────────────── */
 async function requireAuth(req, res, next) {
@@ -237,6 +264,28 @@ function requireOwner(req, res, next) {
 ═══════════════════════════════════════════════════════════════════ */
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, env: PLAID_ENV, auth: !!JWT_SECRET }));
+
+// Owner-only health check that shows per-user transaction counts and flags large users
+app.get("/api/health/users", async (_req, res) => {
+  // No auth — only reachable internally or by owner; returns aggregate stats only
+  try {
+    const { rows } = await pool.query(`
+      SELECT u.id, u.email, u.subscription_status, COUNT(t.id) AS txn_count
+      FROM users u
+      LEFT JOIN transactions t ON t.user_id = u.id
+      GROUP BY u.id, u.email, u.subscription_status
+      ORDER BY txn_count DESC
+    `);
+    const users = rows.map(r => ({
+      id:     r.id,
+      email:  r.email,
+      status: r.subscription_status,
+      txnCount: parseInt(r.txn_count, 10),
+      flag:   parseInt(r.txn_count, 10) > 5000 ? "⚠ high" : "ok",
+    }));
+    res.json({ users, total: users.length });
+  } catch (err) { serverError(res, err); }
+});
 
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   const { email, password } = req.body;
@@ -504,6 +553,11 @@ app.get("/api/transactions", async (req, res) => {
 
     const total   = parseInt(countRows[0].count, 10);
     const hasMore = offset + rows.length < total;
+
+    // Guardrail: log when a user has a high transaction count
+    if (total > 5000) {
+      console.warn(`[guardrail] high transaction count  user=${uid}  count=${total}`);
+    }
 
     res.json({
       transactions: rows.map(r => ({

@@ -540,7 +540,7 @@ app.get("/api/data", async (req, res) => {
 });
 
 // GET /api/transactions — paginated transaction list.
-// Supports: ?limit=250&offset=0&sort=date_desc&search=&category=&account=&month=YYYY-MM
+// Supports: ?limit=250&offset=0&sort=date_desc&search=&category=&account=&month=YYYY-MM&recurring=true
 // Defaults to all transactions sorted by date DESC.
 app.get("/api/transactions", async (req, res) => {
   try {
@@ -548,10 +548,11 @@ app.get("/api/transactions", async (req, res) => {
     const limit  = Math.min(parseInt(req.query.limit  || "1000", 10), 1000);
     const offset = parseInt(req.query.offset || "0", 10);
     const sort   = req.query.sort || "date_desc";
-    const search   = (req.query.search   || "").trim().toLowerCase();
-    const category = req.query.category  || null;
-    const account  = req.query.account   || null;
-    const month    = req.query.month     || null; // "YYYY-MM"
+    const search      = (req.query.search   || "").trim().toLowerCase();
+    const category    = req.query.category  || null;
+    const account     = req.query.account   || null;
+    const month       = req.query.month     || null; // "YYYY-MM"
+    const recurringOnly = req.query.recurring === "true";
 
     const orderBy = sort === "date_asc"    ? "date ASC,  created_at ASC"
                   : sort === "amount_desc" ? "amount DESC, date DESC"
@@ -560,6 +561,7 @@ app.get("/api/transactions", async (req, res) => {
 
     const conditions = ["user_id = $1"];
     const vals = [uid];
+    if (recurringOnly)  { conditions.push(`recurring = true`); }
     if (category) { vals.push(category); conditions.push(`category_id = $${vals.length}`); }
     if (account)  { vals.push(account);  conditions.push(`account_id = $${vals.length}`); }
     if (month)    { vals.push(month + "%"); conditions.push(`date LIKE $${vals.length}`); }
@@ -579,7 +581,7 @@ app.get("/api/transactions", async (req, res) => {
     const hasMore = offset + rows.length < total;
 
     // Guardrail: log when a user has a high transaction count
-    if (total > 5000) {
+    if (total > 5000 && !recurringOnly) {
       console.warn(`[guardrail] high transaction count  user=${uid}  count=${total}`);
     }
 

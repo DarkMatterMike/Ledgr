@@ -65,20 +65,25 @@ export function useAppData({
   useEffect(() => {
     (async () => {
       try {
-        // Load core data and first page of transactions in parallel
-        const [data, txnData, me] = await Promise.allSettled([
+        // Load core data, first page of transactions, recurring transactions, and auth in parallel.
+        // Recurring transactions are loaded separately so they're always in memory regardless
+        // of which page they fall on — the calendar and upcoming widget depend on them.
+        const [coreResult, txnResult, recurringResult, meResult] = await Promise.allSettled([
           api.loadData(),
           api.loadTransactions({ limit: 100, offset: 0 }),
+          api.loadTransactions({ recurring: true }),
           api.fetchMe(),
         ]);
 
-        const coreData = data.status  === "fulfilled" ? data.value  : {};
-        const txnPage  = txnData.status === "fulfilled" ? txnData.value : { transactions: [], total: 0 };
-        const meData   = me.status    === "fulfilled" ? me.value    : null;
+        const coreData    = coreResult.status      === "fulfilled" ? coreResult.value      : {};
+        const txnPage     = txnResult.status       === "fulfilled" ? txnResult.value       : { transactions: [], total: 0 };
+        const recurringTx = recurringResult.status === "fulfilled" ? recurringResult.value : { transactions: [] };
+        const meData      = meResult.status        === "fulfilled" ? meResult.value        : null;
 
-        if (data.status   === "rejected") console.warn("Core data load failed:",   data.reason?.message);
-        if (txnData.status === "rejected") console.warn("Transactions load failed:", txnData.reason?.message);
-        if (me.status     === "rejected") console.warn("Auth check failed:",        me.reason?.message);
+        if (coreResult.status      === "rejected") console.warn("Core data load failed:",   coreResult.reason?.message);
+        if (txnResult.status       === "rejected") console.warn("Transactions load failed:", txnResult.reason?.message);
+        if (recurringResult.status === "rejected") console.warn("Recurring load failed:",    recurringResult.reason?.message);
+        if (meResult.status        === "rejected") console.warn("Auth check failed:",        meResult.reason?.message);
 
         if (meData) {
           api.setStoredUser({ ...api.getStoredUser(), ...meData });
@@ -87,10 +92,17 @@ export function useAppData({
 
         const loadedRules = coreData.rules || [];
         const rawTxns     = txnPage.transactions || [];
+        const recurringRaw = recurringTx.transactions || [];
+
+        // Merge recurring into the first page — deduplicate by id so transactions
+        // that appear in both (recurring txns within the first 100) aren't doubled.
+        const pageIds = new Set(rawTxns.map(t => t.id));
+        const extraRecurring = recurringRaw.filter(t => !pageIds.has(t.id));
+        const mergedRaw = [...rawTxns, ...extraRecurring];
 
         // Strip categoryId from transfer/income/reimbursement types
         const NON_CAT_TYPES = new Set(["transfer", "income", "reimbursement"]);
-        const cleanedTxns = rawTxns.map(t =>
+        const cleanedTxns = mergedRaw.map(t =>
           NON_CAT_TYPES.has(t.type) && t.categoryId
             ? { ...t, categoryId: null, userCategorized: false }
             : t

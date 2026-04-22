@@ -3717,9 +3717,12 @@ function AppInner() {
         </div>
       ) : (
         /* Desktop: 3-column grid */
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"stretch"}}>
           {/* Col 1: Spending Breakdown + Goals */}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+              {React.cloneElement(SpendingBreakdownCard, { style: { ...SpendingBreakdownCard.props.style, height: "100%", boxSizing: "border-box" } })}
+            </div>
             {SpendingBreakdownCard}
             {/* Goals */}
             {goals.length > 0 && (()=>{
@@ -3774,7 +3777,7 @@ function AppInner() {
 
           {/* Col 2: Budget Progress + Upcoming */}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div style={S.card} className="ledgr-card-anim">
+            <div style={{...S.card,flex:1,boxSizing:"border-box"}} className="ledgr-card-anim">
               <div style={{...S.sectionHdr,marginBottom:8}}>
                 <div style={S.cardTitle}>Budget Progress</div>
                 <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>

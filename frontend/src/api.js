@@ -102,16 +102,17 @@ export async function changePassword(currentPassword, newPassword) {
 export function loadData()      { return request("/api/data"); }
 export function saveData(patch) { return request("/api/data", { method: "PATCH", body: JSON.stringify(patch) }); }
 
-// Transactions — paginated. Params: { limit, offset, sort, search, category, account, month }
+// Transactions — paginated. Params: { limit, offset, sort, search, category, account, month, recurring }
 export function loadTransactions(params = {}) {
   const q = new URLSearchParams();
-  if (params.limit    != null) q.set("limit",    params.limit);
-  if (params.offset   != null) q.set("offset",   params.offset);
-  if (params.sort     != null) q.set("sort",      params.sort);
-  if (params.search   != null) q.set("search",   params.search);
-  if (params.category != null) q.set("category", params.category);
-  if (params.account  != null) q.set("account",  params.account);
-  if (params.month    != null) q.set("month",    params.month);
+  if (params.limit    != null) q.set("limit",     params.limit);
+  if (params.offset   != null) q.set("offset",    params.offset);
+  if (params.sort     != null) q.set("sort",       params.sort);
+  if (params.search   != null) q.set("search",    params.search);
+  if (params.category != null) q.set("category",  params.category);
+  if (params.account  != null) q.set("account",   params.account);
+  if (params.month    != null) q.set("month",     params.month);
+  if (params.recurring)        q.set("recurring", "true");
   const qs = q.toString();
   return request(`/api/transactions${qs ? "?" + qs : ""}`);
 }

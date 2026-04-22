@@ -193,6 +193,9 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_cat    ON transactions(user_id, category_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_acct   ON transactions(user_id, account_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
+  // Add recurring detail columns for existing DBs that predate this migration
+  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
+  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_start TEXT`);
   console.log("  =>  Database ready");
 }
 
@@ -283,6 +286,8 @@ function dbRowToTransaction(row) {
     type:            row.type,
     recurring:       row.recurring,
     recurringDay:    row.recurring_day,
+    recurringFreq:   row.recurring_freq,
+    recurringStart:  row.recurring_start,
     notes:           row.notes,
     reviewed:        row.reviewed,
     currency:        row.currency,
@@ -314,9 +319,9 @@ async function upsertTransactionRow(userId, t) {
       id, user_id, plaid_account_id, plaid_item_id, account_id,
       date, authorized_date, merchant, name, amount,
       category_id, user_categorized, pending, type,
-      recurring, recurring_day, notes, reviewed,
+      recurring, recurring_day, recurring_freq, recurring_start, notes, reviewed,
       currency, logo_url, institution, fingerprint, metadata, updated_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
     ON CONFLICT (id, user_id) DO UPDATE SET
       plaid_account_id = EXCLUDED.plaid_account_id,
       plaid_item_id    = EXCLUDED.plaid_item_id,
@@ -332,6 +337,8 @@ async function upsertTransactionRow(userId, t) {
       type             = EXCLUDED.type,
       recurring        = EXCLUDED.recurring,
       recurring_day    = EXCLUDED.recurring_day,
+      recurring_freq   = EXCLUDED.recurring_freq,
+      recurring_start  = EXCLUDED.recurring_start,
       notes            = EXCLUDED.notes,
       reviewed         = EXCLUDED.reviewed,
       currency         = EXCLUDED.currency,
@@ -348,6 +355,7 @@ async function upsertTransactionRow(userId, t) {
     t.categoryId       ?? null, t.userCategorized ?? false, t.pending        ?? false,
     t.type             ?? "expense",
     t.recurring        ?? false, t.recurringDay   ?? null,
+    t.recurringFreq    ?? null,  t.recurringStart ?? null,
     t.notes            ?? null,  t.reviewed       ?? false,
     t.currency         ?? null,  t.logo_url       ?? null, t.institution     ?? null,
     fp,
@@ -1160,7 +1168,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
     const ops = [];
-    if (transactions       !== undefined) ops.push(upsertTransactionsBatch(uid, transactions));
+    // transactions are now saved via PATCH/DELETE /api/transactions/* endpoints
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
     if (accounts           !== undefined) ops.push(setData(uid, "accounts",           accounts));
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
@@ -1384,6 +1392,129 @@ app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
   try {
     const result = await syncItemTransactions(req.user.id, targetItemId || null);
     res.json(result);
+  } catch (err) { serverError(res, err); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   TRANSACTIONS — incremental endpoints
+   These replace the full-array save via PATCH /api/data.
+   Ordering matters: /bulk and /all must come before /:id so Express
+   doesn't treat "bulk" or "all" as a transaction ID.
+═══════════════════════════════════════════════════════════════════ */
+
+// camelCase → snake_case map for every user-editable field
+const TXN_FIELD_MAP = {
+  name:            "name",
+  merchant:        "merchant",
+  categoryId:      "category_id",
+  userCategorized: "user_categorized",
+  reviewed:        "reviewed",
+  type:            "type",
+  notes:           "notes",
+  accountId:       "account_id",
+  recurring:       "recurring",
+  recurringDay:    "recurring_day",
+  recurringFreq:   "recurring_freq",
+  recurringStart:  "recurring_start",
+  pending:         "pending",
+  amount:          "amount",
+  date:            "date",
+};
+
+// POST /api/transactions — create a manual transaction (or restore an undo)
+app.post("/api/transactions", requireSubscription, async (req, res) => {
+  try {
+    const t = req.body;
+    if (!t?.id) return res.status(400).json({ error: "id required" });
+    await upsertTransactionRow(req.user.id, t);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// PATCH /api/transactions/bulk — update one field set across many transactions
+app.patch("/api/transactions/bulk", requireSubscription, async (req, res) => {
+  try {
+    const { ids, patch } = req.body;
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "ids array required" });
+    if (!patch || typeof patch !== "object")  return res.status(400).json({ error: "patch object required" });
+    const sets = [], vals = [req.user.id, ids];
+    for (const [camel, snake] of Object.entries(TXN_FIELD_MAP)) {
+      if (patch[camel] !== undefined) {
+        vals.push(patch[camel] === "" ? null : patch[camel]);
+        sets.push(`${snake} = $${vals.length}`);
+      }
+    }
+    if (!sets.length) return res.status(400).json({ error: "Nothing to update" });
+    vals.push(Date.now());
+    sets.push(`updated_at = $${vals.length}`);
+    await pool.query(
+      `UPDATE transactions SET ${sets.join(", ")} WHERE user_id = $1 AND id = ANY($2::text[])`,
+      vals
+    );
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/transactions/bulk — delete a specific set of transactions
+app.delete("/api/transactions/bulk", requireSubscription, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || !ids.length) return res.status(400).json({ error: "ids array required" });
+    await pool.query(
+      `DELETE FROM transactions WHERE user_id = $1 AND id = ANY($2::text[])`,
+      [req.user.id, ids]
+    );
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/transactions/all — wipe all transactions, or just those for one Plaid item
+app.delete("/api/transactions/all", requireSubscription, async (req, res) => {
+  try {
+    const { plaidItemId } = req.body || {};
+    if (plaidItemId) {
+      await pool.query(
+        `DELETE FROM transactions WHERE user_id = $1 AND plaid_item_id = $2`,
+        [req.user.id, plaidItemId]
+      );
+    } else {
+      await pool.query(`DELETE FROM transactions WHERE user_id = $1`, [req.user.id]);
+    }
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// PATCH /api/transactions/:id — update any user-editable fields on one transaction
+app.patch("/api/transactions/:id", requireSubscription, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sets = [], vals = [req.user.id, id];
+    for (const [camel, snake] of Object.entries(TXN_FIELD_MAP)) {
+      if (req.body[camel] !== undefined) {
+        vals.push(req.body[camel] === "" ? null : req.body[camel]);
+        sets.push(`${snake} = $${vals.length}`);
+      }
+    }
+    if (!sets.length) return res.status(400).json({ error: "Nothing to update" });
+    vals.push(Date.now());
+    sets.push(`updated_at = $${vals.length}`);
+    const { rowCount } = await pool.query(
+      `UPDATE transactions SET ${sets.join(", ")} WHERE user_id = $1 AND id = $2`,
+      vals
+    );
+    if (!rowCount) return res.status(404).json({ error: "Transaction not found" });
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/transactions/:id — delete one transaction
+app.delete("/api/transactions/:id", requireSubscription, async (req, res) => {
+  try {
+    await pool.query(
+      `DELETE FROM transactions WHERE user_id = $1 AND id = $2`,
+      [req.user.id, req.params.id]
+    );
+    res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
 

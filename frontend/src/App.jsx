@@ -1238,7 +1238,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     await Promise.all([
       api.deleteAllTransactions(),
       api.deleteAllAccountsApi(),
-      api.saveData({ categories: [], rules: [], plaidItems: [] }),
+      api.deleteAllRulesApi(),
+      api.saveData({ categories: [], plaidItems: [] }),
     ]);
     showToast("All data cleared");
   }
@@ -2526,29 +2527,51 @@ function AppInner() {
   }
   function confirmSaveRule() {
     if (!rulePrompt) return;
-    setRules(p=>[...p,{id:"r"+Date.now(),pattern:rulePrompt.merchant,matchType:"contains",categoryId:rulePrompt.categoryId,enabled:true,createdAt:Date.now()}]);
+    const rule = { id:"r"+Date.now(), pattern:rulePrompt.merchant, matchType:"contains", categoryId:rulePrompt.categoryId, enabled:true, createdAt:Date.now() };
+    setRules(p => [...p, rule]);
+    api.createRule(rule).catch(console.error);
     setRulePrompt(null); showToast("Rule saved");
   }
   function confirmTypeRule() {
     if (!typeRulePrompt) return;
     const { merchant, type } = typeRulePrompt;
-    // Add a rule that sets typeOverride for this merchant pattern
+    const pattern = merchant.toLowerCase();
+    const newRule = { id:"r"+Date.now(), pattern:merchant, matchType:"contains", typeOverride:type, categoryId:null, enabled:true, createdAt:Date.now() };
     setRules(p => {
-      const pattern = merchant.toLowerCase();
-      // Replace existing type rule for this merchant if any
       const filtered = p.filter(r => !(r.pattern.toLowerCase() === pattern && r.typeOverride));
-      return [...filtered, { id:"r"+Date.now(), pattern:merchant, matchType:"contains", typeOverride:type, categoryId:null, enabled:true, createdAt:Date.now() }];
+      // Delete any replaced rule from the server
+      filtered.length < p.length && p.filter(r => r.pattern.toLowerCase() === pattern && r.typeOverride)
+        .forEach(r => api.deleteRule(r.id).catch(console.error));
+      return [...filtered, newRule];
     });
+    api.createRule(newRule).catch(console.error);
     setTypeRulePrompt(null);
     showToast(`Rule saved — "${merchant}" will always be ${type}`);
   }
-  function saveRule(rule)  { setRules(p=>[...p.filter(r=>r.id!==rule.id),rule]); showToast("Rule saved"); }
-  function deleteRule(id)  {
-    const rule = rules.find(r=>r.id===id);
-    setRules(p=>p.filter(r=>r.id!==id));
-    showUndoToast("Rule deleted", ()=>setRules(p=>[...p,rule]));
+  function saveRule(rule) {
+    const isNew = !rules.find(r => r.id === rule.id);
+    setRules(p => [...p.filter(r => r.id !== rule.id), rule]);
+    if (isNew) api.createRule(rule).catch(console.error);
+    else       api.updateRule(rule.id, rule).catch(console.error);
+    showToast("Rule saved");
   }
-  function toggleRule(id)  { setRules(p=>p.map(r=>r.id===id?{...r,enabled:!r.enabled}:r)); }
+  function deleteRule(id)  {
+    const rule = rules.find(r => r.id === id);
+    setRules(p => p.filter(r => r.id !== id));
+    api.deleteRule(id).catch(console.error);
+    showUndoToast("Rule deleted", () => {
+      setRules(p => [...p, rule]);
+      api.createRule(rule).catch(console.error);
+    });
+  }
+  function toggleRule(id)  {
+    setRules(p => p.map(r => {
+      if (r.id !== id) return r;
+      const updated = { ...r, enabled: !r.enabled };
+      api.updateRule(id, { enabled: updated.enabled }).catch(console.error);
+      return updated;
+    }));
+  }
 
   /* ── Goals ── */
   function saveGoal(goal) {

@@ -142,6 +142,20 @@ export function deleteAllAccountsApi() {
   return request("/api/accounts/all", { method: "DELETE" });
 }
 
+/* ── Rules (incremental) ──────────────────────────────────────────── */
+export function createRule(rule) {
+  return request("/api/rules", { method: "POST", body: JSON.stringify(rule) });
+}
+export function updateRule(id, patch) {
+  return request(`/api/rules/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+export function deleteRule(id) {
+  return request(`/api/rules/${id}`, { method: "DELETE" });
+}
+export function deleteAllRulesApi() {
+  return request("/api/rules/all", { method: "DELETE" });
+}
+
 /* ── Plaid ────────────────────────────────────────────────────────── */
 export function createLinkToken(products, itemId) {
   return request("/api/plaid/create_link_token", {

@@ -167,11 +167,11 @@ export function useAppData({
   }, []); // refs never change — stable callback
 
   /* ── Auto-save each piece of state when it changes ─────────────── */
-  // accounts    → POST/PATCH/DELETE /api/accounts/* on each mutation
-  // transactions → PATCH/DELETE /api/transactions/* on each mutation
+  // accounts     → POST/PATCH/DELETE /api/accounts/*
+  // rules        → POST/PATCH/DELETE /api/rules/*
+  // transactions → PATCH/DELETE /api/transactions/*
   useEffect(() => { scheduleSave({ categories });   }, [categories,   scheduleSave]);
   useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems,    scheduleSave]);
-  useEffect(() => { scheduleSave({ rules });        }, [rules,         scheduleSave]);
   useEffect(() => {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts, scheduleSave]);

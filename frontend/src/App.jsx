@@ -3326,7 +3326,7 @@ function AppInner() {
   );
 
   const SpendingBreakdownCard = (
-    <div style={{ ...S.card, padding: 18 }}>
+    <div style={{ ...S.card, padding: 18, height: "100%", boxSizing: "border-box" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -3719,10 +3719,10 @@ function AppInner() {
         /* Desktop layout */
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {/* Top row: Spending Breakdown | Budget Progress | Action Items */}
-          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"stretch"}}>
             {SpendingBreakdownCard}
 
-            <div style={S.card} className="ledgr-card-anim">
+            <div style={{...S.card, height:"100%", boxSizing:"border-box"}} className="ledgr-card-anim">
               <div style={{...S.sectionHdr,marginBottom:8}}>
                 <div style={S.cardTitle}>Budget Progress</div>
                 <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>

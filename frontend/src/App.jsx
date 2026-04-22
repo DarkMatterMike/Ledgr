@@ -150,8 +150,6 @@ button {
     @media (max-width: 767px) {
       .ledgr-content   { padding: 16px !important; }
       .ledgr-stat-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-      .ledgr-filter-row { flex-direction: column !important; }
-      .ledgr-filter-row > * { width: 100% !important; }
       .ledgr-txn-actions { flex-wrap: wrap !important; gap: 6px !important; }
       .ledgr-acct-grid  { grid-template-columns: 1fr !important; }
       .ledgr-monthbar   { flex-direction: column !important; gap: 10px !important; align-items: center !important; }
@@ -4036,25 +4034,29 @@ function AppInner() {
         </div>
 
         {/* Filter row */}
-        <div className="ledgr-filter-row" style={{...S.filterRow,marginBottom:14}}>
-          <div style={{position:"relative",flex:1,minWidth:140}}>
+        {/* Filter bar — desktop: single row / mobile: search full-width, then dropdowns + select in one row */}
+        <div style={{marginBottom:14,display:"flex",flexDirection:"column",gap:6}}>
+          {/* Row 1: Search (always full width) */}
+          <div style={{position:"relative"}}>
             <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:13}}>🔍</span>
-            <input ref={txnSearchInputRef} onFocus={()=>{txnSearchHadFocusRef.current=true;}} onBlur={()=>{txnSearchHadFocusRef.current=false;}} style={{...S.input,paddingLeft:32,fontSize:13}} placeholder="Search…" value={search} onChange={handleTxnSearchChange}/>
+            <input ref={txnSearchInputRef} onFocus={()=>{txnSearchHadFocusRef.current=true;}} onBlur={()=>{txnSearchHadFocusRef.current=false;}} style={{...S.input,paddingLeft:32,fontSize:13,width:"100%",boxSizing:"border-box"}} placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
           </div>
-          <select style={{...S.select,padding:"8px 10px"}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
-            <option value="all">All Categories</option>
-            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-            <option value="">Uncategorized</option>
-          </select>
-          <select style={{...S.select,padding:"8px 10px"}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
-            <option value="all">All Accounts</option>
-            {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-          {/* Bulk select toggle */}
-          <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 12px",flexShrink:0}}
-            onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
-            {selectedTxns.size > 0 ? `✕ ${selectedTxns.size} selected` : "Select"}
-          </button>
+          {/* Row 2: Dropdowns + Select All — side by side on both mobile and desktop */}
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+              <option value="all">All Categories</option>
+              {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="">Uncategorized</option>
+            </select>
+            <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
+              <option value="all">All Accounts</option>
+              {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}}
+              onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
+              {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
+            </button>
+          </div>
         </div>
 
         {/* Grouped transaction list */}

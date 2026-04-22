@@ -30,6 +30,11 @@ const {
   createUser,
   getData,
   setData,
+  getAccounts,
+  upsertAccount,
+  deleteAccountById,
+  deleteAccountsByPlaidItem,
+  deleteAllAccounts,
   getTransactions,
   upsertTransactionRow,
   upsertTransactionsBatch,
@@ -486,11 +491,11 @@ app.get("/api/billing/status", (req, res) => {
 app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
-    const [categories, accounts, plaidItems, rules, calendarAccounts,
+    const [accts, categories, plaidItems, rules, calendarAccounts,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
            aiApiKey] = await Promise.all([
+      getAccounts(uid),          // reads from accounts table, not blob
       getData(uid, "categories"),
-      getData(uid, "accounts"),
       getData(uid, "plaidItems"),
       getData(uid, "rules"),
       getData(uid, "calendarAccounts"),
@@ -499,11 +504,11 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "dismissedPairs"),
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
-      getData(uid, "aiApiKey"),   // boolean presence only — never expose the encrypted key
+      getData(uid, "aiApiKey"),
     ]);
     res.json({
+      accounts:         accts            || [],
       categories:       categories       || [],
-      accounts:         accounts         || [],
       plaidItems:       plaidItems       || [],
       rules:            rules            || [],
       calendarAccounts: calendarAccounts || null,
@@ -512,7 +517,7 @@ app.get("/api/data", async (req, res) => {
       dismissedPairs:   dismissedPairs   || [],
       scanMemory:       scanMemory       || null,
       goals:            goals            || [],
-      hasAiKey:         !!aiApiKey,      // lets the frontend know a key is saved without exposing it
+      hasAiKey:         !!aiApiKey,
       access:           getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -652,14 +657,14 @@ app.get("/api/data/analytics", async (req, res) => {
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { transactions, categories, accounts, plaidItems, rules, calendarAccounts,
+    const { categories, plaidItems, rules, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
     const ops = [];
-    // transactions are now saved via PATCH/DELETE /api/transactions/* endpoints
+    // accounts → POST/PATCH/DELETE /api/accounts/*
+    // transactions → PATCH/DELETE /api/transactions/*
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
-    if (accounts           !== undefined) ops.push(setData(uid, "accounts",           accounts));
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
     if (rules              !== undefined) ops.push(setData(uid, "rules",              rules));
     if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
@@ -677,6 +682,64 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     if (Array.isArray(goals))              ops.push(setData(uid, "goals",             goals));
     await Promise.all(ops);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   ACCOUNTS — incremental endpoints
+   Same pattern as /api/transactions — ordered so /all comes before /:id.
+═══════════════════════════════════════════════════════════════════ */
+
+// POST /api/accounts — create a manual account
+app.post("/api/accounts", requireSubscription, async (req, res) => {
+  try {
+    const a = req.body;
+    if (!a?.id || !a?.name) return res.status(400).json({ error: "id and name required" });
+    await upsertAccount(req.user.id, { ...a, isManual: true });
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/accounts/all — wipe all accounts for this user
+app.delete("/api/accounts/all", requireSubscription, async (req, res) => {
+  try {
+    await deleteAllAccounts(req.user.id);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/accounts/plaid-item/:itemId — remove all accounts for a disconnected Plaid item
+app.delete("/api/accounts/plaid-item/:itemId", requireSubscription, async (req, res) => {
+  try {
+    await deleteAccountsByPlaidItem(req.user.id, req.params.itemId);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// PATCH /api/accounts/:id — update a manual account's name, balance, or type
+app.patch("/api/accounts/:id", requireSubscription, async (req, res) => {
+  try {
+    const { name, balance, type } = req.body;
+    const sets = [], vals = [req.user.id, req.params.id];
+    if (name    !== undefined) { vals.push(name);             sets.push(`name    = $${vals.length}`); }
+    if (balance !== undefined) { vals.push(balance);          sets.push(`balance = $${vals.length}`); }
+    if (type    !== undefined) { vals.push(type);             sets.push(`type    = $${vals.length}`); }
+    if (!sets.length) return res.status(400).json({ error: "Nothing to update" });
+    vals.push(Date.now());
+    sets.push(`updated_at = $${vals.length}`);
+    const { rowCount } = await pool.query(
+      `UPDATE accounts SET ${sets.join(", ")} WHERE user_id = $1 AND id = $2`, vals
+    );
+    if (!rowCount) return res.status(404).json({ error: "Account not found" });
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/accounts/:id — delete one account
+app.delete("/api/accounts/:id", requireSubscription, async (req, res) => {
+  try {
+    await deleteAccountById(req.user.id, req.params.id);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });

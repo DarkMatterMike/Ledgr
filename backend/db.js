@@ -160,6 +160,27 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_start TEXT`);
+  // ── Accounts table (replaces the JSON blob in app_data) ───────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS accounts (
+      id            TEXT          NOT NULL,
+      user_id       UUID          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plaid_id      TEXT,
+      plaid_item_id TEXT,
+      name          TEXT          NOT NULL,
+      balance       NUMERIC(12,2) NOT NULL DEFAULT 0,
+      available     NUMERIC(12,2),
+      type          TEXT,
+      institution   TEXT,
+      is_manual     BOOLEAN       NOT NULL DEFAULT false,
+      created_at    BIGINT        NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000),
+      updated_at    BIGINT        NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000),
+      PRIMARY KEY (id, user_id)
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_acct_user      ON accounts(user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_acct_plaid_id  ON accounts(user_id, plaid_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_acct_plaid_item ON accounts(user_id, plaid_item_id)`);
   console.log("  =>  Database ready");
 }
 
@@ -206,6 +227,86 @@ async function setData(userId, key, value) {
      ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value`,
     [userId, key, JSON.stringify(value)]
   );
+}
+
+/* ── Account helpers ──────────────────────────────────────────────── */
+function dbRowToAccount(row) {
+  return {
+    id:          row.id,
+    plaidId:     row.plaid_id,
+    plaidItemId: row.plaid_item_id,
+    name:        row.name,
+    balance:     parseFloat(row.balance),
+    available:   row.available != null ? parseFloat(row.available) : null,
+    type:        row.type,
+    institution: row.institution,
+    isManual:    row.is_manual,
+  };
+}
+
+async function getAccounts(userId) {
+  const { rows } = await pool.query(
+    `SELECT * FROM accounts WHERE user_id = $1 ORDER BY is_manual DESC, created_at ASC`,
+    [userId]
+  );
+  return rows.map(dbRowToAccount);
+}
+
+// Full upsert — used for manual account creates/edits and migration.
+// For Plaid sync balance updates use upsertAccountFromPlaid instead.
+async function upsertAccount(userId, a) {
+  await pool.query(`
+    INSERT INTO accounts (id, user_id, plaid_id, plaid_item_id, name, balance, available, type, institution, is_manual, updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    ON CONFLICT (id, user_id) DO UPDATE SET
+      name         = EXCLUDED.name,
+      balance      = EXCLUDED.balance,
+      available    = EXCLUDED.available,
+      type         = EXCLUDED.type,
+      institution  = EXCLUDED.institution,
+      plaid_item_id = EXCLUDED.plaid_item_id,
+      updated_at   = EXCLUDED.updated_at
+  `, [
+    a.id, userId,
+    a.plaidId      ?? null, a.plaidItemId ?? null,
+    a.name         || "",
+    a.balance      ?? 0,
+    a.available    ?? null,
+    a.type         ?? null,
+    a.institution  ?? null,
+    a.isManual     ?? false,
+    Date.now(),
+  ]);
+}
+
+// Plaid balance refresh — only updates balance fields, never the display name.
+// This preserves any custom name the user has given to a Plaid account.
+async function upsertAccountFromPlaid(userId, plaidId, plaidItemId, plaidName, balance, available, institution, type) {
+  const accountId = "a" + plaidId;
+  await pool.query(`
+    INSERT INTO accounts (id, user_id, plaid_id, plaid_item_id, name, balance, available, type, institution, is_manual, updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,false,$10)
+    ON CONFLICT (id, user_id) DO UPDATE SET
+      balance       = EXCLUDED.balance,
+      available     = EXCLUDED.available,
+      institution   = EXCLUDED.institution,
+      type          = EXCLUDED.type,
+      plaid_item_id = EXCLUDED.plaid_item_id,
+      updated_at    = EXCLUDED.updated_at
+      -- name is intentionally NOT updated — preserves any user customisation
+  `, [accountId, userId, plaidId, plaidItemId, plaidName, balance ?? 0, available ?? null, type ?? null, institution ?? null, Date.now()]);
+}
+
+async function deleteAccountById(userId, id) {
+  await pool.query(`DELETE FROM accounts WHERE user_id = $1 AND id = $2`, [userId, id]);
+}
+
+async function deleteAccountsByPlaidItem(userId, plaidItemId) {
+  await pool.query(`DELETE FROM accounts WHERE user_id = $1 AND plaid_item_id = $2`, [userId, plaidItemId]);
+}
+
+async function deleteAllAccounts(userId) {
+  await pool.query(`DELETE FROM accounts WHERE user_id = $1`, [userId]);
 }
 
 /* ── Transaction helpers ──────────────────────────────────────────── */
@@ -672,37 +773,28 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
     await upsertTransactionRow(userId, t);
   }
 
-  // Refresh account balances
+  // Refresh account balances — writes to accounts table, never overwrites user names
   try {
     const items = await getItemsForUser(userId);
-    const allAccounts = [];
+    const seen  = new Set();
     for (const item of items) {
       try {
         const r = await plaidClient.accountsGet({ access_token: item.access_token });
-        allAccounts.push(...r.data.accounts.map(a => ({
-          plaidId: a.account_id, plaidItemId: item.item_id, institution: item.institution,
-          name: a.name, type: a.type, subtype: a.subtype,
-          balance: a.balances.current, available: a.balances.available,
-        })));
+        for (const a of r.data.accounts) {
+          if (seen.has(a.account_id)) continue;
+          seen.add(a.account_id);
+          await upsertAccountFromPlaid(
+            userId,
+            a.account_id,
+            item.item_id,
+            a.name,
+            a.balances.current,
+            a.balances.available,
+            item.institution,
+            a.subtype || a.type
+          );
+        }
       } catch (e) { console.error(`accountsGet failed for ${item.item_id}:`, e.message); }
-    }
-    if (allAccounts.length > 0) {
-      const saved   = (await getData(userId, "accounts")) || [];
-      const manual  = saved.filter(a => !a.plaidId);
-      const byPlaid = Object.fromEntries(saved.filter(a => a.plaidId).map(a => [a.plaidId, a]));
-      const seen    = new Set();
-      const unique  = allAccounts.filter(pa => {
-        if (seen.has(pa.plaidId)) return false;
-        seen.add(pa.plaidId);
-        return true;
-      });
-      const plaidUpdated = unique.map(pa => ({
-        ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
-        plaidId: pa.plaidId, plaidItemId: pa.plaidItemId,
-        balance: pa.balance, available: pa.available,
-        institution: pa.institution, type: pa.subtype || pa.type,
-      }));
-      await setData(userId, "accounts", [...manual, ...plaidUpdated]);
     }
   } catch (e) { console.error("Balance refresh failed:", e.message); }
 
@@ -723,6 +815,13 @@ module.exports = {
   // App data
   getData,
   setData,
+  // Accounts
+  getAccounts,
+  upsertAccount,
+  upsertAccountFromPlaid,
+  deleteAccountById,
+  deleteAccountsByPlaidItem,
+  deleteAllAccounts,
   // Transactions
   getTransactions,
   upsertTransactionRow,

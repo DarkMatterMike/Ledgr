@@ -181,6 +181,21 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_acct_user      ON accounts(user_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_acct_plaid_id  ON accounts(user_id, plaid_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_acct_plaid_item ON accounts(user_id, plaid_item_id)`);
+  // ── Rules table (replaces the JSON blob in app_data) ─────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rules (
+      id           TEXT    NOT NULL,
+      user_id      UUID    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      pattern      TEXT    NOT NULL,
+      match_type   TEXT    NOT NULL DEFAULT 'contains',
+      category_id  TEXT,
+      type_override TEXT,
+      enabled      BOOLEAN NOT NULL DEFAULT true,
+      created_at   BIGINT  NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000),
+      PRIMARY KEY (id, user_id)
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_rules_user ON rules(user_id)`);
   console.log("  =>  Database ready");
 }
 
@@ -307,6 +322,56 @@ async function deleteAccountsByPlaidItem(userId, plaidItemId) {
 
 async function deleteAllAccounts(userId) {
   await pool.query(`DELETE FROM accounts WHERE user_id = $1`, [userId]);
+}
+
+/* ── Rule helpers ─────────────────────────────────────────────────── */
+function dbRowToRule(row) {
+  return {
+    id:           row.id,
+    pattern:      row.pattern,
+    matchType:    row.match_type,
+    categoryId:   row.category_id,
+    typeOverride: row.type_override,
+    enabled:      row.enabled,
+    createdAt:    parseInt(row.created_at, 10),
+  };
+}
+
+async function getRules(userId) {
+  const { rows } = await pool.query(
+    `SELECT * FROM rules WHERE user_id = $1 ORDER BY created_at ASC`,
+    [userId]
+  );
+  return rows.map(dbRowToRule);
+}
+
+async function upsertRule(userId, r) {
+  await pool.query(`
+    INSERT INTO rules (id, user_id, pattern, match_type, category_id, type_override, enabled, created_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    ON CONFLICT (id, user_id) DO UPDATE SET
+      pattern       = EXCLUDED.pattern,
+      match_type    = EXCLUDED.match_type,
+      category_id   = EXCLUDED.category_id,
+      type_override = EXCLUDED.type_override,
+      enabled       = EXCLUDED.enabled
+  `, [
+    r.id,           userId,
+    r.pattern       || "",
+    r.matchType     || "contains",
+    r.categoryId    ?? null,
+    r.typeOverride  ?? null,
+    r.enabled       !== false,
+    r.createdAt     || Date.now(),
+  ]);
+}
+
+async function deleteRuleById(userId, id) {
+  await pool.query(`DELETE FROM rules WHERE user_id = $1 AND id = $2`, [userId, id]);
+}
+
+async function deleteAllRules(userId) {
+  await pool.query(`DELETE FROM rules WHERE user_id = $1`, [userId]);
 }
 
 /* ── Transaction helpers ──────────────────────────────────────────── */
@@ -822,6 +887,11 @@ module.exports = {
   deleteAccountById,
   deleteAccountsByPlaidItem,
   deleteAllAccounts,
+  // Rules
+  getRules,
+  upsertRule,
+  deleteRuleById,
+  deleteAllRules,
   // Transactions
   getTransactions,
   upsertTransactionRow,

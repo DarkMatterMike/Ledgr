@@ -35,6 +35,10 @@ const {
   deleteAccountById,
   deleteAccountsByPlaidItem,
   deleteAllAccounts,
+  getRules,
+  upsertRule,
+  deleteRuleById,
+  deleteAllRules,
   getTransactions,
   upsertTransactionRow,
   upsertTransactionsBatch,
@@ -491,13 +495,13 @@ app.get("/api/billing/status", (req, res) => {
 app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
-    const [accts, categories, plaidItems, rules, calendarAccounts,
+    const [accts, ruleRows, categories, plaidItems, calendarAccounts,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
            aiApiKey] = await Promise.all([
-      getAccounts(uid),          // reads from accounts table, not blob
+      getAccounts(uid),
+      getRules(uid),             // reads from rules table, not blob
       getData(uid, "categories"),
       getData(uid, "plaidItems"),
-      getData(uid, "rules"),
       getData(uid, "calendarAccounts"),
       getData(uid, "aiCatExamples"),
       getData(uid, "userProfile"),
@@ -508,9 +512,9 @@ app.get("/api/data", async (req, res) => {
     ]);
     res.json({
       accounts:         accts            || [],
+      rules:            ruleRows         || [],
       categories:       categories       || [],
       plaidItems:       plaidItems       || [],
-      rules:            rules            || [],
       calendarAccounts: calendarAccounts || null,
       aiCatExamples:    aiCatExamples    || [],
       userProfile:      userProfile      || null,
@@ -657,16 +661,16 @@ app.get("/api/data/analytics", async (req, res) => {
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { categories, plaidItems, rules, calendarAccounts,
+    const { categories, plaidItems, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
     const ops = [];
     // accounts → POST/PATCH/DELETE /api/accounts/*
+    // rules    → POST/PATCH/DELETE /api/rules/*
     // transactions → PATCH/DELETE /api/transactions/*
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
-    if (rules              !== undefined) ops.push(setData(uid, "rules",              rules));
     if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
     if (Array.isArray(investmentAccounts)) ops.push(setData(uid, "investmentAccounts", investmentAccounts));
     if (Array.isArray(holdings))           ops.push(setData(uid, "holdings",           holdings));
@@ -740,6 +744,56 @@ app.patch("/api/accounts/:id", requireSubscription, async (req, res) => {
 app.delete("/api/accounts/:id", requireSubscription, async (req, res) => {
   try {
     await deleteAccountById(req.user.id, req.params.id);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   RULES — incremental endpoints
+   Ordered so /all comes before /:id.
+═══════════════════════════════════════════════════════════════════ */
+
+// POST /api/rules — create or upsert a rule
+app.post("/api/rules", requireSubscription, async (req, res) => {
+  try {
+    const r = req.body;
+    if (!r?.id || !r?.pattern) return res.status(400).json({ error: "id and pattern required" });
+    await upsertRule(req.user.id, r);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/rules/all — wipe all rules for this user
+app.delete("/api/rules/all", requireSubscription, async (req, res) => {
+  try {
+    await deleteAllRules(req.user.id);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// PATCH /api/rules/:id — update a rule
+app.patch("/api/rules/:id", requireSubscription, async (req, res) => {
+  try {
+    const { pattern, matchType, categoryId, typeOverride, enabled } = req.body;
+    const sets = [], vals = [req.user.id, req.params.id];
+    if (pattern      !== undefined) { vals.push(pattern);      sets.push(`pattern       = $${vals.length}`); }
+    if (matchType    !== undefined) { vals.push(matchType);    sets.push(`match_type    = $${vals.length}`); }
+    if (categoryId   !== undefined) { vals.push(categoryId);   sets.push(`category_id   = $${vals.length}`); }
+    if (typeOverride !== undefined) { vals.push(typeOverride);  sets.push(`type_override = $${vals.length}`); }
+    if (enabled      !== undefined) { vals.push(enabled);      sets.push(`enabled       = $${vals.length}`); }
+    if (!sets.length) return res.status(400).json({ error: "Nothing to update" });
+    const { rowCount } = await pool.query(
+      `UPDATE rules SET ${sets.join(", ")} WHERE user_id = $1 AND id = $2`, vals
+    );
+    if (!rowCount) return res.status(404).json({ error: "Rule not found" });
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/rules/:id — delete one rule
+app.delete("/api/rules/:id", requireSubscription, async (req, res) => {
+  try {
+    await deleteRuleById(req.user.id, req.params.id);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });

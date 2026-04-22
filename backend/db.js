@@ -83,6 +83,7 @@ async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at BIGINT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_price_id TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at BIGINT`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS app_data (
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

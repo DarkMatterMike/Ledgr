@@ -1702,8 +1702,8 @@ function AdminPanel() {
                         <span style={{fontSize:12,color:"var(--t3)"}}>{new Date(Number(user.created_at)).toLocaleDateString("en-US")}</span>
                       </div>
                       <div>
-                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Last Login</div>
-                        <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_login_at ? new Date(Number(user.last_login_at)).toLocaleDateString("en-US") : "—"}</span>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Last Activity</div>
+                        <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_activity_at ? new Date(Number(user.last_activity_at)).toLocaleDateString("en-US") : "—"}</span>
                       </div>
                     </div>
                     <button style={{...S.btn("ghost",true),width:"100%",justifyContent:"center"}} onClick={() => {
@@ -1753,7 +1753,7 @@ function AdminPanel() {
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr>
-                  {["Email","Role","Status","Trial Ends","Last Login","Joined","Actions"].map(h => (
+                  {["Email","Role","Status","Trial Ends","Last Activity","Joined","Actions"].map(h => (
                     <th key={h} style={S.th}>{h}</th>
                   ))}
                 </tr>
@@ -1802,7 +1802,7 @@ function AdminPanel() {
                     </td>
                     <td style={S.td}>
                       <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
-                        {user.last_login_at ? new Date(Number(user.last_login_at)).toLocaleDateString("en-US") : "—"}
+                        {user.last_activity_at ? new Date(Number(user.last_activity_at)).toLocaleDateString("en-US") : "—"}
                       </span>
                     </td>
                     <td style={S.td}>
@@ -3721,7 +3721,9 @@ function AppInner() {
           {/* Col 1: Spending Breakdown + Goals */}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             <div style={{flex:1,display:"flex",flexDirection:"column"}}>
-              {React.cloneElement(SpendingBreakdownCard, { style: { ...SpendingBreakdownCard.props.style, height: "100%", boxSizing: "border-box" } })}
+              <div style={{height:"100%",boxSizing:"border-box"}}>
+                {SpendingBreakdownCard}
+              </div>
             </div>
             {SpendingBreakdownCard}
             {/* Goals */}

@@ -398,6 +398,25 @@ app.post("/api/auth/reset-password", async (req, res) => {
 /* ── All routes below require auth ───────────────────────────────── */
 app.use(requireAuth);
 
+// Track last activity — update at most once per 5 minutes to avoid a DB write on every request.
+// Uses a simple in-memory map since precision isn't critical — worst case we lose the
+// last few minutes of activity on a server restart, which is acceptable.
+const lastActivityCache = new Map(); // userId → timestamp of last DB write
+const ACTIVITY_THROTTLE = 5 * 60 * 1000; // 5 minutes
+
+app.use((req, res, next) => {
+  const userId = req.user?.id;
+  if (!userId) return next();
+  const now  = Date.now();
+  const last = lastActivityCache.get(userId) || 0;
+  if (now - last > ACTIVITY_THROTTLE) {
+    lastActivityCache.set(userId, now);
+    pool.query("UPDATE users SET last_activity_at = $1 WHERE id = $2", [now, userId])
+      .catch(e => console.warn("[activity] update failed:", e.message));
+  }
+  next();
+});
+
 app.get("/api/auth/me", (req, res) => {
   const { id, email, name, role, subscription_status, trial_ends_at, stripe_price_id } = req.user;
   const access    = getAccessLevel(req.user);
@@ -1605,12 +1624,12 @@ Include 3-5 insights. Be specific with dollar amounts. Only include suggestion f
 
 app.get("/api/admin/users", requireOwner, async (_req, res) => {
   try {
-    const { rows } = await pool.query("SELECT id, email, role, subscription_status, trial_ends_at, stripe_customer_id, last_login_at, created_at FROM users ORDER BY created_at ASC");
+    const { rows } = await pool.query("SELECT id, email, role, subscription_status, trial_ends_at, stripe_customer_id, last_activity_at, created_at FROM users ORDER BY created_at ASC");
     // Convert BIGINT strings to numbers for JSON serialization
     const users = rows.map(u => ({
       ...u,
       trial_ends_at:  u.trial_ends_at  ? Number(u.trial_ends_at)  : null,
-      last_login_at:  u.last_login_at  ? Number(u.last_login_at)  : null,
+      last_activity_at: u.last_activity_at ? Number(u.last_activity_at) : null,
       created_at:     u.created_at     ? Number(u.created_at)     : null,
     }));
     res.json({ users });

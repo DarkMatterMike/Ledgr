@@ -4128,7 +4128,7 @@ function AppInner() {
                             const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                             const displayPct = complete ? 100 : pct;
                             return (
-                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 10px", cursor: "pointer" }}>
+                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", borderRadius: "var(--radius)", padding: "8px 10px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                   {editingCatNameId === cat.id ? (
@@ -4163,7 +4163,7 @@ function AppInner() {
                                   <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                  <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
+                                  <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>
                                     {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--t3)" }}>✓ Complete ·</span>}
                                     {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
                                     {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
@@ -4329,7 +4329,7 @@ function AppInner() {
                               const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                               const displayPct = complete ? 100 : pct;
                               return (
-                                <div key={cat.id} onClick={() => setBudgetDrillCat(cat)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
+                                <div key={cat.id} onClick={() => setBudgetDrillCat(cat)} style={{ background: "var(--card)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                     {editingCatNameId === cat.id ? (
@@ -4364,7 +4364,7 @@ function AppInner() {
                                     <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
+                                    <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>
                                       {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--t3)" }}>✓ Complete ·</span>}
                                       {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
                                       {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}

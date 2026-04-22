@@ -65,35 +65,30 @@ export function useAppData({
   useEffect(() => {
     (async () => {
       try {
-        // Load core data, transactions, and auth in parallel.
-        // Use allSettled so a failure in any one request doesn't blank the whole app.
-        const [coreResult, txnResult, meResult] = await Promise.allSettled([
+        // Load core data and first page of transactions in parallel
+        const [data, txnData, me] = await Promise.allSettled([
           api.loadData(),
-          api.loadTransactions(),
+          api.loadTransactions({ limit: 100, offset: 0 }),
           api.fetchMe(),
         ]);
 
-        const data    = coreResult.status  === "fulfilled" ? coreResult.value  : {};
-        const txnData = txnResult.status   === "fulfilled" ? txnResult.value   : { transactions: [] };
-        const me      = meResult.status    === "fulfilled" ? meResult.value    : null;
+        const coreData = data.status  === "fulfilled" ? data.value  : {};
+        const txnPage  = txnData.status === "fulfilled" ? txnData.value : { transactions: [], total: 0 };
+        const meData   = me.status    === "fulfilled" ? me.value    : null;
 
-        if (coreResult.status === "rejected")
-          console.warn("Core data load failed:", coreResult.reason?.message);
-        if (txnResult.status === "rejected")
-          console.warn("Transactions load failed:", txnResult.reason?.message);
-        if (meResult.status === "rejected")
-          console.warn("Auth check failed:", meResult.reason?.message);
+        if (data.status   === "rejected") console.warn("Core data load failed:",   data.reason?.message);
+        if (txnData.status === "rejected") console.warn("Transactions load failed:", txnData.reason?.message);
+        if (me.status     === "rejected") console.warn("Auth check failed:",        me.reason?.message);
 
-        if (me) {
-          api.setStoredUser({ ...api.getStoredUser(), ...me });
-          if (me.access) setAccess(me.access);
+        if (meData) {
+          api.setStoredUser({ ...api.getStoredUser(), ...meData });
+          if (meData.access) setAccess(meData.access);
         }
 
-        const loadedRules = data.rules || [];
-        const rawTxns     = txnData.transactions || [];
+        const loadedRules = coreData.rules || [];
+        const rawTxns     = txnPage.transactions || [];
 
-        // Strip categoryId from transfer/income/reimbursement types —
-        // may exist from before the no-category rule was enforced.
+        // Strip categoryId from transfer/income/reimbursement types
         const NON_CAT_TYPES = new Set(["transfer", "income", "reimbursement"]);
         const cleanedTxns = rawTxns.map(t =>
           NON_CAT_TYPES.has(t.type) && t.categoryId
@@ -101,14 +96,14 @@ export function useAppData({
             : t
         );
 
-        setAccounts(data.accounts              || []);
-        setCategories(data.categories          || []);
+        setAccounts(coreData.accounts              || []);
+        setCategories(coreData.categories          || []);
         setTransactions(applyRules(cleanedTxns, loadedRules));
-        setPlaidItems(data.plaidItems          || []);
+        setPlaidItems(coreData.plaidItems          || []);
         setRules(loadedRules);
-        setCalendarAccounts(data.calendarAccounts || null);
-        if (data.access) setAccess(data.access);
-        if (onData) onData(data);
+        setCalendarAccounts(coreData.calendarAccounts || null);
+        if (coreData.access) setAccess(coreData.access);
+        if (onData) onData(coreData, txnPage.total || 0);
       } catch (e) {
         console.warn("Load error:", e.message);
       } finally {

@@ -2002,6 +2002,14 @@ function AppInner() {
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
   const [transactions,  setTransactions]  = useState([]);
+  const [txnTotal,      setTxnTotal]      = useState(0);    // total count from server
+  const [txnOffset,     setTxnOffset]     = useState(0);    // current pagination offset
+  const [txnLoading,    setTxnLoading]    = useState(false);// loading more transactions
+  const TXN_PAGE_SIZE = 100;
+
+  // Server-side summary — replaces client-side spentByCat/spentByAcct/totalSpent/totalIncome
+  const [summary,       setSummary]       = useState({ spentByCat:{}, spentByAcct:{}, totalSpent:0, totalIncome:0 });
+  const [summaryMonth,  setSummaryMonth]  = useState(null); // which month the summary is for
   const [plaidItems,    setPlaidItems]    = useState([]);
   const [staleItemIds,  setStaleItemIds]  = useState(new Set()); // items that returned 0 accounts on last sync
   const [reconnectingItemId, setReconnectingItemId] = useState(null);
@@ -2101,16 +2109,22 @@ function AppInner() {
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
-    onData: (data) => {
-      // Core data callback — portfolio/AI/analytics are NOT in this response.
-      // hasAiKey IS included so the key state is known immediately on startup
-      // without waiting for the user to visit the AI view.
+    onData: (data, txnTotal) => {
+      // Core data callback
       aiChat.loadFromData(data);
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
       if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
       if (data.goals)          setGoals(data.goals);
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
+      // Store total count for pagination
+      setTxnTotal(txnTotal || 0);
+      setTxnOffset(100); // we just loaded the first 100
+      // Load the initial summary for the current month
+      api.loadSummary(currentMonth).then(s => {
+        setSummary(s);
+        setSummaryMonth(s.month);
+      }).catch(console.warn);
     },
     // Called the first time the portfolio view opens
     onPortfolioData: (data) => {
@@ -2145,24 +2159,34 @@ function AppInner() {
     const interval = setInterval(async () => {
       if (!initialized.current) return;
       try {
-        // Poll /api/transactions instead of /api/data — core data doesn't change between polls
-        const txnData = await api.loadTransactions();
-        const incoming = txnData.transactions || [];
-        const known = knownTxnIds.current || new Set();
-        const brandNew = incoming.filter(t => !known.has(t.id));
-        if (brandNew.length > 0) {
-          setTransactions(prev => {
-            const existingIds = new Set(prev.map(t => t.id));
-            const toAdd = applyRules(
-              brandNew.filter(t => !existingIds.has(t.id)),
-              rules,
-              { onlyUncategorized: true }
-            );
-            if (toAdd.length === 0) return prev;
-            return [...toAdd, ...prev];
-          });
-          brandNew.forEach(t => knownTxnIds.current.add(t.id));
-          setNewTxnCount(brandNew.length);
+        // Poll latest 100 transactions and refresh summary for current month
+        const [txnData, summaryData] = await Promise.allSettled([
+          api.loadTransactions({ limit: 100, offset: 0 }),
+          api.loadSummary(selectedMonth),
+        ]);
+        if (txnData.status === "fulfilled") {
+          const incoming = txnData.value.transactions || [];
+          const known = knownTxnIds.current || new Set();
+          const brandNew = incoming.filter(t => !known.has(t.id));
+          if (brandNew.length > 0) {
+            setTransactions(prev => {
+              const existingIds = new Set(prev.map(t => t.id));
+              const toAdd = applyRules(
+                brandNew.filter(t => !existingIds.has(t.id)),
+                rules,
+                { onlyUncategorized: true }
+              );
+              if (toAdd.length === 0) return prev;
+              return [...toAdd, ...prev];
+            });
+            brandNew.forEach(t => knownTxnIds.current.add(t.id));
+            setNewTxnCount(brandNew.length);
+          }
+          setTxnTotal(txnData.value.total || 0);
+        }
+        if (summaryData.status === "fulfilled") {
+          setSummary(summaryData.value);
+          setSummaryMonth(summaryData.value.month);
         }
       } catch (e) {
         console.warn("Poll error:", e.message);
@@ -2170,6 +2194,43 @@ function AppInner() {
     }, POLL_MS);
     return () => clearInterval(interval);
   }, []);
+
+  // Refresh server summary after mutations that affect totals (category changes, type changes)
+  function refreshSummary() {
+    api.loadSummary(selectedMonth).then(s => {
+      setSummary(s);
+      setSummaryMonth(s.month);
+    }).catch(console.warn);
+  }
+  async function loadMoreTransactions() {
+    if (txnLoading) return;
+    if (transactions.length >= txnTotal) return;
+    setTxnLoading(true);
+    try {
+      const data = await api.loadTransactions({ limit: TXN_PAGE_SIZE, offset: txnOffset });
+      const newTxns = applyRules(data.transactions || [], rules, { onlyUncategorized: true });
+      setTransactions(prev => {
+        const existingIds = new Set(prev.map(t => t.id));
+        return [...prev, ...newTxns.filter(t => !existingIds.has(t.id))];
+      });
+      setTxnOffset(prev => prev + TXN_PAGE_SIZE);
+      setTxnTotal(data.total || 0);
+    } catch (e) {
+      console.warn("Load more error:", e.message);
+    } finally {
+      setTxnLoading(false);
+    }
+  }
+
+  // Refresh server-side summary whenever the selected month changes
+  useEffect(() => {
+    if (!initialized.current || !selectedMonth) return;
+    if (summaryMonth === selectedMonth) return; // already loaded
+    api.loadSummary(selectedMonth).then(s => {
+      setSummary(s);
+      setSummaryMonth(s.month);
+    }).catch(console.warn);
+  }, [selectedMonth, initialized.current]);
 
   /* ── Swipe gesture to open/close drawer on mobile ── */
   useEffect(() => {
@@ -2279,21 +2340,27 @@ function AppInner() {
 
   const isCurrentMonth = selectedMonth === currentMonth;
 
+  // Use server-side precomputed summary for dashboard aggregates.
+  // Falls back to client-side computation from loaded transactions while
+  // the server summary is loading (e.g. on first render or month switch).
   const spentByCat = useMemo(() => {
+    if (summaryMonth === selectedMonth) return summary.spentByCat;
+    // Fallback: compute from whatever transactions are in memory
     const m = {};
     monthTxns.forEach(t => { if (t.amount<0 && t.categoryId && t.type!=="transfer" && t.type!=="income" && t.type!=="reimbursement") m[t.categoryId]=(m[t.categoryId]||0)+Math.abs(t.amount); });
     return m;
-  }, [monthTxns]);
+  }, [summary, summaryMonth, selectedMonth, monthTxns]);
 
   const spentByAcct = useMemo(() => {
+    if (summaryMonth === selectedMonth) return summary.spentByAcct;
     const m = {};
     monthTxns.forEach(t => { if (t.amount<0 && t.accountId) m[t.accountId]=(m[t.accountId]||0)+Math.abs(t.amount); });
     return m;
-  }, [monthTxns]);
+  }, [summary, summaryMonth, selectedMonth, monthTxns]);
 
-  const totalSpent  = Object.values(spentByCat).reduce((a,b)=>a+b,0);
+  const totalSpent  = summaryMonth === selectedMonth ? summary.totalSpent  : Object.values(spentByCat).reduce((a,b)=>a+b,0);
+  const totalIncome = summaryMonth === selectedMonth ? summary.totalIncome : monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
   const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
-  const totalIncome = monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
@@ -2493,6 +2560,7 @@ function AppInner() {
     api.bulkUpdateTransactions(ids, { categoryId: catId || null, reviewed: !!catId, userCategorized: !!catId }).catch(console.error);
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
+    refreshSummary();
   }
   function bulkSetType(type) {
     const ids = [...selectedTxns];
@@ -2501,6 +2569,7 @@ function AppInner() {
     api.bulkUpdateTransactions(ids, { type, ...(autoReviewed ? { reviewed: true } : {}) }).catch(console.error);
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
+    refreshSummary();
   }
   function bulkMarkReviewed(reviewed) {
     const ids = [...selectedTxns];
@@ -2931,6 +3000,7 @@ function AppInner() {
         }
       }
     }
+    refreshSummary();
   }
   async function runAutoCategorize(txnsToCheck) {
     if (!categories.length) return 0;
@@ -4031,6 +4101,19 @@ function AppInner() {
             })}
           </div>
         )}
+
+        {/* Load More — only shown when there are more transactions on the server */}
+        {transactions.length < txnTotal && (
+          <div style={{textAlign:"center", padding:"16px 0"}}>
+            <button
+              style={S.btn("ghost", true)}
+              onClick={loadMoreTransactions}
+              disabled={txnLoading}
+            >
+              {txnLoading ? "Loading…" : `Load more (${txnTotal - transactions.length} remaining)`}
+            </button>
+          </div>
+        )}
           </div>
         )}
       />
@@ -4068,28 +4151,15 @@ function AppInner() {
     setSuggestingLimits(true);
     try {
       // Build last 3 months of spending per category
-      const months = [];
+      // Fetch last 3 months of summaries from the server — accurate even with pagination
+      const monthKeys = [];
       for (let i = 2; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        const byCategory = {};
-        transactions.forEach(t => {
-          if (t.date?.startsWith(ym) && t.amount < 0 && t.categoryId) {
-            byCategory[t.categoryId] = (byCategory[t.categoryId] || 0) + Math.abs(t.amount);
-          }
-        });
-        months.push({ month: ym, byCategory });
+        monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
       }
-
-      // Compute avg monthly income
-      const incomeMonths = months.map(m => {
-        let inc = 0;
-        transactions.forEach(t => {
-          if (t.date?.startsWith(m.month) && t.amount > 0 && (t.type === "income" || !t.type)) inc += t.amount;
-        });
-        return inc;
-      });
-      const avgIncome = incomeMonths.reduce((a, b) => a + b, 0) / incomeMonths.length;
+      const summaries = await Promise.all(monthKeys.map(m => api.loadSummary(m)));
+      const months = summaries.map(s => ({ month: s.month, byCategory: s.spentByCat }));
+      const avgIncome = summaries.reduce((a, s) => a + (s.totalIncome || 0), 0) / summaries.length;
 
       const { suggestions } = await api.suggestLimits(
         categories.map(c => ({ id: c.id, name: c.name, limit: c.limit || 0 })),

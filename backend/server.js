@@ -657,6 +657,59 @@ app.get("/api/data/analytics", async (req, res) => {
   } catch (err) { serverError(res, err); }
 });
 
+// GET /api/data/summary?month=YYYY-MM — precomputed dashboard aggregates.
+// Returns spending by category, spending by account, total spent, and total income
+// for the requested month — all computed in the DB so they are correct regardless
+// of how many transactions are loaded client-side.
+app.get("/api/data/summary", async (req, res) => {
+  try {
+    const uid   = req.user.id;
+    const month = req.query.month || `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+
+    const [catRows, acctRows, incomeRow] = await Promise.all([
+      // Spending by category (expenses only, excluding transfer/income/reimbursement)
+      pool.query(`
+        SELECT category_id, SUM(ABS(amount)) AS total
+        FROM transactions
+        WHERE user_id = $1
+          AND date LIKE $2
+          AND amount < 0
+          AND category_id IS NOT NULL
+          AND type NOT IN ('transfer', 'income', 'reimbursement')
+        GROUP BY category_id
+      `, [uid, month + "%"]),
+
+      // Spending by account (all outflows)
+      pool.query(`
+        SELECT account_id, SUM(ABS(amount)) AS total
+        FROM transactions
+        WHERE user_id = $1
+          AND date LIKE $2
+          AND amount < 0
+          AND account_id IS NOT NULL
+        GROUP BY account_id
+      `, [uid, month + "%"]),
+
+      // Total income
+      pool.query(`
+        SELECT COALESCE(SUM(amount), 0) AS total
+        FROM transactions
+        WHERE user_id = $1
+          AND date LIKE $2
+          AND amount > 0
+          AND (type = 'income' OR type IS NULL OR type = '')
+      `, [uid, month + "%"]),
+    ]);
+
+    const spentByCat  = Object.fromEntries(catRows.rows.map(r  => [r.category_id,  parseFloat(r.total)]));
+    const spentByAcct = Object.fromEntries(acctRows.rows.map(r => [r.account_id,   parseFloat(r.total)]));
+    const totalSpent  = Object.values(spentByCat).reduce((a, b) => a + b, 0);
+    const totalIncome = parseFloat(incomeRow.rows[0].total);
+
+    res.json({ spentByCat, spentByAcct, totalSpent, totalIncome, month });
+  } catch (err) { serverError(res, err); }
+});
+
 // Writes require subscription
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {

@@ -125,6 +125,12 @@ export function loadAiData()     { return request("/api/data/ai"); }
 // Lazy-loaded when the analytics view first opens
 export function loadAnalytics()  { return request("/api/data/analytics"); }
 
+// Dashboard summary — precomputed server-side aggregates for a given month.
+// Much faster than scanning all transactions client-side.
+export function loadSummary(month) {
+  return request(`/api/data/summary?month=${encodeURIComponent(month)}`);
+}
+
 /* ── Accounts (incremental) ───────────────────────────────────────── */
 export function createAccount(account) {
   return request("/api/accounts", { method: "POST", body: JSON.stringify(account) });

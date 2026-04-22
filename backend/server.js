@@ -37,6 +37,12 @@ const ENCRYPT_KEY   = process.env.ENCRYPT_KEY;
 const OWNER_EMAIL   = process.env.OWNER_EMAIL;
 const BCRYPT_ROUNDS = 12;
 
+// Replica safety: cron jobs only run on instances where IS_WORKER=true.
+// In a single-instance setup this defaults to true so nothing breaks.
+// When scaling to multiple replicas, set IS_WORKER=false on web instances
+// and IS_WORKER=true on exactly one dedicated worker instance.
+const IS_WORKER = process.env.IS_WORKER !== "false";
+
 // Stripe
 const stripe                  = Stripe(process.env.STRIPE_SECRET_KEY || "");
 const STRIPE_PRICE_ID         = process.env.STRIPE_PRICE_ID         || "";
@@ -150,6 +156,43 @@ async function initDB() {
       created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     );
   `);
+  // ── Transactions table (replaces the JSON blob in app_data) ───────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS transactions (
+      id               TEXT        NOT NULL,
+      user_id          UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      plaid_account_id TEXT,
+      plaid_item_id    TEXT,
+      account_id       TEXT,
+      date             TEXT,
+      authorized_date  TEXT,
+      merchant         TEXT,
+      name             TEXT        NOT NULL DEFAULT '',
+      amount           NUMERIC(12,2) NOT NULL DEFAULT 0,
+      category_id      TEXT,
+      user_categorized BOOLEAN     NOT NULL DEFAULT false,
+      pending          BOOLEAN     NOT NULL DEFAULT false,
+      type             TEXT        NOT NULL DEFAULT 'expense',
+      recurring        BOOLEAN     NOT NULL DEFAULT false,
+      recurring_day    INTEGER,
+      notes            TEXT,
+      reviewed         BOOLEAN     NOT NULL DEFAULT false,
+      currency         TEXT,
+      logo_url         TEXT,
+      institution      TEXT,
+      fingerprint      TEXT,
+      metadata         JSONB,
+      created_at       BIGINT      NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000),
+      updated_at       BIGINT      NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000),
+      PRIMARY KEY (id, user_id)
+    );
+  `);
+  // Indexes — only created once; safe to run on every boot
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user        ON transactions(user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_date   ON transactions(user_id, date DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_cat    ON transactions(user_id, category_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_acct   ON transactions(user_id, account_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
   console.log("  =>  Database ready");
 }
 
@@ -196,6 +239,227 @@ async function setData(userId, key, value) {
      ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value`,
     [userId, key, JSON.stringify(value)]
   );
+}
+
+/* ── Transaction helpers ──────────────────────────────────────────── */
+
+// Fields with dedicated columns — anything else in a transaction object
+// gets stored in the JSONB metadata column so no data is ever lost.
+const KNOWN_TXN_FIELDS = new Set([
+  "id", "plaidAccountId", "plaidItemId", "accountId", "date",
+  "authorized_date", "merchant", "name", "amount", "categoryId",
+  "userCategorized", "pending", "type", "recurring", "recurringDay",
+  "notes", "reviewed", "currency", "logo_url", "institution", "fingerprint",
+]);
+
+// Fingerprint uses ONLY date + amount + normalised merchant — NOT authorized_date.
+// Plaid sometimes adds authorized_date later (via modify), which would change
+// the fingerprint and cause a duplicate if we used it here.
+function computeFingerprint(t) {
+  const date = t.date || "";
+  const raw  = (t.merchant || t.merchant_name || t.name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `${date}__${t.amount}__${raw}`;
+}
+
+// Convert a DB row back to the camelCase shape the frontend expects.
+function dbRowToTransaction(row) {
+  const t = {
+    id:              row.id,
+    plaidAccountId:  row.plaid_account_id,
+    plaidItemId:     row.plaid_item_id,
+    accountId:       row.account_id,
+    date:            row.date,
+    authorized_date: row.authorized_date,
+    merchant:        row.merchant,
+    name:            row.name,
+    amount:          parseFloat(row.amount),
+    categoryId:      row.category_id,
+    userCategorized: row.user_categorized,
+    pending:         row.pending,
+    type:            row.type,
+    recurring:       row.recurring,
+    recurringDay:    row.recurring_day,
+    notes:           row.notes,
+    reviewed:        row.reviewed,
+    currency:        row.currency,
+    logo_url:        row.logo_url,
+    institution:     row.institution,
+  };
+  // Restore any extra fields that were saved in metadata
+  if (row.metadata) Object.assign(t, row.metadata);
+  return t;
+}
+
+async function getTransactions(userId) {
+  const { rows } = await pool.query(
+    `SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC, created_at DESC`,
+    [userId]
+  );
+  return rows.map(dbRowToTransaction);
+}
+
+// Full upsert — used for both new transactions and full-array saves.
+async function upsertTransactionRow(userId, t) {
+  const metadata = {};
+  for (const [k, v] of Object.entries(t)) {
+    if (!KNOWN_TXN_FIELDS.has(k)) metadata[k] = v;
+  }
+  const fp = t.fingerprint || computeFingerprint(t);
+  await pool.query(`
+    INSERT INTO transactions (
+      id, user_id, plaid_account_id, plaid_item_id, account_id,
+      date, authorized_date, merchant, name, amount,
+      category_id, user_categorized, pending, type,
+      recurring, recurring_day, notes, reviewed,
+      currency, logo_url, institution, fingerprint, metadata, updated_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+    ON CONFLICT (id, user_id) DO UPDATE SET
+      plaid_account_id = EXCLUDED.plaid_account_id,
+      plaid_item_id    = EXCLUDED.plaid_item_id,
+      account_id       = EXCLUDED.account_id,
+      date             = EXCLUDED.date,
+      authorized_date  = EXCLUDED.authorized_date,
+      merchant         = EXCLUDED.merchant,
+      name             = EXCLUDED.name,
+      amount           = EXCLUDED.amount,
+      category_id      = EXCLUDED.category_id,
+      user_categorized = EXCLUDED.user_categorized,
+      pending          = EXCLUDED.pending,
+      type             = EXCLUDED.type,
+      recurring        = EXCLUDED.recurring,
+      recurring_day    = EXCLUDED.recurring_day,
+      notes            = EXCLUDED.notes,
+      reviewed         = EXCLUDED.reviewed,
+      currency         = EXCLUDED.currency,
+      logo_url         = EXCLUDED.logo_url,
+      institution      = EXCLUDED.institution,
+      fingerprint      = EXCLUDED.fingerprint,
+      metadata         = EXCLUDED.metadata,
+      updated_at       = EXCLUDED.updated_at
+  `, [
+    t.id,              userId,
+    t.plaidAccountId   ?? null, t.plaidItemId    ?? null, t.accountId       ?? null,
+    t.date             ?? null, t.authorized_date ?? null,
+    t.merchant         ?? null, t.name           ?? "",   t.amount          ?? 0,
+    t.categoryId       ?? null, t.userCategorized ?? false, t.pending        ?? false,
+    t.type             ?? "expense",
+    t.recurring        ?? false, t.recurringDay   ?? null,
+    t.notes            ?? null,  t.reviewed       ?? false,
+    t.currency         ?? null,  t.logo_url       ?? null, t.institution     ?? null,
+    fp,
+    Object.keys(metadata).length > 0 ? metadata : null,
+    Date.now(),
+  ]);
+}
+
+// Plaid modification — only updates Plaid-owned fields, never user fields.
+// The CASE on merchant preserves the user's rename (stored in `name`) if they set one.
+async function applyModifiedTransaction(userId, m) {
+  const fp = computeFingerprint(m);
+  await pool.query(`
+    UPDATE transactions SET
+      date            = $3,
+      authorized_date = $4,
+      pending         = $5,
+      amount          = $6,
+      fingerprint     = $7,
+      updated_at      = $8,
+      merchant = CASE WHEN name <> '' THEN merchant ELSE $9 END
+    WHERE user_id = $1 AND id = $2
+  `, [
+    userId, m.transaction_id,
+    m.date, m.authorized_date ?? null,
+    m.pending, m.amount,
+    fp, Date.now(),
+    m.merchant_name || m.name || null,
+  ]);
+}
+
+async function removeTransactionsByIds(userId, ids) {
+  if (!ids.length) return;
+  await pool.query(
+    `DELETE FROM transactions WHERE user_id = $1 AND id = ANY($2::text[])`,
+    [userId, ids]
+  );
+}
+
+// Batch upsert — called by PATCH /api/data while the frontend still sends
+// the full array. This is a transitional path: it keeps the app working
+// correctly now, and will be removed in item #2 when the frontend switches
+// to incremental per-transaction saves.
+async function upsertTransactionsBatch(userId, transactions) {
+  if (!Array.isArray(transactions)) return;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const t of transactions) {
+      const metadata = {};
+      for (const [k, v] of Object.entries(t)) {
+        if (!KNOWN_TXN_FIELDS.has(k)) metadata[k] = v;
+      }
+      const fp = t.fingerprint || computeFingerprint(t);
+      await client.query(`
+        INSERT INTO transactions (
+          id, user_id, plaid_account_id, plaid_item_id, account_id,
+          date, authorized_date, merchant, name, amount,
+          category_id, user_categorized, pending, type,
+          recurring, recurring_day, notes, reviewed,
+          currency, logo_url, institution, fingerprint, metadata, updated_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+        ON CONFLICT (id, user_id) DO UPDATE SET
+          merchant         = EXCLUDED.merchant,
+          name             = EXCLUDED.name,
+          amount           = EXCLUDED.amount,
+          category_id      = EXCLUDED.category_id,
+          user_categorized = EXCLUDED.user_categorized,
+          pending          = EXCLUDED.pending,
+          type             = EXCLUDED.type,
+          recurring        = EXCLUDED.recurring,
+          recurring_day    = EXCLUDED.recurring_day,
+          notes            = EXCLUDED.notes,
+          reviewed         = EXCLUDED.reviewed,
+          date             = EXCLUDED.date,
+          authorized_date  = EXCLUDED.authorized_date,
+          fingerprint      = EXCLUDED.fingerprint,
+          metadata         = EXCLUDED.metadata,
+          updated_at       = EXCLUDED.updated_at
+      `, [
+        t.id,              userId,
+        t.plaidAccountId   ?? null, t.plaidItemId    ?? null, t.accountId       ?? null,
+        t.date             ?? null, t.authorized_date ?? null,
+        t.merchant         ?? null, t.name           ?? "",   t.amount          ?? 0,
+        t.categoryId       ?? null, t.userCategorized ?? false, t.pending        ?? false,
+        t.type             ?? "expense",
+        t.recurring        ?? false, t.recurringDay   ?? null,
+        t.notes            ?? null,  t.reviewed       ?? false,
+        t.currency         ?? null,  t.logo_url       ?? null, t.institution     ?? null,
+        fp,
+        Object.keys(metadata).length > 0 ? metadata : null,
+        Date.now(),
+      ]);
+    }
+    // Delete rows in DB that are no longer in the array.
+    // This handles client-side deletions (e.g. user removes a manual transaction).
+    if (transactions.length > 0) {
+      const ids = transactions.map(t => t.id);
+      await client.query(
+        `DELETE FROM transactions WHERE user_id = $1 AND id != ALL($2::text[])`,
+        [userId, ids]
+      );
+    } else {
+      await client.query(`DELETE FROM transactions WHERE user_id = $1`, [userId]);
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /* ── Plaid helpers ────────────────────────────────────────────────── */
@@ -396,99 +660,96 @@ async function syncItemTransactions(userId, targetItemId = null) {
 }
 
 async function applySyncResultsToDB(userId, added, modified, removed) {
-  const existing  = (await getData(userId, "transactions")) || [];
-  const removeIds = new Set(removed.map(r => r.transaction_id));
+  // Load only IDs and fingerprints — much lighter than loading full objects.
+  const { rows: existing } = await pool.query(
+    `SELECT id, fingerprint FROM transactions WHERE user_id = $1`,
+    [userId]
+  );
+  const existingIds  = new Set(existing.map(r => r.id));
+  const fingerprints = new Set(existing.map(r => r.fingerprint).filter(Boolean));
 
-  // Fingerprint uses ONLY date + amount + merchant — NOT authorized_date.
-  // Plaid sometimes adds authorized_date later (via modify), which would change
-  // the fingerprint and cause a duplicate if we used it here.
-  function normMerchant(t) {
-    return (t.merchant || t.merchant_name || t.name || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9 ]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-  function fp(t) {
-    const date = t.date || "";   // always use post date for consistency
-    return `${date}__${t.amount}__${normMerchant(t)}`;
+  // 1. Remove first — so a pending→posted transition (remove old ID + add new ID,
+  //    same fingerprint) is handled correctly before we check for duplicates.
+  if (removed.length > 0) {
+    const removeIds = removed.map(r => r.transaction_id);
+    await removeTransactionsByIds(userId, removeIds);
+    removeIds.forEach(id => existingIds.delete(id));
   }
 
-  // Remove first — before building the fingerprint set, so a pending→posted
-  // transition (remove old ID + add new ID, same amount/date/merchant) is
-  // handled correctly: the old record is gone before we check for duplicates.
-  let next = existing.filter(t => !removeIds.has(t.id));
+  // 2. Apply Plaid modifications — only Plaid-owned fields are updated,
+  //    user fields (categoryId, name, notes, reviewed, recurring, type) are preserved.
+  for (const m of modified) {
+    await applyModifiedTransaction(userId, m);
+  }
 
-  const modMap = Object.fromEntries(modified.map(t => [t.transaction_id, t]));
-
-  // Apply modifications — preserve ALL user fields, only update Plaid-owned fields.
-  next = next.map(t => {
-    if (!modMap[t.id]) return t;
-    const m = modMap[t.id];
-    return {
-      ...t,
-      date:             m.date || t.date,
-      authorized_date:  m.authorized_date || t.authorized_date || null,
-      pending:          m.pending,
-      amount:           m.amount,
-      // Merchant: only update if user hasn't renamed (t.name is the user rename field)
-      merchant: t.name ? t.merchant : (m.merchant_name || m.name || t.merchant),
-      // NEVER touch: categoryId, userCategorized, name, notes, reviewed, recurring, type
-    };
-  });
-
-  const existingIds  = new Set(next.map(t => t.id));
-  const fingerprints = new Set(next.map(t => fp(t)));
-
+  // 3. Map, fingerprint-dedup, and insert new transactions.
   const newTxns = added
     .filter(t => !existingIds.has(t.transaction_id))
     .map(t => ({
-      id: t.transaction_id, plaidAccountId: t.account_id, plaidItemId: t.item_id,
-      accountId: "a" + t.account_id,
-      date: t.date,
+      id:              t.transaction_id,
+      plaidAccountId:  t.account_id,
+      plaidItemId:     t.item_id,
+      accountId:       "a" + t.account_id,
+      date:            t.date,
       authorized_date: t.authorized_date || null,
-      merchant: t.merchant_name || t.name, name: "", amount: t.amount,
-      categoryId: null, userCategorized: false, pending: t.pending,
-      type: t.amount < 0 ? "expense" : "income", recurring: false, recurringDay: null,
+      merchant:        t.merchant_name || t.name,
+      name:            "",
+      amount:          t.amount,
+      categoryId:      null,
+      userCategorized: false,
+      pending:         t.pending,
+      type:            t.amount < 0 ? "expense" : "income",
+      recurring:       false,
+      recurringDay:    null,
+      currency:        t.currency        || null,
+      logo_url:        t.logo_url        || null,
+      institution:     t.institution     || null,
     }))
     .filter(t => {
-      const f = fp(t);
-      if (fingerprints.has(f)) return false;
-      fingerprints.add(f);
+      const fp = computeFingerprint(t);
+      if (fingerprints.has(fp)) return false;
+      fingerprints.add(fp);
       return true;
     });
 
-  next = [...newTxns, ...next];
-  await setData(userId, "transactions", next);
+  for (const t of newTxns) {
+    await upsertTransactionRow(userId, t);
+  }
+
+  // 4. Refresh account balances (unchanged from original).
   try {
     const items = await getItemsForUser(userId);
     const allAccounts = [];
     for (const item of items) {
       try {
         const r = await plaidClient.accountsGet({ access_token: item.access_token });
-        allAccounts.push(...r.data.accounts.map(a => ({ plaidId: a.account_id, plaidItemId: item.item_id, institution: item.institution, name: a.name, type: a.type, subtype: a.subtype, balance: a.balances.current, available: a.balances.available })));
+        allAccounts.push(...r.data.accounts.map(a => ({
+          plaidId: a.account_id, plaidItemId: item.item_id, institution: item.institution,
+          name: a.name, type: a.type, subtype: a.subtype,
+          balance: a.balances.current, available: a.balances.available,
+        })));
       } catch (e) { console.error(`accountsGet failed for ${item.item_id}:`, e.message); }
     }
     if (allAccounts.length > 0) {
-      const saved = (await getData(userId, "accounts")) || [];
-      const manual = saved.filter(a => !a.plaidId);
+      const saved   = (await getData(userId, "accounts")) || [];
+      const manual  = saved.filter(a => !a.plaidId);
       const byPlaid = Object.fromEntries(saved.filter(a => a.plaidId).map(a => [a.plaidId, a]));
-      // Deduplicate by plaidId — same account from multiple connections gets collapsed
-      const seen = new Set();
-      const unique = allAccounts.filter(pa => {
+      const seen    = new Set();
+      const unique  = allAccounts.filter(pa => {
         if (seen.has(pa.plaidId)) return false;
         seen.add(pa.plaidId);
         return true;
       });
       const plaidUpdated = unique.map(pa => ({
-          ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
-          plaidId: pa.plaidId, plaidItemId: pa.plaidItemId,
-          balance: pa.balance, available: pa.available,
-          institution: pa.institution, type: pa.subtype || pa.type,
-        }));
+        ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
+        plaidId: pa.plaidId, plaidItemId: pa.plaidItemId,
+        balance: pa.balance, available: pa.available,
+        institution: pa.institution, type: pa.subtype || pa.type,
+      }));
       await setData(userId, "accounts", [...manual, ...plaidUpdated]);
     }
   } catch (e) { console.error("Balance refresh failed:", e.message); }
+
   return { added: newTxns.length, modified: modified.length, removed: removed.length, newTxns };
 }
 
@@ -859,7 +1120,8 @@ app.get("/api/data", async (req, res) => {
            investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
            userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
            aiConversations, aiCurrentConvId, goals] = await Promise.all([
-      getData(uid, "transactions"), getData(uid, "categories"),
+      getTransactions(uid),             // reads from transactions table, not blob
+      getData(uid, "categories"),
       getData(uid, "accounts"),     getData(uid, "plaidItems"),
       getData(uid, "rules"),        getData(uid, "calendarAccounts"),
       getData(uid, "investmentAccounts"), getData(uid, "holdings"),
@@ -904,7 +1166,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
     const ops = [];
-    if (transactions       !== undefined) ops.push(setData(uid, "transactions",       transactions));
+    if (transactions       !== undefined) ops.push(upsertTransactionsBatch(uid, transactions));
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
     if (accounts           !== undefined) ops.push(setData(uid, "accounts",           accounts));
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
@@ -1241,7 +1503,7 @@ ${lastMonthTransactions.slice(0, 30).map(t =>
         "anthropic-beta": "messages-2023-12-15",
       },
       body: JSON.stringify({
-        model: "claude-opus-4-6",
+        model: "claude-sonnet-4-6", // sonnet: better cost/latency balance for chat; opus is overkill here
         max_tokens: 1024,
         system: systemPrompt,
         messages: claudeMessages,
@@ -1604,7 +1866,9 @@ app.post("/api/admin/encrypt-tokens", requireOwner, async (_req, res) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 // Every hour: expire trials that have ended + send 1-day warning emails
+// IS_WORKER guard prevents every replica from firing this simultaneously.
 cron.schedule("0 * * * *", async () => {
+  if (!IS_WORKER) return;
   const now = Date.now();
   try {
     // Expire trials that ended
@@ -1644,7 +1908,9 @@ cron.schedule("0 * * * *", async () => {
 });
 
 // Every 4 hours: sync active users
+// IS_WORKER guard prevents every replica from running duplicate syncs.
 cron.schedule("0 */4 * * *", async () => {
+  if (!IS_WORKER) return;
   console.log(`[cron] ${new Date().toISOString()} — syncing active users`);
   try {
     const { rows } = await pool.query(`
@@ -1681,7 +1947,8 @@ initDB().then(() => {
     console.log(`  =>  Plaid:      ${PLAID_ENV}`);
     console.log(`  =>  Stripe:     ${process.env.STRIPE_SECRET_KEY ? "enabled" : "DISABLED"}`);
     console.log(`  =>  Auth:       ${JWT_SECRET ? "enabled" : "DISABLED"}`);
-    console.log(`  =>  Owner:      ${OWNER_EMAIL || "(first registered user)"}\n`);
+    console.log(`  =>  Owner:      ${OWNER_EMAIL || "(first registered user)"}`);
+    console.log(`  =>  Cron jobs:  ${IS_WORKER ? "ENABLED (worker)" : "disabled (web replica)"}\n`);
   });
 }).catch(err => {
   console.error("DB init failed:", err.message);

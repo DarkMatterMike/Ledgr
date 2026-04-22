@@ -3716,16 +3716,78 @@ function AppInner() {
           })()}
         </div>
       ) : (
-        /* Desktop: 3-column grid */
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"stretch"}}>
-          {/* Col 1: Spending Breakdown + Goals */}
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{flex:1,display:"flex",flexDirection:"column"}}>
-              <div style={{height:"100%",boxSizing:"border-box"}}>
-                {SpendingBreakdownCard}
+        /* Desktop layout */
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {/* Top row: Spending Breakdown | Budget Progress | Action Items */}
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
+            {SpendingBreakdownCard}
+
+            <div style={S.card} className="ledgr-card-anim">
+              <div style={{...S.sectionHdr,marginBottom:8}}>
+                <div style={S.cardTitle}>Budget Progress</div>
+                <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
+              </div>
+              {categories.length===0
+                ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+                : sortedCategories.slice(0,10).map(cat=>{
+                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
+                    return (
+                      <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                            <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                          </div>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                            {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
+                          </span>
+                        </div>
+                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
+                        </div>
+                      </div>
+                    );
+                  })
+              }
+            </div>
+
+            <div style={{position:"sticky",top:16}}>
+              <div style={S.card}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                  <div style={S.cardTitle}>Action Items</div>
+                  {insightsTodos.length > 0 && (
+                    <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
+                      style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>Clear all</button>
+                  )}
+                </div>
+                {insightsTodos.length === 0 ? (
+                  <div style={{fontSize:12,color:"var(--t3)",textAlign:"center",padding:"20px 0",lineHeight:1.6}}>
+                    Go to <strong style={{color:"var(--t1)"}}>Analytics → Insights</strong>, generate AI analysis, then tap <span style={{color:"var(--cyan)"}}>+ Add to To-Do</span>.
+                  </div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {insightsTodos.map(todo => (
+                      <div key={todo.id} style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                        <button
+                          onClick={()=>{ const next=insightsTodos.filter(t=>t.id!==todo.id); setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
+                          style={{width:16,height:16,borderRadius:3,border:"1.5px solid var(--border2)",background:"none",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}
+                          onMouseEnter={e=>{e.currentTarget.style.background="var(--cyan)";e.currentTarget.style.borderColor="var(--cyan)";}}
+                          onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.borderColor="var(--border2)";}}>
+                          <span style={{fontSize:9,color:"var(--cyan)",lineHeight:1}}>✓</span>
+                        </button>
+                        <span style={{fontSize:12,color:"var(--t2)",lineHeight:1.5,flex:1}}>{todo.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            {/* Goals */}
+          </div>
+
+          {/* Bottom row: Goals + Upcoming */}
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
             {goals.length > 0 && (()=>{
               const now = Date.now();
               const atRisk = goals.filter(g => {
@@ -3774,41 +3836,6 @@ function AppInner() {
                 </div>
               );
             })()}
-          </div>
-
-          {/* Col 2: Budget Progress + Upcoming */}
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div style={{...S.card,flex:1,boxSizing:"border-box"}} className="ledgr-card-anim">
-              <div style={{...S.sectionHdr,marginBottom:8}}>
-                <div style={S.cardTitle}>Budget Progress</div>
-                <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
-              </div>
-              {categories.length===0
-                ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-                : sortedCategories.slice(0,10).map(cat=>{
-                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                    return (
-                      <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                            <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                            <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                          </div>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                            {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
-                          </span>
-                        </div>
-                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
-                        </div>
-                      </div>
-                    );
-                  })
-              }
-            </div>
-            {/* Upcoming recurring */}
             {(()=>{
               const todayD = today.getDate();
               const upcoming = recurringTxns
@@ -3840,45 +3867,9 @@ function AppInner() {
               );
             })()}
           </div>
-
-          {/* Col 3: Action Items */}
-          <div style={{position:"sticky",top:16}}>
-            <div style={S.card}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                <div style={S.cardTitle}>Action Items</div>
-                {insightsTodos.length > 0 && (
-                  <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
-                    style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>
-                    Clear all
-                  </button>
-                )}
-              </div>
-              {insightsTodos.length === 0 ? (
-                <div style={{fontSize:12,color:"var(--t3)",textAlign:"center",padding:"20px 0",lineHeight:1.6}}>
-                  Go to <strong style={{color:"var(--t1)"}}>Analytics → Insights</strong>, generate AI analysis, then tap <span style={{color:"var(--cyan)"}}>+ Add to To-Do</span>.
-                </div>
-              ) : (
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  {insightsTodos.map(todo => (
-                    <div key={todo.id} style={{display:"flex",alignItems:"flex-start",gap:8}}>
-                      <button
-                        onClick={()=>{ const next=insightsTodos.filter(t=>t.id!==todo.id); setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
-                        style={{width:16,height:16,borderRadius:3,border:"1.5px solid var(--border2)",background:"none",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}
-                        onMouseEnter={e=>{e.currentTarget.style.background="var(--cyan)";e.currentTarget.style.borderColor="var(--cyan)";}}
-                        onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.borderColor="var(--border2)";}}>
-                        <span style={{fontSize:9,color:"var(--cyan)",lineHeight:1}}>✓</span>
-                      </button>
-                      <span style={{fontSize:12,color:"var(--t2)",lineHeight:1.5,flex:1}}>{todo.text}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
       {DrillDownModal}
-    </div>
   );
 
   /* ── Transactions ── */

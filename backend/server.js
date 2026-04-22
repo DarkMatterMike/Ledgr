@@ -487,7 +487,8 @@ app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
     const [categories, accounts, plaidItems, rules, calendarAccounts,
-           aiCatExamples, userProfile, dismissedPairs, scanMemory, goals] = await Promise.all([
+           aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
+           aiApiKey] = await Promise.all([
       getData(uid, "categories"),
       getData(uid, "accounts"),
       getData(uid, "plaidItems"),
@@ -498,6 +499,7 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "dismissedPairs"),
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
+      getData(uid, "aiApiKey"),   // boolean presence only — never expose the encrypted key
     ]);
     res.json({
       categories:       categories       || [],
@@ -510,6 +512,7 @@ app.get("/api/data", async (req, res) => {
       dismissedPairs:   dismissedPairs   || [],
       scanMemory:       scanMemory       || null,
       goals:            goals            || [],
+      hasAiKey:         !!aiApiKey,      // lets the frontend know a key is saved without exposing it
       access:           getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }

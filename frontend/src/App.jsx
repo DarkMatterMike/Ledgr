@@ -2100,7 +2100,10 @@ function AppInner() {
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
     onData: (data) => {
-      // Core data callback — portfolio/AI/analytics are NOT in this response
+      // Core data callback — portfolio/AI/analytics are NOT in this response.
+      // hasAiKey IS included so the key state is known immediately on startup
+      // without waiting for the user to visit the AI view.
+      aiChat.loadFromData(data);
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
       if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
       if (data.goals)          setGoals(data.goals);

@@ -442,17 +442,11 @@ async function upsertTransactionsBatch(userId, transactions) {
         Date.now(),
       ]);
     }
-    // Delete rows in DB that are no longer in the array.
-    // This handles client-side deletions (e.g. user removes a manual transaction).
-    if (transactions.length > 0) {
-      const ids = transactions.map(t => t.id);
-      await client.query(
-        `DELETE FROM transactions WHERE user_id = $1 AND id != ALL($2::text[])`,
-        [userId, ids]
-      );
-    } else {
-      await client.query(`DELETE FROM transactions WHERE user_id = $1`, [userId]);
-    }
+    // Upsert every transaction sent by the frontend.
+    // Deletions are not handled here — that will be done via explicit
+    // per-transaction endpoints in item #2 (incremental saves).
+    // Removing the full-array delete prevents accidental data loss if the
+    // frontend saves before it has fully loaded.
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK");

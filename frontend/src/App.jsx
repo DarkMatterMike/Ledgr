@@ -3725,7 +3725,6 @@ function AppInner() {
                 {SpendingBreakdownCard}
               </div>
             </div>
-            {SpendingBreakdownCard}
             {/* Goals */}
             {goals.length > 0 && (()=>{
               const now = Date.now();

@@ -1,763 +1,80 @@
 /**
  * ledgr – backend/server.js
- * Multi-user + Stripe billing
+ * HTTP server only — no cron jobs, no sync logic.
+ * All shared DB helpers live in db.js.
+ * Scheduled jobs live in worker.js.
  */
 
 "use strict";
 
-const express   = require("express");
-const cors      = require("cors");
-const helmet    = require("helmet");
-const dotenv    = require("dotenv");
-const { Pool }  = require("pg");
-const cron      = require("node-cron");
-const webpush   = require("web-push");
-const crypto    = require("crypto");
-const bcrypt    = require("bcrypt");
-const jwt       = require("jsonwebtoken");
-const rateLimit = require("express-rate-limit");
-const Stripe    = require("stripe");
-const { Resend } = require("resend");
-const {
-  PlaidApi,
-  PlaidEnvironments,
-  Configuration,
-} = require("plaid");
+const express    = require("express");
+const cors       = require("cors");
+const helmet     = require("helmet");
+const dotenv     = require("dotenv");
+const crypto     = require("crypto");
+const bcrypt     = require("bcrypt");
+const jwt        = require("jsonwebtoken");
+const rateLimit  = require("express-rate-limit");
+const Stripe     = require("stripe");
 
 dotenv.config();
 
+const {
+  pool,
+  initDB,
+  encrypt,
+  decrypt,
+  getUserById,
+  getUserByEmail,
+  getUserByStripeCustomerId,
+  createUser,
+  getData,
+  setData,
+  getTransactions,
+  upsertTransactionRow,
+  upsertTransactionsBatch,
+  getItem,
+  getItemsForUser,
+  saveItem,
+  removeItem,
+  updateCursor,
+  saveSubscription,
+  getSubscriptionsForUser,
+  removeSubscription,
+  sendPushToUser,
+  sendEmail,
+  emailWelcome,
+  emailSubscriptionConfirmed,
+  emailPasswordReset,
+  plaidClient,
+  PLAID_ENV,
+  syncItemTransactions,
+  applySyncResultsToDB,
+} = require("./db");
+
 /* ── Config ──────────────────────────────────────────────────────── */
 const PORT          = process.env.PORT || 3001;
-const FRONTEND_URL  = process.env.FRONTEND_URL || "http://localhost:5173";
-const PLAID_ENV     = process.env.PLAID_ENV || "sandbox";
-const PRODUCTS      = (process.env.PLAID_PRODUCTS || "transactions").split(",").map(p => p.trim());
+const FRONTEND_URL  = process.env.FRONTEND_URL   || "http://localhost:5173";
+const PRODUCTS      = (process.env.PLAID_PRODUCTS     || "transactions").split(",").map(p => p.trim());
 const COUNTRY_CODES = (process.env.PLAID_COUNTRY_CODES || "US").split(",").map(c => c.trim());
 const JWT_SECRET    = process.env.JWT_SECRET;
 const ENCRYPT_KEY   = process.env.ENCRYPT_KEY;
 const OWNER_EMAIL   = process.env.OWNER_EMAIL;
 const BCRYPT_ROUNDS = 12;
 
-// Replica safety: cron jobs only run on instances where IS_WORKER=true.
-// In a single-instance setup this defaults to true so nothing breaks.
-// When scaling to multiple replicas, set IS_WORKER=false on web instances
-// and IS_WORKER=true on exactly one dedicated worker instance.
-const IS_WORKER = process.env.IS_WORKER !== "false";
-
-// Stripe
 const stripe                  = Stripe(process.env.STRIPE_SECRET_KEY || "");
-const STRIPE_PRICE_ID         = process.env.STRIPE_PRICE_ID         || "";
-const STRIPE_PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID || "";
-const STRIPE_WEBHOOK_SECRET   = process.env.STRIPE_WEBHOOK_SECRET   || "";
+const STRIPE_PRICE_ID         = process.env.STRIPE_PRICE_ID          || "";
+const STRIPE_PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID  || "";
+const STRIPE_WEBHOOK_SECRET   = process.env.STRIPE_WEBHOOK_SECRET    || "";
 
-// Resend
-const resend    = new Resend(process.env.RESEND_API_KEY || "");
-const FROM_EMAIL = "noreply@ledgrfinance.app";
-
-if (!JWT_SECRET)           console.warn("⚠  JWT_SECRET not set");
-if (!ENCRYPT_KEY)          console.warn("⚠  ENCRYPT_KEY not set");
-if (!OWNER_EMAIL)          console.warn("⚠  OWNER_EMAIL not set");
+if (!JWT_SECRET)                    console.warn("⚠  JWT_SECRET not set");
+if (!ENCRYPT_KEY)                   console.warn("⚠  ENCRYPT_KEY not set");
+if (!OWNER_EMAIL)                   console.warn("⚠  OWNER_EMAIL not set");
 if (!process.env.STRIPE_SECRET_KEY) console.warn("⚠  STRIPE_SECRET_KEY not set");
-if (!STRIPE_PRICE_ID)      console.warn("⚠  STRIPE_PRICE_ID not set");
-if (!STRIPE_WEBHOOK_SECRET) console.warn("⚠  STRIPE_WEBHOOK_SECRET not set");
-if (!process.env.RESEND_API_KEY) console.warn("⚠  RESEND_API_KEY not set");
+if (!STRIPE_PRICE_ID)               console.warn("⚠  STRIPE_PRICE_ID not set");
+if (!STRIPE_WEBHOOK_SECRET)         console.warn("⚠  STRIPE_WEBHOOK_SECRET not set");
+if (!process.env.RESEND_API_KEY)    console.warn("⚠  RESEND_API_KEY not set");
 
-/* ── Encryption ───────────────────────────────────────────────────── */
-function encrypt(text) {
-  if (!ENCRYPT_KEY || !text) return text;
-  const key = Buffer.from(ENCRYPT_KEY, "hex");
-  const iv  = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
-  const encrypted = Buffer.concat([cipher.update(text, "utf8"), cipher.final()]);
-  return iv.toString("hex") + ":" + encrypted.toString("hex");
-}
-
-function decrypt(text) {
-  if (!ENCRYPT_KEY || !text) return text;
-  if (!text.includes(":")) return text;
-  try {
-    const [ivHex, encHex] = text.split(":");
-    const key     = Buffer.from(ENCRYPT_KEY, "hex");
-    const iv      = Buffer.from(ivHex, "hex");
-    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-    return Buffer.concat([decipher.update(Buffer.from(encHex, "hex")), decipher.final()]).toString("utf8");
-  } catch { return text; }
-}
-
-/* ── VAPID ────────────────────────────────────────────────────────── */
-const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "FApjnt7VlZhG7Bw1t_wYv9BksoW0wFwz97bqGq-vSew";
-webpush.setVapidDetails("mailto:admin@ledgr.app", VAPID_PUBLIC, VAPID_PRIVATE);
-
-/* ── PostgreSQL ───────────────────────────────────────────────────── */
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      email                TEXT UNIQUE NOT NULL,
-      password             TEXT NOT NULL,
-      role                 TEXT NOT NULL DEFAULT 'subscriber',
-      stripe_customer_id   TEXT,
-      subscription_status  TEXT NOT NULL DEFAULT 'trialing',
-      trial_ends_at        BIGINT,
-      failed_login_attempts INT NOT NULL DEFAULT 0,
-      locked_until         BIGINT,
-      created_at           BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
-    );
-  `);
-  // Add lockout columns for existing deployments that predate this migration
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT NOT NULL DEFAULT 0`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until BIGINT`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at BIGINT`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_price_id TEXT`);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS app_data (
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      key     TEXT NOT NULL,
-      value   TEXT NOT NULL,
-      PRIMARY KEY (user_id, key)
-    );
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS plaid_items (
-      item_id      TEXT PRIMARY KEY,
-      user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      access_token TEXT NOT NULL,
-      institution  TEXT,
-      cursor       TEXT,
-      created_at   BIGINT,
-      needs_reauth BOOLEAN DEFAULT false
-    );
-  `);
-  // Add needs_reauth column if missing (for existing DBs)
-  await pool.query(`ALTER TABLE plaid_items ADD COLUMN IF NOT EXISTS needs_reauth BOOLEAN DEFAULT false`);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id           SERIAL PRIMARY KEY,
-      user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      endpoint     TEXT NOT NULL,
-      subscription TEXT NOT NULL,
-      created_at   BIGINT,
-      UNIQUE (user_id, endpoint)
-    );
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS password_resets (
-      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      token      TEXT NOT NULL UNIQUE,
-      expires_at BIGINT NOT NULL,
-      used       BOOLEAN NOT NULL DEFAULT FALSE,
-      created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
-    );
-  `);
-  // ── Transactions table (replaces the JSON blob in app_data) ───────
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS transactions (
-      id               TEXT        NOT NULL,
-      user_id          UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      plaid_account_id TEXT,
-      plaid_item_id    TEXT,
-      account_id       TEXT,
-      date             TEXT,
-      authorized_date  TEXT,
-      merchant         TEXT,
-      name             TEXT        NOT NULL DEFAULT '',
-      amount           NUMERIC(12,2) NOT NULL DEFAULT 0,
-      category_id      TEXT,
-      user_categorized BOOLEAN     NOT NULL DEFAULT false,
-      pending          BOOLEAN     NOT NULL DEFAULT false,
-      type             TEXT        NOT NULL DEFAULT 'expense',
-      recurring        BOOLEAN     NOT NULL DEFAULT false,
-      recurring_day    INTEGER,
-      notes            TEXT,
-      reviewed         BOOLEAN     NOT NULL DEFAULT false,
-      currency         TEXT,
-      logo_url         TEXT,
-      institution      TEXT,
-      fingerprint      TEXT,
-      metadata         JSONB,
-      created_at       BIGINT      NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000),
-      updated_at       BIGINT      NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000),
-      PRIMARY KEY (id, user_id)
-    );
-  `);
-  // Indexes — only created once; safe to run on every boot
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user        ON transactions(user_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_date   ON transactions(user_id, date DESC)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_cat    ON transactions(user_id, category_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_acct   ON transactions(user_id, account_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
-  // Add recurring detail columns for existing DBs that predate this migration
-  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
-  await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_start TEXT`);
-  console.log("  =>  Database ready");
-}
-
-/* ── User helpers ─────────────────────────────────────────────────── */
-async function getUserById(id) {
-  const res = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
-  return res.rows[0] || null;
-}
-
-async function getUserByEmail(email) {
-  const res = await pool.query("SELECT * FROM users WHERE email = $1", [email.toLowerCase().trim()]);
-  return res.rows[0] || null;
-}
-
-async function getUserByStripeCustomerId(customerId) {
-  const res = await pool.query("SELECT * FROM users WHERE stripe_customer_id = $1", [customerId]);
-  return res.rows[0] || null;
-}
-
-async function createUser(email, password) {
-  const hash         = await bcrypt.hash(password, BCRYPT_ROUNDS);
-  const countRes     = await pool.query("SELECT COUNT(*) FROM users");
-  const isFirst      = parseInt(countRes.rows[0].count, 10) === 0;
-  const isOwnerEmail = OWNER_EMAIL && email.toLowerCase().trim() === OWNER_EMAIL.toLowerCase().trim();
-  const role         = (isOwnerEmail || isFirst) ? "owner" : "subscriber";
-  const trialEnds    = Date.now() + 7 * 24 * 60 * 60 * 1000;
-  const res = await pool.query(
-    `INSERT INTO users (email, password, role, subscription_status, trial_ends_at)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [email.toLowerCase().trim(), hash, role, role === "owner" ? "active" : "trialing", trialEnds]
-  );
-  return res.rows[0];
-}
-
-/* ── App data helpers ─────────────────────────────────────────────── */
-async function getData(userId, key) {
-  const res = await pool.query("SELECT value FROM app_data WHERE user_id = $1 AND key = $2", [userId, key]);
-  return res.rows[0] ? JSON.parse(res.rows[0].value) : null;
-}
-
-async function setData(userId, key, value) {
-  await pool.query(
-    `INSERT INTO app_data (user_id, key, value) VALUES ($1, $2, $3)
-     ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value`,
-    [userId, key, JSON.stringify(value)]
-  );
-}
-
-/* ── Transaction helpers ──────────────────────────────────────────── */
-
-// Fields with dedicated columns — anything else in a transaction object
-// gets stored in the JSONB metadata column so no data is ever lost.
-const KNOWN_TXN_FIELDS = new Set([
-  "id", "plaidAccountId", "plaidItemId", "accountId", "date",
-  "authorized_date", "merchant", "name", "amount", "categoryId",
-  "userCategorized", "pending", "type", "recurring", "recurringDay",
-  "notes", "reviewed", "currency", "logo_url", "institution", "fingerprint",
-]);
-
-// Fingerprint uses ONLY date + amount + normalised merchant — NOT authorized_date.
-// Plaid sometimes adds authorized_date later (via modify), which would change
-// the fingerprint and cause a duplicate if we used it here.
-function computeFingerprint(t) {
-  const date = t.date || "";
-  const raw  = (t.merchant || t.merchant_name || t.name || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return `${date}__${t.amount}__${raw}`;
-}
-
-// Convert a DB row back to the camelCase shape the frontend expects.
-function dbRowToTransaction(row) {
-  const t = {
-    id:              row.id,
-    plaidAccountId:  row.plaid_account_id,
-    plaidItemId:     row.plaid_item_id,
-    accountId:       row.account_id,
-    date:            row.date,
-    authorized_date: row.authorized_date,
-    merchant:        row.merchant,
-    name:            row.name,
-    amount:          parseFloat(row.amount),
-    categoryId:      row.category_id,
-    userCategorized: row.user_categorized,
-    pending:         row.pending,
-    type:            row.type,
-    recurring:       row.recurring,
-    recurringDay:    row.recurring_day,
-    recurringFreq:   row.recurring_freq,
-    recurringStart:  row.recurring_start,
-    notes:           row.notes,
-    reviewed:        row.reviewed,
-    currency:        row.currency,
-    logo_url:        row.logo_url,
-    institution:     row.institution,
-  };
-  // Restore any extra fields that were saved in metadata
-  if (row.metadata) Object.assign(t, row.metadata);
-  return t;
-}
-
-async function getTransactions(userId) {
-  const { rows } = await pool.query(
-    `SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC, created_at DESC`,
-    [userId]
-  );
-  return rows.map(dbRowToTransaction);
-}
-
-// Full upsert — used for both new transactions and full-array saves.
-async function upsertTransactionRow(userId, t) {
-  const metadata = {};
-  for (const [k, v] of Object.entries(t)) {
-    if (!KNOWN_TXN_FIELDS.has(k)) metadata[k] = v;
-  }
-  const fp = t.fingerprint || computeFingerprint(t);
-  await pool.query(`
-    INSERT INTO transactions (
-      id, user_id, plaid_account_id, plaid_item_id, account_id,
-      date, authorized_date, merchant, name, amount,
-      category_id, user_categorized, pending, type,
-      recurring, recurring_day, recurring_freq, recurring_start, notes, reviewed,
-      currency, logo_url, institution, fingerprint, metadata, updated_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
-    ON CONFLICT (id, user_id) DO UPDATE SET
-      plaid_account_id = EXCLUDED.plaid_account_id,
-      plaid_item_id    = EXCLUDED.plaid_item_id,
-      account_id       = EXCLUDED.account_id,
-      date             = EXCLUDED.date,
-      authorized_date  = EXCLUDED.authorized_date,
-      merchant         = EXCLUDED.merchant,
-      name             = EXCLUDED.name,
-      amount           = EXCLUDED.amount,
-      category_id      = EXCLUDED.category_id,
-      user_categorized = EXCLUDED.user_categorized,
-      pending          = EXCLUDED.pending,
-      type             = EXCLUDED.type,
-      recurring        = EXCLUDED.recurring,
-      recurring_day    = EXCLUDED.recurring_day,
-      recurring_freq   = EXCLUDED.recurring_freq,
-      recurring_start  = EXCLUDED.recurring_start,
-      notes            = EXCLUDED.notes,
-      reviewed         = EXCLUDED.reviewed,
-      currency         = EXCLUDED.currency,
-      logo_url         = EXCLUDED.logo_url,
-      institution      = EXCLUDED.institution,
-      fingerprint      = EXCLUDED.fingerprint,
-      metadata         = EXCLUDED.metadata,
-      updated_at       = EXCLUDED.updated_at
-  `, [
-    t.id,              userId,
-    t.plaidAccountId   ?? null, t.plaidItemId    ?? null, t.accountId       ?? null,
-    t.date             ?? null, t.authorized_date ?? null,
-    t.merchant         ?? null, t.name           ?? "",   t.amount          ?? 0,
-    t.categoryId       ?? null, t.userCategorized ?? false, t.pending        ?? false,
-    t.type             ?? "expense",
-    t.recurring        ?? false, t.recurringDay   ?? null,
-    t.recurringFreq    ?? null,  t.recurringStart ?? null,
-    t.notes            ?? null,  t.reviewed       ?? false,
-    t.currency         ?? null,  t.logo_url       ?? null, t.institution     ?? null,
-    fp,
-    Object.keys(metadata).length > 0 ? metadata : null,
-    Date.now(),
-  ]);
-}
-
-// Plaid modification — only updates Plaid-owned fields, never user fields.
-// The CASE on merchant preserves the user's rename (stored in `name`) if they set one.
-async function applyModifiedTransaction(userId, m) {
-  const fp = computeFingerprint(m);
-  await pool.query(`
-    UPDATE transactions SET
-      date            = $3,
-      authorized_date = $4,
-      pending         = $5,
-      amount          = $6,
-      fingerprint     = $7,
-      updated_at      = $8,
-      merchant = CASE WHEN name <> '' THEN merchant ELSE $9 END
-    WHERE user_id = $1 AND id = $2
-  `, [
-    userId, m.transaction_id,
-    m.date, m.authorized_date ?? null,
-    m.pending, m.amount,
-    fp, Date.now(),
-    m.merchant_name || m.name || null,
-  ]);
-}
-
-async function removeTransactionsByIds(userId, ids) {
-  if (!ids.length) return;
-  await pool.query(
-    `DELETE FROM transactions WHERE user_id = $1 AND id = ANY($2::text[])`,
-    [userId, ids]
-  );
-}
-
-// Batch upsert — called by PATCH /api/data while the frontend still sends
-// the full array. This is a transitional path: it keeps the app working
-// correctly now, and will be removed in item #2 when the frontend switches
-// to incremental per-transaction saves.
-async function upsertTransactionsBatch(userId, transactions) {
-  if (!Array.isArray(transactions)) return;
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    for (const t of transactions) {
-      const metadata = {};
-      for (const [k, v] of Object.entries(t)) {
-        if (!KNOWN_TXN_FIELDS.has(k)) metadata[k] = v;
-      }
-      const fp = t.fingerprint || computeFingerprint(t);
-      await client.query(`
-        INSERT INTO transactions (
-          id, user_id, plaid_account_id, plaid_item_id, account_id,
-          date, authorized_date, merchant, name, amount,
-          category_id, user_categorized, pending, type,
-          recurring, recurring_day, notes, reviewed,
-          currency, logo_url, institution, fingerprint, metadata, updated_at
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
-        ON CONFLICT (id, user_id) DO UPDATE SET
-          merchant         = EXCLUDED.merchant,
-          name             = EXCLUDED.name,
-          amount           = EXCLUDED.amount,
-          category_id      = EXCLUDED.category_id,
-          user_categorized = EXCLUDED.user_categorized,
-          pending          = EXCLUDED.pending,
-          type             = EXCLUDED.type,
-          recurring        = EXCLUDED.recurring,
-          recurring_day    = EXCLUDED.recurring_day,
-          notes            = EXCLUDED.notes,
-          reviewed         = EXCLUDED.reviewed,
-          date             = EXCLUDED.date,
-          authorized_date  = EXCLUDED.authorized_date,
-          fingerprint      = EXCLUDED.fingerprint,
-          metadata         = EXCLUDED.metadata,
-          updated_at       = EXCLUDED.updated_at
-      `, [
-        t.id,              userId,
-        t.plaidAccountId   ?? null, t.plaidItemId    ?? null, t.accountId       ?? null,
-        t.date             ?? null, t.authorized_date ?? null,
-        t.merchant         ?? null, t.name           ?? "",   t.amount          ?? 0,
-        t.categoryId       ?? null, t.userCategorized ?? false, t.pending        ?? false,
-        t.type             ?? "expense",
-        t.recurring        ?? false, t.recurringDay   ?? null,
-        t.notes            ?? null,  t.reviewed       ?? false,
-        t.currency         ?? null,  t.logo_url       ?? null, t.institution     ?? null,
-        fp,
-        Object.keys(metadata).length > 0 ? metadata : null,
-        Date.now(),
-      ]);
-    }
-    // Upsert every transaction sent by the frontend.
-    // Deletions are not handled here — that will be done via explicit
-    // per-transaction endpoints in item #2 (incremental saves).
-    // Removing the full-array delete prevents accidental data loss if the
-    // frontend saves before it has fully loaded.
-    await client.query("COMMIT");
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
-/* ── Plaid helpers ────────────────────────────────────────────────── */
-async function getItem(itemId) {
-  const res = await pool.query("SELECT * FROM plaid_items WHERE item_id = $1", [itemId]);
-  if (!res.rows[0]) return null;
-  return { ...res.rows[0], access_token: decrypt(res.rows[0].access_token) };
-}
-
-async function getItemsForUser(userId) {
-  const res = await pool.query("SELECT * FROM plaid_items WHERE user_id = $1", [userId]);
-  return res.rows.map(r => ({ ...r, access_token: decrypt(r.access_token) }));
-}
-
-async function saveItem(userId, itemId, data) {
-  await pool.query(
-    `INSERT INTO plaid_items (item_id, user_id, access_token, institution, cursor, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     ON CONFLICT (item_id) DO UPDATE SET
-       access_token = EXCLUDED.access_token, institution = EXCLUDED.institution,
-       cursor = COALESCE(EXCLUDED.cursor, plaid_items.cursor), created_at = EXCLUDED.created_at`,
-    [itemId, userId, encrypt(data.access_token), data.institution, data.cursor || null, data.created_at || Date.now()]
-  );
-}
-
-async function removeItem(itemId) {
-  await pool.query("DELETE FROM plaid_items WHERE item_id = $1", [itemId]);
-}
-
-async function updateCursor(itemId, cursor) {
-  await pool.query("UPDATE plaid_items SET cursor = $1 WHERE item_id = $2", [cursor, itemId]);
-}
-
-/* ── Push helpers ─────────────────────────────────────────────────── */
-async function saveSubscription(userId, sub) {
-  await pool.query(
-    `INSERT INTO push_subscriptions (user_id, endpoint, subscription, created_at)
-     VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, endpoint) DO UPDATE SET subscription = EXCLUDED.subscription`,
-    [userId, sub.endpoint, JSON.stringify(sub), Date.now()]
-  );
-}
-
-async function getSubscriptionsForUser(userId) {
-  const res = await pool.query("SELECT subscription FROM push_subscriptions WHERE user_id = $1", [userId]);
-  return res.rows.map(r => JSON.parse(r.subscription));
-}
-
-async function removeSubscription(userId, endpoint) {
-  await pool.query("DELETE FROM push_subscriptions WHERE user_id = $1 AND endpoint = $2", [userId, endpoint]);
-}
-
-async function sendPushToUser(userId, payload) {
-  const subs = await getSubscriptionsForUser(userId);
-  if (!subs.length) return;
-  await Promise.allSettled(
-    subs.map(sub =>
-      webpush.sendNotification(sub, JSON.stringify(payload)).catch(async err => {
-        if (err.statusCode === 410) await removeSubscription(userId, sub.endpoint);
-        throw err;
-      })
-    )
-  );
-}
-
-/* ── Email helpers ────────────────────────────────────────────────── */
-async function sendEmail(to, subject, html) {
-  if (!process.env.RESEND_API_KEY) { console.warn("[email] RESEND_API_KEY not set, skipping:", subject); return; }
-  try {
-    await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
-    console.log(`[email] Sent "${subject}" to ${to}`);
-  } catch(e) { console.error("[email] Failed:", e.message); }
-}
-
-function emailWelcome(email) {
-  return sendEmail(email, "Welcome to ledgr.", `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
-      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
-      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
-      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">Welcome aboard 👋</h2>
-      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
-        Your ledgr account is ready. You have a 7-day free trial to explore everything — connect your bank, track spending, and set budgets.
-      </p>
-      <a href="${FRONTEND_URL}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
-        Open ledgr →
-      </a>
-      <p style="color:#8b949e;font-size:12px;margin-top:28px">
-        After your trial, ledgr is $4.99/month. You can subscribe anytime from Settings.
-      </p>
-    </div>
-  `);
-}
-
-function emailTrialExpiring(email, daysLeft) {
-  return sendEmail(email, `Your ledgr trial ends ${daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`}`, `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
-      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
-      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
-      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">⏰ Your trial ends ${daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`}</h2>
-      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
-        Don't lose access to your financial data. Subscribe now to keep tracking your spending, budgets, and bank connections.
-      </p>
-      <a href="${FRONTEND_URL}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
-        Subscribe — $4.99/mo →
-      </a>
-      <p style="color:#8b949e;font-size:12px;margin-top:28px">
-        Cancel anytime. No hidden fees.
-      </p>
-    </div>
-  `);
-}
-
-function emailSubscriptionConfirmed(email) {
-  return sendEmail(email, "You're now a ledgr Pro subscriber 🎉", `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
-      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
-      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
-      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">Subscription confirmed 🎉</h2>
-      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
-        Thanks for subscribing to ledgr Pro at $4.99/month. You now have full access to all features including bank connections and automatic sync.
-      </p>
-      <a href="${FRONTEND_URL}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
-        Open ledgr →
-      </a>
-      <p style="color:#8b949e;font-size:12px;margin-top:28px">
-        Manage your subscription anytime from Settings → Subscription.
-      </p>
-    </div>
-  `);
-}
-
-function emailPasswordReset(email, resetUrl) {
-  return sendEmail(email, "Reset your ledgr password", `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0d1117;color:#e6edf3;border-radius:12px">
-      <div style="font-size:24px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span></div>
-      <div style="font-size:12px;color:#8b949e;margin-bottom:28px">personal finance</div>
-      <h2 style="font-size:20px;font-weight:700;margin:0 0 12px">Reset your password</h2>
-      <p style="color:#8b949e;line-height:1.6;margin:0 0 20px">
-        Click the button below to reset your password. This link expires in 1 hour.
-      </p>
-      <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#00d4ff;color:#000;font-weight:700;border-radius:8px;text-decoration:none;font-size:14px">
-        Reset Password →
-      </a>
-      <p style="color:#8b949e;font-size:12px;margin-top:28px">
-        If you didn't request this, you can safely ignore this email. Your password won't change.
-      </p>
-    </div>
-  `);
-}
-
-/* ── Plaid client ─────────────────────────────────────────────────── */
-const plaidConfig = new Configuration({
-  basePath: PlaidEnvironments[PLAID_ENV],
-  baseOptions: { headers: { "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID, "PLAID-SECRET": process.env.PLAID_SECRET } },
-});
-const plaidClient = new PlaidApi(plaidConfig);
-
-/* ── Sync ─────────────────────────────────────────────────────────── */
-async function syncItemTransactions(userId, targetItemId = null) {
-  const items = targetItemId ? [await getItem(targetItemId)].filter(Boolean) : await getItemsForUser(userId);
-  if (!items.length) return { added: [], modified: [], removed: [] };
-  const allAdded = [], allModified = [], allRemoved = [];
-  for (const item of items) {
-    let cursor = item.cursor || undefined, hasMore = true;
-    while (hasMore) {
-      try {
-        const syncRes = await plaidClient.transactionsSync({ access_token: item.access_token, cursor, count: 500 });
-        const { added, modified, removed, next_cursor, has_more } = syncRes.data;
-        const mapTxn = t => ({
-          transaction_id: t.transaction_id, account_id: t.account_id,
-          item_id: item.item_id, institution: item.institution,
-          date: t.date, authorized_date: t.authorized_date,
-          name: t.name, merchant_name: t.merchant_name || t.name,
-          amount: -t.amount,
-          category: t.personal_finance_category?.primary || (t.category?.[0] || null),
-          pending: t.pending, currency: t.iso_currency_code, logo_url: t.logo_url || null,
-        });
-        allAdded.push(...added.map(mapTxn));
-        allModified.push(...modified.map(mapTxn));
-        allRemoved.push(...removed.map(t => ({ transaction_id: t.transaction_id })));
-        cursor = next_cursor; hasMore = has_more;
-        await updateCursor(item.item_id, cursor);
-        // Clear reauth flag on successful sync
-        await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [item.item_id]);
-      } catch (err) {
-        const code = err.response?.data?.error_code;
-        if (code === "ITEM_LOGIN_REQUIRED" || code === "ITEM_NOT_FOUND") {
-          // Mark item as needing re-auth so frontend can show the warning
-          await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item.item_id]);
-          console.error(`Item ${item.item_id} needs re-auth (${code})`);
-        } else {
-          console.error(`sync error for item ${item.item_id}:`, err.response?.data || err.message);
-        }
-        hasMore = false;
-      }
-    }
-  }
-  return { added: allAdded, modified: allModified, removed: allRemoved };
-}
-
-async function applySyncResultsToDB(userId, added, modified, removed) {
-  // Load only IDs and fingerprints — much lighter than loading full objects.
-  const { rows: existing } = await pool.query(
-    `SELECT id, fingerprint FROM transactions WHERE user_id = $1`,
-    [userId]
-  );
-  const existingIds  = new Set(existing.map(r => r.id));
-  const fingerprints = new Set(existing.map(r => r.fingerprint).filter(Boolean));
-
-  // 1. Remove first — so a pending→posted transition (remove old ID + add new ID,
-  //    same fingerprint) is handled correctly before we check for duplicates.
-  if (removed.length > 0) {
-    const removeIds = removed.map(r => r.transaction_id);
-    await removeTransactionsByIds(userId, removeIds);
-    removeIds.forEach(id => existingIds.delete(id));
-  }
-
-  // 2. Apply Plaid modifications — only Plaid-owned fields are updated,
-  //    user fields (categoryId, name, notes, reviewed, recurring, type) are preserved.
-  for (const m of modified) {
-    await applyModifiedTransaction(userId, m);
-  }
-
-  // 3. Map, fingerprint-dedup, and insert new transactions.
-  const newTxns = added
-    .filter(t => !existingIds.has(t.transaction_id))
-    .map(t => ({
-      id:              t.transaction_id,
-      plaidAccountId:  t.account_id,
-      plaidItemId:     t.item_id,
-      accountId:       "a" + t.account_id,
-      date:            t.date,
-      authorized_date: t.authorized_date || null,
-      merchant:        t.merchant_name || t.name,
-      name:            "",
-      amount:          t.amount,
-      categoryId:      null,
-      userCategorized: false,
-      pending:         t.pending,
-      type:            t.amount < 0 ? "expense" : "income",
-      recurring:       false,
-      recurringDay:    null,
-      currency:        t.currency        || null,
-      logo_url:        t.logo_url        || null,
-      institution:     t.institution     || null,
-    }))
-    .filter(t => {
-      const fp = computeFingerprint(t);
-      if (fingerprints.has(fp)) return false;
-      fingerprints.add(fp);
-      return true;
-    });
-
-  for (const t of newTxns) {
-    await upsertTransactionRow(userId, t);
-  }
-
-  // 4. Refresh account balances (unchanged from original).
-  try {
-    const items = await getItemsForUser(userId);
-    const allAccounts = [];
-    for (const item of items) {
-      try {
-        const r = await plaidClient.accountsGet({ access_token: item.access_token });
-        allAccounts.push(...r.data.accounts.map(a => ({
-          plaidId: a.account_id, plaidItemId: item.item_id, institution: item.institution,
-          name: a.name, type: a.type, subtype: a.subtype,
-          balance: a.balances.current, available: a.balances.available,
-        })));
-      } catch (e) { console.error(`accountsGet failed for ${item.item_id}:`, e.message); }
-    }
-    if (allAccounts.length > 0) {
-      const saved   = (await getData(userId, "accounts")) || [];
-      const manual  = saved.filter(a => !a.plaidId);
-      const byPlaid = Object.fromEntries(saved.filter(a => a.plaidId).map(a => [a.plaidId, a]));
-      const seen    = new Set();
-      const unique  = allAccounts.filter(pa => {
-        if (seen.has(pa.plaidId)) return false;
-        seen.add(pa.plaidId);
-        return true;
-      });
-      const plaidUpdated = unique.map(pa => ({
-        ...(byPlaid[pa.plaidId] || { id: "a" + pa.plaidId }),
-        plaidId: pa.plaidId, plaidItemId: pa.plaidItemId,
-        balance: pa.balance, available: pa.available,
-        institution: pa.institution, type: pa.subtype || pa.type,
-      }));
-      await setData(userId, "accounts", [...manual, ...plaidUpdated]);
-    }
-  } catch (e) { console.error("Balance refresh failed:", e.message); }
-
-  return { added: newTxns.length, modified: modified.length, removed: removed.length, newTxns };
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   EXPRESS
-═══════════════════════════════════════════════════════════════════ */
 const app = express();
 
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -1986,84 +1303,6 @@ app.post("/api/admin/encrypt-tokens", requireOwner, async (_req, res) => {
   } catch (err) { serverError(res, err); }
 });
 
-/* ═══════════════════════════════════════════════════════════════════
-   CRON
-═══════════════════════════════════════════════════════════════════ */
-
-// Every hour: expire trials that have ended + send 1-day warning emails
-// IS_WORKER guard prevents every replica from firing this simultaneously.
-cron.schedule("0 * * * *", async () => {
-  if (!IS_WORKER) return;
-  const now = Date.now();
-  try {
-    // Expire trials that ended
-    const expired = await pool.query(`
-      UPDATE users SET subscription_status = 'expired'
-      WHERE subscription_status = 'trialing' AND trial_ends_at < $1
-      RETURNING id, email
-    `, [now]);
-    for (const u of expired.rows) {
-      console.log(`[cron] Trial expired for ${u.email}`);
-    }
-
-    // Send "trial ending tomorrow" emails (trial ends in 20-28 hours)
-    const expiringSoon = await pool.query(`
-      SELECT id, email, trial_ends_at FROM users
-      WHERE subscription_status = 'trialing'
-        AND trial_ends_at BETWEEN $1 AND $2
-    `, [now + 20 * 60 * 60 * 1000, now + 28 * 60 * 60 * 1000]);
-    for (const u of expiringSoon.rows) {
-      await emailTrialExpiring(u.email, 1).catch(() => {});
-      console.log(`[cron] Sent trial expiring email to ${u.email}`);
-    }
-
-    // Clean up expired/used password reset tokens older than 24 hours
-    await pool.query(`
-      DELETE FROM password_resets
-      WHERE used = TRUE OR expires_at < $1
-    `, [now - 24 * 60 * 60 * 1000]);
-
-    // Clear lockouts that have expired
-    await pool.query(`
-      UPDATE users SET failed_login_attempts = 0, locked_until = NULL
-      WHERE locked_until IS NOT NULL AND locked_until < $1
-    `, [now]);
-
-  } catch(e) { console.error("[cron] Hourly check failed:", e.message); }
-});
-
-// Every 4 hours: sync active users
-// IS_WORKER guard prevents every replica from running duplicate syncs.
-cron.schedule("0 */4 * * *", async () => {
-  if (!IS_WORKER) return;
-  console.log(`[cron] ${new Date().toISOString()} — syncing active users`);
-  try {
-    const { rows } = await pool.query(`
-      SELECT id FROM users
-      WHERE role = 'owner'
-         OR subscription_status = 'active'
-         OR (subscription_status = 'trialing' AND trial_ends_at > $1)
-    `, [Date.now()]);
-    for (const { id: userId } of rows) {
-      try {
-        const items = await getItemsForUser(userId);
-        if (!items.length) continue;
-        const { added, modified, removed } = await syncItemTransactions(userId);
-        const result = await applySyncResultsToDB(userId, added, modified, removed);
-        console.log(`[cron] ${userId}: +${result.added} added, ${result.modified} modified, ${result.removed} removed`);
-        if (result.added > 0) {
-          const examples = result.newTxns.slice(0, 2).map(t => t.merchant || t.name).join(", ");
-          await sendPushToUser(userId, {
-            title: `ledgr. — ${result.added} new transaction${result.added !== 1 ? "s" : ""}`,
-            body: examples || `${result.added} new transaction${result.added !== 1 ? "s" : ""} synced`,
-            url: "/",
-          });
-        }
-      } catch (err) { console.error(`[cron] Failed for user ${userId}:`, err.message); }
-    }
-  } catch (err) { console.error("[cron] Failed:", err.message); }
-});
-
 /* ── Start ────────────────────────────────────────────────────────── */
 initDB().then(() => {
   app.listen(PORT, () => {
@@ -2072,8 +1311,7 @@ initDB().then(() => {
     console.log(`  =>  Plaid:      ${PLAID_ENV}`);
     console.log(`  =>  Stripe:     ${process.env.STRIPE_SECRET_KEY ? "enabled" : "DISABLED"}`);
     console.log(`  =>  Auth:       ${JWT_SECRET ? "enabled" : "DISABLED"}`);
-    console.log(`  =>  Owner:      ${OWNER_EMAIL || "(first registered user)"}`);
-    console.log(`  =>  Cron jobs:  ${IS_WORKER ? "ENABLED (worker)" : "disabled (web replica)"}\n`);
+    console.log(`  =>  Owner:      ${OWNER_EMAIL || "(first registered user)"}\n`);
   });
 }).catch(err => {
   console.error("DB init failed:", err.message);

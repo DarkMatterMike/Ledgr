@@ -2830,7 +2830,9 @@ function AppInner() {
       // userCategorized:true locks this txn from being re-categorized by rules or sync
       const next = p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed, userCategorized: !!val } : t);
       // Save immediately — don't rely on debounce, a sync could arrive within 800ms
-      api.updateTransaction(id, { categoryId: val || null, reviewed: val ? true : undefined, userCategorized: !!val }).catch(console.error);
+      // When removing a category (val is falsy), also reset reviewed so the transaction
+      // returns to the review queue rather than staying silently "reviewed" with no category.
+      api.updateTransaction(id, { categoryId: val || null, reviewed: val ? true : false, userCategorized: !!val }).catch(console.error);
       return next;
     });
     if (val) {

@@ -3870,6 +3870,7 @@ function AppInner() {
         </div>
       )}
       {DrillDownModal}
+    </div>
   );
 
   /* ── Transactions ── */

@@ -2000,6 +2000,7 @@ function AppInner() {
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
   const [transactions,  setTransactions]  = useState([]);
+  const [allTransactions, setAllTransactions] = useState(null); // null = not yet loaded; set when analytics opens
   const [txnTotal,      setTxnTotal]      = useState(0);    // total count from server
   const [txnOffset,     setTxnOffset]     = useState(0);    // current pagination offset
   const [txnLoading,    setTxnLoading]    = useState(false);// loading more transactions
@@ -2103,7 +2104,8 @@ function AppInner() {
   const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Load + Save (via hook) ── */
-  const { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce } = useAppData({
+  const { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce,
+          resetAnalyticsLoad } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
@@ -2138,9 +2140,12 @@ function AppInner() {
       aiChat.loadFromData(data);
     },
     // Called the first time the analytics view opens
-    onAnalyticsData: (data) => {
+    onAnalyticsData: (data, allTxns) => {
       if (data.analyticsInsights) setAnalyticsInsights(data.analyticsInsights);
       if (data.insightsTodos)     setInsightsTodos(data.insightsTodos);
+      // Store the full transaction set for analytics computations.
+      // Falls back to the paginated set if the full load failed.
+      if (allTxns?.length) setAllTransactions(allTxns);
     },
   });
 
@@ -2814,6 +2819,11 @@ function AppInner() {
         return prev.map(t=>t.plaidAccountId?{...t,accountId:map[t.plaidAccountId]||t.accountId}:t);
       });
       showToast(`Synced: +${added.length} transactions`);
+      // Invalidate the full analytics transaction set — it will reload fresh next time analytics opens
+      if (added.length > 0 || removed.length > 0) {
+        setAllTransactions(null);
+        resetAnalyticsLoad();
+      }
       // Auto-categorize new uncategorized transactions if user has AI key
       if (added.length > 0) {
         const count = await runAutoCategorize();
@@ -6462,7 +6472,7 @@ function AppInner() {
 
   const AnalyticsPage = (
     <Analytics
-      transactions={transactions}
+      transactions={allTransactions ?? transactions}
       categories={categories}
       accounts={accounts}
       catMap={catMap}

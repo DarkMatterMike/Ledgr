@@ -126,6 +126,12 @@ export function loadAiData()     { return request("/api/data/ai"); }
 // Lazy-loaded when the analytics view first opens
 export function loadAnalytics()  { return request("/api/data/analytics"); }
 
+// Load ALL transactions for analytics — no limit, used only when the analytics
+// view opens so it doesn't slow down initial page load.
+export function loadAllTransactions() {
+  return request("/api/transactions?limit=10000&offset=0");
+}
+
 // Dashboard summary — precomputed server-side aggregates for a given month.
 // Much faster than scanning all transactions client-side.
 export function loadSummary(month) {

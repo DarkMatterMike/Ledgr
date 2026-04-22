@@ -148,8 +148,18 @@ export function useAppData({
     if (analyticsLoaded.current) return;
     analyticsLoaded.current = true;
     try {
-      const data = await api.loadAnalytics();
-      if (onAnalyticsData) onAnalyticsData(data);
+      // Load analytics blob data and full transaction set in parallel.
+      // The full set is needed so analytics computations (monthly history,
+      // merchant totals, day-of-week patterns, etc.) see all transactions
+      // not just the first page loaded at startup.
+      const [analyticsData, txnData] = await Promise.allSettled([
+        api.loadAnalytics(),
+        api.loadAllTransactions(),
+      ]);
+      const data    = analyticsData.status === "fulfilled" ? analyticsData.value : {};
+      const allTxns = txnData.status      === "fulfilled" ? txnData.value.transactions || [] : [];
+      if (txnData.status === "rejected") console.warn("Full txn load failed:", txnData.reason?.message);
+      if (onAnalyticsData) onAnalyticsData(data, allTxns);
     } catch (e) { console.warn("Analytics load error:", e.message); }
   }, [onAnalyticsData]);
 
@@ -183,5 +193,8 @@ export function useAppData({
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts, scheduleSave]);
 
-  return { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce };
+  return { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce,
+    // Call this to force analytics to reload all transactions on next navigation
+    resetAnalyticsLoad: () => { analyticsLoaded.current = false; },
+  };
 }

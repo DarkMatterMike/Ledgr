@@ -125,6 +125,23 @@ export function loadAiData()     { return request("/api/data/ai"); }
 // Lazy-loaded when the analytics view first opens
 export function loadAnalytics()  { return request("/api/data/analytics"); }
 
+/* ── Accounts (incremental) ───────────────────────────────────────── */
+export function createAccount(account) {
+  return request("/api/accounts", { method: "POST", body: JSON.stringify(account) });
+}
+export function updateAccount(id, patch) {
+  return request(`/api/accounts/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+export function deleteAccount(id) {
+  return request(`/api/accounts/${id}`, { method: "DELETE" });
+}
+export function deleteAccountsByItem(plaidItemId) {
+  return request(`/api/accounts/plaid-item/${plaidItemId}`, { method: "DELETE" });
+}
+export function deleteAllAccountsApi() {
+  return request("/api/accounts/all", { method: "DELETE" });
+}
+
 /* ── Plaid ────────────────────────────────────────────────────────── */
 export function createLinkToken(products, itemId) {
   return request("/api/plaid/create_link_token", {

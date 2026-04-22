@@ -167,8 +167,8 @@ export function useAppData({
   }, []); // refs never change — stable callback
 
   /* ── Auto-save each piece of state when it changes ─────────────── */
-  // transactions are intentionally excluded — all changes go via /api/transactions/* endpoints
-  useEffect(() => { scheduleSave({ accounts });     }, [accounts,     scheduleSave]);
+  // accounts    → POST/PATCH/DELETE /api/accounts/* on each mutation
+  // transactions → PATCH/DELETE /api/transactions/* on each mutation
   useEffect(() => { scheduleSave({ categories });   }, [categories,   scheduleSave]);
   useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems,    scheduleSave]);
   useEffect(() => { scheduleSave({ rules });        }, [rules,         scheduleSave]);

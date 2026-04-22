@@ -1237,7 +1237,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     // Explicitly save empty arrays to DB so they don't get restored on next load
     await Promise.all([
       api.deleteAllTransactions(),
-      api.saveData({ accounts: [], categories: [], rules: [], plaidItems: [] }),
+      api.deleteAllAccountsApi(),
+      api.saveData({ categories: [], rules: [], plaidItems: [] }),
     ]);
     showToast("All data cleared");
   }
@@ -2709,7 +2710,7 @@ function AppInner() {
             institution: pa.institution,
           }));
         const updated = [...manual, ...plaidUpdated];
-        api.saveData({ accounts: updated });
+        // No saveData call needed — applySyncResultsToDB already wrote to the accounts table
         return updated;
       });
       setTransactions(prev=>{
@@ -2758,7 +2759,8 @@ function AppInner() {
       setTransactions(cleanTransactions);
       setPlaidItems(cleanPlaidItems);
       await api.deleteAllTransactions(itemId);
-      await api.saveData({ accounts: cleanAccounts, plaidItems: cleanPlaidItems });
+      await api.deleteAccountsByItem(itemId);
+      await api.saveData({ plaidItems: cleanPlaidItems });
       showToast("Bank disconnected");
     } catch(e) { showToast("Error: " + e.message); }
   }
@@ -2799,14 +2801,25 @@ function AppInner() {
   function openEditAcct(a) { setAcctForm({name:a.name,balance:String(a.balance),type:a.type}); setEditTarget(a); setModal("editAcct"); }
   function saveAcct() {
     if (!acctForm.name.trim()) return;
-    if (modal==="addAcct") setAccounts(p=>[...p,{id:"a"+Date.now(),name:acctForm.name.trim(),balance:parseFloat(acctForm.balance)||0,type:acctForm.type}]);
-    else setAccounts(p=>p.map(a=>a.id===editTarget.id?{...a,...acctForm,balance:parseFloat(acctForm.balance)||0}:a));
+    if (modal === "addAcct") {
+      const newAcct = { id:"a"+Date.now(), name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type, isManual:true };
+      setAccounts(p => [...p, newAcct]);
+      api.createAccount(newAcct).catch(console.error);
+    } else {
+      const patch = { name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type };
+      setAccounts(p => p.map(a => a.id === editTarget.id ? {...a, ...patch} : a));
+      api.updateAccount(editTarget.id, patch).catch(console.error);
+    }
     setModal(null); showToast("Account saved");
   }
   function deleteAcct(id) {
-    const acct = accounts.find(a=>a.id===id);
-    setAccounts(p=>p.filter(a=>a.id!==id));
-    showUndoToast("Account deleted", ()=>setAccounts(p=>[...p,acct]));
+    const acct = accounts.find(a => a.id === id);
+    setAccounts(p => p.filter(a => a.id !== id));
+    api.deleteAccount(id).catch(console.error);
+    showUndoToast("Account deleted", () => {
+      setAccounts(p => [...p, acct]);
+      api.createAccount(acct).catch(console.error);
+    });
   }
 
   /* ── Transaction CRUD ── */

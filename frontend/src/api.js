@@ -133,6 +133,33 @@ export function adminGetUsers()               { return request("/api/admin/users
 export function adminUpdateUser(userId, data) { return request(`/api/admin/users/${userId}`, { method: "PATCH", body: JSON.stringify(data) }); }
 export function adminDeleteUser(userId)       { return request(`/api/admin/users/${userId}`, { method: "DELETE" }); }
 
+/* ── Transactions (incremental) ───────────────────────────────────── */
+export function updateTransaction(id, patch) {
+  return request(`/api/transactions/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+export function deleteTransaction(id) {
+  return request(`/api/transactions/${id}`, { method: "DELETE" });
+}
+export function createTransaction(txn) {
+  return request("/api/transactions", { method: "POST", body: JSON.stringify(txn) });
+}
+export function bulkUpdateTransactions(ids, patch) {
+  return request("/api/transactions/bulk", { method: "PATCH", body: JSON.stringify({ ids, patch }) });
+}
+export function bulkDeleteTransactions(ids) {
+  return request("/api/transactions/bulk", { method: "DELETE", body: JSON.stringify({ ids }) });
+}
+// plaidItemId is optional — omit to delete ALL transactions for the user
+export function deleteAllTransactions(plaidItemId) {
+  return request("/api/transactions/all", { method: "DELETE", body: JSON.stringify(plaidItemId ? { plaidItemId } : {}) });
+}
+
+// Simple debounce — used for notes input so we don't fire on every keystroke
+export function debounce(fn, ms) {
+  let timer;
+  return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
 /* ── AI ───────────────────────────────────────────────────────────── */
 export function autoCategorize(transactions, categories, examples) {
   return request("/api/ai/categorize", {
@@ -154,3 +181,6 @@ export function getAiInsights(context) {
     body: JSON.stringify({ context }),
   });
 }
+
+
+

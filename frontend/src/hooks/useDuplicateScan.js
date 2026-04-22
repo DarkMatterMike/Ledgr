@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo } from "react";
+import * as api from "../api.js";
 
 /* ── Pure helpers (no state, defined first) ──────────────────────── */
 
@@ -227,25 +228,23 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
     const posted  = transactions.find(t => t.id === postedId);
     if (!pending || !posted) return;
     recordConfirmed(pending, posted);
+    const mergedFields = {
+      name:           pending.name           || posted.name,
+      categoryId:     pending.categoryId     || posted.categoryId,
+      recurring:      pending.recurring      || posted.recurring,
+      recurringDay:   pending.recurringDay   || posted.recurringDay,
+      recurringFreq:  pending.recurringFreq  || posted.recurringFreq,
+      recurringStart: pending.recurringStart || posted.recurringStart,
+      reviewed:       pending.reviewed       || posted.reviewed,
+      type:           pending.type           || posted.type,
+    };
     setTransactions(p =>
       p
         .filter(t => t.id !== pendingId)
-        .map(t =>
-          t.id !== postedId
-            ? t
-            : {
-                ...t,
-                name:           pending.name           || t.name,
-                categoryId:     pending.categoryId     || t.categoryId,
-                recurring:      pending.recurring      || t.recurring,
-                recurringDay:   pending.recurringDay    || t.recurringDay,
-                recurringFreq:  pending.recurringFreq   || t.recurringFreq,
-                recurringStart: pending.recurringStart  || t.recurringStart,
-                reviewed:       pending.reviewed        || t.reviewed,
-                type:           pending.type            || t.type,
-              }
-        )
+        .map(t => t.id !== postedId ? t : { ...t, ...mergedFields })
     );
+    api.deleteTransaction(pendingId).catch(console.error);
+    api.updateTransaction(postedId, mergedFields).catch(console.error);
     showToast("Merged — metadata copied to posted transaction");
   }
 
@@ -270,6 +269,7 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
     if (!removeTxn || !keepTxn) return;
     recordConfirmed(removeTxn, keepTxn);
     setTransactions(prev => prev.filter(t => t.id !== removeId));
+    api.deleteTransaction(removeId).catch(console.error);
     setDuplicatePairs(prev =>
       prev.filter(
         pair =>

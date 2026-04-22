@@ -108,7 +108,7 @@ export function useAppData({
   /* ── Auto-save each piece of state when it changes ─────────────── */
   useEffect(() => { scheduleSave({ accounts });     }, [accounts,     scheduleSave]);
   useEffect(() => { scheduleSave({ categories });   }, [categories,   scheduleSave]);
-  useEffect(() => { scheduleSave({ transactions }); }, [transactions,  scheduleSave]);
+  // transactions are no longer auto-saved — all changes go via /api/transactions/* endpoints
   useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems,    scheduleSave]);
   useEffect(() => { scheduleSave({ rules });        }, [rules,         scheduleSave]);
   useEffect(() => {

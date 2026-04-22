@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
+import { debounce } from "./api.js";
 import { useAppData } from "./hooks/useAppData.js";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -1214,6 +1215,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     const confirmed = window.confirm(`Delete all ${transactions.length} transactions? This cannot be undone.`);
     if (!confirmed) return;
     setTransactions([]);
+    api.deleteAllTransactions().catch(console.error);
     showToast("All transactions deleted");
   }
 
@@ -1233,7 +1235,10 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     setRules([]);
     setPlaidItems([]);
     // Explicitly save empty arrays to DB so they don't get restored on next load
-    await api.saveData({ transactions: [], accounts: [], categories: [], rules: [], plaidItems: [] });
+    await Promise.all([
+      api.deleteAllTransactions(),
+      api.saveData({ accounts: [], categories: [], rules: [], plaidItems: [] }),
+    ]);
     showToast("All data cleared");
   }
 
@@ -2235,7 +2240,14 @@ function AppInner() {
   // A transaction needs review if it has no category AND hasn't been marked reviewed
   // Income, transfer, reimbursement auto-reviewed when type set
   const needsReview = t => !t.reviewed && !t.categoryId && (t.type==="expense" || t.type==="refund" || !t.type);
-  function markReviewed(id) { setTransactions(p=>p.map(t=>t.id===id?{...t,reviewed:!t.reviewed}:t)); }
+  function markReviewed(id) {
+    setTransactions(p => p.map(t => {
+      if (t.id !== id) return t;
+      const reviewed = !t.reviewed;
+      api.updateTransaction(id, { reviewed }).catch(console.error);
+      return { ...t, reviewed };
+    }));
+  }
 
   /* ── Computed ── */
   const monthTxns = useMemo(() =>
@@ -2453,25 +2465,36 @@ function AppInner() {
   function selectAllVisible() { setSelectedTxns(new Set(filteredTxns.map(t => t.id))); }
   function clearSelection()   { setSelectedTxns(new Set()); }
   function bulkSetCategory(catId) {
+    const ids = [...selectedTxns];
     setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, categoryId:catId||null, reviewed: catId ? true : t.reviewed, userCategorized: !!catId} : t));
+    api.bulkUpdateTransactions(ids, { categoryId: catId || null, reviewed: !!catId, userCategorized: !!catId }).catch(console.error);
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
   }
   function bulkSetType(type) {
+    const ids = [...selectedTxns];
     const autoReviewed = ["income","transfer","reimbursement"].includes(type);
     setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, type, reviewed: autoReviewed ? true : t.reviewed} : t));
+    api.bulkUpdateTransactions(ids, { type, ...(autoReviewed ? { reviewed: true } : {}) }).catch(console.error);
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
   }
   function bulkMarkReviewed(reviewed) {
+    const ids = [...selectedTxns];
     setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, reviewed} : t));
+    api.bulkUpdateTransactions(ids, { reviewed }).catch(console.error);
     showToast(`Marked ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""} ${reviewed?"reviewed":"unreviewed"}`);
     clearSelection();
   }
   function bulkDelete() {
     const removed = transactions.filter(t => selectedTxns.has(t.id));
+    const removedIds = removed.map(t => t.id);
     setTransactions(p => p.filter(t => !selectedTxns.has(t.id)));
-    showUndoToast(`Deleted ${removed.length} transaction${removed.length!==1?"s":""}`, () => setTransactions(p => [...p, ...removed]));
+    api.bulkDeleteTransactions(removedIds).catch(console.error);
+    showUndoToast(`Deleted ${removed.length} transaction${removed.length!==1?"s":""}`, () => {
+      setTransactions(p => [...p, ...removed]);
+      Promise.all(removed.map(t => api.createTransaction(t))).catch(console.error);
+    });
     clearSelection();
   }
   function promptSaveRule(txn, categoryId) {
@@ -2548,7 +2571,24 @@ function AppInner() {
 
   useEffect(() => {
     if (!initialized.current || !rules.length) return;
-    setTransactions(prev => applyRules(prev, rules, { onlyUncategorized: true }));
+    setTransactions(prev => {
+      const next = applyRules(prev, rules, { onlyUncategorized: true });
+      const prevMap = Object.fromEntries(prev.map(t => [t.id, t]));
+      const changed = next.filter(t => prevMap[t.id] && t.categoryId !== prevMap[t.id].categoryId);
+      if (changed.length > 0) {
+        // Group by categoryId for efficient bulk updates
+        const byCat = {};
+        changed.forEach(t => {
+          const k = t.categoryId || "__null__";
+          if (!byCat[k]) byCat[k] = { ids: [], categoryId: t.categoryId };
+          byCat[k].ids.push(t.id);
+        });
+        Promise.all(Object.values(byCat).map(({ ids, categoryId }) =>
+          api.bulkUpdateTransactions(ids, { categoryId, userCategorized: false })
+        )).catch(console.error);
+      }
+      return next;
+    });
   }, [rules]);
 
   useEffect(() => {
@@ -2696,7 +2736,8 @@ function AppInner() {
       setAccounts(cleanAccounts);
       setTransactions(cleanTransactions);
       setPlaidItems(cleanPlaidItems);
-      await api.saveData({ accounts: cleanAccounts, transactions: cleanTransactions, plaidItems: cleanPlaidItems });
+      await api.deleteAllTransactions(itemId);
+      await api.saveData({ accounts: cleanAccounts, plaidItems: cleanPlaidItems });
       showToast("Bank disconnected");
     } catch(e) { showToast("Error: " + e.message); }
   }
@@ -2724,9 +2765,11 @@ function AppInner() {
     const affected = transactions.filter(t=>t.categoryId===id);
     setCategories(p=>p.filter(c=>c.id!==id));
     setTransactions(p=>p.map(t=>t.categoryId===id?{...t,categoryId:null}:t));
+    if (affected.length > 0) api.bulkUpdateTransactions(affected.map(t=>t.id), { categoryId: null }).catch(console.error);
     showUndoToast("Category deleted", ()=>{
       setCategories(p=>[...p,cat]);
       setTransactions(p=>p.map(t=>affected.find(a=>a.id===t.id)?{...t,categoryId:id}:t));
+      if (affected.length > 0) api.bulkUpdateTransactions(affected.map(t=>t.id), { categoryId: id }).catch(console.error);
     });
   }
 
@@ -2748,7 +2791,9 @@ function AppInner() {
   /* ── Transaction CRUD ── */
   function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }
   function saveRename(id) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant}:t));
+    const newName = editingName.trim() || "";
+    setTransactions(p=>p.map(t=>t.id===id?{...t,name:newName}:t));
+    api.updateTransaction(id, { name: newName }).catch(console.error);
     setEditingId(null); showToast("Name updated");
   }
   function updateTxnType(id,val) {
@@ -2760,7 +2805,11 @@ function AppInner() {
         return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, categoryId: clearCat ? null : t.categoryId, userCategorized: clearCat ? false : t.userCategorized};
       });
       // Save immediately when clearing category — don't rely on debounce
-      if (clearCat) api.saveData({ transactions: next });
+      if (clearCat) {
+        api.updateTransaction(id, { type: val, reviewed: ["income","transfer","reimbursement"].includes(val), categoryId: null, userCategorized: false }).catch(console.error);
+      } else {
+        api.updateTransaction(id, { type: val, reviewed: ["income","transfer","reimbursement"].includes(val) }).catch(console.error);
+      }
       return next;
     });
     // Offer to create a type rule for the merchant
@@ -2781,7 +2830,7 @@ function AppInner() {
       // userCategorized:true locks this txn from being re-categorized by rules or sync
       const next = p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed, userCategorized: !!val } : t);
       // Save immediately — don't rely on debounce, a sync could arrive within 800ms
-      api.saveData({ transactions: next });
+      api.updateTransaction(id, { categoryId: val || null, reviewed: val ? true : undefined, userCategorized: !!val }).catch(console.error);
       return next;
     });
     if (val) {
@@ -2888,6 +2937,10 @@ function AppInner() {
           ? { ...t, categoryId: assignments[t.id], reviewed: true }
           : t
       ));
+      // Persist each AI assignment individually
+      Object.entries(assignments).forEach(([txnId, catId]) => {
+        api.updateTransaction(txnId, { categoryId: catId, reviewed: true, userCategorized: false }).catch(console.error);
+      });
 
       // Add new AI rules (manual rules come first thanks to applyRules ordering)
       if (newRules.length > 0) {
@@ -2905,34 +2958,53 @@ function AppInner() {
     }
   }
 
-  function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
-  function updateTxnNotes(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,notes:val}:t)); }
+  function updateTxnAcct(id,val) {
+    setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t));
+    api.updateTransaction(id, { accountId: val || null }).catch(console.error);
+  }
+  const _debouncedSaveNotes = useMemo(() => debounce((id, val) => api.updateTransaction(id, { notes: val }).catch(console.error), 800), []);
+  function updateTxnNotes(id,val) {
+    setTransactions(p=>p.map(t=>t.id===id?{...t,notes:val}:t));
+    _debouncedSaveNotes(id, val);
+  }
   function deleteTxn(id) {
     const txn = transactions.find(t=>t.id===id);
     setTransactions(p=>p.filter(t=>t.id!==id));
-    showUndoToast("Transaction deleted", ()=>setTransactions(p=>[txn,...p]));
+    api.deleteTransaction(id).catch(console.error);
+    showUndoToast("Transaction deleted", () => {
+      setTransactions(p=>[txn,...p]);
+      api.createTransaction(txn).catch(console.error);
+    });
   }
   function toggleRecurring(id) {
     setTransactions(p=>p.map(t=>{
       if(t.id!==id) return t;
       const on=!t.recurring;
       const autoDay=t.date?parseInt(t.date.split("-")[2]):null;
-      return {...t, recurring:on, recurringDay:on?(t.recurringDay||autoDay):null,
+      const updated = {...t, recurring:on, recurringDay:on?(t.recurringDay||autoDay):null,
         recurringFreq: on?(t.recurringFreq||"monthly"):null,
         recurringStart: on?(t.recurringStart||t.date||null):null};
+      api.updateTransaction(id, { recurring: updated.recurring, recurringDay: updated.recurringDay, recurringFreq: updated.recurringFreq, recurringStart: updated.recurringStart }).catch(console.error);
+      return updated;
     }));
   }
-  function updateRecurringDay(id,day) { setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null}:t)); }
+  function updateRecurringDay(id,day) {
+    const val = parseInt(day) || null;
+    setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:val}:t));
+    api.updateTransaction(id, { recurringDay: val }).catch(console.error);
+  }
   function openAddTxn() {
     setTxnForm({merchant:"",amount:"",date:today.toISOString().slice(0,10),categoryId:"",accountId:"",sign:"-1"});
     setModal("addTxn");
   }
   function saveManualTxn() {
     if(!txnForm.merchant.trim()||!txnForm.amount) return;
-    setTransactions(p=>[{id:"m"+Date.now(),date:txnForm.date,merchant:txnForm.merchant.trim(),name:"",
+    const newTxn = {id:"m"+Date.now(),date:txnForm.date,merchant:txnForm.merchant.trim(),name:"",
       amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign),categoryId:txnForm.categoryId||null,
       accountId:txnForm.accountId||null,recurring:false,recurringDay:null,
-      type:txnForm.sign==="-1"?"expense":"income"},...p]);
+      type:txnForm.sign==="-1"?"expense":"income"};
+    setTransactions(p=>[newTxn,...p]);
+    api.createTransaction(newTxn).catch(console.error);
     setModal(null); showToast("Transaction added");
   }
 
@@ -3704,7 +3776,11 @@ function AppInner() {
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               {filterReview && (
                 <button onClick={()=>{
-                  setTransactions(p => p.map(t => needsReview(t) ? {...t, reviewed:true} : t));
+                  setTransactions(p => {
+                    const toMark = p.filter(t => needsReview(t));
+                    if (toMark.length > 0) api.bulkUpdateTransactions(toMark.map(t => t.id), { reviewed: true }).catch(console.error);
+                    return p.map(t => needsReview(t) ? {...t, reviewed:true} : t);
+                  });
                   setFilterReview(false);
                   showToast("All transactions marked as reviewed");
                 }}
@@ -5998,14 +6074,9 @@ function AppInner() {
         }}>Remove Recurring</button>
         <button style={S.btn("ghost")} onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
         <button style={S.btn("primary")} onClick={()=>{
-          setTransactions(p=>p.map(t=>t.id===editTarget.id?{
-            ...t,
-            name:           editTarget.name,
-            recurringDay:   editTarget.recurringDay,
-            recurringFreq:  editTarget.recurringFreq||"monthly",
-            recurringStart: editTarget.recurringStart||null,
-            categoryId:     editTarget.categoryId||null,
-          }:t));
+          const patch = { name: editTarget.name, recurringDay: editTarget.recurringDay, recurringFreq: editTarget.recurringFreq||"monthly", recurringStart: editTarget.recurringStart||null, categoryId: editTarget.categoryId||null };
+          setTransactions(p=>p.map(t=>t.id===editTarget.id?{...t,...patch}:t));
+          api.updateTransaction(editTarget.id, patch).catch(console.error);
           setModal(null);setEditTarget(null);showToast("Updated");
         }}>Save</button>
       </>}>

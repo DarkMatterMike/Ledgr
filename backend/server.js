@@ -497,9 +497,9 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [accts, ruleRows, categories, plaidItems, calendarAccounts,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
-           aiApiKey] = await Promise.all([
+           aiApiKey, plaidItemRows] = await Promise.all([
       getAccounts(uid),
-      getRules(uid),             // reads from rules table, not blob
+      getRules(uid),
       getData(uid, "categories"),
       getData(uid, "plaidItems"),
       getData(uid, "calendarAccounts"),
@@ -509,12 +509,24 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
       getData(uid, "aiApiKey"),
+      // Live item health from plaid_items table — used to seed reauth warnings on load
+      pool.query(
+        `SELECT item_id, institution, needs_reauth FROM plaid_items WHERE user_id = $1`,
+        [uid]
+      ),
     ]);
+
+    // Build a set of item_ids that need re-authentication
+    const reauthItemIds = plaidItemRows.rows
+      .filter(r => r.needs_reauth)
+      .map(r => r.item_id);
+
     res.json({
       accounts:         accts            || [],
       rules:            ruleRows         || [],
       categories:       categories       || [],
       plaidItems:       plaidItems       || [],
+      reauthItemIds,                        // item_ids with expired/invalid tokens
       calendarAccounts: calendarAccounts || null,
       aiCatExamples:    aiCatExamples    || [],
       userProfile:      userProfile      || null,

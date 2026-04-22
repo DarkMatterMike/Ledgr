@@ -2120,6 +2120,11 @@ function AppInner() {
       // Store total count for pagination
       setTxnTotal(txnTotal || 0);
       setTxnOffset(100); // we just loaded the first 100
+      // Seed stale item warnings from DB reauth flags — shown immediately on load
+      // without waiting for the user to manually sync
+      if (data.reauthItemIds?.length) {
+        setStaleItemIds(new Set(data.reauthItemIds));
+      }
       // Load the initial summary for the current month
       api.loadSummary(currentMonth).then(s => {
         setSummary(s);
@@ -3522,11 +3527,17 @@ function AppInner() {
       while (d >= start) { dates.unshift(d.toISOString().slice(0,10)); d = new Date(d.getTime() - periodDays*86400000); }
       return dates.includes(todayStr) ? [{ id:`goal-${g.id}`, type:"goal", goal:g }] : [];
     });
+    // One notification per stale item so the user can see exactly which bank needs attention
+    const reauthNotifs = [...staleItemIds].map(itemId => {
+      const item = plaidItems.find(i => i.item_id === itemId);
+      return { id:`reauth-${itemId}`, type:"reauth", itemId, institution: item?.institution || "Connected bank" };
+    });
     return [
+      ...reauthNotifs,
       ...(reviewCount > 0 ? [{ id:"review", type:"review", count:reviewCount }] : []),
       ...goalReminders,
     ];
-  }, [reviewCount, goals, today]);
+  }, [reviewCount, goals, today, staleItemIds, plaidItems]);
 
   const visibleNotifs = useMemo(
     () => notifList.filter(n => !dismissedNotifs.has(n.id)),
@@ -6587,19 +6598,19 @@ function AppInner() {
                           {visibleNotifs.map((n,i) => (
                             <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
                               <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"📋":"🎯"}
+                                {n.type==="review"?"📋":n.type==="reauth"?"🏦":"🎯"}
                               </div>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
-                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : "Goal contribution due today"}
+                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
                                 </div>
                                 <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
-                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
                                 </div>
                                 <button
-                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
                                   style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
-                                  {n.type==="review"?"Review now →":"View goals →"}
+                                  {n.type==="review"?"Review now →":n.type==="reauth"?"Reconnect →":"View goals →"}
                                 </button>
                               </div>
                               <button
@@ -6689,19 +6700,19 @@ function AppInner() {
                           {visibleNotifs.map((n,i) => (
                             <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
                               <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"📋":"🎯"}
+                                {n.type==="review"?"📋":n.type==="reauth"?"🏦":"🎯"}
                               </div>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
-                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : "Goal contribution due today"}
+                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
                                 </div>
                                 <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
-                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
                                 </div>
                                 <button
-                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
                                   style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
-                                  {n.type==="review"?"Review now →":"View goals →"}
+                                  {n.type==="review"?"Review now →":n.type==="reauth"?"Reconnect →":"View goals →"}
                                 </button>
                               </div>
                               <button

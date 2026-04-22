@@ -65,12 +65,24 @@ export function useAppData({
   useEffect(() => {
     (async () => {
       try {
-        // Core data and transactions load in parallel — both needed for dashboard
-        const [data, txnData, me] = await Promise.all([
+        // Load core data, transactions, and auth in parallel.
+        // Use allSettled so a failure in any one request doesn't blank the whole app.
+        const [coreResult, txnResult, meResult] = await Promise.allSettled([
           api.loadData(),
           api.loadTransactions(),
           api.fetchMe(),
         ]);
+
+        const data    = coreResult.status  === "fulfilled" ? coreResult.value  : {};
+        const txnData = txnResult.status   === "fulfilled" ? txnResult.value   : { transactions: [] };
+        const me      = meResult.status    === "fulfilled" ? meResult.value    : null;
+
+        if (coreResult.status === "rejected")
+          console.warn("Core data load failed:", coreResult.reason?.message);
+        if (txnResult.status === "rejected")
+          console.warn("Transactions load failed:", txnResult.reason?.message);
+        if (meResult.status === "rejected")
+          console.warn("Auth check failed:", meResult.reason?.message);
 
         if (me) {
           api.setStoredUser({ ...api.getStoredUser(), ...me });

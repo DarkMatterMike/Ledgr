@@ -2,9 +2,15 @@
  * useAppData
  *
  * Handles all server load / save / scheduleSave logic for AppInner.
- * Extracted to its own module so the debounced save callback and
- * the initialised ref are never in the same scope as JSX view constants,
- * which previously caused TDZ errors after Vite minification.
+ *
+ * Loading strategy:
+ *   1. Core data (categories, accounts, rules, etc.) + transactions load in
+ *      parallel on startup — both are needed for the dashboard.
+ *   2. Portfolio, AI, and analytics data are loaded lazily the first time
+ *      the user navigates to those views. The returned lazy-load functions
+ *      are called by the navigate() handler in App.jsx.
+ *   3. Transactions are no longer part of the auto-save loop — all mutation
+ *      goes through PATCH/DELETE /api/transactions/* endpoints.
  */
 
 import { useRef, useEffect, useCallback } from "react";
@@ -27,10 +33,18 @@ export function useAppData({
   setLoading,
   applyRules,
   onData,
+  onPortfolioData,
+  onAiData,
+  onAnalyticsData,
 }) {
   const initialized  = useRef(false);
   const saveTimeout  = useRef(null);
   const pendingPatch = useRef({});
+
+  // Track which lazy sections have already been fetched so we only load once
+  const portfolioLoaded  = useRef(false);
+  const aiLoaded         = useRef(false);
+  const analyticsLoaded  = useRef(false);
 
   /* ── Stripe redirect handling ───────────────────────────────────── */
   useEffect(() => {
@@ -51,18 +65,25 @@ export function useAppData({
   useEffect(() => {
     (async () => {
       try {
-        const [data, me] = await Promise.all([api.loadData(), api.fetchMe()]);
+        // Core data and transactions load in parallel — both needed for dashboard
+        const [data, txnData, me] = await Promise.all([
+          api.loadData(),
+          api.loadTransactions(),
+          api.fetchMe(),
+        ]);
+
         if (me) {
           api.setStoredUser({ ...api.getStoredUser(), ...me });
           if (me.access) setAccess(me.access);
         }
-        const loadedRules = data.rules || [];
-        const loadedTxns  = data.transactions || [];
 
-        // Strip categoryId from any transaction whose type is transfer/income/reimbursement.
-        // These may exist from before the no-category rule was enforced.
+        const loadedRules = data.rules || [];
+        const rawTxns     = txnData.transactions || [];
+
+        // Strip categoryId from transfer/income/reimbursement types —
+        // may exist from before the no-category rule was enforced.
         const NON_CAT_TYPES = new Set(["transfer", "income", "reimbursement"]);
-        const cleanedTxns = loadedTxns.map(t =>
+        const cleanedTxns = rawTxns.map(t =>
           NON_CAT_TYPES.has(t.type) && t.categoryId
             ? { ...t, categoryId: null, userCategorized: false }
             : t
@@ -85,6 +106,34 @@ export function useAppData({
     })();
   }, []);
 
+  /* ── Lazy loaders — called by navigate() in App.jsx ────────────── */
+  const loadPortfolioOnce = useCallback(async () => {
+    if (portfolioLoaded.current) return;
+    portfolioLoaded.current = true;
+    try {
+      const data = await api.loadPortfolio();
+      if (onPortfolioData) onPortfolioData(data);
+    } catch (e) { console.warn("Portfolio load error:", e.message); }
+  }, [onPortfolioData]);
+
+  const loadAiOnce = useCallback(async () => {
+    if (aiLoaded.current) return;
+    aiLoaded.current = true;
+    try {
+      const data = await api.loadAiData();
+      if (onAiData) onAiData(data);
+    } catch (e) { console.warn("AI data load error:", e.message); }
+  }, [onAiData]);
+
+  const loadAnalyticsOnce = useCallback(async () => {
+    if (analyticsLoaded.current) return;
+    analyticsLoaded.current = true;
+    try {
+      const data = await api.loadAnalytics();
+      if (onAnalyticsData) onAnalyticsData(data);
+    } catch (e) { console.warn("Analytics load error:", e.message); }
+  }, [onAnalyticsData]);
+
   /* ── Debounced save ─────────────────────────────────────────────── */
   const scheduleSave = useCallback((patch) => {
     if (!initialized.current) return;
@@ -106,14 +155,14 @@ export function useAppData({
   }, []); // refs never change — stable callback
 
   /* ── Auto-save each piece of state when it changes ─────────────── */
+  // transactions are intentionally excluded — all changes go via /api/transactions/* endpoints
   useEffect(() => { scheduleSave({ accounts });     }, [accounts,     scheduleSave]);
   useEffect(() => { scheduleSave({ categories });   }, [categories,   scheduleSave]);
-  // transactions are no longer auto-saved — all changes go via /api/transactions/* endpoints
   useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems,    scheduleSave]);
   useEffect(() => { scheduleSave({ rules });        }, [rules,         scheduleSave]);
   useEffect(() => {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts, scheduleSave]);
 
-  return { initialized, scheduleSave };
+  return { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce };
 }

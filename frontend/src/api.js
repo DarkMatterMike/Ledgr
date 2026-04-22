@@ -97,8 +97,33 @@ export async function changePassword(currentPassword, newPassword) {
 }
 
 /* ── App data ─────────────────────────────────────────────────────── */
-export function loadData()        { return request("/api/data"); }
-export function saveData(patch)   { return request("/api/data", { method: "PATCH", body: JSON.stringify(patch) }); }
+// Core data only — categories, accounts, rules, plaidItems, goals, etc.
+// Transactions, portfolio, AI, and analytics load via their own endpoints.
+export function loadData()      { return request("/api/data"); }
+export function saveData(patch) { return request("/api/data", { method: "PATCH", body: JSON.stringify(patch) }); }
+
+// Transactions — paginated. Params: { limit, offset, sort, search, category, account, month }
+export function loadTransactions(params = {}) {
+  const q = new URLSearchParams();
+  if (params.limit    != null) q.set("limit",    params.limit);
+  if (params.offset   != null) q.set("offset",   params.offset);
+  if (params.sort     != null) q.set("sort",      params.sort);
+  if (params.search   != null) q.set("search",   params.search);
+  if (params.category != null) q.set("category", params.category);
+  if (params.account  != null) q.set("account",  params.account);
+  if (params.month    != null) q.set("month",    params.month);
+  const qs = q.toString();
+  return request(`/api/transactions${qs ? "?" + qs : ""}`);
+}
+
+// Lazy-loaded when the portfolio view first opens
+export function loadPortfolio()  { return request("/api/data/portfolio"); }
+
+// Lazy-loaded when the AI chat view first opens
+export function loadAiData()     { return request("/api/data/ai"); }
+
+// Lazy-loaded when the analytics view first opens
+export function loadAnalytics()  { return request("/api/data/analytics"); }
 
 /* ── Plaid ────────────────────────────────────────────────────────── */
 export function createLinkToken(products, itemId) {

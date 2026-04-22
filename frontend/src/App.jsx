@@ -2095,20 +2095,30 @@ function AppInner() {
   const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Load + Save (via hook) ── */
-  const { initialized, scheduleSave } = useAppData({
+  const { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
     onData: (data) => {
+      // Core data callback — portfolio/AI/analytics are NOT in this response
+      if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
+      if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
+      if (data.goals)          setGoals(data.goals);
+      if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
+      if (data.scanMemory)     setScanMemory(data.scanMemory);
+    },
+    // Called the first time the portfolio view opens
+    onPortfolioData: (data) => {
       portfolio.loadFromData(data);
+    },
+    // Called the first time the AI view opens
+    onAiData: (data) => {
       aiChat.loadFromData(data);
-      if (data.aiCatExamples)      setAiCatExamples(data.aiCatExamples);
-      if (data.userProfile)        setUserProfile(p => ({ ...p, ...data.userProfile }));
-      if (data.insightsTodos)      setInsightsTodos(data.insightsTodos);
-      if (data.goals)              setGoals(data.goals);
-      if (data.analyticsInsights)  setAnalyticsInsights(data.analyticsInsights);
-      if (data.dismissedPairs)     setDismissedPairs(data.dismissedPairs);
-      if (data.scanMemory)         setScanMemory(data.scanMemory);
+    },
+    // Called the first time the analytics view opens
+    onAnalyticsData: (data) => {
+      if (data.analyticsInsights) setAnalyticsInsights(data.analyticsInsights);
+      if (data.insightsTodos)     setInsightsTodos(data.insightsTodos);
     },
   });
 
@@ -2130,12 +2140,12 @@ function AppInner() {
     const interval = setInterval(async () => {
       if (!initialized.current) return;
       try {
-        const data = await api.loadData();
-        const incoming = data.transactions || [];
+        // Poll /api/transactions instead of /api/data — core data doesn't change between polls
+        const txnData = await api.loadTransactions();
+        const incoming = txnData.transactions || [];
         const known = knownTxnIds.current || new Set();
         const brandNew = incoming.filter(t => !known.has(t.id));
         if (brandNew.length > 0) {
-          // Merge new transactions into state without overwriting user edits
           setTransactions(prev => {
             const existingIds = new Set(prev.map(t => t.id));
             const toAdd = applyRules(
@@ -2220,7 +2230,15 @@ function AppInner() {
 
   const contentRef = useRef(null);
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
-  const navigate  = id  => { setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); };
+  const navigate  = id  => {
+    setView(id);
+    setDrawerOpen(false);
+    contentRef.current?.scrollTo({ top: 0 });
+    // Lazy-load section data on first navigation — each loads at most once per session
+    if (id === "portfolio") loadPortfolioOnce();
+    if (id === "ai")        loadAiOnce();
+    if (id === "analytics") loadAnalyticsOnce();
+  };
 
   function showUndoToast(label, undoFn) {
     clearTimeout(undoTimer.current);
@@ -6505,7 +6523,7 @@ function AppInner() {
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
             zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
           }}>
-            <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); }} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
+            <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </div>
           {/* Content */}
           <div ref={contentRef} style={{position:"absolute",inset:0,overflowY:"auto"}} className="ledgr-content">
@@ -6595,7 +6613,7 @@ function AppInner() {
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
           <aside style={{width:220,flexShrink:0,background:"var(--surface)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
-            <SidebarContent onNav={id=>{ setView(id); contentRef.current?.scrollTo({ top: 0 }); }} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
+            <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
           {/* Content */}
           <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">

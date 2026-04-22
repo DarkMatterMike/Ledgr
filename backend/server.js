@@ -432,46 +432,161 @@ app.get("/api/billing/status", (req, res) => {
    APP DATA — read allowed for all authed users, write requires sub
 ═══════════════════════════════════════════════════════════════════ */
 
+// GET /api/data — core data only (fast, needed for first render).
+// Transactions, portfolio, AI, and analytics are loaded via their own endpoints.
 app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
-    const [transactions, categories, accounts, plaidItems, rules, calendarAccounts,
-           investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
-           userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
-           aiConversations, aiCurrentConvId, goals] = await Promise.all([
-      getTransactions(uid),             // reads from transactions table, not blob
+    const [categories, accounts, plaidItems, rules, calendarAccounts,
+           aiCatExamples, userProfile, dismissedPairs, scanMemory, goals] = await Promise.all([
       getData(uid, "categories"),
-      getData(uid, "accounts"),     getData(uid, "plaidItems"),
-      getData(uid, "rules"),        getData(uid, "calendarAccounts"),
-      getData(uid, "investmentAccounts"), getData(uid, "holdings"),
-      getData(uid, "netWorthSnapshots"),  getData(uid, "aiMessages"),
-      getData(uid, "aiCatExamples"),      getData(uid, "userProfile"),
-      getData(uid, "insightsTodos"),      getData(uid, "analyticsInsights"),
-      getData(uid, "dismissedPairs"),     getData(uid, "scanMemory"),
-      getData(uid, "aiConversations"),    getData(uid, "aiCurrentConvId"),
+      getData(uid, "accounts"),
+      getData(uid, "plaidItems"),
+      getData(uid, "rules"),
+      getData(uid, "calendarAccounts"),
+      getData(uid, "aiCatExamples"),
+      getData(uid, "userProfile"),
+      getData(uid, "dismissedPairs"),
+      getData(uid, "scanMemory"),
       getData(uid, "goals"),
     ]);
     res.json({
-      transactions:       transactions       || [],
-      categories:         categories         || [],
-      accounts:           accounts           || [],
-      plaidItems:         plaidItems         || [],
-      rules:              rules              || [],
-      calendarAccounts:   calendarAccounts   || null,
+      categories:       categories       || [],
+      accounts:         accounts         || [],
+      plaidItems:       plaidItems       || [],
+      rules:            rules            || [],
+      calendarAccounts: calendarAccounts || null,
+      aiCatExamples:    aiCatExamples    || [],
+      userProfile:      userProfile      || null,
+      dismissedPairs:   dismissedPairs   || [],
+      scanMemory:       scanMemory       || null,
+      goals:            goals            || [],
+      access:           getAccessLevel(req.user),
+    });
+  } catch (err) { serverError(res, err); }
+});
+
+// GET /api/transactions — paginated transaction list.
+// Supports: ?limit=250&offset=0&sort=date_desc&search=&category=&account=&month=YYYY-MM
+// Defaults to all transactions sorted by date DESC.
+app.get("/api/transactions", async (req, res) => {
+  try {
+    const uid    = req.user.id;
+    const limit  = Math.min(parseInt(req.query.limit  || "1000", 10), 1000);
+    const offset = parseInt(req.query.offset || "0", 10);
+    const sort   = req.query.sort || "date_desc";
+    const search   = (req.query.search   || "").trim().toLowerCase();
+    const category = req.query.category  || null;
+    const account  = req.query.account   || null;
+    const month    = req.query.month     || null; // "YYYY-MM"
+
+    const orderBy = sort === "date_asc"    ? "date ASC,  created_at ASC"
+                  : sort === "amount_desc" ? "amount DESC, date DESC"
+                  : sort === "amount_asc"  ? "amount ASC,  date DESC"
+                  :                          "date DESC, created_at DESC"; // default
+
+    const conditions = ["user_id = $1"];
+    const vals = [uid];
+    if (category) { vals.push(category); conditions.push(`category_id = $${vals.length}`); }
+    if (account)  { vals.push(account);  conditions.push(`account_id = $${vals.length}`); }
+    if (month)    { vals.push(month + "%"); conditions.push(`date LIKE $${vals.length}`); }
+    if (search)   { vals.push("%" + search + "%"); conditions.push(`LOWER(merchant) LIKE $${vals.length}`); }
+
+    const where = conditions.join(" AND ");
+
+    const [{ rows }, { rows: countRows }] = await Promise.all([
+      pool.query(
+        `SELECT * FROM transactions WHERE ${where} ORDER BY ${orderBy} LIMIT $${vals.length + 1} OFFSET $${vals.length + 2}`,
+        [...vals, limit, offset]
+      ),
+      pool.query(`SELECT COUNT(*) FROM transactions WHERE ${where}`, vals),
+    ]);
+
+    const total   = parseInt(countRows[0].count, 10);
+    const hasMore = offset + rows.length < total;
+
+    res.json({
+      transactions: rows.map(r => ({
+        id:              r.id,
+        plaidAccountId:  r.plaid_account_id,
+        plaidItemId:     r.plaid_item_id,
+        accountId:       r.account_id,
+        date:            r.date,
+        authorized_date: r.authorized_date,
+        merchant:        r.merchant,
+        name:            r.name,
+        amount:          parseFloat(r.amount),
+        categoryId:      r.category_id,
+        userCategorized: r.user_categorized,
+        pending:         r.pending,
+        type:            r.type,
+        recurring:       r.recurring,
+        recurringDay:    r.recurring_day,
+        recurringFreq:   r.recurring_freq,
+        recurringStart:  r.recurring_start,
+        notes:           r.notes,
+        reviewed:        r.reviewed,
+        currency:        r.currency,
+        logo_url:        r.logo_url,
+        institution:     r.institution,
+        ...(r.metadata || {}),
+      })),
+      total,
+      hasMore,
+      offset,
+      limit,
+    });
+  } catch (err) { serverError(res, err); }
+});
+
+// GET /api/data/portfolio — investment accounts, holdings, net worth snapshots.
+// Loaded lazily when the portfolio view is first opened.
+app.get("/api/data/portfolio", async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const [investmentAccounts, holdings, netWorthSnapshots] = await Promise.all([
+      getData(uid, "investmentAccounts"),
+      getData(uid, "holdings"),
+      getData(uid, "netWorthSnapshots"),
+    ]);
+    res.json({
       investmentAccounts: investmentAccounts || [],
       holdings:           holdings           || [],
       netWorthSnapshots:  netWorthSnapshots  || [],
-      aiMessages:         aiMessages         || [],
-      aiCatExamples:      aiCatExamples      || [],
-      userProfile:        userProfile        || null,
-      insightsTodos:      insightsTodos      || [],
-      analyticsInsights:  analyticsInsights  || null,
-      dismissedPairs:     dismissedPairs     || [],
-      scanMemory:         scanMemory         || null,
-      aiConversations:    aiConversations    || [],
-      aiCurrentConvId:    aiCurrentConvId    || null,
-      goals:              goals              || [],
-      access:             getAccessLevel(req.user),
+    });
+  } catch (err) { serverError(res, err); }
+});
+
+// GET /api/data/ai — conversation history.
+// Loaded lazily when the AI chat view is first opened.
+app.get("/api/data/ai", async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const [aiConversations, aiCurrentConvId, aiMessages] = await Promise.all([
+      getData(uid, "aiConversations"),
+      getData(uid, "aiCurrentConvId"),
+      getData(uid, "aiMessages"),
+    ]);
+    res.json({
+      aiConversations: aiConversations || [],
+      aiCurrentConvId: aiCurrentConvId || null,
+      aiMessages:      aiMessages      || [],
+    });
+  } catch (err) { serverError(res, err); }
+});
+
+// GET /api/data/analytics — saved insights and to-do items.
+// Loaded lazily when the analytics view is first opened.
+app.get("/api/data/analytics", async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const [analyticsInsights, insightsTodos] = await Promise.all([
+      getData(uid, "analyticsInsights"),
+      getData(uid, "insightsTodos"),
+    ]);
+    res.json({
+      analyticsInsights: analyticsInsights || null,
+      insightsTodos:     insightsTodos     || [],
     });
   } catch (err) { serverError(res, err); }
 });

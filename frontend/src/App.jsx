@@ -2145,6 +2145,7 @@ function AppInner() {
   /* ── AI categorization examples (memory) ── */
   const [aiCatExamples, setAiCatExamples] = useState([]);
   const [autoCatRunning, setAutoCatRunning] = useState(false);
+  const [catSuggestions, setCatSuggestions] = useState(null);
 
   /* ── User profile (income, assets, targets) ── */
   const [userProfile, setUserProfile] = useState({
@@ -3095,13 +3096,33 @@ function AppInner() {
     refreshSummary();
   }
   async function runAutoCategorize(txnsToCheck) {
-    if (!categories.length) return 0;
     const uncategorized = (txnsToCheck || transactions).filter(t =>
       !t.categoryId && (t.type === "expense" || t.type === "refund" || !t.type) && t.amount < 0
     );
-    if (!uncategorized.length) return 0;
+    if (!uncategorized.length) { showToast("No uncategorized transactions to process"); return 0; }
 
-    // Build examples from existing rules for the prompt
+    // ── No categories yet → suggest a full set ───────────────────
+    if (!categories.length) {
+      setAutoCatRunning(true);
+      try {
+        const payload = uncategorized.slice(0, 100).map(t => ({
+          id: t.id,
+          merchant: (t.merchant || t.name || "").trim(),
+          amount: t.amount,
+        }));
+        const { suggestions } = await api.suggestCategories(payload);
+        if (!suggestions?.length) { showToast("Couldn't generate suggestions — try again"); return 0; }
+        setCatSuggestions(suggestions.map(s => ({ ...s, limit: s.suggestedLimit || 0 })));
+      } catch (e) {
+        if (!e.message?.includes("no_api_key")) showToast("Auto-categorize failed: " + e.message);
+        return 0;
+      } finally {
+        setAutoCatRunning(false);
+      }
+      return 0;
+    }
+
+    // ── Categories exist → assign to existing only, never overwrite ─
     const examples = rules
       .filter(r => r.enabled && r.categoryId)
       .map(r => ({ merchant: r.pattern, categoryId: r.categoryId }));
@@ -3115,14 +3136,11 @@ function AppInner() {
       }));
       const { assignments } = await api.autoCategorize(payload, categories, examples);
       const count = Object.keys(assignments).length;
-      if (count === 0) return 0;
+      if (count === 0) { showToast("Nothing new to categorize"); return 0; }
 
-      // Build new AI rules from assignments — one rule per unique merchant
-      // Never overwrite an existing manual rule
       const manualPatterns = new Set(
         rules.filter(r => r.source !== "ai").map(r => r.pattern.toLowerCase())
       );
-
       const newRules = [];
       const seenMerchants = new Set();
 
@@ -3133,11 +3151,7 @@ function AppInner() {
         const pattern  = merchant.toLowerCase();
         if (!merchant || seenMerchants.has(pattern)) continue;
         seenMerchants.add(pattern);
-
-        // Skip if a manual rule already exists for this merchant
         if (manualPatterns.has(pattern)) continue;
-
-        // Check if AI rule already exists — update it, don't duplicate
         const existingAiRule = rules.find(r => r.source === "ai" && r.pattern.toLowerCase() === pattern);
         if (!existingAiRule) {
           newRules.push({
@@ -3152,31 +3166,87 @@ function AppInner() {
         }
       }
 
-      // Apply assignments to current uncategorized transactions
-      setTransactions(prev => prev.map(t =>
-        assignments[t.id] && !t.categoryId
-          ? { ...t, categoryId: assignments[t.id], reviewed: true }
-          : t
-      ));
-      // Persist each AI assignment individually
+      // Only assign to currently uncategorized — never overwrite
+      const updatedTxnIds = [];
+      setTransactions(prev => prev.map(t => {
+        if (assignments[t.id] && !t.categoryId) {
+          updatedTxnIds.push(t.id);
+          return { ...t, categoryId: assignments[t.id], reviewed: true };
+        }
+        return t;
+      }));
       Object.entries(assignments).forEach(([txnId, catId]) => {
-        api.updateTransaction(txnId, { categoryId: catId, reviewed: true, userCategorized: false }).catch(console.error);
+        if (updatedTxnIds.includes(txnId))
+          api.updateTransaction(txnId, { categoryId: catId, reviewed: true, userCategorized: false }).catch(console.error);
       });
 
-      // Add new AI rules (manual rules come first thanks to applyRules ordering)
       if (newRules.length > 0) {
         setRules(prev => [...prev, ...newRules]);
+        newRules.forEach(r => api.createRule(r).catch(console.error));
       }
 
       return count;
     } catch (e) {
-      if (!e.message?.includes("no_api_key")) {
-        console.warn("Auto-categorize failed:", e.message);
-      }
+      if (!e.message?.includes("no_api_key")) console.warn("Auto-categorize failed:", e.message);
       return 0;
     } finally {
       setAutoCatRunning(false);
     }
+  }
+
+  async function confirmCatSuggestions(confirmed) {
+    setCatSuggestions(null);
+    if (!confirmed?.length) return;
+
+    const newCats = confirmed.map(s => ({
+      id:              "cat" + Date.now() + Math.random().toString(36).slice(2),
+      name:            s.name,
+      color:           s.color || "var(--cyan)",
+      limit:           parseFloat(s.limit) || 0,
+      completedMonths: [],
+    }));
+    setCategories(prev => [...prev, ...newCats]);
+
+    const catByName = Object.fromEntries(newCats.map(c => [c.name, c.id]));
+    const assignments = {};
+    const newRules = [];
+    const seenMerchants = new Set();
+
+    confirmed.forEach(s => {
+      const catId = catByName[s.name];
+      if (!catId) return;
+      (s.transactions || []).forEach(txnId => { assignments[txnId] = catId; });
+      (s.transactions || []).forEach(txnId => {
+        const txn = transactions.find(t => t.id === txnId);
+        if (!txn) return;
+        const merchant = (txn.merchant || txn.name || "").trim();
+        const pattern  = merchant.toLowerCase();
+        if (!merchant || seenMerchants.has(pattern)) return;
+        seenMerchants.add(pattern);
+        newRules.push({
+          id:         "ai" + Date.now() + Math.random().toString(36).slice(2),
+          pattern:    merchant,
+          matchType:  "contains",
+          categoryId: catId,
+          enabled:    true,
+          source:     "ai",
+          createdAt:  Date.now(),
+        });
+      });
+    });
+
+    setTransactions(prev => prev.map(t =>
+      assignments[t.id] && !t.categoryId
+        ? { ...t, categoryId: assignments[t.id], reviewed: true }
+        : t
+    ));
+    Object.entries(assignments).forEach(([txnId, catId]) => {
+      api.updateTransaction(txnId, { categoryId: catId, reviewed: true, userCategorized: false }).catch(console.error);
+    });
+    setRules(prev => [...prev, ...newRules]);
+    newRules.forEach(r => api.createRule(r).catch(console.error));
+
+    showToast(`✦ Created ${newCats.length} categories, assigned ${Object.keys(assignments).length} transactions`);
   }
 
   function updateTxnAcct(id,val) {
@@ -6909,6 +6979,45 @@ function AppInner() {
       {modal==="addTxn"                        && TxnModal}
       {(modal==="addRule"||modal==="editRule") && RuleModal}
       {EditRecurringModal}
+
+      {/* Category suggestion confirmation modal */}
+      {catSuggestions && (
+        <div style={{position:"fixed",inset:0,background:"#0009",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+          onClick={e=>{ if(e.target===e.currentTarget) setCatSuggestions(null); }}>
+          <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",width:"100%",maxWidth:580,maxHeight:"85vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"20px 20px 14px",borderBottom:"1px solid var(--border)"}}>
+              <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:4}}>✦ Suggested Categories</div>
+              <div style={{fontSize:12,color:"var(--t3)"}}>AI analyzed your transactions and suggested these categories. Set a monthly budget limit for each, then confirm to create them.</div>
+            </div>
+            <div style={{overflowY:"auto",padding:"14px 20px",flex:1,display:"flex",flexDirection:"column",gap:8}}>
+              {catSuggestions.map((s, i) => (
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"1px solid var(--border)",borderLeft:`3px solid ${s.color||"var(--cyan)"}`}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"var(--t1)"}}>{s.name}</div>
+                    <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{(s.transactions||[]).length} transaction{(s.transactions||[]).length!==1?"s":""}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    <span style={{fontSize:11,color:"var(--t3)"}}>Limit $</span>
+                    <input
+                      type="number" min="0" step="10"
+                      value={s.limit || ""}
+                      onChange={e => setCatSuggestions(prev => prev.map((x,j) => j===i ? {...x,limit:e.target.value} : x))}
+                      style={{...S.input,width:80,padding:"5px 8px",fontSize:13,textAlign:"right"}}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:"14px 20px",borderTop:"1px solid var(--border)",display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button style={S.btn("ghost",true)} onClick={()=>setCatSuggestions(null)}>Cancel</button>
+              <button style={S.btn("primary",true)} onClick={()=>confirmCatSuggestions(catSuggestions)}>
+                Create {catSuggestions.length} Categories
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {rulePrompt&&(
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:10,maxWidth:420,width:"90vw"}}>

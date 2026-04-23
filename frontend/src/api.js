@@ -241,6 +241,13 @@ export function autoCategorize(transactions, categories, examples) {
   });
 }
 
+export function suggestCategories(transactions) {
+  return request("/api/ai/suggest-categories", {
+    method: "POST",
+    body: JSON.stringify({ transactions }),
+  });
+}
+
 export function suggestLimits(categories, monthlySpending, avgMonthlyIncome) {
   return request("/api/ai/suggest-limits", {
     method: "POST",

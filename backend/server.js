@@ -1481,6 +1481,79 @@ Example: {"txn123": "cat456", "txn789": "cat101"}`;
   }
 });
 
+// POST /api/ai/suggest-categories — when user has no categories, suggest a full
+// category set based on their transaction history.
+app.post("/api/ai/suggest-categories", async (req, res) => {
+  try {
+    const { transactions = [] } = req.body;
+    if (!transactions.length) return res.json({ suggestions: [] });
+
+    const encryptedKey = await getData(req.user.id, "aiApiKey");
+    if (!encryptedKey) return res.status(402).json({ error: "no_api_key" });
+    const apiKey = decrypt(encryptedKey);
+    if (!apiKey) return res.status(402).json({ error: "no_api_key" });
+
+    const txnList = transactions.slice(0, 100).map(t =>
+      `id:${t.id} merchant:"${t.merchant}" amount:$${Math.abs(t.amount).toFixed(2)}`
+    ).join("\n");
+
+    const prompt = `You are a personal finance assistant. Analyze these expense transactions and suggest a minimal, practical set of budget categories that covers them well.
+
+Transactions:
+${txnList}
+
+Return ONLY valid JSON with this structure — no markdown, no explanation:
+{
+  "categories": [
+    {
+      "name": "Groceries",
+      "color": "#22c55e",
+      "suggestedLimit": 400,
+      "transactions": ["txn-id-1", "txn-id-2"]
+    }
+  ]
+}
+
+Rules:
+- Suggest 5-12 categories max. Be practical, not overly granular.
+- Each category needs a name, a hex color, a suggested monthly limit (based on transaction amounts), and an array of transaction IDs that belong to it.
+- Use distinct, visually different colors.
+- suggestedLimit should be a round number reflecting realistic monthly spending for that category.
+- Every transaction should belong to exactly one category. Uncategorizable transactions can be omitted.
+- Common good categories: Groceries, Dining, Gas, Subscriptions, Shopping, Utilities, Healthcare, Entertainment, Travel, Personal Care.`;
+
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const err = await claudeRes.json().catch(() => ({}));
+      return res.status(claudeRes.status).json({ error: err.error?.message || "Claude API error" });
+    }
+
+    const data = await claudeRes.json();
+    const text = data.content?.[0]?.text || "{}";
+    const clean = text.replace(/```json|```/g, "").trim();
+    let result = { categories: [] };
+    try { result = JSON.parse(clean); } catch { result = { categories: [] }; }
+
+    res.json({ suggestions: result.categories || [] });
+  } catch (err) {
+    console.error("AI suggest-categories error:", err.message);
+    serverError(res, err);
+  }
+});
+
 // Suggest budget limits based on historical spending
 app.post("/api/ai/suggest-limits", async (req, res) => {
   try {

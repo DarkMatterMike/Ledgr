@@ -106,6 +106,239 @@ function AdherenceCell({ spent, limit, label }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   SPENDING PACE CHART
+═══════════════════════════════════════════════════════════════════ */
+const PACE_RANGES = [
+  { key:"last",  label:"Last month" },
+  { key:"avg3",  label:"3 mo avg"   },
+  { key:"avg6",  label:"6 mo avg"   },
+  { key:"avg12", label:"12 mo avg"  },
+];
+
+function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
+  const [range,       setRange]       = useState("last");
+  const [pickerOpen,  setPickerOpen]  = useState(false);
+
+  const fmtK = n => n >= 1000 ? "$" + (n/1000).toFixed(1) + "k" : "$" + Math.round(n);
+
+  // Current month cumulative spending by day
+  const thisYM   = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+
+  const thisMonthPoints = useMemo(() => {
+    const byDay = {};
+    transactions.forEach(t => {
+      if (!t.date?.startsWith(thisYM) || t.amount >= 0) return;
+      if (["transfer","income","reimbursement"].includes(t.type)) return;
+      const day = parseInt(t.date.slice(8,10), 10);
+      byDay[day] = (byDay[day] || 0) + Math.abs(t.amount);
+    });
+    let cum = 0;
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      if (i + 1 > today.getDate()) return null; // future days undefined
+      cum += byDay[i + 1] || 0;
+      return cum;
+    });
+  }, [transactions, thisYM, daysInMonth, today]);
+
+  // Comparison line — varies by range selection
+  const compPoints = useMemo(() => {
+    const counts = { last:1, avg3:3, avg6:6, avg12:12 }[range];
+    const isLast = range === "last";
+
+    // Build per-day spending for the relevant past months
+    const months = monthlyData.slice(-(counts + 1), -1).slice(-counts); // exclude current month
+    if (!months.length) return Array(daysInMonth).fill(null);
+
+    const perDayPerMonth = months.map(m => {
+      const byDay = {};
+      transactions.forEach(t => {
+        if (!t.date?.startsWith(m.ym) || t.amount >= 0) return;
+        if (["transfer","income","reimbursement"].includes(t.type)) return;
+        const day = parseInt(t.date.slice(8,10), 10);
+        byDay[day] = (byDay[day] || 0) + Math.abs(t.amount);
+      });
+      return byDay;
+    });
+
+    if (isLast) {
+      // Single line: cumulative for last month
+      const m = perDayPerMonth[0] || {};
+      const daysInComp = new Date(
+        parseInt(months[0].ym.slice(0,4)),
+        parseInt(months[0].ym.slice(5,7)),
+        0
+      ).getDate();
+      let cum = 0;
+      return Array.from({ length: daysInMonth }, (_, i) => {
+        if (i >= daysInComp) return cum; // hold last value if comp month shorter
+        cum += m[i + 1] || 0;
+        return cum;
+      });
+    } else {
+      // Average line: average cumulative across N months
+      return Array.from({ length: daysInMonth }, (_, i) => {
+        const vals = perDayPerMonth.map(m => {
+          let cum = 0;
+          for (let d = 1; d <= i + 1; d++) cum += m[d] || 0;
+          return cum;
+        }).filter(v => v > 0 || i === 0);
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      });
+    }
+  }, [transactions, monthlyData, range, daysInMonth]);
+
+  const thisTotal = thisMonthPoints[today.getDate() - 1] || 0;
+  const compTotal = compPoints[daysInMonth - 1] || compPoints.filter(Boolean).at(-1) || 0;
+  const selectedLabel = PACE_RANGES.find(r => r.key === range)?.label || "Last month";
+
+  // SVG dimensions
+  const W = 600, H = 180, PAD = { top:16, right:16, bottom:32, left:44 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top  - PAD.bottom;
+
+  const allVals = [...thisMonthPoints, ...compPoints].filter(v => v != null && v > 0);
+  const maxVal  = Math.max(...allVals, 1);
+
+  const xOf = i => PAD.left + (i / (daysInMonth - 1)) * innerW;
+  const yOf = v => PAD.top  + innerH - (v / maxVal) * innerH;
+
+  function buildPath(points, stopAtNull = true) {
+    let d = "";
+    points.forEach((v, i) => {
+      if (v == null) { if (stopAtNull) return; else return; }
+      d += (d === "" ? "M" : "L") + `${xOf(i).toFixed(1)},${yOf(v).toFixed(1)} `;
+    });
+    return d.trim();
+  }
+
+  // Area fill for this month (up to today)
+  function buildArea(points) {
+    const defined = points.map((v,i) => v != null ? i : null).filter(i => i !== null);
+    if (!defined.length) return "";
+    const first = defined[0], last = defined[defined.length-1];
+    let d = `M${xOf(first).toFixed(1)},${(PAD.top+innerH).toFixed(1)} `;
+    defined.forEach(i => { d += `L${xOf(i).toFixed(1)},${yOf(points[i]).toFixed(1)} `; });
+    d += `L${xOf(last).toFixed(1)},${(PAD.top+innerH).toFixed(1)} Z`;
+    return d;
+  }
+
+  // Y-axis gridlines
+  const gridVals = [0.25, 0.5, 0.75, 1].map(f => Math.round(maxVal * f));
+  // X-axis day labels
+  const xLabels = [1, 6, 11, 16, 21, 26, 31].filter(d => d <= daysInMonth);
+
+  return (
+    <Card style={{ position:"relative" }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12, gap:8 }}>
+        <div>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.8px", color:"var(--t3)", textTransform:"uppercase", marginBottom:4 }}>
+            Spending Pace
+          </div>
+          <div style={{ display:"flex", gap:16, alignItems:"baseline", flexWrap:"wrap" }}>
+            <div>
+              <span style={{ fontSize:11, color:"var(--t3)" }}>This month: </span>
+              <span style={{ fontSize:14, fontWeight:700, fontFamily:"var(--font-mono)", color:"var(--cyan)" }}>{fmt(thisTotal)}</span>
+            </div>
+            <div>
+              <span style={{ fontSize:11, color:"var(--t3)" }}>{selectedLabel === "Last month" ? "Last month:" : "Avg:"} </span>
+              <span style={{ fontSize:13, fontWeight:600, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(compTotal)}</span>
+            </div>
+          </div>
+        </div>
+        {/* Range picker */}
+        <div style={{ position:"relative", flexShrink:0 }}>
+          <button
+            onClick={() => setPickerOpen(p => !p)}
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px",
+              background:"var(--surface)", border:"1px solid var(--border2)",
+              borderRadius:20, cursor:"pointer", fontSize:12, color:"var(--t1)", fontWeight:500 }}>
+            {selectedLabel}
+            <span style={{ fontSize:10, color:"var(--t3)" }}>▾</span>
+          </button>
+          {pickerOpen && (
+            <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
+              background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
+              boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
+              {PACE_RANGES.map(r => (
+                <button key={r.key}
+                  onClick={() => { setRange(r.key); setPickerOpen(false); }}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                    width:"100%", padding:"11px 16px", background:"none", border:"none",
+                    cursor:"pointer", fontSize:13, color: r.key === range ? "var(--cyan)" : "var(--t1)",
+                    fontWeight: r.key === range ? 700 : 400,
+                    borderBottom:"1px solid var(--border)" }}>
+                  {r.label}
+                  {r.key === range && <span style={{ fontSize:14, color:"var(--cyan)" }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Chart */}
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:"auto", overflow:"visible" }}>
+        <defs>
+          <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+
+        {/* Gridlines + Y labels */}
+        {gridVals.map(v => (
+          <g key={v}>
+            <line x1={PAD.left} x2={W - PAD.right} y1={yOf(v)} y2={yOf(v)}
+              stroke="var(--border)" strokeWidth="1" strokeDasharray="4,4" />
+            <text x={PAD.left - 6} y={yOf(v) + 4} textAnchor="end"
+              style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
+              {fmtK(v)}
+            </text>
+          </g>
+        ))}
+
+        {/* X-axis labels */}
+        {xLabels.map(d => (
+          <text key={d} x={xOf(d-1)} y={H - 6} textAnchor="middle"
+            style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
+            {d}
+          </text>
+        ))}
+
+        {/* Area fill — this month */}
+        <path d={buildArea(thisMonthPoints)} fill="url(#paceGrad)" />
+
+        {/* Comparison line */}
+        <path d={buildPath(compPoints, false)} fill="none"
+          stroke="var(--t3)" strokeWidth="1.5" strokeDasharray="0" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* This month line */}
+        <path d={buildPath(thisMonthPoints)} fill="none"
+          stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Today marker */}
+        {thisMonthPoints[today.getDate()-1] != null && (
+          <circle cx={xOf(today.getDate()-1)} cy={yOf(thisMonthPoints[today.getDate()-1])}
+            r="4" fill="var(--cyan)" stroke="var(--card)" strokeWidth="2" />
+        )}
+      </svg>
+
+      {/* Legend */}
+      <div style={{ display:"flex", gap:16, justifyContent:"center", marginTop:6 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
+          <div style={{ width:16, height:2.5, borderRadius:2, background:"var(--cyan)" }} /> This month
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
+          <div style={{ width:16, height:2, borderRadius:2, background:"var(--t3)" }} /> {selectedLabel}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    MAIN
 ═══════════════════════════════════════════════════════════════════ */
 export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange, goals = [], onSaveGoal, onDeleteGoal, defaultTab = "overview" }) {
@@ -687,6 +920,15 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {tab === "spending" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
+
+          {/* ── Spending Pace ─────────────────────────────────────────── */}
+          <SpendingPaceCard
+            transactions={transactions}
+            monthlyData={monthlyData}
+            today={today}
+            isMobile={isMobile}
+          />
+
           <Card>
             <SectionHead title="Top merchants" sub="All time, by total spend" />
             {merchantTotals.map((m, i) => (

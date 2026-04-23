@@ -110,41 +110,70 @@ export default function DaniPage({
   const account = accounts.find(a => a.id === selectedAccountId) || accounts[0] || null;
   const balance = account?.balance ?? 0;
 
+  /* ── Shared frequency helper (mirrors calendar logic) ───────────── */
+  const getOccurrenceDaysThisMonth = useCallback((t) => {
+    const yr      = today.getFullYear();
+    const mo      = today.getMonth();
+    const daysInMo = new Date(yr, mo + 1, 0).getDate();
+    const freq    = t.recurringFreq || "monthly";
+    const start   = t.recurringStart ? new Date(t.recurringStart + "T12:00:00") : null;
+    if (freq === "monthly") {
+      const d = parseInt(t.recurringDay || 0);
+      return d >= 1 && d <= daysInMo ? [d] : [];
+    }
+    if (freq === "annual") {
+      if (!start) return [];
+      return start.getMonth() === mo ? [start.getDate()] : [];
+    }
+    if (freq === "weekly" || freq === "biweekly") {
+      if (!start) {
+        const d = parseInt(t.recurringDay || 0);
+        return d >= 1 && d <= daysInMo ? [d] : [];
+      }
+      const interval = freq === "weekly" ? 7 : 14;
+      // Use setDate for DST-safe day arithmetic (avoids off-by-one across spring-forward)
+      let cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const monthStart = new Date(yr, mo, 1);
+      while (cur >= monthStart) { cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() - interval); }
+      const days = [];
+      for (let i = 0; i < 60; i++) {
+        cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + interval);
+        if (cur.getFullYear() === yr && cur.getMonth() === mo) days.push(cur.getDate());
+        if (cur.getFullYear() > yr || (cur.getFullYear() === yr && cur.getMonth() > mo)) break;
+      }
+      return days;
+    }
+    return [];
+  }, []);
+
   /* ── Free-to-spend calculation ──────────────────────────────────── */
   const freeToSpend = useMemo(() => {
     if (!account) return 0;
     const todayDay = today.getDate();
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    const inWindow = t => { const d = t.recurringDay||0; return d > todayDay && d <= daysInMonth; };
-
-    // Expenses: only from the selected account
-    const upcomingExpenses = recurringTxns
-      .filter(t => t.amount < 0 && (!t.accountId || t.accountId === account.id) && inWindow(t))
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-
-    // Income: only from the selected account, minus $1100 standing withdrawal
     const PAYCHECK_DEDUCTION = 1100;
-    const upcomingIncome = recurringTxns
-      .filter(t => t.amount > 0 && (!t.accountId || t.accountId === account.id) && inWindow(t))
-      .reduce((s, t) => s + Math.max(0, t.amount - PAYCHECK_DEDUCTION), 0);
-
-    return balance - upcomingExpenses + upcomingIncome;
-  }, [account, recurringTxns, balance]);
+    let expenses = 0, income = 0;
+    recurringTxns.forEach(t => {
+      if (account && t.accountId && t.accountId !== account.id) return;
+      const days = getOccurrenceDaysThisMonth(t).filter(d => d > todayDay);
+      if (!days.length) return;
+      if (t.amount < 0) expenses += Math.abs(t.amount) * days.length;
+      else income += Math.max(0, t.amount - PAYCHECK_DEDUCTION) * days.length;
+    });
+    return balance - expenses + income;
+  }, [account, recurringTxns, balance, getOccurrenceDaysThisMonth]);
 
   /* ── Upcoming bills list ────────────────────────────────────────── */
   const upcomingBills = useMemo(() => {
+    if (!account) return [];
     const todayDay = today.getDate();
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    return recurringTxns
-      .filter(t => {
-        const day = t.recurringDay || 0;
-        if (day <= todayDay || day > daysInMonth) return false;
-        // Only show transactions for the selected account (or unassigned)
-        if (account && t.accountId && t.accountId !== account.id) return false;
-        return true;
-      })
-      .sort((a, b) => (a.recurringDay||0) - (b.recurringDay||0));
-  }, [recurringTxns, account]);
+    const rows = [];
+    recurringTxns.forEach(t => {
+      if (account && t.accountId && t.accountId !== account.id) return;
+      const days = getOccurrenceDaysThisMonth(t).filter(d => d > todayDay);
+      days.forEach(d => rows.push({ ...t, _occurrenceDay: d }));
+    });
+    return rows.sort((a, b) => a._occurrenceDay - b._occurrenceDay);
+  }, [recurringTxns, account, getOccurrenceDaysThisMonth]);
 
   /* ── Day-by-day cash flow simulation ───────────────────────────── */
   const { wishlistWithStatus, nextPayday, dailyBalances } = useMemo(() => {
@@ -155,46 +184,82 @@ export default function DaniPage({
     const DEDUCTION = 1100;
     const start     = balance ?? 0;
 
-    // ── Step 1: Build baseBalance[d] = account balance at the START of day d
-    // accounting only for scheduled recurring events (no wishlist yet).
-    // Day todayDay = current API balance (already reflects everything up to now).
-    // Each subsequent day adds/subtracts recurring events hitting that day.
+    // ── Helper: get all days-of-month a recurring txn fires this month
+    // Mirrors the calendar's projection logic exactly (handles biweekly/weekly/monthly/annual)
+    function getOccurrenceDays(t) {
+      const freq  = t.recurringFreq || "monthly";
+      const start = t.recurringStart ? new Date(t.recurringStart + "T12:00:00") : null;
+
+      if (freq === "monthly") {
+        const d = parseInt(t.recurringDay || 0);
+        return d >= 1 && d <= daysInMo ? [d] : [];
+      }
+      if (freq === "annual") {
+        if (!start) return [];
+        return start.getMonth() === mo ? [start.getDate()] : [];
+      }
+      if (freq === "weekly" || freq === "biweekly") {
+        if (!start) {
+          const d = parseInt(t.recurringDay || 0);
+          return d >= 1 && d <= daysInMo ? [d] : [];
+        }
+        const interval = freq === "weekly" ? 7 : 14;
+        // Use setDate for DST-safe day arithmetic
+        let cur = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const monthStart = new Date(yr, mo, 1);
+        while (cur >= monthStart) { cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() - interval); }
+        const days = [];
+        for (let i = 0; i < 60; i++) {
+          cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + interval);
+          if (cur.getFullYear() === yr && cur.getMonth() === mo) days.push(cur.getDate());
+          if (cur.getFullYear() > yr || (cur.getFullYear() === yr && cur.getMonth() > mo)) break;
+        }
+        return days;
+      }
+      return [];
+    }
+
+    // ── Step 1: Build baseBalance[d] = account balance at start of day d
+    // Day todayDay = current API balance. Each future day applies scheduled events.
     const baseBalance = {};
     baseBalance[todayDay] = start;
     for (let d = todayDay + 1; d <= daysInMo; d++) {
       let delta = 0;
       recurringTxns.forEach(t => {
-        if ((t.recurringDay || 0) !== d) return;
+        // Scope to selected account
+        if (account && t.accountId && t.accountId !== account.id) return;
+        const hits = getOccurrenceDays(t);
+        if (!hits.includes(d)) return;
         if (t.amount < 0) {
-          // Bill — only for selected account
-          if (account && t.accountId && t.accountId !== account.id) return;
-          delta += t.amount; // negative
+          delta += t.amount;
         } else {
-          // Income — only for selected account, deduct $1100 standing withdrawal
-          if (account && t.accountId && t.accountId !== account.id) return;
           delta += Math.max(0, t.amount - DEDUCTION);
         }
       });
       baseBalance[d] = (baseBalance[d - 1] ?? start) + delta;
     }
 
-    // ── Step 2: Next payday — first upcoming income recurring txn
+    // ── Step 2: Next payday — first upcoming income occurrence for this account
     let np = null;
-    recurringTxns
-      .filter(t => t.amount > 0 && (t.recurringDay||0) > todayDay && (t.recurringDay||0) <= daysInMo &&
-        (!t.accountId || !account || t.accountId === account.id))
-      .sort((a, b) => (a.recurringDay||0) - (b.recurringDay||0))
-      .forEach((t, i) => {
-        if (i !== 0) return;
-        const d = new Date(yr, mo, t.recurringDay);
-        np = {
-          day:      t.recurringDay,
-          date:     d.toLocaleDateString("en-US", { month:"short", day:"numeric" }),
-          amount:   t.amount,
-          net:      Math.max(0, t.amount - DEDUCTION),
-          daysAway: t.recurringDay - todayDay,
-        };
+    for (let d = todayDay + 1; d <= daysInMo; d++) {
+      let found = null;
+      recurringTxns.forEach(t => {
+        if (found) return;
+        if (t.amount <= 0) return;
+        if (account && t.accountId && t.accountId !== account.id) return;
+        if (getOccurrenceDays(t).includes(d)) found = t;
       });
+      if (found) {
+        np = {
+          day:      d,
+          date:     new Date(yr, mo, d).toLocaleDateString("en-US", { month:"short", day:"numeric" }),
+          amount:   found.amount,
+          net:      Math.max(0, found.amount - DEDUCTION),
+          daysAway: d - todayDay,
+        };
+        break;
+      }
+    }
 
     // ── Step 3: Wishlist affordability — single-pass in priority order.
     // We maintain a running "committed spend" that reduces available balance
@@ -515,7 +580,7 @@ export default function DaniPage({
                   <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 14px", borderBottom: i < upcomingBills.length - 1 ? `1px solid ${C.border}` : "none" }}>
                     {/* Day badge */}
                     <div style={{ width:28, height:28, borderRadius:"50%", background:C.surface, border:`1px solid ${C.border2}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                      <span style={{ fontSize:10, fontFamily:C.fontMono, color:C.t2 }}>{t.recurringDay}</span>
+                      <span style={{ fontSize:10, fontFamily:C.fontMono, color:C.t2 }}>{t._occurrenceDay}</span>
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:12, fontWeight:500, color:C.t1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name || t.merchant}</div>

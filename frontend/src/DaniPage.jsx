@@ -404,10 +404,10 @@ export default function DaniPage({
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display:isMobile?"flex":"grid", flexDirection:"column-reverse", gridTemplateColumns:"minmax(0,1fr) 320px", gap:10, alignItems:"start" }}>
+      <div style={{ display:isMobile?"flex":"grid", flexDirection:"column-reverse", gridTemplateColumns:"minmax(0,1fr) 320px", gap:10, alignItems:"start", width:"100%" }}>
 
         {/* ══ LEFT: Wishlist ══════════════════════════════════════════ */}
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:10, width:"100%", minWidth:0 }}>
 
           {/* Add item form */}
           <div style={card()}>
@@ -583,7 +583,7 @@ export default function DaniPage({
         </div>
 
         {/* ══ RIGHT: Balance card + bills ════════════════════════════ */}
-        <div style={{ display:"flex", flexDirection:"column", gap:10, position:"sticky", top:16 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:10, position:isMobile?"static":"sticky", top:16, width:"100%", minWidth:0 }}>
 
           {/* Free-to-spend card */}
           <div style={card({ padding:0, overflow:"hidden" })}>

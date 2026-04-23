@@ -547,7 +547,7 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [accts, ruleRows, categories, plaidItems, calendarAccounts,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
-           aiApiKey, plaidItemRows, insightsTodosData] = await Promise.all([
+           aiApiKey, plaidItemRows, insightsTodosData, daniData] = await Promise.all([
       getAccounts(uid),
       getRules(uid),
       getData(uid, "categories"),
@@ -565,6 +565,7 @@ app.get("/api/data", async (req, res) => {
         [uid]
       ),
       getData(uid, "insightsTodos"),  // needed for dashboard Action Items card
+      getData(uid, "dani"),              // owner-only Dani page
     ]);
 
     const reauthItemIds = plaidItemRows.rows
@@ -585,6 +586,7 @@ app.get("/api/data", async (req, res) => {
       goals:            goals            || [],
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],
+      dani:             daniData          || null,
       access:           getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -779,7 +781,7 @@ app.get("/api/data/summary", async (req, res) => {
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { categories, plaidItems, calendarAccounts,
+    const { categories, plaidItems, dani, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
@@ -803,6 +805,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     if (Array.isArray(goals))              ops.push(setData(uid, "goals",             goals));
+    if (dani !== undefined)                ops.push(setData(uid, "dani",              dani));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }

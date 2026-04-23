@@ -122,10 +122,10 @@ export default function DaniPage({
       .filter(t => t.amount < 0 && (!t.accountId || t.accountId === account.id) && inWindow(t))
       .reduce((s, t) => s + Math.abs(t.amount), 0);
 
-    // Income: include ALL recurring income, but each paycheck has a fixed $1100 withdrawal
+    // Income: only from the selected account, minus $1100 standing withdrawal
     const PAYCHECK_DEDUCTION = 1100;
     const upcomingIncome = recurringTxns
-      .filter(t => t.amount > 0 && inWindow(t))
+      .filter(t => t.amount > 0 && (!t.accountId || t.accountId === account.id) && inWindow(t))
       .reduce((s, t) => s + Math.max(0, t.amount - PAYCHECK_DEDUCTION), 0);
 
     return balance - upcomingExpenses + upcomingIncome;
@@ -170,7 +170,8 @@ export default function DaniPage({
           if (account && t.accountId && t.accountId !== account.id) return;
           delta += t.amount; // negative
         } else {
-          // Income — all accounts, deduct $1100 standing withdrawal
+          // Income — only for selected account, deduct $1100 standing withdrawal
+          if (account && t.accountId && t.accountId !== account.id) return;
           delta += Math.max(0, t.amount - DEDUCTION);
         }
       });
@@ -180,7 +181,8 @@ export default function DaniPage({
     // ── Step 2: Next payday — first upcoming income recurring txn
     let np = null;
     recurringTxns
-      .filter(t => t.amount > 0 && (t.recurringDay||0) > todayDay && (t.recurringDay||0) <= daysInMo)
+      .filter(t => t.amount > 0 && (t.recurringDay||0) > todayDay && (t.recurringDay||0) <= daysInMo &&
+        (!t.accountId || !account || t.accountId === account.id))
       .sort((a, b) => (a.recurringDay||0) - (b.recurringDay||0))
       .forEach((t, i) => {
         if (i !== 0) return;

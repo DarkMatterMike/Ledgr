@@ -105,10 +105,11 @@ export default function DaniPage({
       .filter(t => t.amount < 0 && (!t.accountId || t.accountId === account.id) && inWindow(t))
       .reduce((s, t) => s + Math.abs(t.amount), 0);
 
-    // Income: include ALL recurring income this month (paychecks can come from any account)
+    // Income: include ALL recurring income, but each paycheck has a fixed $1100 withdrawal
+    const PAYCHECK_DEDUCTION = 1100;
     const upcomingIncome = recurringTxns
       .filter(t => t.amount > 0 && inWindow(t))
-      .reduce((s, t) => s + t.amount, 0);
+      .reduce((s, t) => s + Math.max(0, t.amount - PAYCHECK_DEDUCTION), 0);
 
     return balance - upcomingExpenses + upcomingIncome;
   }, [account, recurringTxns, balance]);

@@ -96,6 +96,10 @@ export async function changePassword(currentPassword, newPassword) {
   });
 }
 
+export function sendSupport(subject, message) {
+  return request("/api/support", { method: "POST", body: JSON.stringify({ subject, message }) });
+}
+
 /* ── App data ─────────────────────────────────────────────────────── */
 // Core data only — categories, accounts, rules, plaidItems, goals, etc.
 // Transactions, portfolio, AI, and analytics load via their own endpoints.

@@ -787,6 +787,26 @@ export default function App() {
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
   const currentUser = api.getStoredUser();
   const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+  const [supportOpen,    setSupportOpen]    = useState(false);
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportSending, setSupportSending] = useState(false);
+
+  async function submitSupport() {
+    if (!supportMessage.trim()) return;
+    setSupportSending(true);
+    try {
+      await api.sendSupport(supportSubject, supportMessage);
+      showToast("Message sent — we'll get back to you soon ✓");
+      setSupportOpen(false);
+      setSupportSubject("");
+      setSupportMessage("");
+    } catch(e) {
+      showToast("Failed to send — please try again");
+    } finally {
+      setSupportSending(false);
+    }
+  }
   return (
     <>
       <div style={{padding:"12px 14px 10px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
@@ -838,6 +858,47 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
           onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
           {syncing?"⟳ Syncing…":"⟳ Sync All"}
         </button>
+        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+          onClick={()=>setSupportOpen(true)}>
+          💬 Support
+        </button>
+
+        {/* Support modal */}
+        {supportOpen && (
+          <div style={{position:"fixed",inset:0,background:"#0009",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+            onClick={e=>{ if(e.target===e.currentTarget) setSupportOpen(false); }}>
+            <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",padding:20,width:"100%",maxWidth:400,display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--t1)"}}>Contact Support</div>
+                <button onClick={()=>setSupportOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:18,lineHeight:1,padding:"0 2px"}}>×</button>
+              </div>
+              <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.5}}>
+                Send a message and we'll get back to you via email.
+              </div>
+              <input
+                style={{...S.input,fontSize:13}}
+                placeholder="Subject (optional)"
+                value={supportSubject}
+                onChange={e=>setSupportSubject(e.target.value)}
+              />
+              <textarea
+                style={{...S.input,fontSize:13,minHeight:100,resize:"vertical",fontFamily:"inherit",lineHeight:1.5}}
+                placeholder="Describe your issue or question…"
+                value={supportMessage}
+                onChange={e=>setSupportMessage(e.target.value)}
+              />
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                <button style={S.btn("ghost",true)} onClick={()=>setSupportOpen(false)}>Cancel</button>
+                <button
+                  style={S.btn("primary",true)}
+                  onClick={submitSupport}
+                  disabled={supportSending || !supportMessage.trim()}>
+                  {supportSending ? "Sending…" : "Send Message"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {"Notification" in window && Notification.permission !== "granted" && (
           <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
             onClick={async ()=>{
@@ -954,9 +1015,11 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
             style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
           {ellipsisId===t.id&&(
-            <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
-              border:"1px solid var(--border2)",borderRadius:"var(--radius)",
-              boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
+            <>
+              <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
+              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
+                border:"1px solid var(--border2)",borderRadius:"var(--radius)",
+                boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
               <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
                 {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}
@@ -980,6 +1043,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
             </div>
+          </>
           )}
         </div>
       </div>
@@ -2408,6 +2472,14 @@ function AppInner() {
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
   [transactions, search, filterCat, filterAcct, filterReview, showDuplicates, pendingPairs]);
+
+  // Auto-clear the review filter once the last transaction has been reviewed —
+  // so the user lands back on the full unfiltered list rather than a blank screen.
+  useEffect(() => {
+    if (!filterReview) return;
+    const remaining = transactions.filter(t => needsReview(t)).length;
+    if (remaining === 0) setFilterReview(false);
+  }, [transactions, filterReview]);
 
   useEffect(() => {
     if (view !== "transactions" || !txnSearchHadFocusRef.current) return;
@@ -4375,17 +4447,20 @@ function AppInner() {
                                       style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 18, padding: "2px 6px", lineHeight: 1, borderRadius: "var(--radius)" }}
                                     >⋯</button>
                                     {budgetKebabId === cat.id && (
-                                      <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                          {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                          Edit Category
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
-                                          Delete
-                                        </button>
-                                      </div>
+                                      <>
+                                        <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
+                                        <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                            {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
+                                          </button>
+                                          <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                            Edit Category
+                                          </button>
+                                          <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
+                                            Delete
+                                          </button>
+                                        </div>
+                                      </>
                                     )}
                                   </div>
                                 </div>
@@ -4576,17 +4651,20 @@ function AppInner() {
                                         style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 18, padding: "2px 6px", lineHeight: 1, borderRadius: "var(--radius)" }}
                                       >⋯</button>
                                       {budgetKebabId === cat.id && (
-                                        <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                            {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                            Edit Category
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
-                                            Delete
-                                          </button>
-                                        </div>
+                                        <>
+                                          <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
+                                          <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                            <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                              {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                              Edit Category
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
+                                              Delete
+                                            </button>
+                                          </div>
+                                        </>
                                       )}
                                     </div>
                                   </div>

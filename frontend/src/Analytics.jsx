@@ -258,22 +258,25 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
             <span style={{ fontSize:10, color:"var(--t3)" }}>▾</span>
           </button>
           {pickerOpen && (
-            <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
-              background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
-              boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
-              {PACE_RANGES.map(r => (
-                <button key={r.key}
-                  onClick={() => { setRange(r.key); setPickerOpen(false); }}
-                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-                    width:"100%", padding:"11px 16px", background:"none", border:"none",
-                    cursor:"pointer", fontSize:13, color: r.key === range ? "var(--cyan)" : "var(--t1)",
-                    fontWeight: r.key === range ? 700 : 400,
-                    borderBottom:"1px solid var(--border)" }}>
-                  {r.label}
-                  {r.key === range && <span style={{ fontSize:14, color:"var(--cyan)" }}>✓</span>}
-                </button>
-              ))}
-            </div>
+            <>
+              <div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={() => setPickerOpen(false)} />
+              <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
+                background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
+                boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
+                {PACE_RANGES.map(r => (
+                  <button key={r.key}
+                    onClick={() => { setRange(r.key); setPickerOpen(false); }}
+                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                      width:"100%", padding:"11px 16px", background:"none", border:"none",
+                      cursor:"pointer", fontSize:13, color: r.key === range ? "var(--cyan)" : "var(--t1)",
+                      fontWeight: r.key === range ? 700 : 400,
+                      borderBottom:"1px solid var(--border)" }}>
+                    {r.label}
+                    {r.key === range && <span style={{ fontSize:14, color:"var(--cyan)" }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

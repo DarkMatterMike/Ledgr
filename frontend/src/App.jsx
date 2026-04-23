@@ -4978,16 +4978,18 @@ function AppInner() {
           <div style={{fontSize:11,fontWeight:700,color,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>
             {title}
           </div>
-          {Object.entries(groups).map(([key, groupRules]) => (
-            <div key={key} style={{marginBottom:12}}>
-              <div style={{fontSize:11,fontWeight:600,color:"var(--t2)",marginBottom:5,paddingLeft:2}}>
-                {labelFn(key)}
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,alignItems:"start"}}>
+            {Object.entries(groups).map(([key, groupRules]) => (
+              <div key={key}>
+                <div style={{fontSize:11,fontWeight:600,color:"var(--t2)",marginBottom:5,paddingLeft:2}}>
+                  {labelFn(key)}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  {groupRules.map(r => <RuleRow key={r.id} rule={r} />)}
+                </div>
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                {groupRules.map(r => <RuleRow key={r.id} rule={r} />)}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       );
     }

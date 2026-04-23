@@ -60,17 +60,53 @@ export default function DaniPage({
   onSave,          // (patch) => void  — persists to server
 }) {
   /* ── Local state (mirrors daniData props) ───────────────────────── */
-  const [selectedAccountId, setSelectedAccountId] = useState(daniData.selectedAccountId || null);
-  const [wishlist, setWishlist] = useState(daniData.wishlist || []);
+  const [selectedAccountId, setSelectedAccountId] = useState(() => {
+    // localStorage first (has existing data), then server prop
+    return localStorage.getItem("dani_accountId") || daniData.selectedAccountId || null;
+  });
+  const [wishlist, setWishlist] = useState(() => {
+    // localStorage first (has existing data from previous sessions), then server prop
+    try {
+      const stored = localStorage.getItem("dani_wishlist");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.length) return parsed;
+      }
+    } catch {}
+    return daniData.wishlist || [];
+  });
 
-  // Sync from server when daniData prop updates (async load on mount)
+  // One-time migration: if localStorage has data the server doesn't yet know about,
+  // push it up to the server so future devices see it
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (migratedRef.current) return;
+    migratedRef.current = true;
+    try {
+      const stored = localStorage.getItem("dani_wishlist");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.length && (!daniData.wishlist || daniData.wishlist.length === 0)) {
+          // Server is empty but localStorage has data — push it up
+          const acctId = localStorage.getItem("dani_accountId") || daniData.selectedAccountId || null;
+          onSave?.({ dani: { selectedAccountId: acctId, wishlist: parsed } });
+        }
+      }
+    } catch {}
+  }, []); // eslint-disable-line
+
+  // Sync from server when it loads (only if local state is empty)
   const prevDaniRef = useRef(null);
   useEffect(() => {
     const key = JSON.stringify(daniData);
     if (prevDaniRef.current === key) return;
     prevDaniRef.current = key;
     if (daniData.selectedAccountId) setSelectedAccountId(daniData.selectedAccountId);
-    if (daniData.wishlist)          setWishlist(daniData.wishlist);
+    // Only overwrite local wishlist from server if we have no local data
+    setWishlist(prev => {
+      if (prev.length === 0 && daniData.wishlist?.length) return daniData.wishlist;
+      return prev;
+    });
   }, [daniData]);
 
   /* ── Add-item form ──────────────────────────────────────────────── */
@@ -90,11 +126,13 @@ export default function DaniPage({
 
   function updateAccount(id) {
     setSelectedAccountId(id);
+    localStorage.setItem("dani_accountId", id);
     save({ dani: { selectedAccountId: id, wishlist } });
   }
 
   function updateWishlist(next) {
     setWishlist(next);
+    localStorage.setItem("dani_wishlist", JSON.stringify(next));
     save({ dani: { selectedAccountId, wishlist: next } });
   }
 

@@ -60,10 +60,26 @@ export default function DaniPage({
 }) {
   /* ── Local state (mirrors daniData props) ───────────────────────── */
   const [selectedAccountId, setSelectedAccountId] = useState(() => {
-    // Restore from localStorage first, then fall back to daniData prop
     return localStorage.getItem("dani_accountId") || daniData.selectedAccountId || null;
   });
-  const [wishlist,  setWishlist]  = useState(daniData.wishlist || []);
+  const [wishlist, setWishlist] = useState(() => {
+    // Try localStorage first (instant restore), fall back to prop
+    try {
+      const stored = localStorage.getItem("dani_wishlist");
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return daniData.wishlist || [];
+  });
+
+  // When server data loads asynchronously, sync wishlist if localStorage is empty
+  // (i.e. first time on a new device/browser)
+  useEffect(() => {
+    if (!daniData.wishlist?.length) return;
+    const stored = localStorage.getItem("dani_wishlist");
+    if (!stored || stored === "[]") {
+      setWishlist(daniData.wishlist);
+    }
+  }, [daniData.wishlist]);
 
   /* ── Add-item form ──────────────────────────────────────────────── */
   const [formName, setFormName] = useState("");
@@ -86,6 +102,7 @@ export default function DaniPage({
 
   function updateWishlist(next) {
     setWishlist(next);
+    localStorage.setItem("dani_wishlist", JSON.stringify(next));
     save({ dani: { selectedAccountId, wishlist: next } });
   }
 
@@ -404,7 +421,9 @@ export default function DaniPage({
                         <button
                           title="Mark as purchased"
                           onClick={() => markPurchased(item.id)}
-                          style={btn("green", true)}
+                          style={btn("ghost", true)}
+                          onMouseEnter={e => { e.currentTarget.style.background=C.greenDim; e.currentTarget.style.color=C.green; e.currentTarget.style.borderColor=C.green+"44"; }}
+                          onMouseLeave={e => { e.currentTarget.style.background="transparent"; e.currentTarget.style.color=C.t2; e.currentTarget.style.borderColor=C.border2; }}
                         >
                           ✓ Bought
                         </button>

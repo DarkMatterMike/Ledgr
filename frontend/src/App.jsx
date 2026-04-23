@@ -6660,6 +6660,7 @@ function AppInner() {
       transactions={transactions}
       recurringTxns={recurringTxns}
       daniData={daniData}
+      isMobile={isMobile}
       onSave={(patch) => {
         if (patch.dani) {
           setDaniData(patch.dani);

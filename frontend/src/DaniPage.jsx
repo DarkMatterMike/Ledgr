@@ -56,54 +56,60 @@ export default function DaniPage({
   transactions   = [],
   recurringTxns  = [],
   daniData       = { selectedAccountId: null, wishlist: [] },
+  isMobile       = false,
   onSave,          // (patch) => void  — persists to server
 }) {
   /* ── Local state (mirrors daniData props) ───────────────────────── */
-  const [selectedAccountId, setSelectedAccountId] = useState(() => {
-    return localStorage.getItem("dani_accountId") || daniData.selectedAccountId || null;
-  });
-  const [wishlist, setWishlist] = useState(() => {
-    // Try localStorage first (instant restore), fall back to prop
-    try {
-      const stored = localStorage.getItem("dani_wishlist");
-      if (stored) return JSON.parse(stored);
-    } catch {}
-    return daniData.wishlist || [];
-  });
+  const [selectedAccountId, setSelectedAccountId] = useState(daniData.selectedAccountId || null);
+  const [wishlist, setWishlist] = useState(daniData.wishlist || []);
 
-  // When server data loads asynchronously, sync wishlist if localStorage is empty
-  // (i.e. first time on a new device/browser)
+  // Sync from server when daniData prop updates (async load on mount)
+  const prevDaniRef = useRef(null);
   useEffect(() => {
-    if (!daniData.wishlist?.length) return;
-    const stored = localStorage.getItem("dani_wishlist");
-    if (!stored || stored === "[]") {
-      setWishlist(daniData.wishlist);
-    }
-  }, [daniData.wishlist]);
+    const key = JSON.stringify(daniData);
+    if (prevDaniRef.current === key) return;
+    prevDaniRef.current = key;
+    if (daniData.selectedAccountId) setSelectedAccountId(daniData.selectedAccountId);
+    if (daniData.wishlist)          setWishlist(daniData.wishlist);
+  }, [daniData]);
 
   /* ── Add-item form ──────────────────────────────────────────────── */
   const [formName, setFormName] = useState("");
   const [formCost, setFormCost] = useState("");
+
+  /* ── Editing state ──────────────────────────────────────────────── */
+  const [editingId,   setEditingId]   = useState(null);
+  const [editingCost, setEditingCost] = useState("");
 
   /* ── Drag state ─────────────────────────────────────────────────── */
   const dragIdx  = useRef(null);
   const [dragOver, setDragOver] = useState(null);
 
   /* ── Persist on change ──────────────────────────────────────────── */
-  const save = useCallback((patch) => {
-    onSave?.(patch);
-  }, [onSave]);
+  const save = useCallback((patch) => { onSave?.(patch); }, [onSave]);
 
   function updateAccount(id) {
     setSelectedAccountId(id);
-    localStorage.setItem("dani_accountId", id);
     save({ dani: { selectedAccountId: id, wishlist } });
   }
 
   function updateWishlist(next) {
     setWishlist(next);
-    localStorage.setItem("dani_wishlist", JSON.stringify(next));
     save({ dani: { selectedAccountId, wishlist: next } });
+  }
+
+  function startEdit(item) {
+    setEditingId(item.id);
+    setEditingCost(String(item.cost));
+  }
+
+  function commitEdit(id) {
+    const cost = parseFloat(editingCost);
+    if (!isNaN(cost) && cost > 0) {
+      updateWishlist(wishlist.map(w => w.id === id ? { ...w, cost } : w));
+    }
+    setEditingId(null);
+    setEditingCost("");
   }
 
   /* ── Selected account ───────────────────────────────────────────── */
@@ -360,7 +366,7 @@ export default function DaniPage({
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 320px", gap:10, alignItems:"start" }}>
+      <div style={{ display:isMobile?"flex":"grid", flexDirection:"column-reverse", gridTemplateColumns:"minmax(0,1fr) 320px", gap:10, alignItems:"start" }}>
 
         {/* ══ LEFT: Wishlist ══════════════════════════════════════════ */}
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -478,22 +484,41 @@ export default function DaniPage({
                         </div>
                       </div>
 
-                      {/* Cost */}
-                      <div style={{ fontFamily:C.fontMono, fontSize:13, fontWeight:700, color:C.t1, flexShrink:0 }}>
-                        {fmt(item.cost)}
-                      </div>
+                      {/* Cost — click to edit */}
+                      {editingId === item.id ? (
+                        <input
+                          autoFocus
+                          type="number" min="0" step="0.01"
+                          value={editingCost}
+                          onChange={e => setEditingCost(e.target.value)}
+                          onBlur={() => commitEdit(item.id)}
+                          onKeyDown={e => { if (e.key === "Enter") commitEdit(item.id); if (e.key === "Escape") { setEditingId(null); } }}
+                          style={{ width:80, fontFamily:C.fontMono, fontSize:12, fontWeight:700, color:C.t1, background:C.surface, border:`1px solid ${C.cyan}`, borderRadius:C.radius, padding:"3px 6px", outline:"none", textAlign:"right" }}
+                        />
+                      ) : (
+                        <div
+                          title="Click to edit cost"
+                          onClick={() => startEdit(item)}
+                          style={{ fontFamily:C.fontMono, fontSize:13, fontWeight:700, color:C.t1, flexShrink:0, cursor:"text", borderBottom:`1px dashed ${C.border2}`, paddingBottom:1 }}
+                        >
+                          {fmt(item.cost)}
+                        </div>
+                      )}
 
                       {/* Actions */}
-                      <div style={{ display:"flex", gap:4, flexShrink:0 }}>
-                        <button
-                          title="Mark as purchased"
-                          onClick={() => markPurchased(item.id)}
-                          style={btn("ghost", true)}
-                          onMouseEnter={e => { e.currentTarget.style.background=C.greenDim; e.currentTarget.style.color=C.green; e.currentTarget.style.borderColor=C.green+"44"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background="transparent"; e.currentTarget.style.color=C.t2; e.currentTarget.style.borderColor=C.border2; }}
-                        >
-                          ✓ Bought
-                        </button>
+                      {(() => {
+                        const isPayment = item.name.toLowerCase().includes("payment");
+                        return (
+                        <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                          <button
+                            title={isPayment ? "Mark as paid" : "Mark as purchased"}
+                            onClick={() => markPurchased(item.id)}
+                            style={btn("ghost", true)}
+                            onMouseEnter={e => { e.currentTarget.style.background=C.greenDim; e.currentTarget.style.color=C.green; e.currentTarget.style.borderColor=C.green+"44"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background="transparent"; e.currentTarget.style.color=C.t2; e.currentTarget.style.borderColor=C.border2; }}
+                          >
+                            {isPayment ? "✓ Paid" : "✓ Bought"}
+                          </button>
                         <button
                           title="Remove"
                           onClick={() => deleteItem(item.id)}
@@ -502,6 +527,7 @@ export default function DaniPage({
                           ×
                         </button>
                       </div>
+                      );})()}
                     </div>
                   );
                 })}

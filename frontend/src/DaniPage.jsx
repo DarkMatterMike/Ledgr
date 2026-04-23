@@ -159,7 +159,7 @@ export default function DaniPage({
       if (t.amount < 0) expenses += Math.abs(t.amount) * days.length;
       else income += Math.max(0, t.amount - PAYCHECK_DEDUCTION) * days.length;
     });
-    return balance - expenses + income;
+    return (balance - 100) - expenses + income;
   }, [account, recurringTxns, balance, getOccurrenceDaysThisMonth]);
 
   /* ── Upcoming bills list ────────────────────────────────────────── */
@@ -182,7 +182,7 @@ export default function DaniPage({
     const mo        = today.getMonth();
     const daysInMo  = new Date(yr, mo + 1, 0).getDate();
     const DEDUCTION = 1100;
-    const start     = balance ?? 0;
+    const start     = Math.max(0, (balance ?? 0) - 100);
 
     // ── Helper: get all days-of-month a recurring txn fires this month
     // Mirrors the calendar's projection logic exactly (handles biweekly/weekly/monthly/annual)

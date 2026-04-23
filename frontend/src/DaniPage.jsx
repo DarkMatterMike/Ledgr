@@ -59,7 +59,10 @@ export default function DaniPage({
   onSave,          // (patch) => void  — persists to server
 }) {
   /* ── Local state (mirrors daniData props) ───────────────────────── */
-  const [selectedAccountId, setSelectedAccountId] = useState(daniData.selectedAccountId || null);
+  const [selectedAccountId, setSelectedAccountId] = useState(() => {
+    // Restore from localStorage first, then fall back to daniData prop
+    return localStorage.getItem("dani_accountId") || daniData.selectedAccountId || null;
+  });
   const [wishlist,  setWishlist]  = useState(daniData.wishlist || []);
 
   /* ── Add-item form ──────────────────────────────────────────────── */
@@ -77,6 +80,7 @@ export default function DaniPage({
 
   function updateAccount(id) {
     setSelectedAccountId(id);
+    localStorage.setItem("dani_accountId", id);
     save({ dani: { selectedAccountId: id, wishlist } });
   }
 
@@ -94,14 +98,18 @@ export default function DaniPage({
     if (!account) return 0;
     const todayDay = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    // Scope to selected account (or unassigned recurring txns)
-    const acctTxns = recurringTxns.filter(t => !t.accountId || t.accountId === account.id);
-    const upcomingExpenses = acctTxns
-      .filter(t => t.amount < 0 && (t.recurringDay||0) > todayDay && (t.recurringDay||0) <= daysInMonth)
+    const inWindow = t => { const d = t.recurringDay||0; return d > todayDay && d <= daysInMonth; };
+
+    // Expenses: only from the selected account
+    const upcomingExpenses = recurringTxns
+      .filter(t => t.amount < 0 && (!t.accountId || t.accountId === account.id) && inWindow(t))
       .reduce((s, t) => s + Math.abs(t.amount), 0);
-    const upcomingIncome = acctTxns
-      .filter(t => t.amount > 0 && (t.recurringDay||0) > todayDay && (t.recurringDay||0) <= daysInMonth)
+
+    // Income: include ALL recurring income this month (paychecks can come from any account)
+    const upcomingIncome = recurringTxns
+      .filter(t => t.amount > 0 && inWindow(t))
       .reduce((s, t) => s + t.amount, 0);
+
     return balance - upcomingExpenses + upcomingIncome;
   }, [account, recurringTxns, balance]);
 

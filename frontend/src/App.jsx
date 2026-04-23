@@ -2411,13 +2411,18 @@ function AppInner() {
   // Use server-side precomputed summary for dashboard aggregates.
   // Falls back to client-side computation from loaded transactions while
   // the server summary is loading (e.g. on first render or month switch).
+  // spentByCat always computed from in-memory transactions so category changes
+  // reflect immediately without waiting for a server summary refresh.
+  // The server summary is still used for totalSpent/totalIncome on the dashboard
+  // where all-time accuracy matters more than instant updates.
   const spentByCat = useMemo(() => {
-    if (summaryMonth === selectedMonth) return summary.spentByCat;
-    // Fallback: compute from whatever transactions are in memory
     const m = {};
-    monthTxns.forEach(t => { if (t.amount<0 && t.categoryId && t.type!=="transfer" && t.type!=="income" && t.type!=="reimbursement") m[t.categoryId]=(m[t.categoryId]||0)+Math.abs(t.amount); });
+    monthTxns.forEach(t => {
+      if (t.amount < 0 && t.categoryId && t.type !== "transfer" && t.type !== "income" && t.type !== "reimbursement")
+        m[t.categoryId] = (m[t.categoryId] || 0) + Math.abs(t.amount);
+    });
     return m;
-  }, [summary, summaryMonth, selectedMonth, monthTxns]);
+  }, [monthTxns]);
 
   const spentByAcct = useMemo(() => {
     if (summaryMonth === selectedMonth) return summary.spentByAcct;

@@ -2134,6 +2134,7 @@ function AppInner() {
 
   /* ── Stable save ref (allows portfolio hook to be defined before useAppData) ── */
   const scheduleSaveRef = useRef(null);
+  const rulesRef        = useRef([]);  // always holds current rules for use inside stale closures
 
   /* ── Portfolio (via hook) ── */
   const portfolio = usePortfolio((patch) => scheduleSaveRef.current?.(patch));
@@ -2215,6 +2216,7 @@ function AppInner() {
 
   // Wire the ref once scheduleSave is available
   scheduleSaveRef.current = scheduleSave;
+  rulesRef.current        = rules;
 
   /* ── Poll for new transactions every 30 minutes ── */
   const knownTxnIds = useRef(null);
@@ -2245,7 +2247,7 @@ function AppInner() {
               const existingIds = new Set(prev.map(t => t.id));
               const toAdd = applyRules(
                 brandNew.filter(t => !existingIds.has(t.id)),
-                rules,
+                rulesRef.current,   // ref always has current rules, even in stale closure
                 { onlyUncategorized: true }
               );
               if (toAdd.length === 0) return prev;

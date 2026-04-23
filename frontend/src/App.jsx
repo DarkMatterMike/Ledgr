@@ -4918,74 +4918,139 @@ function AppInner() {
   );
 
   /* ── Rules ── */
-  const Rules = (
-    <PageLayout
-      isMobile={isMobile}
-      left={
-        <div>
-          <div style={{...S.sectionHdr,marginBottom:6}}>
-            <div style={S.sectionTitle}>Auto-Categorization Rules</div>
-            <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
-          </div>
-          <p style={{fontSize:12,color:"var(--t3)",marginBottom:4,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync. Manual rules always take priority over AI rules.</p>
-          {rules.length > 0 && (
-            <div style={{fontSize:11,color:"var(--t3)",marginBottom:16,display:"flex",gap:10}}>
-              <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
-              <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
-            </div>
-          )}
+  const [ruleSearch, setRuleSearch] = useState("");
 
-          {rules.length===0 ? (
-            <div style={{...S.card,textAlign:"center",padding:48}}>
-              <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
-              <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
-              <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
-            </div>
-          ) : (
-            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:10}}>
-              {rules.map((rule)=>{
-                const cat = catMap[rule.categoryId];
-                const isAi = rule.source === "ai";
-                return (
-                  <div key={rule.id}
-                    style={{
-                      background:"var(--card)",border:"1px solid var(--border)",
-                      borderRadius:"var(--radius)",padding:"9px 14px",
-                      borderLeft:rule.enabled
-                        ? `3px solid ${rule.typeOverride ? "var(--amber)" : "var(--cyan)"}`
-                        : "3px solid var(--border2)",
-                      opacity:rule.enabled?1:0.45,
-                    }}>
-                    <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0}}>
-                      {/* Line 1: pattern → destination + meta */}
-                      <div style={{display:"flex",alignItems:"center",gap:5,minWidth:0,overflow:"hidden"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0,flex:1}}>"{rule.pattern}"</span>
-                        <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>→</span>
-                        {rule.typeOverride
-                          ? <span style={{fontSize:11,color:"var(--amber)",textTransform:"capitalize",flexShrink:0,whiteSpace:"nowrap"}}>{rule.typeOverride}</span>
-                          : cat ? <span style={{fontSize:11,color:cat.color,flexShrink:0,whiteSpace:"nowrap",maxWidth:90,overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
-                          : <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>No category</span>}
-                      </div>
-                      {/* Line 2: match type + AI badge + actions */}
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{fontSize:10,color:"var(--t3)",flex:1}}>
-                          {rule.matchType==="exact"?"Exact":rule.matchType==="starts"?"Starts with":"Contains"}
-                          {isAi && <span style={{color:"var(--cyan)",marginLeft:4}}>· ✦ AI</span>}
-                        </span>
-                        <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-                        <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)"}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-                        <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px"}} onClick={()=>deleteRule(rule.id)}>✕</button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+  const Rules = (() => {
+    const q = ruleSearch.toLowerCase().trim();
+    const filtered = rules.filter(r =>
+      !q ||
+      r.pattern.toLowerCase().includes(q) ||
+      catMap[r.categoryId]?.name.toLowerCase().includes(q) ||
+      r.typeOverride?.toLowerCase().includes(q)
+    );
+
+    // Split into category rules and type rules
+    const catRules  = filtered.filter(r => r.categoryId && !r.typeOverride);
+    const typeRules = filtered.filter(r => r.typeOverride);
+
+    // Group category rules by category, type rules by typeOverride
+    const byCat  = {};
+    catRules.forEach(r => { const k = r.categoryId || "__none__"; (byCat[k] = byCat[k] || []).push(r); });
+    const byType = {};
+    typeRules.forEach(r => { const k = r.typeOverride || "other"; (byType[k] = byType[k] || []).push(r); });
+
+    const TYPE_LABELS = { expense:"Expense", income:"Income", transfer:"Transfer", reimbursement:"Reimbursement", refund:"Refund" };
+
+    function RuleRow({ rule }) {
+      const cat  = catMap[rule.categoryId];
+      const isAi = rule.source === "ai";
+      return (
+        <div style={{
+          display:"flex", alignItems:"center", gap:8,
+          padding:"7px 12px",
+          background:"var(--card)", border:"1px solid var(--border)",
+          borderRadius:"var(--radius)",
+          borderLeft:`2px solid ${rule.enabled ? (rule.typeOverride ? "var(--amber)" : cat?.color || "var(--cyan)") : "var(--border2)"}`,
+          opacity: rule.enabled ? 1 : 0.45,
+        }}>
+          {/* Pattern */}
+          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>
+            "{rule.pattern}"
+          </span>
+          {/* Match type */}
+          <span style={{fontSize:10,color:"var(--t3)",flexShrink:0,whiteSpace:"nowrap"}}>
+            {rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts":"contains"}
+          </span>
+          {/* AI badge */}
+          {isAi && <span style={{fontSize:9,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"1px 5px",borderRadius:4,flexShrink:0}}>AI</span>}
+          {/* Actions */}
+          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
+          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
         </div>
-      }
-    />
-  );
+      );
+    }
+
+    function Section({ title, color, groups, labelFn }) {
+      if (!Object.keys(groups).length) return null;
+      return (
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:700,color,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>
+            {title}
+          </div>
+          {Object.entries(groups).map(([key, groupRules]) => (
+            <div key={key} style={{marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:600,color:"var(--t2)",marginBottom:5,paddingLeft:2}}>
+                {labelFn(key)}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {groupRules.map(r => <RuleRow key={r.id} rule={r} />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <PageLayout
+        isMobile={isMobile}
+        left={
+          <div>
+            <div style={{...S.sectionHdr,marginBottom:6}}>
+              <div style={S.sectionTitle}>Auto-Categorization Rules</div>
+              <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
+            </div>
+            <p style={{fontSize:12,color:"var(--t3)",marginBottom:12,lineHeight:1.6}}>Automatically assign categories or types to new transactions. Manual rules take priority over AI rules.</p>
+
+            {/* Search */}
+            {rules.length > 0 && (
+              <div style={{position:"relative",marginBottom:14}}>
+                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:13}}>🔍</span>
+                <input style={{...S.input,paddingLeft:32,fontSize:13,width:"100%",boxSizing:"border-box"}}
+                  placeholder="Search rules…" value={ruleSearch} onChange={e=>setRuleSearch(e.target.value)}/>
+              </div>
+            )}
+
+            {/* Stats */}
+            {rules.length > 0 && (
+              <div style={{fontSize:11,color:"var(--t3)",marginBottom:16,display:"flex",gap:10}}>
+                <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
+                <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
+              </div>
+            )}
+
+            {rules.length === 0 ? (
+              <div style={{...S.card,textAlign:"center",padding:48}}>
+                <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
+                <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
+                <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{...S.card,textAlign:"center",padding:32}}>
+                <div style={{fontSize:13,color:"var(--t3)"}}>No rules match "{ruleSearch}"</div>
+              </div>
+            ) : (
+              <>
+                <Section
+                  title="Category Rules"
+                  color="var(--cyan)"
+                  groups={byCat}
+                  labelFn={key => key === "__none__" ? "No category" : catMap[key]?.name || "Unknown"}
+                />
+                <Section
+                  title="Type Rules"
+                  color="var(--amber)"
+                  groups={byType}
+                  labelFn={key => TYPE_LABELS[key] || key}
+                />
+              </>
+            )}
+          </div>
+        }
+      />
+    );
+  })();
 
 
   /* ── Calendar ── */

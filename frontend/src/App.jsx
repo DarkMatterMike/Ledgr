@@ -2818,7 +2818,13 @@ function AppInner() {
         plaidAccts.forEach(pa=>{map[pa.account_id]="a"+pa.account_id;});
         return prev.map(t=>t.plaidAccountId?{...t,accountId:map[t.plaidAccountId]||t.accountId}:t);
       });
-      showToast(`Synced: +${added.length} transactions`);
+      if (added.length > 0) {
+        showToast(`Synced: +${added.length} new transaction${added.length !== 1 ? "s" : ""}`);
+      } else if (modified.length > 0 || removed.length > 0) {
+        showToast(`Sync complete — ${modified.length} updated, ${removed.length} removed`);
+      } else {
+        showToast("Sync complete — you're up to date ✓");
+      }
       // Invalidate the full analytics transaction set — it will reload fresh next time analytics opens
       if (added.length > 0 || removed.length > 0) {
         setAllTransactions(null);

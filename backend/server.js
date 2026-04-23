@@ -547,7 +547,7 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [accts, ruleRows, categories, plaidItems, calendarAccounts,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
-           aiApiKey, plaidItemRows] = await Promise.all([
+           aiApiKey, plaidItemRows, insightsTodosData] = await Promise.all([
       getAccounts(uid),
       getRules(uid),
       getData(uid, "categories"),
@@ -564,9 +564,9 @@ app.get("/api/data", async (req, res) => {
         `SELECT item_id, institution, needs_reauth FROM plaid_items WHERE user_id = $1`,
         [uid]
       ),
+      getData(uid, "insightsTodos"),  // needed for dashboard Action Items card
     ]);
 
-    // Build a set of item_ids that need re-authentication
     const reauthItemIds = plaidItemRows.rows
       .filter(r => r.needs_reauth)
       .map(r => r.item_id);
@@ -576,7 +576,7 @@ app.get("/api/data", async (req, res) => {
       rules:            ruleRows         || [],
       categories:       categories       || [],
       plaidItems:       plaidItems       || [],
-      reauthItemIds,                        // item_ids with expired/invalid tokens
+      reauthItemIds,
       calendarAccounts: calendarAccounts || null,
       aiCatExamples:    aiCatExamples    || [],
       userProfile:      userProfile      || null,
@@ -584,6 +584,7 @@ app.get("/api/data", async (req, res) => {
       scanMemory:       scanMemory       || null,
       goals:            goals            || [],
       hasAiKey:         !!aiApiKey,
+      insightsTodos:    insightsTodosData || [],
       access:           getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }

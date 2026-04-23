@@ -2175,22 +2175,16 @@ function AppInner() {
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
     onData: (data, txnTotal) => {
-      // Core data callback
       aiChat.loadFromData(data);
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
       if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
       if (data.goals)          setGoals(data.goals);
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
-      // Store total count for pagination
+      if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
       setTxnTotal(txnTotal || 0);
-      setTxnOffset(100); // we just loaded the first 100
-      // Seed stale item warnings from DB reauth flags — shown immediately on load
-      // without waiting for the user to manually sync
-      if (data.reauthItemIds?.length) {
-        setStaleItemIds(new Set(data.reauthItemIds));
-      }
-      // Load the initial summary for the current month
+      setTxnOffset(100);
+      if (data.reauthItemIds?.length) setStaleItemIds(new Set(data.reauthItemIds));
       api.loadSummary(currentMonth).then(s => {
         setSummary(s);
         setSummaryMonth(s.month);

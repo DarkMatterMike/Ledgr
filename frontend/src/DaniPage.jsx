@@ -129,32 +129,95 @@ export default function DaniPage({
       .sort((a, b) => (a.recurringDay||0) - (b.recurringDay||0));
   }, [recurringTxns, account]);
 
-  /* ── Wishlist affordability ─────────────────────────────────────── */
-  const wishlistWithStatus = useMemo(() => {
-    let running = freeToSpend;
-    return wishlist.map(item => {
-      if (item.purchased) return { ...item, status: "purchased", runningAfter: running };
-      const canAfford = running >= item.cost;
-      const after = running - item.cost;
-      running = canAfford ? after : running; // only subtract if affordable in priority order
-      return { ...item, status: canAfford ? "affordable" : "wait", runningAfter: after };
-    });
-  }, [wishlist, freeToSpend]);
+  /* ── Day-by-day cash flow simulation ───────────────────────────── */
+  const { wishlistWithStatus, nextPayday, dailyBalances } = useMemo(() => {
+    const todayDay  = today.getDate();
+    const yr        = today.getFullYear();
+    const mo        = today.getMonth();
+    const daysInMo  = new Date(yr, mo + 1, 0).getDate();
+    const DEDUCTION = 1100;
+    const start     = balance ?? 0;
 
-  /* ── Next payday ────────────────────────────────────────────────── */
-  const nextPayday = useMemo(() => {
-    const todayDay = today.getDate();
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    const incomeRecurring = recurringTxns.filter(t =>
-      t.amount > 0 && (t.recurringDay||0) > todayDay &&
-      (!t.accountId || !account || t.accountId === account.id)
-    );
-    if (!incomeRecurring.length) return null;
-    incomeRecurring.sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0));
-    const t = incomeRecurring[0];
-    const d = new Date(today.getFullYear(), today.getMonth(), t.recurringDay);
-    return { date: d.toLocaleDateString("en-US",{month:"short",day:"numeric"}), amount: t.amount, daysAway: (t.recurringDay||0) - todayDay };
-  }, [recurringTxns, account]);
+    // ── Step 1: Build baseBalance[d] = account balance at the START of day d
+    // accounting only for scheduled recurring events (no wishlist yet).
+    // Day todayDay = current API balance (already reflects everything up to now).
+    // Each subsequent day adds/subtracts recurring events hitting that day.
+    const baseBalance = {};
+    baseBalance[todayDay] = start;
+    for (let d = todayDay + 1; d <= daysInMo; d++) {
+      let delta = 0;
+      recurringTxns.forEach(t => {
+        if ((t.recurringDay || 0) !== d) return;
+        if (t.amount < 0) {
+          // Bill — only for selected account
+          if (account && t.accountId && t.accountId !== account.id) return;
+          delta += t.amount; // negative
+        } else {
+          // Income — all accounts, deduct $1100 standing withdrawal
+          delta += Math.max(0, t.amount - DEDUCTION);
+        }
+      });
+      baseBalance[d] = (baseBalance[d - 1] ?? start) + delta;
+    }
+
+    // ── Step 2: Next payday — first upcoming income recurring txn
+    let np = null;
+    recurringTxns
+      .filter(t => t.amount > 0 && (t.recurringDay||0) > todayDay && (t.recurringDay||0) <= daysInMo)
+      .sort((a, b) => (a.recurringDay||0) - (b.recurringDay||0))
+      .forEach((t, i) => {
+        if (i !== 0) return;
+        const d = new Date(yr, mo, t.recurringDay);
+        np = {
+          day:      t.recurringDay,
+          date:     d.toLocaleDateString("en-US", { month:"short", day:"numeric" }),
+          amount:   t.amount,
+          net:      Math.max(0, t.amount - DEDUCTION),
+          daysAway: t.recurringDay - todayDay,
+        };
+      });
+
+    // ── Step 3: Wishlist affordability — single-pass in priority order.
+    // We maintain a running "committed spend" that reduces available balance
+    // on the day of purchase and every day after.
+    // committed[d] = total wishlist cost committed to be spent on day d.
+    const committed = {};
+    const addCommit = (d, cost) => { committed[d] = (committed[d] || 0) + cost; };
+
+    // availableOn(d) = baseBalance[d] minus all wishlist purchases on days <= d
+    const availableOn = (d) => {
+      const base = baseBalance[d] ?? baseBalance[daysInMo] ?? 0;
+      let used = 0;
+      for (const [k, v] of Object.entries(committed)) {
+        if (Number(k) <= d) used += v;
+      }
+      return base - used;
+    };
+
+    const enriched = wishlist.map(item => {
+      if (item.purchased) {
+        return { ...item, status:"purchased", availableDay:null, availableDate:null, balanceAfter:null };
+      }
+
+      // Search every day from today onward for the first day we can afford this item
+      for (let d = todayDay; d <= daysInMo; d++) {
+        const avail = availableOn(d);
+        if (avail >= item.cost) {
+          addCommit(d, item.cost);
+          const after = avail - item.cost;
+          if (d === todayDay) {
+            return { ...item, status:"now", availableDay:d, availableDate:"Now", balanceAfter:after };
+          }
+          const dateStr = new Date(yr, mo, d).toLocaleDateString("en-US", { month:"short", day:"numeric" });
+          return { ...item, status:"soon", availableDay:d, availableDate:dateStr, balanceAfter:after };
+        }
+      }
+
+      return { ...item, status:"wait", availableDay:null, availableDate:null, balanceAfter:null };
+    });
+
+    return { wishlistWithStatus: enriched, nextPayday: np, dailyBalances: baseBalance };
+  }, [wishlist, balance, recurringTxns, account]);
 
   /* ── Add item ───────────────────────────────────────────────────── */
   function addItem() {
@@ -266,7 +329,8 @@ export default function DaniPage({
             ) : (
               <div>
                 {wishlistWithStatus.map((item, i) => {
-                  const isAffordable = item.status === "affordable";
+                  const isNow        = item.status === "now";
+                  const isSoon       = item.status === "soon";
                   const isDragging   = dragOver === i;
                   return (
                     <div
@@ -293,11 +357,11 @@ export default function DaniPage({
                       {/* Priority number */}
                       <div style={{
                         width:20, height:20, borderRadius:"50%", flexShrink:0,
-                        background: isAffordable ? C.cyanDim : C.surface,
-                        border: `1px solid ${isAffordable ? C.cyan+"66" : C.border2}`,
+                        background: isNow ? C.cyanDim : isSoon ? C.amberDim : C.surface,
+                        border: `1px solid ${isNow ? C.cyan+"66" : isSoon ? C.amber+"66" : C.border2}`,
                         display:"flex", alignItems:"center", justifyContent:"center",
                         fontSize:10, fontFamily:C.fontMono, fontWeight:700,
-                        color: isAffordable ? C.cyan : C.t2,
+                        color: isNow ? C.cyan : isSoon ? C.amber : C.t2,
                       }}>
                         {i + 1}
                       </div>
@@ -309,18 +373,22 @@ export default function DaniPage({
                         </div>
                         {/* Status badge */}
                         <div style={{ marginTop:3, display:"flex", alignItems:"center", gap:6 }}>
-                          {isAffordable ? (
+                          {isNow ? (
                             <span style={{ fontSize:10, fontWeight:600, color:C.green, background:C.greenDim, padding:"1px 6px", borderRadius:99, border:`1px solid ${C.green}33` }}>
-                              ✓ Can buy now
+                              ✓ Buy now
+                            </span>
+                          ) : isSoon ? (
+                            <span style={{ fontSize:10, fontWeight:600, color:C.amber, background:C.amberDim, padding:"1px 6px", borderRadius:99, border:`1px solid ${C.amber}33` }}>
+                              After {item.availableDate}
                             </span>
                           ) : (
                             <span style={{ fontSize:10, fontWeight:600, color:C.t2, background:C.surface, padding:"1px 6px", borderRadius:99, border:`1px solid ${C.border2}` }}>
-                              {nextPayday ? `After ${nextPayday.date}` : "Wait"}
+                              Not this month
                             </span>
                           )}
-                          {isAffordable && item.runningAfter >= 0 && (
+                          {(isNow || isSoon) && item.balanceAfter != null && (
                             <span style={{ fontSize:10, color:C.t2 }}>
-                              {fmt(item.runningAfter)} left after
+                              {fmt(item.balanceAfter)} left after
                             </span>
                           )}
                         </div>
@@ -354,7 +422,7 @@ export default function DaniPage({
 
                 {/* Totals footer */}
                 <div style={{ padding:"10px 14px", background:C.surface, borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:11, color:C.t2 }}>{wishlist.length} item{wishlist.length !== 1 ? "s" : ""} · {wishlistWithStatus.filter(w=>w.status==="affordable").length} affordable now</span>
+                  <span style={{ fontSize:11, color:C.t2 }}>{wishlist.length} item{wishlist.length !== 1 ? "s" : ""} · {wishlistWithStatus.filter(w=>w.status==="now").length} affordable now</span>
                   <span style={{ fontSize:12, fontFamily:C.fontMono, fontWeight:700, color:C.t1 }}>
                     {fmt(wishlist.reduce((s,w)=>s+w.cost,0))} total
                   </span>
@@ -459,10 +527,10 @@ export default function DaniPage({
               {wishlistWithStatus.filter(w => w.status !== "purchased").map(item => (
                 <div key={item.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:6, minWidth:0, flex:1 }}>
-                    <span style={{ width:6, height:6, borderRadius:"50%", flexShrink:0, display:"inline-block", background: item.status==="affordable" ? C.green : C.t2 }}/>
-                    <span style={{ fontSize:11, color: item.status==="affordable" ? C.t1 : C.t2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</span>
+                    <span style={{ width:6, height:6, borderRadius:"50%", flexShrink:0, display:"inline-block", background: item.status==="now" ? C.green : item.status==="soon" ? C.amber : C.t2 }}/>
+                    <span style={{ fontSize:11, color: item.status==="now" ? C.t1 : item.status==="soon" ? C.t1 : C.t2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</span>
                   </div>
-                  <span style={{ fontFamily:C.fontMono, fontSize:11, color: item.status==="affordable" ? C.t1 : C.t2, flexShrink:0, marginLeft:8 }}>{fmt(item.cost)}</span>
+                  <span style={{ fontFamily:C.fontMono, fontSize:11, color: item.status==="now" ? C.t1 : item.status==="soon" ? C.t1 : C.t2, flexShrink:0, marginLeft:8 }}>{fmt(item.cost)}</span>
                 </div>
               ))}
               <div style={{ borderTop:`1px solid ${C.border}`, marginTop:6, paddingTop:8, display:"flex", justifyContent:"space-between" }}>

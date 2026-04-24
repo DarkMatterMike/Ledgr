@@ -123,33 +123,35 @@ button {
 
     /* ── Progress bars — animate width from 0 on mount ── */
     @keyframes ledgr-bar-fill {
-      from { width: 0 !important; }
+      from { transform: scaleX(0); }
+      to   { transform: scaleX(1); }
     }
     .ledgr-bar {
-      animation: ledgr-bar-fill 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+      transform-origin: left center;
+      animation: ledgr-bar-fill 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    /* Stagger bars in a list */
-    .ledgr-bar:nth-child(1)  { animation-delay: 100ms; }
-    .ledgr-bar:nth-child(2)  { animation-delay: 180ms; }
-    .ledgr-bar:nth-child(3)  { animation-delay: 260ms; }
-    .ledgr-bar:nth-child(4)  { animation-delay: 340ms; }
-    .ledgr-bar:nth-child(5)  { animation-delay: 420ms; }
-    .ledgr-bar:nth-child(n+6){ animation-delay: 500ms; }
+    .ledgr-bar:nth-child(1)  { animation-delay: 80ms;  }
+    .ledgr-bar:nth-child(2)  { animation-delay: 160ms; }
+    .ledgr-bar:nth-child(3)  { animation-delay: 240ms; }
+    .ledgr-bar:nth-child(4)  { animation-delay: 320ms; }
+    .ledgr-bar:nth-child(5)  { animation-delay: 400ms; }
+    .ledgr-bar:nth-child(n+6){ animation-delay: 480ms; }
 
-    /* ── Donut / SVG circle — draw in ── */
-    @keyframes ledgr-donut-draw {
-      from { stroke-dashoffset: 9999; opacity: 0; }
-      10%  { opacity: 1; }
-      to   { opacity: 1; }
+    /* ── Donut segments — fade + scale in per segment ── */
+    @keyframes ledgr-donut-seg-in {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
     }
     .ledgr-donut-seg {
-      animation: ledgr-donut-draw 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+      transform-origin: center;
+      transform-box: fill-box;
+      animation: ledgr-donut-seg-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    .ledgr-donut-seg:nth-child(1) { animation-delay: 100ms; }
-    .ledgr-donut-seg:nth-child(2) { animation-delay: 220ms; }
-    .ledgr-donut-seg:nth-child(3) { animation-delay: 340ms; }
-    .ledgr-donut-seg:nth-child(4) { animation-delay: 460ms; }
-    .ledgr-donut-seg:nth-child(5) { animation-delay: 560ms; }
+    .ledgr-donut-seg:nth-child(1) { animation-delay: 80ms;  }
+    .ledgr-donut-seg:nth-child(2) { animation-delay: 180ms; }
+    .ledgr-donut-seg:nth-child(3) { animation-delay: 280ms; }
+    .ledgr-donut-seg:nth-child(4) { animation-delay: 380ms; }
+    .ledgr-donut-seg:nth-child(5) { animation-delay: 460ms; }
 
     /* ── SVG line path draw-in ── */
     @keyframes ledgr-path-draw {

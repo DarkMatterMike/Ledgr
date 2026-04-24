@@ -634,7 +634,7 @@ function AuthGate({ onAuth }) {
     }}>
 
       <div>
-        <div style={{fontFamily:"var(--font-disp)",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
+        <div style={{fontFamily:"'Syne', sans-serif",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
           ledgr<span style={{color:"var(--cyan)"}}>.</span>
         </div>
         <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",marginTop:4}}>personal finance</div>
@@ -832,7 +832,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
       <div style={{padding:"12px 14px 10px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <span style={{fontFamily:"var(--font-script)",fontSize:22,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-          <div style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+          <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
             ledgr<span style={{color:"var(--cyan)"}}>.</span>
           </div>
         </div>
@@ -6984,7 +6984,7 @@ function AppInner() {
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
       <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">ℓ</div>
-      <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+      <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>
   );
@@ -7042,7 +7042,7 @@ function AppInner() {
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
             <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+            <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
           </div>

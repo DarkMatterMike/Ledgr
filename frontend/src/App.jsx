@@ -5168,6 +5168,7 @@ function AppInner() {
           </div>
         </div>
       }
+    />
   );
 
   /* ── Rules ── */

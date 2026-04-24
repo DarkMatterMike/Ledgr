@@ -58,17 +58,27 @@ function getOccurrenceDaysThisMonth(t) {
 /* ════════════════════════════════════════════════════════════════════
    DaniTab — one full tab: account selector + wishlist + balance card
    ════════════════════════════════════════════════════════════════════ */
-function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile }) {
-  const [selectedAccountId, setSelectedAccountId] = useState(tabData.selectedAccountId||null);
-  const [wishlist, setWishlist] = useState(tabData.wishlist||[]);
+function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey }) {
+  const [selectedAccountId, setSelectedAccountId] = useState(() => {
+    try { const v = localStorage.getItem("dani_accountId_"+tabKey) || (tabKey==="tab1"?localStorage.getItem("dani_accountId"):null); if (v) return v; } catch {}
+    return tabData.selectedAccountId || null;
+  });
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      // Check tab-specific key first, then migrate from old flat key (tab1 only)
+      const v = localStorage.getItem("dani_wishlist_"+tabKey) || (tabKey==="tab1"?localStorage.getItem("dani_wishlist"):null);
+      if (v) { const p = JSON.parse(v); if (p?.length) return p; }
+    } catch {}
+    return tabData.wishlist || [];
+  });
 
-  // Sync when server data arrives (only if local is empty)
+  // Sync when server data arrives (only if local state is still empty)
   const prevRef=useRef(null);
   useEffect(()=>{
     const key=JSON.stringify(tabData);
     if(prevRef.current===key) return;
     prevRef.current=key;
-    if(tabData.selectedAccountId) setSelectedAccountId(tabData.selectedAccountId);
+    if(tabData.selectedAccountId) setSelectedAccountId(id => id || tabData.selectedAccountId);
     setWishlist(prev=>(!prev.length&&tabData.wishlist?.length)?tabData.wishlist:prev);
   },[tabData]);
 
@@ -79,8 +89,16 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile }) {
   const dragIdx=useRef(null);
   const [dragOver,setDragOver]=useState(null);
 
-  function updateAccount(id){setSelectedAccountId(id);onTabSave({selectedAccountId:id,wishlist});}
-  function updateWishlist(next){setWishlist(next);onTabSave({selectedAccountId,wishlist:next});}
+  function updateAccount(id){
+    setSelectedAccountId(id);
+    try { localStorage.setItem("dani_accountId_"+tabKey, id); } catch {}
+    onTabSave({selectedAccountId:id,wishlist});
+  }
+  function updateWishlist(next){
+    setWishlist(next);
+    try { localStorage.setItem("dani_wishlist_"+tabKey, JSON.stringify(next)); } catch {}
+    onTabSave({selectedAccountId,wishlist:next});
+  }
   function startEdit(item){setEditingId(item.id);setEditingCost(String(item.cost));}
   function commitEdit(id){
     const cost=parseFloat(editingCost);
@@ -418,6 +436,7 @@ export default function DaniPage({accounts=[],transactions=[],recurringTxns=[],d
             tabData={normalised[t]||{selectedAccountId:null,wishlist:[]}}
             onTabSave={patch=>handleTabSave(t,patch)}
             isMobile={isMobile}
+            tabKey={t}
           />
         </div>
       ))}

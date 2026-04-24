@@ -434,7 +434,7 @@ export default function DaniPage({
                   onKeyDown={e => e.key === "Enter" && addItem()}
                 />
               </div>
-              <button style={btn("primary")} onClick={addItem}>+ Add</button>
+              <button style={{...btn("primary"), padding:"7px 14px", lineHeight:"normal"}} onClick={addItem}>+ Add</button>
             </div>
           </div>
 

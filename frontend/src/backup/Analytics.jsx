@@ -77,8 +77,8 @@ function LineChart({ points, height=120, color="var(--cyan)" }) {
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
-        <path d={areaD} fill="url(#nwGrad)" className="ledgr-area-fade" />
-        <path d={pathD} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ledgr-path-draw" style={{"--path-len":"2000"}} />
+        <path d={areaD} fill="url(#nwGrad)" />
+        <path d={pathD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         {coords.map((c, i) => (i === 0 || i === coords.length-1) && (
           <circle key={i} cx={c.x} cy={c.y} r={4} fill={color} />
         ))}
@@ -835,7 +835,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {catTrends.slice(0,6).map(c => {
               const frac = c.avg / totalSpent;
               const dash = frac * circ, gap = circ - dash;
-              const el = <circle key={c.id} cx={size/2} cy={size/2} r={r} fill="none" stroke={c.color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offsetAcc} transform={`rotate(-90 ${size/2} ${size/2})`} className="ledgr-donut-seg" />;
+              const el = <circle key={c.id} cx={size/2} cy={size/2} r={r} fill="none" stroke={c.color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offsetAcc} transform={`rotate(-90 ${size/2} ${size/2})`} />;
               offsetAcc += dash;
               return el;
             })}
@@ -1791,7 +1791,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     <span style={{ color:"var(--t3)" }}>of {fmt(g.targetAmount)}</span>
                   </div>
                   <div style={{ height:8, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:6 }}>
-                    <div style={{ height:"100%", borderRadius:99, width:`${pct}%`, background:barColor, transition:"width 0.5s" }} className="ledgr-bar" />
+                    <div style={{ height:"100%", borderRadius:99, width:`${pct}%`, background:barColor, transition:"width 0.5s" }} />
                   </div>
                   <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--t3)", marginBottom:assignedTxns.length>0?12:0 }}>
                     <span>{pct}% complete</span>

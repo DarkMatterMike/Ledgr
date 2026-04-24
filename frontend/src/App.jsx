@@ -56,6 +56,7 @@ button {
       50%       { text-shadow: 0 0 24px #00d4ffcc, 0 0 48px #00d4ff66, 0 0 72px #00d4ff33; opacity: 0.85; }
     }
     .ledgr-logo-pulse { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
+
     /* Loading screen — bounce */
     @keyframes ledgr-bounce {
       0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.33,0,0.66,0); }
@@ -70,48 +71,165 @@ button {
     }
     .ledgr-loading-text { animation: ledgr-breathe 2s ease-in-out infinite; }
 
-    /* Page content — fade in when view changes (opacity only — no transform to avoid breaking position:fixed) */
+    /* ── View transitions — slide + fade ── */
+    @keyframes ledgr-view-slide-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ledgr-view-enter {
+      animation: ledgr-view-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* ── Cards — pronounced staggered rise ── */
+    @keyframes ledgr-card-up {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ledgr-card-anim {
+      animation: ledgr-card-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms;   }
+    .ledgr-card-anim:nth-child(2)  { animation-delay: 70ms;  }
+    .ledgr-card-anim:nth-child(3)  { animation-delay: 140ms; }
+    .ledgr-card-anim:nth-child(4)  { animation-delay: 210ms; }
+    .ledgr-card-anim:nth-child(5)  { animation-delay: 280ms; }
+    .ledgr-card-anim:nth-child(6)  { animation-delay: 350ms; }
+    .ledgr-card-anim:nth-child(7)  { animation-delay: 400ms; }
+    .ledgr-card-anim:nth-child(n+8){ animation-delay: 440ms; }
+
+    /* ── Card hover lift ── */
+    .ledgr-card-hover {
+      transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+    .ledgr-card-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,212,255,0.08), 0 2px 8px rgba(0,0,0,0.3);
+      border-color: rgba(0,212,255,0.2) !important;
+    }
+
+    /* ── Stat number count-up shimmer ── */
+    @keyframes ledgr-stat-in {
+      from { opacity: 0; transform: scale(0.88) translateY(6px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .ledgr-stat-val {
+      animation: ledgr-stat-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-stat-val:nth-child(1) { animation-delay: 80ms;  }
+    .ledgr-stat-val:nth-child(2) { animation-delay: 160ms; }
+    .ledgr-stat-val:nth-child(3) { animation-delay: 240ms; }
+    .ledgr-stat-val:nth-child(4) { animation-delay: 320ms; }
+
+    /* ── Progress bars — animate width from 0 on mount ── */
+    @keyframes ledgr-bar-fill {
+      from { width: 0 !important; }
+    }
+    .ledgr-bar {
+      animation: ledgr-bar-fill 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    /* Stagger bars in a list */
+    .ledgr-bar:nth-child(1)  { animation-delay: 100ms; }
+    .ledgr-bar:nth-child(2)  { animation-delay: 180ms; }
+    .ledgr-bar:nth-child(3)  { animation-delay: 260ms; }
+    .ledgr-bar:nth-child(4)  { animation-delay: 340ms; }
+    .ledgr-bar:nth-child(5)  { animation-delay: 420ms; }
+    .ledgr-bar:nth-child(n+6){ animation-delay: 500ms; }
+
+    /* ── Donut / SVG circle — draw in ── */
+    @keyframes ledgr-donut-draw {
+      from { stroke-dashoffset: 9999; opacity: 0; }
+      10%  { opacity: 1; }
+      to   { opacity: 1; }
+    }
+    .ledgr-donut-seg {
+      animation: ledgr-donut-draw 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-donut-seg:nth-child(1) { animation-delay: 100ms; }
+    .ledgr-donut-seg:nth-child(2) { animation-delay: 220ms; }
+    .ledgr-donut-seg:nth-child(3) { animation-delay: 340ms; }
+    .ledgr-donut-seg:nth-child(4) { animation-delay: 460ms; }
+    .ledgr-donut-seg:nth-child(5) { animation-delay: 560ms; }
+
+    /* ── SVG line path draw-in ── */
+    @keyframes ledgr-path-draw {
+      from { stroke-dashoffset: var(--path-len, 2000); opacity: 0; }
+      10%  { opacity: 1; }
+      to   { stroke-dashoffset: 0; opacity: 1; }
+    }
+    .ledgr-path-draw {
+      stroke-dasharray: var(--path-len, 2000);
+      animation: ledgr-path-draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+    }
+    .ledgr-area-fade {
+      animation: ledgr-fade-in 0.8s ease-out 0.4s both;
+    }
+
+    /* ── Notification / banner slide-in from left ── */
+    @keyframes ledgr-slide-from-left {
+      from { opacity: 0; transform: translateX(-16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .ledgr-notif-enter {
+      animation: ledgr-slide-from-left 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-notif-enter:nth-child(1) { animation-delay: 0ms;   }
+    .ledgr-notif-enter:nth-child(2) { animation-delay: 80ms;  }
+    .ledgr-notif-enter:nth-child(3) { animation-delay: 160ms; }
+
+    /* ── Transaction rows — stagger fade in ── */
+    @keyframes ledgr-row-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .ledgr-txn-row {
+      animation: ledgr-row-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-txn-row:nth-child(1)   { animation-delay: 0ms;   }
+    .ledgr-txn-row:nth-child(2)   { animation-delay: 30ms;  }
+    .ledgr-txn-row:nth-child(3)   { animation-delay: 60ms;  }
+    .ledgr-txn-row:nth-child(4)   { animation-delay: 90ms;  }
+    .ledgr-txn-row:nth-child(5)   { animation-delay: 120ms; }
+    .ledgr-txn-row:nth-child(6)   { animation-delay: 150ms; }
+    .ledgr-txn-row:nth-child(7)   { animation-delay: 180ms; }
+    .ledgr-txn-row:nth-child(8)   { animation-delay: 210ms; }
+    .ledgr-txn-row:nth-child(n+9) { animation-delay: 240ms; }
+
+    /* ── Tab pill slide ── */
+    @keyframes ledgr-tab-in {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .ledgr-tab-active { animation: ledgr-tab-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+    /* ── Generic fade-in (reused) ── */
     @keyframes ledgr-fade-in {
       from { opacity: 0; }
       to   { opacity: 1; }
     }
-    .ledgr-view-enter { animation: ledgr-fade-in 0.18s ease-out both; }
-
-    /* Cards — staggered fade in */
-    @keyframes ledgr-card-up {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-    .ledgr-card-anim { animation: ledgr-card-up 0.25s ease-out both; }
-    .ledgr-card-anim:nth-child(1) { animation-delay: 0ms; }
-    .ledgr-card-anim:nth-child(2) { animation-delay: 50ms; }
-    .ledgr-card-anim:nth-child(3) { animation-delay: 100ms; }
-    .ledgr-card-anim:nth-child(4) { animation-delay: 150ms; }
-    .ledgr-card-anim:nth-child(5) { animation-delay: 200ms; }
-    .ledgr-card-anim:nth-child(n+6) { animation-delay: 250ms; }
 
     /* Modal — scale + fade in */
     @keyframes ledgr-modal-in {
-      from { opacity: 0; transform: scale(0.95) translateY(8px); }
+      from { opacity: 0; transform: scale(0.94) translateY(12px); }
       to   { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .ledgr-modal-anim { animation: ledgr-modal-in 0.18s ease-out both; }
+    .ledgr-modal-anim { animation: ledgr-modal-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
     /* Overlay — fade in */
     @keyframes ledgr-overlay-in {
       from { opacity: 0; }
       to   { opacity: 1; }
     }
-    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.15s ease-out both; }
+    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.2s ease-out both; }
 
     /* Toast — slide up from bottom */
     @keyframes ledgr-toast-in {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(16px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-    .ledgr-toast-anim { animation: ledgr-toast-in 0.2s ease-out both; }
+    .ledgr-toast-anim { animation: ledgr-toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-    /* Auth gate shake (already exists, keeping consistent) */
+    /* Shake */
     @keyframes shake {
       0%,100%{transform:translateX(0)}
       20%{transform:translateX(-8px)}
@@ -121,31 +239,39 @@ button {
     }
     .shake { animation: shake 0.5s ease; }
 
-    /* Chevron rotation for expand/collapse */
-    .ledgr-chevron { transition: transform 0.2s ease; display: inline-block; }
+    /* Chevron */
+    .ledgr-chevron { transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); display: inline-block; }
     .ledgr-chevron-open { transform: rotate(180deg); }
 
-    /* Expand panel — fade + clip down */
+    /* Expand panel */
     @keyframes ledgr-expand {
-      from { opacity: 0; max-height: 0; }
-      to   { opacity: 1; max-height: 800px; }
+      from { opacity: 0; max-height: 0; transform: translateY(-4px); }
+      to   { opacity: 1; max-height: 900px; transform: translateY(0); }
     }
     .ledgr-expand {
-      animation: ledgr-expand 0.22s ease-out both;
+      animation: ledgr-expand 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
       overflow: hidden;
     }
 
-    /* Install prompt slide-up */
+    /* Install prompt */
     @keyframes ledgr-slide-up {
       from { transform: translateY(100%); opacity: 0; }
       to   { transform: translateY(0);    opacity: 1; }
     }
-    .ledgr-slide-up { animation: ledgr-slide-up 0.3s ease-out both; }
+    .ledgr-slide-up { animation: ledgr-slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-    /* Nav item active indicator */
+    /* Nav active */
     @keyframes ledgr-nav-active {
       from { opacity: 0; transform: scaleX(0); }
       to   { opacity: 1; transform: scaleX(1); }
+    }
+
+    /* ── Goal / budget score rings ── */
+    @keyframes ledgr-ring-fill {
+      from { stroke-dashoffset: 200; }
+    }
+    .ledgr-ring-fill {
+      animation: ledgr-ring-fill 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
     }
 
     @media (max-width: 767px) {
@@ -3527,7 +3653,7 @@ function AppInner() {
           <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
             <div style={{height:"100%",borderRadius:99,
               background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
-              width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s"}}/>
+              width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s"}} className="ledgr-bar"/>
           </div>
         </div>
         <div style={{overflowY:"auto",flex:1}}>
@@ -3723,6 +3849,7 @@ function AppInner() {
                         strokeDasharray={`${dash} ${gap}`}
                         strokeDashoffset={-offsetAcc}
                         transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                        className="ledgr-donut-seg"
                       />
                     );
                     offsetAcc += dash;
@@ -4009,7 +4136,7 @@ function AppInner() {
                         </span>
                       </div>
                       <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
+                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}} className="ledgr-bar"/>
                       </div>
                     </div>
                   );
@@ -4052,7 +4179,7 @@ function AppInner() {
                             <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
                           </div>
                           <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
-                            <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                            <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
                           </div>
                           <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                             <span>{fmt(g.savedAmount||0)} saved</span>
@@ -4128,7 +4255,7 @@ function AppInner() {
                           </span>
                         </div>
                         <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
+                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}} className="ledgr-bar"/>
                         </div>
                       </div>
                     );
@@ -4205,7 +4332,7 @@ function AppInner() {
                               <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
                             </div>
                             <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
-                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
                             </div>
                             <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                               <span>{fmt(g.savedAmount||0)} saved</span>
@@ -4764,7 +4891,7 @@ function AppInner() {
                                   </div>
                                 </div>
                                 <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
-                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
+                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} className="ledgr-bar" />
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                   <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>
@@ -4968,7 +5095,7 @@ function AppInner() {
                                     </div>
                                   </div>
                                   <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
-                                    <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
+                                    <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} className="ledgr-bar" />
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>

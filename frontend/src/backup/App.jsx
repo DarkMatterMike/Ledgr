@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
+import { debounce } from "./api.js";
 import { useAppData } from "./hooks/useAppData.js";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -11,6 +12,7 @@ import { useAiChat } from "./hooks/useAiChat.js";
 import PortfolioView from "./PortfolioView.jsx";
 import AiChat from "./AiChat.jsx";
 import Analytics from "./Analytics.jsx";
+import DaniPage from "./DaniPage.jsx";
 
 /* ─── Mobile detection ──────────────────────────────────────────── */
 function useIsMobile() {
@@ -39,10 +41,10 @@ button {
   appearance: none;
   -webkit-tap-highlight-color: transparent;
 }
-    .ledgr-content   { padding: 28px; }
-    .ledgr-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
-    .ledgr-dash-cards { display: flex; flex-direction: column; gap: 16px; }
-    .ledgr-acct-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ledgr-content   { padding: 20px; }
+    .ledgr-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .ledgr-dash-cards { display: flex; flex-direction: column; gap: 10px; }
+    .ledgr-acct-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .ledgr-budget-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
     .ledgr-cal-cell  { min-height: 80px; padding: 8px; }
 
@@ -149,8 +151,6 @@ button {
     @media (max-width: 767px) {
       .ledgr-content   { padding: 16px !important; }
       .ledgr-stat-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-      .ledgr-filter-row { flex-direction: column !important; }
-      .ledgr-filter-row > * { width: 100% !important; }
       .ledgr-txn-actions { flex-wrap: wrap !important; gap: 6px !important; }
       .ledgr-acct-grid  { grid-template-columns: 1fr !important; }
       .ledgr-monthbar   { flex-direction: column !important; gap: 10px !important; align-items: center !important; }
@@ -168,36 +168,36 @@ button {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:20 },
-  cardTitle:    { fontFamily:"var(--font-disp)", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:16 },
-  grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 },
-  grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:16 },
-  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"20px 22px" },
-  statLabel:    { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:8 },
-  statValue:    { fontFamily:"var(--font-mono)", fontSize:26, fontWeight:600 },
-  statSub:      { fontSize:12, color:"var(--t2)", marginTop:4 },
+  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"12px 16px" },
+  cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
+  grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
+  grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
+  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 14px" },
+  statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 },
+  statValue:    { fontFamily:"var(--font-mono)", fontSize:20, fontWeight:600 },
+  statSub:      { fontSize:11, color:"var(--t2)", marginTop:2 },
   btn: (variant="ghost", sm=false) => {
-    const base = { display:"inline-flex", alignItems:"center", gap:6, padding:sm?"5px 12px":"8px 16px", borderRadius:"var(--radius)", fontSize:13, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none", lineHeight:"1.4", whiteSpace:"nowrap" };
+    const base = { display:"inline-flex", alignItems:"center", gap:5, padding:sm?"3px 8px":"5px 11px", borderRadius:"var(--radius)", fontSize:12, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none", lineHeight:"1.4", whiteSpace:"nowrap" };
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"#ff4d6d44" };
     if (variant==="amber")   return { ...base, background:"#fbbf2422", color:"var(--amber)", borderColor:"#fbbf2444" };
     return { ...base, background:"transparent", color:"var(--t2)", borderColor:"var(--border2)" };
   },
-  input:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 12px", fontSize:13, color:"var(--t1)", outline:"none", width:"100%" },
-  select:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"6px 10px", fontSize:12, color:"var(--t1)", outline:"none" },
-  field:        { display:"flex", flexDirection:"column", gap:6 },
+  input:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
+  select:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
+  field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
   overlay:      { position:"fixed", inset:0, background:"#00000088", backdropFilter:"blur(4px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
-  modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:28, width:500, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
-  modalTitle:   { fontFamily:"var(--font-disp)", fontSize:18, fontWeight:800, marginBottom:20, letterSpacing:"-0.3px" },
+  modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
+  modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:24, right:16, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"12px 18px", fontSize:13, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
-  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 16px", display:"flex", alignItems:"center", gap:16, fontSize:12, color:"var(--t2)", marginBottom:20, flexWrap:"wrap" },
-  sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 },
-  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:16, fontWeight:700, letterSpacing:"-0.2px" },
-  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"10px 12px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
-  td:           { padding:"12px 12px", fontSize:13, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
-  filterRow:    { display:"flex", gap:10, flexWrap:"wrap", marginBottom:16, alignItems:"center" },
+  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 14px", fontSize:12, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
+  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"7px 12px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 },
+  sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
+  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
+  td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
+  filterRow:    { display:"flex", gap:8, flexWrap:"wrap", marginBottom:10, alignItems:"center" },
 };
 
 /* ─── Constants ─────────────────────────────────────────────────── */
@@ -206,6 +206,24 @@ const DAYS_OF_WEEK = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const today        = new Date();
 const pad          = n => String(n).padStart(2,"0");
 const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+
+/* ── Merchant icon — Google favicon service ─────────────────────── */
+function MerchantIcon({ name, size=24 }) {
+  const [err, setErr] = useState(false);
+  if (!name || err) return (
+    <span style={{width:size,height:size,flexShrink:0,display:"flex",alignItems:"center",
+      justifyContent:"center",fontSize:Math.round(size*0.5),color:"var(--t3)"}}>💳</span>
+  );
+  const domain = name.toLowerCase().replace(/[^a-z0-9\s]/g,"").replace(/\s+/g,"").slice(0,30)+".com";
+  return (
+    <div style={{width:size,height:size,flexShrink:0,overflow:"hidden",
+      display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=${size*2}`}
+        alt="" width={size} height={size}
+        onError={()=>setErr(true)} style={{objectFit:"contain"}}/>
+    </div>
+  );
+}
 const cap          = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
 const NAV = [
@@ -216,6 +234,7 @@ const NAV = [
   { id:"rules",        icon:"◎", label:"Rules"        },
   { id:"calendar",     icon:"▦", label:"Calendar"     },
   { id:"ai",           icon:"✦", label:"Ask AI"       },
+  { id:"analytics",   icon:"◎", label:"Analytics"    },
 ];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
@@ -258,15 +277,16 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null,
 
 
 const PAGE_RIGHT_COL_W = 340;
-const PAGE_COL_GAP = 16;
+const PAGE_COL_GAP = 10;
 const SHARED_LEFT_WIDTH = `calc(100% - ${PAGE_RIGHT_COL_W + PAGE_COL_GAP}px)`;
 
-function PageLayout({ left, right = null, isMobile = false }) {
+function PageLayout({ left, right = null, isMobile = false, mobileRightFirst = false }) {
   if (isMobile) {
     return (
       <div style={{ width: "100%" }}>
+        {mobileRightFirst && right ? <div style={{ marginBottom: 10 }}>{right}</div> : null}
         {left}
-        {right ? <div style={{ marginTop: 16 }}>{right}</div> : null}
+        {!mobileRightFirst && right ? <div style={{ marginTop: 16 }}>{right}</div> : null}
       </div>
     );
   }
@@ -614,7 +634,7 @@ function AuthGate({ onAuth }) {
     }}>
 
       <div>
-        <div style={{fontFamily:"var(--font-disp)",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
+        <div style={{fontFamily:"'Syne', sans-serif",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
           ledgr<span style={{color:"var(--cyan)"}}>.</span>
         </div>
         <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",marginTop:4}}>personal finance</div>
@@ -658,7 +678,7 @@ function AuthGate({ onAuth }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:12}}>
+        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:10}}>
           {/* Email field — login, register, forgot */}
           {mode !== "reset" && (
             <input type="email" placeholder="Email address" value={email} autoFocus
@@ -787,29 +807,49 @@ export default function App() {
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
   const currentUser = api.getStoredUser();
   const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+  const [supportOpen,    setSupportOpen]    = useState(false);
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
+  const [supportSending, setSupportSending] = useState(false);
+
+  async function submitSupport() {
+    if (!supportMessage.trim()) return;
+    setSupportSending(true);
+    try {
+      await api.sendSupport(supportSubject, supportMessage);
+      showToast("Message sent — we'll get back to you soon ✓");
+      setSupportOpen(false);
+      setSupportSubject("");
+      setSupportMessage("");
+    } catch(e) {
+      showToast("Failed to send — please try again");
+    } finally {
+      setSupportSending(false);
+    }
+  }
   return (
     <>
-      <div style={{padding:"20px 20px 16px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+      <div style={{padding:"12px 14px 10px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-          <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+          <span style={{fontFamily:"var(--font-script)",fontSize:22,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
+          <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
             ledgr<span style={{color:"var(--cyan)"}}>.</span>
           </div>
         </div>
-        <div style={{fontSize:11,color:"var(--t3)",marginTop:6,paddingLeft:1}}>personal finance</div>
+        <div style={{fontSize:10,color:"var(--t3)",marginTop:3,paddingLeft:1}}>personal finance</div>
       </div>
-      <nav style={{flex:1,padding:"12px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
+      <nav style={{flex:1,padding:"8px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}
             style={{
-              display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-              borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+              display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+              borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
               border:`1px solid ${view===n.id?"#00d4ff33":"transparent"}`,
               background:view===n.id?"var(--cyan-dim)":"transparent",
               color:view===n.id?"var(--cyan)":"var(--t2)",
               width:"100%",textAlign:"left",transition:"all 0.15s",
             }}>
-            <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+            <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>{n.icon}</span>
             <span>{n.label}</span>
             {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
           </button>
@@ -817,40 +857,81 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         {/* Owner-only nav items */}
         {currentUser?.role === "owner" && (
           <div style={{ marginTop:8, borderTop:"1px solid var(--border)", paddingTop:8, display:"flex", flexDirection:"column", gap:2 }}>
-            <button onClick={()=>onNav("analytics")}
+            <button onClick={()=>onNav("dani")}
               style={{
-                display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-                borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
-                border:`1px solid ${view==="analytics"?"#00d4ff33":"transparent"}`,
-                background:view==="analytics"?"var(--cyan-dim)":"transparent",
-                color:view==="analytics"?"var(--cyan)":"var(--t2)",
+                display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+                borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
+                border:`1px solid ${view==="dani"?"#f9a8d433":"transparent"}`,
+                background:view==="dani"?"#f9a8d411":"transparent",
+                color:view==="dani"?"#f9a8d4":"var(--t2)",
                 width:"100%",textAlign:"left",transition:"all 0.15s",
               }}>
-              <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>◎</span>
-              <span>Analytics</span>
-              {view==="analytics"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
+              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>♡</span>
+              <span>Dani</span>
+              {view==="dani"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"#f9a8d4",display:"inline-block"}}/>}
             </button>
             <button onClick={()=>onNav("admin")}
               style={{
-                display:"flex",alignItems:"center",gap:13,padding:"11px 14px",
-                borderRadius:"var(--radius)",fontSize:14,fontWeight:500,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+                borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
                 border:`1px solid ${view==="admin"?"#00d4ff33":"transparent"}`,
                 background:view==="admin"?"var(--cyan-dim)":"transparent",
                 color:view==="admin"?"var(--cyan)":"var(--t2)",
                 width:"100%",textAlign:"left",transition:"all 0.15s",
               }}>
-              <span style={{fontSize:18,width:22,textAlign:"center",flexShrink:0}}>⬡</span>
+              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>⬡</span>
               <span>Admin</span>
               {view==="admin"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
             </button>
           </div>
         )}
       </nav>
-      <div style={{padding:"12px 10px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:8}}>
+      <div style={{padding:"8px 8px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:6}}>
         <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
           onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
           {syncing?"⟳ Syncing…":"⟳ Sync All"}
         </button>
+        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+          onClick={()=>setSupportOpen(true)}>
+          💬 Support
+        </button>
+
+        {/* Support modal */}
+        {supportOpen && (
+          <div style={{position:"fixed",inset:0,background:"#0009",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+            onClick={e=>{ if(e.target===e.currentTarget) setSupportOpen(false); }}>
+            <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",padding:20,width:"100%",maxWidth:400,display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--t1)"}}>Contact Support</div>
+                <button onClick={()=>setSupportOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:18,lineHeight:1,padding:"0 2px"}}>×</button>
+              </div>
+              <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.5}}>
+                Send a message and we'll get back to you via email.
+              </div>
+              <input
+                style={{...S.input,fontSize:13}}
+                placeholder="Subject (optional)"
+                value={supportSubject}
+                onChange={e=>setSupportSubject(e.target.value)}
+              />
+              <textarea
+                style={{...S.input,fontSize:13,minHeight:100,resize:"vertical",fontFamily:"inherit",lineHeight:1.5}}
+                placeholder="Describe your issue or question…"
+                value={supportMessage}
+                onChange={e=>setSupportMessage(e.target.value)}
+              />
+              <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+                <button style={S.btn("ghost",true)} onClick={()=>setSupportOpen(false)}>Cancel</button>
+                <button
+                  style={S.btn("primary",true)}
+                  onClick={submitSupport}
+                  disabled={supportSending || !supportMessage.trim()}>
+                  {supportSending ? "Sending…" : "Send Message"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {"Notification" in window && Notification.permission !== "granted" && (
           <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
             onClick={async ()=>{
@@ -920,7 +1001,8 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   needsReview, markReviewed, startRename, deleteTxn,
   updateTxnType, updateTxnCat, updateTxnAcct, updateTxnNotes,
   openAddCat, toggleRecurring, updateRecurringDay, saveRename, isMobile,
-  isSelected, onToggleSelect, selectionActive }) {
+  isSelected, onToggleSelect, selectionActive,
+  goals, assignTxnToGoal }) {
 
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
@@ -933,7 +1015,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
     <div style={{borderBottom:"1px solid var(--border)"}}>
       <div
         onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
-        style={{padding:"10px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
+        style={{padding:"7px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
           borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
           paddingLeft:t.recurring||needsReview(t)?10:0,
           background: isSelected ? "var(--cyan-dim)" : "transparent",
@@ -950,7 +1032,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           }}>
           {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
         </div>
-        {(t.recurring||!reviewed)&&<span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":"var(--cyan)"}}/>}
+        <MerchantIcon name={t.merchant||t.name} size={24}/>
         <span style={{fontSize:13,fontWeight:500,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
@@ -966,18 +1048,35 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
             style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
           {ellipsisId===t.id&&(
-            <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
-              border:"1px solid var(--border2)",borderRadius:"var(--radius)",
-              boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
+            <>
+              <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
+              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
+                border:"1px solid var(--border2)",borderRadius:"var(--radius)",
+                boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
               <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
                 {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}
               </button>
               <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+              {goals && goals.length > 0 && (
+                <div style={{borderTop:"1px solid var(--border)",paddingTop:4,paddingBottom:4}}>
+                  <div style={{padding:"6px 14px 4px",fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Add to goal</div>
+                  {goals.map(g => {
+                    const isAssigned = (g.assignedTxnIds||[]).includes(t.id);
+                    return (
+                      <button key={g.id} onClick={()=>{assignTxnToGoal(t.id, g.id);setEllipsisId(null);}}
+                        style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:isAssigned?"var(--cyan)":"var(--t2)"}}>
+                        {isAssigned?"✓ ":""}{g.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
             </div>
+          </>
           )}
         </div>
       </div>
@@ -998,7 +1097,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           <div style={{display:"flex", flexDirection: isMobile ? "column" : "row", gap:8}}>
             {/* Left: dropdowns */}
             <div style={{display:"flex", flexDirection:"column", gap:8, flex:1}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
                   value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
                   <option value="expense">Expense</option>
@@ -1143,7 +1242,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -1211,6 +1310,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     const confirmed = window.confirm(`Delete all ${transactions.length} transactions? This cannot be undone.`);
     if (!confirmed) return;
     setTransactions([]);
+    api.deleteAllTransactions().catch(console.error);
     showToast("All transactions deleted");
   }
 
@@ -1230,7 +1330,12 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     setRules([]);
     setPlaidItems([]);
     // Explicitly save empty arrays to DB so they don't get restored on next load
-    await api.saveData({ transactions: [], accounts: [], categories: [], rules: [], plaidItems: [] });
+    await Promise.all([
+      api.deleteAllTransactions(),
+      api.deleteAllAccountsApi(),
+      api.deleteAllRulesApi(),
+      api.saveData({ categories: [], plaidItems: [] }),
+    ]);
     showToast("All data cleared");
   }
 
@@ -1242,7 +1347,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 
       {/* Profile */}
       <SettingsSection title="Profile">
-        <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
           <div style={{
             width:56, height:56, borderRadius:"50%", flexShrink:0,
             background:avatarColor+"33", border:`2px solid ${avatarColor}`,
@@ -1276,7 +1381,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       {/* Subscription */}
       <SettingsSection title="Subscription">
         {user?.role === "owner" ? (
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
             <div>
               <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Owner — Lifetime Access</div>
@@ -1284,8 +1389,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </div>
           </div>
         ) : user?.subscription_status === "active" ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Active — $4.99/month</div>
@@ -1298,8 +1403,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </button>
           </div>
         ) : user?.subscription_status === "trialing" ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--amber)", flexShrink:0 }}/>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Free Trial</div>
@@ -1316,8 +1421,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </button>
           </div>
         ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--red)", flexShrink:0 }}/>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", textTransform:"capitalize" }}>
@@ -1365,7 +1470,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           Set your income and financial targets to power the Analytics page — savings rate, net worth projections, and retirement estimates.
         </div>
         {profileForm ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
 
             {/* Income */}
             <div>
@@ -1470,6 +1575,148 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         )}
       </SettingsSection>
 
+
+      {/* ── Theme ──────────────────────────────────────────────── */}
+      <SettingsSection title="Appearance">
+        {(()=>{
+          const PRESETS = [
+            { name:"Ledgr Dark",  bg:"#06090f", surface:"#0c1220", card:"#101826", border:"#1a2640", border2:"#243452", accent:"#00d4ff", t1:"#e2eaf8", t2:"#7a8fa8", t3:"#3d5070" },
+            { name:"Midnight",    bg:"#0a0a0f", surface:"#111120", card:"#181828", border:"#232340", border2:"#2d2d55", accent:"#a78bfa", t1:"#e8e8ff", t2:"#8080b0", t3:"#404070" },
+            { name:"Deep Green",  bg:"#020d08", surface:"#071a10", card:"#0c2018", border:"#123022", border2:"#1a4030", accent:"#00e676", t1:"#d8f5e4", t2:"#60a878", t3:"#2a6040" },
+            { name:"Ember",       bg:"#0f0800", surface:"#1a1000", card:"#221600", border:"#3a2200", border2:"#4a3000", accent:"#fbbf24", t1:"#f5e8d0", t2:"#a07840", t3:"#604820" },
+            { name:"Rose",        bg:"#0f060a", surface:"#1a0c14", card:"#22101c", border:"#3a1a2a", border2:"#4a2038", accent:"#f472b6", t1:"#f5d8e8", t2:"#a06080", t3:"#603048" },
+            { name:"Slate",       bg:"#080c10", surface:"#101620", card:"#16202c", border:"#1e2e3e", border2:"#263a4e", accent:"#60a5fa", t1:"#dce8f8", t2:"#6080a0", t3:"#304060" },
+            { name:"Obsidian",    bg:"#0c0c0c", surface:"#141414", card:"#1c1c1c", border:"#2a2a2a", border2:"#363636", accent:"#e2e8f0", t1:"#f0f0f0", t2:"#888888", t3:"#444444" },
+            { name:"Ocean",       bg:"#020b14", surface:"#041828", card:"#062038", border:"#0a3050", border2:"#0e4068", accent:"#38bdf8", t1:"#daf0ff", t2:"#5090b8", t3:"#205070" },
+            { name:"Crimson",     bg:"#0f0205", surface:"#1a0408", card:"#22080e", border:"#3a0e18", border2:"#4a1422", accent:"#f87171", t1:"#fde8e8", t2:"#a05060", t3:"#602030" },
+            { name:"Neon",        bg:"#020208", surface:"#060618", card:"#0a0a22", border:"#141440", border2:"#1e1e58", accent:"#39ff14", t1:"#e8ffe8", t2:"#50a050", t3:"#205020" },
+            { name:"Dusk",        bg:"#0a0710", surface:"#120e1c", card:"#181428", border:"#26203e", border2:"#342c52", accent:"#f59e0b", t1:"#f0eaff", t2:"#8878aa", t3:"#48386a" },
+            { name:"Arctic",      bg:"#06101a", surface:"#0e1e2e", card:"#142640", border:"#1e3858", border2:"#284a70", accent:"#67e8f9", t1:"#e0f8ff", t2:"#5a9ab8", t3:"#2a5a70" },
+          ];
+          const FONTS = [
+            { label:"Syne (default)",      value:"'Syne', sans-serif" },
+            { label:"DM Sans",             value:"'DM Sans', sans-serif" },
+            { label:"Dancing Script",      value:"'Dancing Script', cursive" },
+            { label:"JetBrains Mono",      value:"'JetBrains Mono', monospace" },
+            { label:"Georgia",             value:"'Georgia', serif" },
+            { label:"Trebuchet MS",        value:"'Trebuchet MS', sans-serif" },
+          ];
+          const VARS = [
+            { key:"bg",      label:"Background" },
+            { key:"surface", label:"Surface" },
+            { key:"card",    label:"Card" },
+            { key:"border",  label:"Border" },
+            { key:"border2", label:"Border 2" },
+            { key:"accent",  label:"Accent" },
+            { key:"t1",      label:"Text primary" },
+            { key:"t2",      label:"Text secondary" },
+            { key:"t3",      label:"Text muted" },
+          ];
+          const defaults = PRESETS[0];
+          const current = { ...defaults, fontDisp:"'Syne', sans-serif", ...(theme||{}) };
+
+          function patch(k, v) {
+            const next = { ...current, [k]: v };
+            onSaveTheme(next);
+          }
+
+          function applyPreset(preset) {
+            const next = { ...current, ...preset };
+            onSaveTheme(next);
+          }
+
+          function reset() {
+            const root = document.documentElement;
+            ["--bg","--surface","--card","--border","--border2","--cyan","--cyan-dim","--t1","--t2","--t3","--font-disp"].forEach(v => root.style.removeProperty(v));
+            document.body.style.removeProperty("background");
+            try { localStorage.removeItem("ledgr_theme"); } catch {}
+            onSaveTheme({});
+          }
+
+          return (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              {/* Presets — 4-column grid, all buttons same width */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Presets</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:6}}>
+                  {PRESETS.map(p=>(
+                    <button key={p.name} onClick={()=>applyPreset(p)} style={{
+                      display:"flex",alignItems:"center",gap:6,justifyContent:"flex-start",
+                      padding:"6px 10px",borderRadius:"var(--radius)",fontSize:11,fontWeight:500,
+                      border:`1px solid ${current.accent||"var(--border2)"}33`,
+                      background:"var(--surface)",color:"var(--t2)",cursor:"pointer",
+                      transition:"all 0.15s",whiteSpace:"nowrap",overflow:"hidden",
+                    }}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=current.accent||"var(--cyan)";e.currentTarget.style.color="var(--t1)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=`${current.accent||"var(--border2)"}33`;e.currentTarget.style.color="var(--t2)";}}>
+                      <span style={{display:"inline-flex",gap:3,flexShrink:0}}>
+                        {["bg","accent","t1"].map(k=>(
+                          <span key={k} style={{width:7,height:7,borderRadius:"50%",background:p[k],display:"inline-block"}}/>
+                        ))}
+                      </span>
+                      <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Page title font — 3-column grid */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Page Title Font</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:6}}>
+                  {FONTS.map(f=>{
+                    const active=(current.fontDisp||"'Syne', sans-serif")===f.value;
+                    return(
+                      <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
+                        padding:"7px 10px",borderRadius:"var(--radius)",fontSize:13,textAlign:"center",
+                        fontFamily:f.value,
+                        border:`1px solid ${active?"var(--cyan)":"var(--border2)"}`,
+                        background:active?"var(--cyan-dim)":"var(--surface)",
+                        color:active?"var(--cyan)":"var(--t2)",cursor:"pointer",transition:"all 0.15s",
+                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
+                      }}>
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{marginTop:8,padding:"8px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"1px solid var(--border)"}}>
+                  <span style={{fontFamily:current.fontDisp||"'Syne', sans-serif",fontSize:18,fontWeight:700,color:"var(--t1)"}}>Dashboard</span>
+                  <span style={{fontSize:11,color:"var(--t3)",marginLeft:12}}>preview</span>
+                </div>
+              </div>
+
+              {/* Color pickers */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Colors</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:"10px 12px"}}>
+                  {VARS.map(({key,label})=>(
+                    <div key={key} style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{fontSize:10,color:"var(--t2)",fontFamily:"var(--font-body)",letterSpacing:"0.3px"}}>{label}</div>
+                      <div style={{display:"flex",alignItems:"stretch",height:30,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",overflow:"hidden"}}>
+                        <input type="color" value={current[key]||defaults[key]}
+                          onChange={e=>patch(key,e.target.value)}
+                          style={{width:30,height:"100%",border:"none",borderRight:"1px solid var(--border2)",cursor:"pointer",padding:0,background:"none",flexShrink:0,display:"block"}}/>
+                        <input type="text" value={current[key]||defaults[key]}
+                          onChange={e=>{ if(/^#[0-9a-fA-F]{6}$/.test(e.target.value)) patch(key,e.target.value); }}
+                          style={{flex:1,background:"none",border:"none",padding:"0 8px",fontSize:11,color:"var(--t1)",fontFamily:"var(--font-mono)",outline:"none",minWidth:0,lineHeight:"30px"}}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset */}
+              <div style={{display:"flex",justifyContent:"flex-end"}}>
+                <button onClick={reset} style={{...S.btn("ghost",true),color:"var(--t3)"}}>
+                  Reset to defaults
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </SettingsSection>
+
       {/* Data export */}
       <SettingsSection title="Your Data">
         <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
@@ -1547,6 +1794,23 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 /* ═══════════════════════════════════════════════════════════════════
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
+/* ── Theme application helper ──────────────────────────────────── */
+function applyTheme(theme) {
+  if (!theme) return;
+  const root = document.documentElement;
+  const vars = [
+    ["--bg", theme.bg], ["--surface", theme.surface], ["--card", theme.card],
+    ["--border", theme.border], ["--border2", theme.border2],
+    ["--cyan", theme.accent], ["--cyan-dim", theme.accent ? theme.accent + "22" : null],
+    ["--t1", theme.t1], ["--t2", theme.t2], ["--t3", theme.t3],
+  ];
+  vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
+  if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
+  if (theme.bg) document.body.style.background = theme.bg;
+}
+// Apply stored theme immediately on page load to prevent flash
+try { const t = localStorage.getItem("ledgr_theme"); if (t) applyTheme(JSON.parse(t)); } catch {}
+
 function AdminPanel() {
   const isMobile = useIsMobile();
   const [users,    setUsers]    = useState([]);
@@ -1611,12 +1875,12 @@ function AdminPanel() {
 
   return (
     <div style={{width:"100%"}}>
-      <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:24,letterSpacing:"-0.3px"}}>
+      <div style={{fontFamily:"var(--font-disp)",fontSize:22,fontWeight:800,marginBottom:14,letterSpacing:"-0.3px"}}>
         Admin Panel
       </div>
 
       {/* Stats — 2x2 on mobile, 4 columns on desktop */}
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:24}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10,marginBottom:24}}>
         {[
           { label:"Total Users", value:stats.total,                  color:"var(--t1)"    },
           { label:"Active",      value:stats.active,                  color:"var(--green)" },
@@ -1676,7 +1940,7 @@ function AdminPanel() {
                 {/* Info row */}
                 {editing !== user.id ? (
                   <>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:12,marginBottom:10}}>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:10}}>
                       <div>
                         <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Role</div>
                         <span style={{fontSize:12,color:roleColor(user.role),fontWeight:700}}>{user.role}</span>
@@ -1692,8 +1956,8 @@ function AdminPanel() {
                         <span style={{fontSize:12,color:"var(--t3)"}}>{new Date(Number(user.created_at)).toLocaleDateString("en-US")}</span>
                       </div>
                       <div>
-                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Last Login</div>
-                        <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_login_at ? new Date(Number(user.last_login_at)).toLocaleDateString("en-US") : "—"}</span>
+                        <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:2}}>Last Activity</div>
+                        <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_activity_at ? new Date(Number(user.last_activity_at)).toLocaleDateString("en-US") : "—"}</span>
                       </div>
                     </div>
                     <button style={{...S.btn("ghost",true),width:"100%",justifyContent:"center"}} onClick={() => {
@@ -1743,7 +2007,7 @@ function AdminPanel() {
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr>
-                  {["Email","Role","Status","Trial Ends","Last Login","Joined","Actions"].map(h => (
+                  {["Email","Role","Status","Trial Ends","Last Activity","Joined","Actions"].map(h => (
                     <th key={h} style={S.th}>{h}</th>
                   ))}
                 </tr>
@@ -1792,7 +2056,7 @@ function AdminPanel() {
                     </td>
                     <td style={S.td}>
                       <span style={{fontSize:12,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>
-                        {user.last_login_at ? new Date(Number(user.last_login_at)).toLocaleDateString("en-US") : "—"}
+                        {user.last_activity_at ? new Date(Number(user.last_activity_at)).toLocaleDateString("en-US") : "—"}
                       </span>
                     </td>
                     <td style={S.td}>
@@ -1946,9 +2210,9 @@ function InstallPrompt() {
           Add Ledgr to your home screen for a faster, app-like experience — no browser bar, instant launch.
         </div>
 
-        <div style={{display:"flex", flexDirection:"column", gap:12, marginBottom:20}}>
+        <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:20}}>
           {steps.map((s, i) => (
-            <div key={i} style={{display:"flex", alignItems:"center", gap:12}}>
+            <div key={i} style={{display:"flex", alignItems:"center", gap:10}}>
               <div style={{
                 flexShrink:0, width:28, height:28, borderRadius:"50%",
                 background:"var(--cyan)", color:"#000",
@@ -1987,9 +2251,20 @@ function AppInner() {
   /* ── State ── */
   const [view,          setView]          = useState("dashboard");
   const [drawerOpen,    setDrawerOpen]    = useState(false);
+  const [notifOpen,     setNotifOpen]     = useState(false);
+  const [dismissedNotifs, setDismissedNotifs] = useState(new Set()); // Set of notif ids dismissed this session
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
   const [transactions,  setTransactions]  = useState([]);
+  const [allTransactions, setAllTransactions] = useState(null); // null = not yet loaded; set when analytics opens
+  const [txnTotal,      setTxnTotal]      = useState(0);    // total count from server
+  const [txnOffset,     setTxnOffset]     = useState(0);    // current pagination offset
+  const [txnLoading,    setTxnLoading]    = useState(false);// loading more transactions
+  const TXN_PAGE_SIZE = 100;
+
+  // Server-side summary — replaces client-side spentByCat/spentByAcct/totalSpent/totalIncome
+  const [summary,       setSummary]       = useState({ spentByCat:{}, spentByAcct:{}, totalSpent:0, totalIncome:0 });
+  const [summaryMonth,  setSummaryMonth]  = useState(null); // which month the summary is for
   const [plaidItems,    setPlaidItems]    = useState([]);
   const [staleItemIds,  setStaleItemIds]  = useState(new Set()); // items that returned 0 accounts on last sync
   const [reconnectingItemId, setReconnectingItemId] = useState(null);
@@ -2051,6 +2326,7 @@ function AppInner() {
 
   /* ── Stable save ref (allows portfolio hook to be defined before useAppData) ── */
   const scheduleSaveRef = useRef(null);
+  const rulesRef        = useRef([]);  // always holds current rules for use inside stale closures
 
   /* ── Portfolio (via hook) ── */
   const portfolio = usePortfolio((patch) => scheduleSaveRef.current?.(patch));
@@ -2061,6 +2337,7 @@ function AppInner() {
   /* ── AI categorization examples (memory) ── */
   const [aiCatExamples, setAiCatExamples] = useState([]);
   const [autoCatRunning, setAutoCatRunning] = useState(false);
+  const [catSuggestions, setCatSuggestions] = useState(null);
 
   /* ── User profile (income, assets, targets) ── */
   const [userProfile, setUserProfile] = useState({
@@ -2078,29 +2355,61 @@ function AppInner() {
 
   /* ── Analytics AI insights — persisted across tab/view switches ── */
   const [analyticsInsights, setAnalyticsInsights] = useState(null);
+  const [analyticsTab, setAnalyticsTab] = useState("overview");
 
   /* ── Insights to-do list ── */
   const [insightsTodos, setInsightsTodos] = useState([]);
+  const [theme,         setTheme]         = useState({});
+  const [daniData,      setDaniData]      = useState({ tab1:{ selectedAccountId:null, wishlist:[] }, tab2:{ selectedAccountId:null, wishlist:[] } });
+  const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Load + Save (via hook) ── */
-  const { initialized, scheduleSave } = useAppData({
+  const { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce,
+          resetAnalyticsLoad } = useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setAccess, setLoading, applyRules,
-    onData: (data) => {
-      portfolio.loadFromData(data);
+    onData: (data, txnTotal) => {
       aiChat.loadFromData(data);
-      if (data.aiCatExamples)      setAiCatExamples(data.aiCatExamples);
-      if (data.userProfile)        setUserProfile(p => ({ ...p, ...data.userProfile }));
-      if (data.insightsTodos)      setInsightsTodos(data.insightsTodos);
-      if (data.analyticsInsights)  setAnalyticsInsights(data.analyticsInsights);
-      if (data.dismissedPairs)     setDismissedPairs(data.dismissedPairs);
-      if (data.scanMemory)         setScanMemory(data.scanMemory);
+      if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
+      if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
+      if (data.goals)          setGoals(data.goals);
+      if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
+      if (data.scanMemory)     setScanMemory(data.scanMemory);
+      if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
+      if (data.dani)           setDaniData(data.dani);
+      if (data.theme)          { setTheme(data.theme); applyTheme(data.theme); }
+      setTxnTotal(txnTotal || 0);
+      setTxnOffset(100);
+      if (data.reauthItemIds?.length) setStaleItemIds(new Set(data.reauthItemIds));
+      api.loadSummary(currentMonth).then(s => {
+        setSummary(s);
+        setSummaryMonth(s.month);
+      }).catch(console.warn);
+    },
+    // Called the first time the portfolio view opens
+    onPortfolioData: (data) => {
+      portfolio.loadFromData(data);
+    },
+    // Called the first time the AI view opens
+    onAiData: (data) => {
+      aiChat.loadFromData(data);
+    },
+    // Called the first time the analytics view opens
+    onAnalyticsData: (data, allTxns) => {
+      if (data.analyticsInsights) setAnalyticsInsights(data.analyticsInsights);
+      if (data.insightsTodos)     setInsightsTodos(data.insightsTodos);
+      if (data.dani)              setDaniData(data.dani);
+      if (data.theme)             { setTheme(data.theme); applyTheme(data.theme); }
+      // Store the full transaction set for analytics computations.
+      // Falls back to the paginated set if the full load failed.
+      if (allTxns?.length) setAllTransactions(allTxns);
     },
   });
 
   // Wire the ref once scheduleSave is available
   scheduleSaveRef.current = scheduleSave;
+  rulesRef.current        = rules;
 
   /* ── Poll for new transactions every 30 minutes ── */
   const knownTxnIds = useRef(null);
@@ -2117,24 +2426,34 @@ function AppInner() {
     const interval = setInterval(async () => {
       if (!initialized.current) return;
       try {
-        const data = await api.loadData();
-        const incoming = data.transactions || [];
-        const known = knownTxnIds.current || new Set();
-        const brandNew = incoming.filter(t => !known.has(t.id));
-        if (brandNew.length > 0) {
-          // Merge new transactions into state without overwriting user edits
-          setTransactions(prev => {
-            const existingIds = new Set(prev.map(t => t.id));
-            const toAdd = applyRules(
-              brandNew.filter(t => !existingIds.has(t.id)),
-              rules,
-              { onlyUncategorized: true }
-            );
-            if (toAdd.length === 0) return prev;
-            return [...toAdd, ...prev];
-          });
-          brandNew.forEach(t => knownTxnIds.current.add(t.id));
-          setNewTxnCount(brandNew.length);
+        // Poll latest 100 transactions and refresh summary for current month
+        const [txnData, summaryData] = await Promise.allSettled([
+          api.loadTransactions({ limit: 100, offset: 0 }),
+          api.loadSummary(selectedMonth),
+        ]);
+        if (txnData.status === "fulfilled") {
+          const incoming = txnData.value.transactions || [];
+          const known = knownTxnIds.current || new Set();
+          const brandNew = incoming.filter(t => !known.has(t.id));
+          if (brandNew.length > 0) {
+            setTransactions(prev => {
+              const existingIds = new Set(prev.map(t => t.id));
+              const toAdd = applyRules(
+                brandNew.filter(t => !existingIds.has(t.id)),
+                rulesRef.current,   // ref always has current rules, even in stale closure
+                { onlyUncategorized: true }
+              );
+              if (toAdd.length === 0) return prev;
+              return [...toAdd, ...prev];
+            });
+            brandNew.forEach(t => knownTxnIds.current.add(t.id));
+            setNewTxnCount(brandNew.length);
+          }
+          setTxnTotal(txnData.value.total || 0);
+        }
+        if (summaryData.status === "fulfilled") {
+          setSummary(summaryData.value);
+          setSummaryMonth(summaryData.value.month);
         }
       } catch (e) {
         console.warn("Poll error:", e.message);
@@ -2142,6 +2461,43 @@ function AppInner() {
     }, POLL_MS);
     return () => clearInterval(interval);
   }, []);
+
+  // Refresh server summary after mutations that affect totals (category changes, type changes)
+  function refreshSummary() {
+    api.loadSummary(selectedMonth).then(s => {
+      setSummary(s);
+      setSummaryMonth(s.month);
+    }).catch(console.warn);
+  }
+  async function loadMoreTransactions() {
+    if (txnLoading) return;
+    if (transactions.length >= txnTotal) return;
+    setTxnLoading(true);
+    try {
+      const data = await api.loadTransactions({ limit: TXN_PAGE_SIZE, offset: txnOffset });
+      const newTxns = applyRules(data.transactions || [], rules, { onlyUncategorized: true });
+      setTransactions(prev => {
+        const existingIds = new Set(prev.map(t => t.id));
+        return [...prev, ...newTxns.filter(t => !existingIds.has(t.id))];
+      });
+      setTxnOffset(prev => prev + TXN_PAGE_SIZE);
+      setTxnTotal(data.total || 0);
+    } catch (e) {
+      console.warn("Load more error:", e.message);
+    } finally {
+      setTxnLoading(false);
+    }
+  }
+
+  // Refresh server-side summary whenever the selected month changes
+  useEffect(() => {
+    if (!initialized.current || !selectedMonth) return;
+    if (summaryMonth === selectedMonth) return; // already loaded
+    api.loadSummary(selectedMonth).then(s => {
+      setSummary(s);
+      setSummaryMonth(s.month);
+    }).catch(console.warn);
+  }, [selectedMonth, initialized.current]);
 
   /* ── Swipe gesture to open/close drawer on mobile ── */
   useEffect(() => {
@@ -2207,7 +2563,15 @@ function AppInner() {
 
   const contentRef = useRef(null);
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
-  const navigate  = id  => { setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); };
+  const navigate  = id  => {
+    setView(id);
+    setDrawerOpen(false);
+    contentRef.current?.scrollTo({ top: 0 });
+    // Lazy-load section data on first navigation — each loads at most once per session
+    if (id === "portfolio") loadPortfolioOnce();
+    if (id === "ai")        loadAiOnce();
+    if (id === "analytics") loadAnalyticsOnce();
+  };
 
   function showUndoToast(label, undoFn) {
     clearTimeout(undoTimer.current);
@@ -2227,7 +2591,14 @@ function AppInner() {
   // A transaction needs review if it has no category AND hasn't been marked reviewed
   // Income, transfer, reimbursement auto-reviewed when type set
   const needsReview = t => !t.reviewed && !t.categoryId && (t.type==="expense" || t.type==="refund" || !t.type);
-  function markReviewed(id) { setTransactions(p=>p.map(t=>t.id===id?{...t,reviewed:!t.reviewed}:t)); }
+  function markReviewed(id) {
+    setTransactions(p => p.map(t => {
+      if (t.id !== id) return t;
+      const reviewed = !t.reviewed;
+      api.updateTransaction(id, { reviewed }).catch(console.error);
+      return { ...t, reviewed };
+    }));
+  }
 
   /* ── Computed ── */
   const monthTxns = useMemo(() =>
@@ -2236,21 +2607,32 @@ function AppInner() {
 
   const isCurrentMonth = selectedMonth === currentMonth;
 
+  // Use server-side precomputed summary for dashboard aggregates.
+  // Falls back to client-side computation from loaded transactions while
+  // the server summary is loading (e.g. on first render or month switch).
+  // spentByCat always computed from in-memory transactions so category changes
+  // reflect immediately without waiting for a server summary refresh.
+  // The server summary is still used for totalSpent/totalIncome on the dashboard
+  // where all-time accuracy matters more than instant updates.
   const spentByCat = useMemo(() => {
     const m = {};
-    monthTxns.forEach(t => { if (t.amount<0 && t.categoryId && t.type!=="transfer" && t.type!=="income" && t.type!=="reimbursement") m[t.categoryId]=(m[t.categoryId]||0)+Math.abs(t.amount); });
+    monthTxns.forEach(t => {
+      if (t.amount < 0 && t.categoryId && t.type !== "transfer" && t.type !== "income" && t.type !== "reimbursement")
+        m[t.categoryId] = (m[t.categoryId] || 0) + Math.abs(t.amount);
+    });
     return m;
   }, [monthTxns]);
 
   const spentByAcct = useMemo(() => {
+    if (summaryMonth === selectedMonth) return summary.spentByAcct;
     const m = {};
     monthTxns.forEach(t => { if (t.amount<0 && t.accountId) m[t.accountId]=(m[t.accountId]||0)+Math.abs(t.amount); });
     return m;
-  }, [monthTxns]);
+  }, [summary, summaryMonth, selectedMonth, monthTxns]);
 
-  const totalSpent  = Object.values(spentByCat).reduce((a,b)=>a+b,0);
+  const totalSpent  = summaryMonth === selectedMonth ? summary.totalSpent  : Object.values(spentByCat).reduce((a,b)=>a+b,0);
+  const totalIncome = summaryMonth === selectedMonth ? summary.totalIncome : monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
   const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
-  const totalIncome = monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
 
@@ -2290,6 +2672,14 @@ function AppInner() {
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
   [transactions, search, filterCat, filterAcct, filterReview, showDuplicates, pendingPairs]);
+
+  // Auto-clear the review filter once the last transaction has been reviewed —
+  // so the user lands back on the full unfiltered list rather than a blank screen.
+  useEffect(() => {
+    if (!filterReview) return;
+    const remaining = transactions.filter(t => needsReview(t)).length;
+    if (remaining === 0) setFilterReview(false);
+  }, [transactions, filterReview]);
 
   useEffect(() => {
     if (view !== "transactions" || !txnSearchHadFocusRef.current) return;
@@ -2445,25 +2835,38 @@ function AppInner() {
   function selectAllVisible() { setSelectedTxns(new Set(filteredTxns.map(t => t.id))); }
   function clearSelection()   { setSelectedTxns(new Set()); }
   function bulkSetCategory(catId) {
+    const ids = [...selectedTxns];
     setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, categoryId:catId||null, reviewed: catId ? true : t.reviewed, userCategorized: !!catId} : t));
+    api.bulkUpdateTransactions(ids, { categoryId: catId || null, reviewed: !!catId, userCategorized: !!catId }).catch(console.error);
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
+    refreshSummary();
   }
   function bulkSetType(type) {
+    const ids = [...selectedTxns];
     const autoReviewed = ["income","transfer","reimbursement"].includes(type);
     setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, type, reviewed: autoReviewed ? true : t.reviewed} : t));
+    api.bulkUpdateTransactions(ids, { type, ...(autoReviewed ? { reviewed: true } : {}) }).catch(console.error);
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
+    refreshSummary();
   }
   function bulkMarkReviewed(reviewed) {
+    const ids = [...selectedTxns];
     setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, reviewed} : t));
+    api.bulkUpdateTransactions(ids, { reviewed }).catch(console.error);
     showToast(`Marked ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""} ${reviewed?"reviewed":"unreviewed"}`);
     clearSelection();
   }
   function bulkDelete() {
     const removed = transactions.filter(t => selectedTxns.has(t.id));
+    const removedIds = removed.map(t => t.id);
     setTransactions(p => p.filter(t => !selectedTxns.has(t.id)));
-    showUndoToast(`Deleted ${removed.length} transaction${removed.length!==1?"s":""}`, () => setTransactions(p => [...p, ...removed]));
+    api.bulkDeleteTransactions(removedIds).catch(console.error);
+    showUndoToast(`Deleted ${removed.length} transaction${removed.length!==1?"s":""}`, () => {
+      setTransactions(p => [...p, ...removed]);
+      Promise.all(removed.map(t => api.createTransaction(t))).catch(console.error);
+    });
     clearSelection();
   }
   function promptSaveRule(txn, categoryId) {
@@ -2473,33 +2876,113 @@ function AppInner() {
   }
   function confirmSaveRule() {
     if (!rulePrompt) return;
-    setRules(p=>[...p,{id:"r"+Date.now(),pattern:rulePrompt.merchant,matchType:"contains",categoryId:rulePrompt.categoryId,enabled:true,createdAt:Date.now()}]);
+    const rule = { id:"r"+Date.now(), pattern:rulePrompt.merchant, matchType:"contains", categoryId:rulePrompt.categoryId, enabled:true, createdAt:Date.now() };
+    setRules(p => [...p, rule]);
+    api.createRule(rule).catch(console.error);
     setRulePrompt(null); showToast("Rule saved");
   }
   function confirmTypeRule() {
     if (!typeRulePrompt) return;
     const { merchant, type } = typeRulePrompt;
-    // Add a rule that sets typeOverride for this merchant pattern
+    const pattern = merchant.toLowerCase();
+    const newRule = { id:"r"+Date.now(), pattern:merchant, matchType:"contains", typeOverride:type, categoryId:null, enabled:true, createdAt:Date.now() };
     setRules(p => {
-      const pattern = merchant.toLowerCase();
-      // Replace existing type rule for this merchant if any
       const filtered = p.filter(r => !(r.pattern.toLowerCase() === pattern && r.typeOverride));
-      return [...filtered, { id:"r"+Date.now(), pattern:merchant, matchType:"contains", typeOverride:type, categoryId:null, enabled:true, createdAt:Date.now() }];
+      // Delete any replaced rule from the server
+      filtered.length < p.length && p.filter(r => r.pattern.toLowerCase() === pattern && r.typeOverride)
+        .forEach(r => api.deleteRule(r.id).catch(console.error));
+      return [...filtered, newRule];
     });
+    api.createRule(newRule).catch(console.error);
     setTypeRulePrompt(null);
     showToast(`Rule saved — "${merchant}" will always be ${type}`);
   }
-  function saveRule(rule)  { setRules(p=>[...p.filter(r=>r.id!==rule.id),rule]); showToast("Rule saved"); }
-  function deleteRule(id)  {
-    const rule = rules.find(r=>r.id===id);
-    setRules(p=>p.filter(r=>r.id!==id));
-    showUndoToast("Rule deleted", ()=>setRules(p=>[...p,rule]));
+  function saveRule(rule) {
+    const isNew = !rules.find(r => r.id === rule.id);
+    setRules(p => [...p.filter(r => r.id !== rule.id), rule]);
+    if (isNew) api.createRule(rule).catch(console.error);
+    else       api.updateRule(rule.id, rule).catch(console.error);
+    showToast("Rule saved");
   }
-  function toggleRule(id)  { setRules(p=>p.map(r=>r.id===id?{...r,enabled:!r.enabled}:r)); }
+  function deleteRule(id)  {
+    const rule = rules.find(r => r.id === id);
+    setRules(p => p.filter(r => r.id !== id));
+    api.deleteRule(id).catch(console.error);
+    showUndoToast("Rule deleted", () => {
+      setRules(p => [...p, rule]);
+      api.createRule(rule).catch(console.error);
+    });
+  }
+  function toggleRule(id)  {
+    setRules(p => p.map(r => {
+      if (r.id !== id) return r;
+      const updated = { ...r, enabled: !r.enabled };
+      api.updateRule(id, { enabled: updated.enabled }).catch(console.error);
+      return updated;
+    }));
+  }
+
+  /* ── Goals ── */
+  function saveGoal(goal) {
+    const isNew = !goals.find(g => g.id === goal.id);
+    const next = isNew
+      ? [...goals, { ...goal, id: "g" + Date.now(), createdAt: Date.now(), savedAmount: 0, assignedTxnIds: [] }]
+      : goals.map(g => g.id === goal.id ? { ...g, ...goal } : g);
+    setGoals(next);
+    scheduleSaveRef.current?.({ goals: next });
+    showToast(isNew ? "Goal created" : "Goal updated");
+  }
+  function deleteGoal(id) {
+    const next = goals.filter(g => g.id !== id);
+    setGoals(next);
+    scheduleSaveRef.current?.({ goals: next });
+    showToast("Goal deleted");
+  }
+  function assignTxnToGoal(txnId, goalId) {
+    const next = goals.map(g => {
+      const assigned = new Set(g.assignedTxnIds || []);
+      if (g.id === goalId) {
+        assigned.add(txnId);
+        const totalSaved = transactions
+          .filter(t => assigned.has(t.id))
+          .reduce((s, t) => s + Math.abs(t.amount), 0);
+        return { ...g, assignedTxnIds: [...assigned], savedAmount: totalSaved };
+      }
+      // Remove from any other goal
+      if (assigned.has(txnId)) {
+        assigned.delete(txnId);
+        const totalSaved = transactions
+          .filter(t => assigned.has(t.id))
+          .reduce((s, t) => s + Math.abs(t.amount), 0);
+        return { ...g, assignedTxnIds: [...assigned], savedAmount: totalSaved };
+      }
+      return g;
+    });
+    setGoals(next);
+    scheduleSaveRef.current?.({ goals: next });
+    showToast("Transaction assigned to goal");
+  }
 
   useEffect(() => {
     if (!initialized.current || !rules.length) return;
-    setTransactions(prev => applyRules(prev, rules, { onlyUncategorized: true }));
+    setTransactions(prev => {
+      const next = applyRules(prev, rules, { onlyUncategorized: true });
+      const prevMap = Object.fromEntries(prev.map(t => [t.id, t]));
+      const changed = next.filter(t => prevMap[t.id] && t.categoryId !== prevMap[t.id].categoryId);
+      if (changed.length > 0) {
+        // Group by categoryId for efficient bulk updates
+        const byCat = {};
+        changed.forEach(t => {
+          const k = t.categoryId || "__null__";
+          if (!byCat[k]) byCat[k] = { ids: [], categoryId: t.categoryId };
+          byCat[k].ids.push(t.id);
+        });
+        Promise.all(Object.values(byCat).map(({ ids, categoryId }) =>
+          api.bulkUpdateTransactions(ids, { categoryId, userCategorized: false })
+        )).catch(console.error);
+      }
+      return next;
+    });
   }, [rules]);
 
   useEffect(() => {
@@ -2597,9 +3080,10 @@ function AppInner() {
             available: pa.available,
             type: cap(pa.subtype || pa.type),
             institution: pa.institution,
+            mask: pa.mask,
           }));
         const updated = [...manual, ...plaidUpdated];
-        api.saveData({ accounts: updated });
+        // No saveData call needed — applySyncResultsToDB already wrote to the accounts table
         return updated;
       });
       setTransactions(prev=>{
@@ -2607,7 +3091,18 @@ function AppInner() {
         plaidAccts.forEach(pa=>{map[pa.account_id]="a"+pa.account_id;});
         return prev.map(t=>t.plaidAccountId?{...t,accountId:map[t.plaidAccountId]||t.accountId}:t);
       });
-      showToast(`Synced: +${added.length} transactions`);
+      if (added.length > 0) {
+        showToast(`Synced: +${added.length} new transaction${added.length !== 1 ? "s" : ""}`);
+      } else if (modified.length > 0 || removed.length > 0) {
+        showToast(`Sync complete — ${modified.length} updated, ${removed.length} removed`);
+      } else {
+        showToast("Sync complete — you're up to date ✓");
+      }
+      // Invalidate the full analytics transaction set — it will reload fresh next time analytics opens
+      if (added.length > 0 || removed.length > 0) {
+        setAllTransactions(null);
+        resetAnalyticsLoad();
+      }
       // Auto-categorize new uncategorized transactions if user has AI key
       if (added.length > 0) {
         const count = await runAutoCategorize();
@@ -2647,7 +3142,9 @@ function AppInner() {
       setAccounts(cleanAccounts);
       setTransactions(cleanTransactions);
       setPlaidItems(cleanPlaidItems);
-      await api.saveData({ accounts: cleanAccounts, transactions: cleanTransactions, plaidItems: cleanPlaidItems });
+      await api.deleteAllTransactions(itemId);
+      await api.deleteAccountsByItem(itemId);
+      await api.saveData({ plaidItems: cleanPlaidItems });
       showToast("Bank disconnected");
     } catch(e) { showToast("Error: " + e.message); }
   }
@@ -2675,9 +3172,11 @@ function AppInner() {
     const affected = transactions.filter(t=>t.categoryId===id);
     setCategories(p=>p.filter(c=>c.id!==id));
     setTransactions(p=>p.map(t=>t.categoryId===id?{...t,categoryId:null}:t));
+    if (affected.length > 0) api.bulkUpdateTransactions(affected.map(t=>t.id), { categoryId: null }).catch(console.error);
     showUndoToast("Category deleted", ()=>{
       setCategories(p=>[...p,cat]);
       setTransactions(p=>p.map(t=>affected.find(a=>a.id===t.id)?{...t,categoryId:id}:t));
+      if (affected.length > 0) api.bulkUpdateTransactions(affected.map(t=>t.id), { categoryId: id }).catch(console.error);
     });
   }
 
@@ -2686,29 +3185,51 @@ function AppInner() {
   function openEditAcct(a) { setAcctForm({name:a.name,balance:String(a.balance),type:a.type}); setEditTarget(a); setModal("editAcct"); }
   function saveAcct() {
     if (!acctForm.name.trim()) return;
-    if (modal==="addAcct") setAccounts(p=>[...p,{id:"a"+Date.now(),name:acctForm.name.trim(),balance:parseFloat(acctForm.balance)||0,type:acctForm.type}]);
-    else setAccounts(p=>p.map(a=>a.id===editTarget.id?{...a,...acctForm,balance:parseFloat(acctForm.balance)||0}:a));
+    if (modal === "addAcct") {
+      const newAcct = { id:"a"+Date.now(), name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type, isManual:true };
+      setAccounts(p => [...p, newAcct]);
+      api.createAccount(newAcct).catch(console.error);
+    } else {
+      const patch = { name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type };
+      setAccounts(p => p.map(a => a.id === editTarget.id ? {...a, ...patch} : a));
+      api.updateAccount(editTarget.id, patch).catch(console.error);
+    }
     setModal(null); showToast("Account saved");
   }
   function deleteAcct(id) {
-    const acct = accounts.find(a=>a.id===id);
-    setAccounts(p=>p.filter(a=>a.id!==id));
-    showUndoToast("Account deleted", ()=>setAccounts(p=>[...p,acct]));
+    const acct = accounts.find(a => a.id === id);
+    setAccounts(p => p.filter(a => a.id !== id));
+    api.deleteAccount(id).catch(console.error);
+    showUndoToast("Account deleted", () => {
+      setAccounts(p => [...p, acct]);
+      api.createAccount(acct).catch(console.error);
+    });
   }
 
   /* ── Transaction CRUD ── */
   function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }
   function saveRename(id) {
-    setTransactions(p=>p.map(t=>t.id===id?{...t,name:editingName.trim()||t.merchant}:t));
+    const newName = editingName.trim() || "";
+    setTransactions(p=>p.map(t=>t.id===id?{...t,name:newName}:t));
+    api.updateTransaction(id, { name: newName }).catch(console.error);
     setEditingId(null); showToast("Name updated");
   }
   function updateTxnType(id,val) {
     const clearCat = ["income","transfer","reimbursement"].includes(val);
-    setTransactions(p=>p.map(t=>{
-      if (t.id!==id) return t;
-      const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
-      return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, categoryId: clearCat ? null : t.categoryId, userCategorized: clearCat ? false : t.userCategorized};
-    }));
+    setTransactions(p=>{
+      const next = p.map(t=>{
+        if (t.id!==id) return t;
+        const autoReviewed = val==="income"||val==="transfer"||val==="reimbursement";
+        return {...t, type:val, reviewed: autoReviewed ? true : t.reviewed, categoryId: clearCat ? null : t.categoryId, userCategorized: clearCat ? false : t.userCategorized};
+      });
+      // Save immediately when clearing category — don't rely on debounce
+      if (clearCat) {
+        api.updateTransaction(id, { type: val, reviewed: ["income","transfer","reimbursement"].includes(val), categoryId: null, userCategorized: false }).catch(console.error);
+      } else {
+        api.updateTransaction(id, { type: val, reviewed: ["income","transfer","reimbursement"].includes(val) }).catch(console.error);
+      }
+      return next;
+    });
     // Offer to create a type rule for the merchant
     const txn = transactions.find(t => t.id === id);
     const merchant = (txn?.merchant || txn?.name || "").trim();
@@ -2727,7 +3248,9 @@ function AppInner() {
       // userCategorized:true locks this txn from being re-categorized by rules or sync
       const next = p.map(t => t.id === id ? { ...t, categoryId: val || null, reviewed: val ? true : t.reviewed, userCategorized: !!val } : t);
       // Save immediately — don't rely on debounce, a sync could arrive within 800ms
-      api.saveData({ transactions: next });
+      // When removing a category (val is falsy), also reset reviewed so the transaction
+      // returns to the review queue rather than staying silently "reviewed" with no category.
+      api.updateTransaction(id, { categoryId: val || null, reviewed: val ? true : false, userCategorized: !!val }).catch(console.error);
       return next;
     });
     if (val) {
@@ -2769,15 +3292,36 @@ function AppInner() {
         }
       }
     }
+    refreshSummary();
   }
   async function runAutoCategorize(txnsToCheck) {
-    if (!categories.length) return 0;
     const uncategorized = (txnsToCheck || transactions).filter(t =>
       !t.categoryId && (t.type === "expense" || t.type === "refund" || !t.type) && t.amount < 0
     );
-    if (!uncategorized.length) return 0;
+    if (!uncategorized.length) { showToast("No uncategorized transactions to process"); return 0; }
 
-    // Build examples from existing rules for the prompt
+    // ── No categories yet → suggest a full set ───────────────────
+    if (!categories.length) {
+      setAutoCatRunning(true);
+      try {
+        const payload = uncategorized.slice(0, 100).map(t => ({
+          id: t.id,
+          merchant: (t.merchant || t.name || "").trim(),
+          amount: t.amount,
+        }));
+        const { suggestions } = await api.suggestCategories(payload);
+        if (!suggestions?.length) { showToast("Couldn't generate suggestions — try again"); return 0; }
+        setCatSuggestions(suggestions.map(s => ({ ...s, limit: s.suggestedLimit || 0 })));
+      } catch (e) {
+        if (!e.message?.includes("no_api_key")) showToast("Auto-categorize failed: " + e.message);
+        return 0;
+      } finally {
+        setAutoCatRunning(false);
+      }
+      return 0;
+    }
+
+    // ── Categories exist → assign to existing only, never overwrite ─
     const examples = rules
       .filter(r => r.enabled && r.categoryId)
       .map(r => ({ merchant: r.pattern, categoryId: r.categoryId }));
@@ -2791,14 +3335,11 @@ function AppInner() {
       }));
       const { assignments } = await api.autoCategorize(payload, categories, examples);
       const count = Object.keys(assignments).length;
-      if (count === 0) return 0;
+      if (count === 0) { showToast("Nothing new to categorize"); return 0; }
 
-      // Build new AI rules from assignments — one rule per unique merchant
-      // Never overwrite an existing manual rule
       const manualPatterns = new Set(
         rules.filter(r => r.source !== "ai").map(r => r.pattern.toLowerCase())
       );
-
       const newRules = [];
       const seenMerchants = new Set();
 
@@ -2809,11 +3350,7 @@ function AppInner() {
         const pattern  = merchant.toLowerCase();
         if (!merchant || seenMerchants.has(pattern)) continue;
         seenMerchants.add(pattern);
-
-        // Skip if a manual rule already exists for this merchant
         if (manualPatterns.has(pattern)) continue;
-
-        // Check if AI rule already exists — update it, don't duplicate
         const existingAiRule = rules.find(r => r.source === "ai" && r.pattern.toLowerCase() === pattern);
         if (!existingAiRule) {
           newRules.push({
@@ -2828,57 +3365,136 @@ function AppInner() {
         }
       }
 
-      // Apply assignments to current uncategorized transactions
-      setTransactions(prev => prev.map(t =>
-        assignments[t.id] && !t.categoryId
-          ? { ...t, categoryId: assignments[t.id], reviewed: true }
-          : t
-      ));
+      // Only assign to currently uncategorized — never overwrite
+      const updatedTxnIds = [];
+      setTransactions(prev => prev.map(t => {
+        if (assignments[t.id] && !t.categoryId) {
+          updatedTxnIds.push(t.id);
+          return { ...t, categoryId: assignments[t.id], reviewed: true };
+        }
+        return t;
+      }));
+      Object.entries(assignments).forEach(([txnId, catId]) => {
+        if (updatedTxnIds.includes(txnId))
+          api.updateTransaction(txnId, { categoryId: catId, reviewed: true, userCategorized: false }).catch(console.error);
+      });
 
-      // Add new AI rules (manual rules come first thanks to applyRules ordering)
       if (newRules.length > 0) {
         setRules(prev => [...prev, ...newRules]);
+        newRules.forEach(r => api.createRule(r).catch(console.error));
       }
 
       return count;
     } catch (e) {
-      if (!e.message?.includes("no_api_key")) {
-        console.warn("Auto-categorize failed:", e.message);
-      }
+      if (!e.message?.includes("no_api_key")) console.warn("Auto-categorize failed:", e.message);
       return 0;
     } finally {
       setAutoCatRunning(false);
     }
   }
 
-  function updateTxnAcct(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t)); }
-  function updateTxnNotes(id,val) { setTransactions(p=>p.map(t=>t.id===id?{...t,notes:val}:t)); }
+  async function confirmCatSuggestions(confirmed) {
+    setCatSuggestions(null);
+    if (!confirmed?.length) return;
+
+    const newCats = confirmed.map(s => ({
+      id:              "cat" + Date.now() + Math.random().toString(36).slice(2),
+      name:            s.name,
+      color:           s.color || "var(--cyan)",
+      limit:           parseFloat(s.limit) || 0,
+      completedMonths: [],
+    }));
+    setCategories(prev => [...prev, ...newCats]);
+
+    const catByName = Object.fromEntries(newCats.map(c => [c.name, c.id]));
+    const assignments = {};
+    const newRules = [];
+    const seenMerchants = new Set();
+
+    confirmed.forEach(s => {
+      const catId = catByName[s.name];
+      if (!catId) return;
+      (s.transactions || []).forEach(txnId => { assignments[txnId] = catId; });
+      (s.transactions || []).forEach(txnId => {
+        const txn = transactions.find(t => t.id === txnId);
+        if (!txn) return;
+        const merchant = (txn.merchant || txn.name || "").trim();
+        const pattern  = merchant.toLowerCase();
+        if (!merchant || seenMerchants.has(pattern)) return;
+        seenMerchants.add(pattern);
+        newRules.push({
+          id:         "ai" + Date.now() + Math.random().toString(36).slice(2),
+          pattern:    merchant,
+          matchType:  "contains",
+          categoryId: catId,
+          enabled:    true,
+          source:     "ai",
+          createdAt:  Date.now(),
+        });
+      });
+    });
+
+    setTransactions(prev => prev.map(t =>
+      assignments[t.id] && !t.categoryId
+        ? { ...t, categoryId: assignments[t.id], reviewed: true }
+        : t
+    ));
+    Object.entries(assignments).forEach(([txnId, catId]) => {
+      api.updateTransaction(txnId, { categoryId: catId, reviewed: true, userCategorized: false }).catch(console.error);
+    });
+    setRules(prev => [...prev, ...newRules]);
+    newRules.forEach(r => api.createRule(r).catch(console.error));
+
+    showToast(`✦ Created ${newCats.length} categories, assigned ${Object.keys(assignments).length} transactions`);
+  }
+
+  function updateTxnAcct(id,val) {
+    setTransactions(p=>p.map(t=>t.id===id?{...t,accountId:val||null}:t));
+    api.updateTransaction(id, { accountId: val || null }).catch(console.error);
+  }
+  const _debouncedSaveNotes = useMemo(() => debounce((id, val) => api.updateTransaction(id, { notes: val }).catch(console.error), 800), []);
+  function updateTxnNotes(id,val) {
+    setTransactions(p=>p.map(t=>t.id===id?{...t,notes:val}:t));
+    _debouncedSaveNotes(id, val);
+  }
   function deleteTxn(id) {
     const txn = transactions.find(t=>t.id===id);
     setTransactions(p=>p.filter(t=>t.id!==id));
-    showUndoToast("Transaction deleted", ()=>setTransactions(p=>[txn,...p]));
+    api.deleteTransaction(id).catch(console.error);
+    showUndoToast("Transaction deleted", () => {
+      setTransactions(p=>[txn,...p]);
+      api.createTransaction(txn).catch(console.error);
+    });
   }
   function toggleRecurring(id) {
     setTransactions(p=>p.map(t=>{
       if(t.id!==id) return t;
       const on=!t.recurring;
       const autoDay=t.date?parseInt(t.date.split("-")[2]):null;
-      return {...t, recurring:on, recurringDay:on?(t.recurringDay||autoDay):null,
+      const updated = {...t, recurring:on, recurringDay:on?(t.recurringDay||autoDay):null,
         recurringFreq: on?(t.recurringFreq||"monthly"):null,
         recurringStart: on?(t.recurringStart||t.date||null):null};
+      api.updateTransaction(id, { recurring: updated.recurring, recurringDay: updated.recurringDay, recurringFreq: updated.recurringFreq, recurringStart: updated.recurringStart }).catch(console.error);
+      return updated;
     }));
   }
-  function updateRecurringDay(id,day) { setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:parseInt(day)||null}:t)); }
+  function updateRecurringDay(id,day) {
+    const val = parseInt(day) || null;
+    setTransactions(p=>p.map(t=>t.id===id?{...t,recurringDay:val}:t));
+    api.updateTransaction(id, { recurringDay: val }).catch(console.error);
+  }
   function openAddTxn() {
     setTxnForm({merchant:"",amount:"",date:today.toISOString().slice(0,10),categoryId:"",accountId:"",sign:"-1"});
     setModal("addTxn");
   }
   function saveManualTxn() {
     if(!txnForm.merchant.trim()||!txnForm.amount) return;
-    setTransactions(p=>[{id:"m"+Date.now(),date:txnForm.date,merchant:txnForm.merchant.trim(),name:"",
+    const newTxn = {id:"m"+Date.now(),date:txnForm.date,merchant:txnForm.merchant.trim(),name:"",
       amount:parseFloat(txnForm.amount)*parseInt(txnForm.sign),categoryId:txnForm.categoryId||null,
       accountId:txnForm.accountId||null,recurring:false,recurringDay:null,
-      type:txnForm.sign==="-1"?"expense":"income"},...p]);
+      type:txnForm.sign==="-1"?"expense":"income"};
+    setTransactions(p=>[newTxn,...p]);
+    api.createTransaction(newTxn).catch(console.error);
     setModal(null); showToast("Transaction added");
   }
 
@@ -2894,7 +3510,7 @@ function AppInner() {
           </div>
           <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,flexShrink:0}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12,flexShrink:0}}>
           {[
             {label:"Spent",value:fmt(spentByCat[drillCat.id]||0),color:drillCat.color},
             {label:"Budget",value:fmt(drillCat.limit),color:"var(--t2)"},
@@ -3066,7 +3682,7 @@ function AppInner() {
   );
 
   const SpendingBreakdownCard = (
-    <div style={{ ...S.card, padding: 18 }}>
+    <div style={{ ...S.card, padding: 18, height: "100%", boxSizing: "border-box" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -3168,7 +3784,7 @@ function AppInner() {
         const maxVal = Math.max(1, ...budgetAnalytics.cashFlowSeries.flatMap((m) => [m.income, m.spending]));
         return (
           <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 14, marginBottom: 10, fontSize: 12, color: "var(--t2)" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap:10, marginBottom: 10, fontSize: 12, color: "var(--t2)" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)" }} />
                 Income
@@ -3184,7 +3800,7 @@ function AppInner() {
                 height: 220,
                 display: "flex",
                 alignItems: "flex-end",
-                gap: 12,
+                gap:10,
                 padding: "10px 4px 0",
                 borderTop: "1px solid var(--border)",
                 overflowX: isMobile ? "auto" : "visible",
@@ -3253,6 +3869,37 @@ function AppInner() {
   );
 
   const reviewCount = transactions.filter(t => needsReview(t)).length;
+
+  // Notification list — shared by bell popout and dashboard cards
+  const notifList = useMemo(() => {
+    const todayStr = today.toISOString().slice(0,10);
+    const goalReminders = (goals||[]).flatMap(g => {
+      if (!g.startDate || !g.deadline || !g.period) return [];
+      const start = new Date(g.startDate + "T12:00:00");
+      const end   = new Date(g.deadline  + "T12:00:00");
+      const periodDays = { week:7, biweekly:14, month:30, quarter:91, year:365 }[g.period] || 30;
+      const dates = [];
+      let d = new Date(end);
+      while (d >= start) { dates.unshift(d.toISOString().slice(0,10)); d = new Date(d.getTime() - periodDays*86400000); }
+      return dates.includes(todayStr) ? [{ id:`goal-${g.id}`, type:"goal", goal:g }] : [];
+    });
+    // One notification per stale item so the user can see exactly which bank needs attention
+    const reauthNotifs = [...staleItemIds].map(itemId => {
+      const item = plaidItems.find(i => i.item_id === itemId);
+      return { id:`reauth-${itemId}`, type:"reauth", itemId, institution: item?.institution || "Connected bank" };
+    });
+    return [
+      ...reauthNotifs,
+      ...(reviewCount > 0 ? [{ id:"review", type:"review", count:reviewCount }] : []),
+      ...goalReminders,
+    ];
+  }, [reviewCount, goals, today, staleItemIds, plaidItems]);
+
+  const visibleNotifs = useMemo(
+    () => notifList.filter(n => !dismissedNotifs.has(n.id)),
+    [notifList, dismissedNotifs]
+  );
+  const notifCount = visibleNotifs.length;
   const isNewUser = transactions.length === 0 && plaidItems.length === 0 && accounts.length === 0;
 
   // Onboarding steps — checked off as user completes them
@@ -3289,162 +3936,58 @@ function AppInner() {
   const onboardingProgress = onboardingSteps.filter(s => s.done).length;
 
   const Dashboard = (
-    <div>
-      <div className="ledgr-monthbar" style={{...S.monthBar,justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",width:"100%"}}>
-          <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
-          <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:isMobile?90:180,textAlign:"center"}}>
-            📅 {monthLabel(selectedMonth)}
-            {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
-          </span>
-          <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
-        </div>
-        <div className="ledgr-monthbar-meta" style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
-          {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
-          <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
-          <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
-          <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
-        </div>
-      </div>
-{/* Onboarding — show until all steps done */}
-{!onboardingComplete && (
-  <div style={{
-    background:"var(--card)", border:"1px solid var(--border)",
-    borderRadius:"var(--radius-lg)", padding:"20px", marginBottom:16,
-  }}>
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-      <div>
-        <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:800,color:"var(--t1)"}}>
-          Get started with ledgr.
-        </div>
-        <div style={{fontSize:12,color:"var(--t3)",marginTop:3}}>
-          {onboardingProgress} of {onboardingSteps.length} steps complete
-        </div>
-      </div>
-      <div style={{display:"flex",gap:6}}>
-        {onboardingSteps.map(s => (
-          <div key={s.id} style={{
-            width:8, height:8, borderRadius:"50%",
-            background: s.done ? "var(--cyan)" : "var(--border2)",
-            transition:"background 0.3s",
-          }}/>
-        ))}
-      </div>
-    </div>
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {onboardingSteps.map(s => (
-        <div key={s.id} style={{
-          padding:"12px 14px", borderRadius:"var(--radius)",
-          background: s.done ? "transparent" : "var(--surface)",
-          border:`1px solid ${s.done ? "transparent" : "var(--border)"}`,
-          opacity: s.done ? 0.5 : 1,
-          transition:"all 0.2s",
-        }}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            {/* Check / icon */}
-            <div style={{
-              width:32, height:32, borderRadius:"50%", flexShrink:0,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              background: s.done ? "#00d4ff22" : "var(--card)",
-              border:`1.5px solid ${s.done ? "var(--cyan)" : "var(--border2)"}`,
-              fontSize:15,
-            }}>
-              {s.done ? <span style={{color:"var(--cyan)",fontWeight:800,fontSize:14}}>✓</span> : s.icon}
+      {/* Month bar — spans first 2 columns only */}
+      {!isMobile && (
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
+          <div style={{...S.card,gridColumn:"1 / 3",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
+            {/* Arrows + month label */}
+            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>‹</button>
+              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>›</button>
+              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:16,color:"var(--t1)",marginLeft:10,whiteSpace:"nowrap"}}>
+                {monthLabel(selectedMonth)}
+                {isCurrentMonth&&<span style={{marginLeft:8,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",fontWeight:400}}>current</span>}
+              </span>
             </div>
-            {/* Text */}
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",textDecoration:s.done?"line-through":"none"}}>
-                {s.title}
-              </div>
-              {!s.done && (
-                <div style={{fontSize:12,color:"var(--t3)",marginTop:2,lineHeight:1.4}}>{s.desc}</div>
-              )}
+            {/* Vertical divider */}
+            <div style={{width:1,alignSelf:"stretch",background:"var(--border2)",margin:"0 20px",flexShrink:0}}/>
+            {/* Stats stacked */}
+            <div style={{display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
+              {isCurrentMonth&&<div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Days left</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{daysLeft()}</div></div>}
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div></div>
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Income</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--green)"}}>{fmt(totalIncome)}</div></div>
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</div></div>
             </div>
-            {/* CTA — inline on desktop, below on mobile */}
-            {!s.done && !isMobile && (
-              <button onClick={s.action} style={{
-                ...S.btn("ghost",true), flexShrink:0, whiteSpace:"nowrap",
-                borderColor:"var(--cyan)", color:"var(--cyan)",
-              }}>
-                {s.cta}
-              </button>
-            )}
           </div>
-          {/* CTA below on mobile */}
-          {!s.done && isMobile && (
-            <button onClick={s.action} style={{
-              ...S.btn("ghost",true), marginTop:10, width:"100%",
-              justifyContent:"center", borderColor:"var(--cyan)", color:"var(--cyan)",
-            }}>
-              {s.cta}
-            </button>
-          )}
         </div>
-      ))}
-    </div>
-  </div>
-)}
-
-{reviewCount > 0 && (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      background: "var(--cyan-dim)",
-      borderLeft: "3px solid var(--cyan)",
-      borderRadius: "var(--radius)",
-      padding: "10px 14px",
-      marginBottom: 16,
-    }}
-  >
-    <span style={{ fontSize: 13, color: "var(--t1)", fontWeight: 500 }}>
-      <span style={{ color: "var(--cyan)", fontWeight: 700 }}>
-        {reviewCount}
-      </span>{" "}
-      transactions need review
-    </span>
-
-    <button
-      onClick={() => {
-        setView("transactions");
-        setFilterReview(true);
-        setSearch("");
-        setFilterCat("all");
-        setFilterAcct("all");
-      }}
-      style={{
-        background: "none",
-        color: "var(--cyan)",
-        border: "none",
-        cursor: "pointer",
-        fontSize: 13,
-        fontWeight: 600,
-      }}
-    >
-      Review ›
-    </button>
-  </div>
-)}
-      <div className="ledgr-stat-grid" style={{marginBottom:20}}>
-        {[
-          {label:"Budget",      value:fmt(totalBudget),sub:`${categories.length} categories`,         color:"var(--t1)"   },
-          {label:"Spent",       value:fmt(totalSpent), sub:`${fmt(totalBudget-totalSpent)} left`,      color:"var(--red)"  },
-          {label:"Income",      value:fmt(totalIncome),sub:`Net ${fmt(totalIncome-totalSpent)}`,       color:"var(--green)"},
-          {label:"Transactions",value:monthTxns.length,sub:monthLabel(selectedMonth),                 color:"var(--t1)"   },
-        ].map(s=>(
-          <div key={s.label} style={S.stat} className="ledgr-card-anim">
-            <div style={S.statLabel}>{s.label}</div>
-            <div style={{...S.statValue,color:s.color,fontSize:isMobile?17:26}}>{s.value}</div>
-            <div style={{...S.statSub,fontSize:isMobile?10:12}}>{s.sub}</div>
+      )}
+      {/* Mobile month bar */}
+      {isMobile && (
+        <div style={{...S.card,padding:"10px 14px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>‹</button>
+            <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>›</button>
+            <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",marginLeft:6}}>
+              {monthLabel(selectedMonth)}
+              {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
+            </span>
           </div>
-        ))}
-      </div>
+          <div style={{display:"flex",gap:16,fontSize:12,color:"var(--t2)"}}>
+            {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
+            <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
+            <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
+            <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+          </div>
+        </div>
+      )}
 
       {isMobile ? (
-        <div className="ledgr-dash-cards">
-          <div style={S.card} className="ledgr-card-anim">
-            <div style={{...S.sectionHdr,marginBottom:12}}>
+        /* Mobile: single column */
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {SpendingBreakdownCard}
+          <div style={S.card}>
+            <div style={{...S.sectionHdr,marginBottom:8}}>
               <div style={S.cardTitle}>Budget Progress</div>
               <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
             </div>
@@ -3455,21 +3998,18 @@ function AppInner() {
                   const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
                   const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
                   return (
-                    <div key={cat.id} style={{marginBottom:16,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                        <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
-                          <span style={{width:7,height:7,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
-                          <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                    <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
+                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                          <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                          {complete?"✓ Done":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                          {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
                         </span>
                       </div>
-                      <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:4}}>
+                      <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
                         <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
-                      </div>
-                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                        <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
                       </div>
                     </div>
                   );
@@ -3477,116 +4017,235 @@ function AppInner() {
             }
           </div>
 
-          <div style={S.card}>
-            <div style={{...S.sectionHdr,marginBottom:12}}>
-              <div style={S.cardTitle}>Recent Transactions</div>
-              <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
-            </div>
-            {filteredTxns.slice(0,8).map(t=>(
-              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
-                <div style={{flex:1,minWidth:0,marginRight:10}}>
-                  <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
-                    {t.name||t.merchant}
-                  </div>
-                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
+          {/* Goals */}
+          {goals.length > 0 && (()=>{
+            const now = Date.now();
+            const atRisk = goals.filter(g => {
+              const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
+              const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
+              const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
+              return pct < 0.9 && (daysLeft === null || daysLeft < 90);
+            });
+            return (
+              <div style={S.card}>
+                <div style={{...S.sectionHdr,marginBottom:8}}>
+                  <div style={S.cardTitle}>Goals</div>
+                  <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
                 </div>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
-                  {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                </span>
+                {atRisk.length === 0 ? (
+                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
+                    <div style={{width:22,height:22,borderRadius:"50%",background:"var(--green-dim)",border:"1px solid var(--green)44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:10,color:"var(--green)"}}>✓</span>
+                    </div>
+                    <div style={{fontSize:12,color:"var(--t2)"}}>All goals on track</div>
+                  </div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {atRisk.slice(0,3).map(g => {
+                      const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+                      const deadline = g.deadline ? new Date(g.deadline) : null;
+                      const daysLeft = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
+                      return (
+                        <div key={g.id}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                            <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
+                            <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
+                          </div>
+                          <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
+                            <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                          </div>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                            <span>{fmt(g.savedAmount||0)} saved</span>
+                            <span>{daysLeft!=null?`${daysLeft}d left`:fmt(g.targetAmount)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            ))}
-            {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
-          </div>
-
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
-            {BudgetSummaryCard}
-          </div>
+            );
+          })()}
+          {/* Upcoming recurring */}
+          {(()=>{
+            const todayD = today.getDate();
+            const upcoming = recurringTxns
+              .filter(t => (t.recurringDay||0) > todayD)
+              .sort((a,b) => (a.recurringDay||0) - (b.recurringDay||0))
+              .slice(0,5);
+            if (!upcoming.length) return null;
+            return (
+              <div style={S.card}>
+                <div style={{...S.sectionHdr,marginBottom:8}}>
+                  <div style={S.cardTitle}>Upcoming</div>
+                  <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar →</button>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  {upcoming.map((t,i) => (
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
+                      <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                        <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       ) : (
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0, 1fr) minmax(0, 1fr) 340px",gap:16,alignItems:"start"}}>
-          {/* Col 1 — Budget Progress */}
-          <div style={S.card} className="ledgr-card-anim">
-            <div style={{...S.sectionHdr,marginBottom:12}}>
-              <div style={S.cardTitle}>Budget Progress</div>
-              <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
-            </div>
-            {categories.length===0
-              ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-              : sortedCategories.slice(0,8).map(cat=>{
-                  const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                  const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                  const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                  return (
-                    <div key={cat.id} style={{marginBottom:14,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-                        <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0,flex:1}}>
-                          <span style={{width:7,height:7,borderRadius:"50%",background:complete?"var(--green)":cat.color,display:"inline-block",flexShrink:0}}/>
-                          <span style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
-                        </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:complete?"var(--green)":over?"var(--red)":remaining===0?"var(--t3)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                          {complete?"✓ Done":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Fully spent":fmt(remaining)+" left"}
-                        </span>
-                      </div>
-                      <div style={{height:4,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:3}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
-                      </div>
-                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                        <span>{fmt(spent)} spent</span><span>{fmt(cat.limit)} budget</span>
-                      </div>
-                    </div>
-                  );
-                })
-            }
-          </div>
-
-          {/* Col 2 — Recent Transactions */}
-          <div style={S.card}>
-            <div style={{...S.sectionHdr,marginBottom:12}}>
-              <div style={S.cardTitle}>Recent Transactions</div>
-              <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
-            </div>
-            {filteredTxns.slice(0,10).map(t=>(
-              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingBottom:10,marginBottom:10,borderBottom:"1px solid var(--border)"}}>
-                <div style={{flex:1,minWidth:0,marginRight:10}}>
-                  <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {t.recurring&&<span style={{color:"var(--amber)",marginRight:4,fontSize:11}}>↻</span>}
-                    {t.name||t.merchant}
-                  </div>
-                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{t.date} · <CategoryBadge cat={catMap[t.categoryId]}/></div>
-                </div>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
-                  {t.amount<0?"−":"+"}{fmt(Math.abs(t.amount))}
-                </span>
-              </div>
-            ))}
-            {filteredTxns.length===0&&<div style={{textAlign:"center",color:"var(--t3)",padding:32}}>No transactions yet</div>}
-          </div>
-
-          {/* Col 3 — Analytics sidebar */}
-          <div style={{display:"flex",flexDirection:"column",gap:16,minWidth:0}}>
+        /* Desktop layout */
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {/* Top row: Spending Breakdown | Budget Progress | Action Items */}
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"stretch"}}>
             {SpendingBreakdownCard}
-            {CashFlowCard}
-            {OverspendingHighlightsCard}
-            {(()=>{
-              const largest = [...filteredTxns].filter(t => t.amount < 0).sort((a,b) => a.amount - b.amount).slice(0,5);
-              if (!largest.length) return null;
-              return (
-                <div style={{...S.card, padding:18}}>
-                  <div style={{...S.sectionHdr, marginBottom:10}}>
-                    <div style={S.cardTitle}>Largest Transactions</div>
-                  </div>
-                  {largest.map((t,i) => {
-                    const cat = catMap[t.categoryId];
+
+            <div style={{...S.card, height:"100%", boxSizing:"border-box"}} className="ledgr-card-anim">
+              <div style={{...S.sectionHdr,marginBottom:8}}>
+                <div style={S.cardTitle}>Budget Progress</div>
+                <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All →</button>
+              </div>
+              {categories.length===0
+                ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+                : sortedCategories.slice(0,10).map(cat=>{
+                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
                     return (
-                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<largest.length-1?"1px solid var(--border)":"none"}}>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0,width:68}}>{t.date}</div>
-                        <div style={{flex:1,minWidth:0,fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                        {cat && <span style={{fontSize:11,color:cat.color,flexShrink:0,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>}
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                      <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
+                            <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
+                            <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                          </div>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
+                            {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
+                          </span>
+                        </div>
+                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
+                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
+                        </div>
                       </div>
                     );
-                  })}
+                  })
+              }
+            </div>
+
+            <div style={{position:"sticky",top:16}}>
+              <div style={S.card}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                  <div style={S.cardTitle}>Action Items</div>
+                  {insightsTodos.length > 0 && (
+                    <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
+                      style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>Clear all</button>
+                  )}
+                </div>
+                {insightsTodos.length === 0 ? (
+                  <div style={{fontSize:12,color:"var(--t3)",textAlign:"center",padding:"20px 0",lineHeight:1.6}}>
+                    Go to <strong style={{color:"var(--t1)"}}>Analytics → Insights</strong>, generate AI analysis, then tap <span style={{color:"var(--cyan)"}}>+ Add to To-Do</span>.
+                  </div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {insightsTodos.map(todo => (
+                      <div key={todo.id} style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                        <button
+                          onClick={()=>{ const next=insightsTodos.filter(t=>t.id!==todo.id); setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
+                          style={{width:16,height:16,borderRadius:3,border:"1.5px solid var(--border2)",background:"none",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}
+                          onMouseEnter={e=>{e.currentTarget.style.background="var(--cyan)";e.currentTarget.style.borderColor="var(--cyan)";}}
+                          onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.borderColor="var(--border2)";}}>
+                          <span style={{fontSize:9,color:"var(--cyan)",lineHeight:1}}>✓</span>
+                        </button>
+                        <span style={{fontSize:12,color:"var(--t2)",lineHeight:1.5,flex:1}}>{todo.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom row: Goals + Upcoming */}
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
+            {goals.length > 0 && (()=>{
+              const now = Date.now();
+              const atRisk = goals.filter(g => {
+                const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
+                const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
+                const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
+                return pct < 0.9 && (daysLeft === null || daysLeft < 90);
+              });
+              return (
+                <div style={S.card}>
+                  <div style={{...S.sectionHdr,marginBottom:8}}>
+                    <div style={S.cardTitle}>Goals</div>
+                    <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
+                  </div>
+                  {atRisk.length === 0 ? (
+                    <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
+                      <div style={{width:22,height:22,borderRadius:"50%",background:"var(--green-dim)",border:"1px solid var(--green)44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        <span style={{fontSize:10,color:"var(--green)"}}>✓</span>
+                      </div>
+                      <div style={{fontSize:12,color:"var(--t2)"}}>All goals on track</div>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {atRisk.slice(0,3).map(g => {
+                        const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+                        const deadline = g.deadline ? new Date(g.deadline) : null;
+                        const daysLeft = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
+                        return (
+                          <div key={g.id}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                              <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
+                              <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
+                            </div>
+                            <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
+                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                            </div>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                              <span>{fmt(g.savedAmount||0)} saved</span>
+                              <span>{daysLeft!=null?`${daysLeft}d left`:fmt(g.targetAmount)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            {(()=>{
+              const todayD = today.getDate();
+              const upcoming = recurringTxns
+                .filter(t => (t.recurringDay||0) > todayD)
+                .sort((a,b) => (a.recurringDay||0) - (b.recurringDay||0))
+                .slice(0,5);
+              if (!upcoming.length) return null;
+              return (
+                <div style={S.card}>
+                  <div style={{...S.sectionHdr,marginBottom:8}}>
+                    <div style={S.cardTitle}>Upcoming</div>
+                    <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar →</button>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                    {upcoming.map((t,i) => (
+                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
+                        <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                          <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })()}
@@ -3617,11 +4276,13 @@ function AppInner() {
         left={(
           <div>
         {/* Header */}
-        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
+        <div style={{...S.sectionHdr, marginBottom:16}}>
           <div style={S.sectionTitle}>All Transactions</div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
-            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Total Balance</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
+              <div style={{fontSize:10,color:"var(--t3)"}}>Total Balance</div>
+            </div>
           </div>
         </div>
 
@@ -3636,7 +4297,11 @@ function AppInner() {
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               {filterReview && (
                 <button onClick={()=>{
-                  setTransactions(p => p.map(t => needsReview(t) ? {...t, reviewed:true} : t));
+                  setTransactions(p => {
+                    const toMark = p.filter(t => needsReview(t));
+                    if (toMark.length > 0) api.bulkUpdateTransactions(toMark.map(t => t.id), { reviewed: true }).catch(console.error);
+                    return p.map(t => needsReview(t) ? {...t, reviewed:true} : t);
+                  });
                   setFilterReview(false);
                   showToast("All transactions marked as reviewed");
                 }}
@@ -3756,25 +4421,29 @@ function AppInner() {
         </div>
 
         {/* Filter row */}
-        <div className="ledgr-filter-row" style={{...S.filterRow,marginBottom:14}}>
-          <div style={{position:"relative",flex:1,minWidth:140}}>
+        {/* Filter bar — desktop: single row / mobile: search full-width, then dropdowns + select in one row */}
+        <div style={{marginBottom:14,display:"flex",flexDirection:"column",gap:6}}>
+          {/* Row 1: Search (always full width) */}
+          <div style={{position:"relative"}}>
             <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:13}}>🔍</span>
-            <input ref={txnSearchInputRef} onFocus={()=>{txnSearchHadFocusRef.current=true;}} onBlur={()=>{txnSearchHadFocusRef.current=false;}} style={{...S.input,paddingLeft:32,fontSize:13}} placeholder="Search…" value={search} onChange={handleTxnSearchChange}/>
+            <input ref={txnSearchInputRef} onFocus={()=>{txnSearchHadFocusRef.current=true;}} onBlur={()=>{txnSearchHadFocusRef.current=false;}} style={{...S.input,paddingLeft:32,fontSize:13,width:"100%",boxSizing:"border-box"}} placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
           </div>
-          <select style={{...S.select,padding:"8px 10px"}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
-            <option value="all">All Categories</option>
-            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-            <option value="">Uncategorized</option>
-          </select>
-          <select style={{...S.select,padding:"8px 10px"}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
-            <option value="all">All Accounts</option>
-            {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-          {/* Bulk select toggle */}
-          <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 12px",flexShrink:0}}
-            onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
-            {selectedTxns.size > 0 ? `✕ ${selectedTxns.size} selected` : "Select"}
-          </button>
+          {/* Row 2: Dropdowns + Select All — side by side on both mobile and desktop */}
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+              <option value="all">All Categories</option>
+              {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="">Uncategorized</option>
+            </select>
+            <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
+              <option value="all">All Accounts</option>
+              {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}}
+              onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
+              {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
+            </button>
+          </div>
         </div>
 
         {/* Grouped transaction list */}
@@ -3820,11 +4489,25 @@ function AppInner() {
                       isSelected={selectedTxns.has(t.id)}
                       onToggleSelect={toggleSelectTxn}
                       selectionActive={selectedTxns.size > 0}
+                      goals={goals} assignTxnToGoal={assignTxnToGoal}
                     />)}
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Load More — only shown when there are more transactions on the server */}
+        {transactions.length < txnTotal && (
+          <div style={{textAlign:"center", padding:"16px 0"}}>
+            <button
+              style={S.btn("ghost", true)}
+              onClick={loadMoreTransactions}
+              disabled={txnLoading}
+            >
+              {txnLoading ? "Loading…" : `Load more (${txnTotal - transactions.length} remaining)`}
+            </button>
           </div>
         )}
           </div>
@@ -3864,28 +4547,15 @@ function AppInner() {
     setSuggestingLimits(true);
     try {
       // Build last 3 months of spending per category
-      const months = [];
+      // Fetch last 3 months of summaries from the server — accurate even with pagination
+      const monthKeys = [];
       for (let i = 2; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        const byCategory = {};
-        transactions.forEach(t => {
-          if (t.date?.startsWith(ym) && t.amount < 0 && t.categoryId) {
-            byCategory[t.categoryId] = (byCategory[t.categoryId] || 0) + Math.abs(t.amount);
-          }
-        });
-        months.push({ month: ym, byCategory });
+        monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
       }
-
-      // Compute avg monthly income
-      const incomeMonths = months.map(m => {
-        let inc = 0;
-        transactions.forEach(t => {
-          if (t.date?.startsWith(m.month) && t.amount > 0 && (t.type === "income" || !t.type)) inc += t.amount;
-        });
-        return inc;
-      });
-      const avgIncome = incomeMonths.reduce((a, b) => a + b, 0) / incomeMonths.length;
+      const summaries = await Promise.all(monthKeys.map(m => api.loadSummary(m)));
+      const months = summaries.map(s => ({ month: s.month, byCategory: s.spentByCat }));
+      const avgIncome = summaries.reduce((a, s) => a + (s.totalIncome || 0), 0) / summaries.length;
 
       const { suggestions } = await api.suggestLimits(
         categories.map(c => ({ id: c.id, name: c.name, limit: c.limit || 0 })),
@@ -3941,7 +4611,7 @@ function AppInner() {
               const diffColor = diff > 0 ? "var(--amber)" : diff < 0 ? "var(--green)" : "var(--t3)";
               return (
                 <div key={s.categoryId} style={{
-                  display:"flex", alignItems:"center", gap:12, flexWrap:"wrap",
+                  display:"flex", alignItems:"center", gap:10, flexWrap:"wrap",
                   background:"var(--surface)", borderRadius:"var(--radius)", padding:"10px 14px",
                   borderLeft:`3px solid ${cat.color}`,
                 }}>
@@ -4037,7 +4707,7 @@ function AppInner() {
                 ].filter(s => s.cats.length > 0);
 
                 return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
                       <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
@@ -4054,12 +4724,12 @@ function AppInner() {
                             const warn = pct >= 80 && !over && remaining !== 0;
                             const zero = remaining === 0 && !over;
                             const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
-                            const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
-                            const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
-                            const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                            const barC = over ? "var(--red)" : complete ? "var(--t3)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                            const remColor = (complete || zero) ? "var(--t3)" : over ? "var(--red)" : "var(--green)";
+                            const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                             const displayPct = complete ? 100 : pct;
                             return (
-                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer" }}>
+                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", borderRadius: "var(--radius)", padding: "8px 10px", cursor: "pointer" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                   {editingCatNameId === cat.id ? (
@@ -4076,17 +4746,20 @@ function AppInner() {
                                       style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 18, padding: "2px 6px", lineHeight: 1, borderRadius: "var(--radius)" }}
                                     >⋯</button>
                                     {budgetKebabId === cat.id && (
-                                      <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--green)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                          {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                          Edit Category
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
-                                          Delete
-                                        </button>
-                                      </div>
+                                      <>
+                                        <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
+                                        <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                            {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
+                                          </button>
+                                          <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                            Edit Category
+                                          </button>
+                                          <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
+                                            Delete
+                                          </button>
+                                        </div>
+                                      </>
                                     )}
                                   </div>
                                 </div>
@@ -4094,8 +4767,8 @@ function AppInner() {
                                   <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                  <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
-                                    {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--green)" }}>✓ Complete ·</span>}
+                                  <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>
+                                    {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--t3)" }}>✓ Complete ·</span>}
                                     {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
                                     {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
                                     Spent {fmt(spent)} /{" "}
@@ -4109,7 +4782,7 @@ function AppInner() {
                                 </div>
 
                                 {budgetExpandedCatId === cat.id && (
-                                  <div className="ledgr-expand" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+                                  <div className="ledgr-expand" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
 
                                     {/* Assigned transactions */}
                                     {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).length === 0 ? (
@@ -4199,7 +4872,7 @@ function AppInner() {
 
             </>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 16, alignItems: "start" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap:10, alignItems: "start" }}>
               <div style={{ minWidth: 0 }}>
                 {/* Gauge — desktop: constrained to left column width */}
                 {categories.length > 0 && totalBudget > 0 && (() => {
@@ -4239,7 +4912,7 @@ function AppInner() {
                   ].filter(s => s.cats.length > 0);
 
                   return (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
                         <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
@@ -4255,12 +4928,12 @@ function AppInner() {
                               const warn = pct >= 80 && !over && remaining !== 0;
                               const zero = remaining === 0 && !over;
                               const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
-                              const barC = over ? "var(--red)" : warn ? "var(--amber)" : (zero || complete) ? "var(--t3)" : cat.color;
-                              const remColor = complete ? "var(--green)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
-                              const remBg = complete ? "var(--green-dim)" : over ? "var(--red-dim)" : zero ? "var(--surface)" : "var(--green-dim)";
+                              const barC = over ? "var(--red)" : complete ? "var(--t3)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
+                              const remColor = (complete || zero) ? "var(--t3)" : over ? "var(--red)" : "var(--green)";
+                              const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
                               const displayPct = complete ? 100 : pct;
                               return (
-                                <div key={cat.id} onClick={() => setBudgetDrillCat(cat)} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
+                                <div key={cat.id} onClick={() => setBudgetDrillCat(cat)} style={{ background: "var(--card)", borderRadius: "var(--radius)", padding: "10px 12px", cursor: "pointer", transition: "background 0.12s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
                                     {editingCatNameId === cat.id ? (
@@ -4277,17 +4950,20 @@ function AppInner() {
                                         style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 18, padding: "2px 6px", lineHeight: 1, borderRadius: "var(--radius)" }}
                                       >⋯</button>
                                       {budgetKebabId === cat.id && (
-                                        <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: complete ? "var(--green)" : "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                            {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                            Edit Category
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
-                                            Delete
-                                          </button>
-                                        </div>
+                                        <>
+                                          <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
+                                          <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                            <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                              {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
+                                              Edit Category
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
+                                              Delete
+                                            </button>
+                                          </div>
+                                        </>
                                       )}
                                     </div>
                                   </div>
@@ -4295,8 +4971,8 @@ function AppInner() {
                                     <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <span style={{ fontSize: 12, color: over ? "var(--red)" : warn ? "var(--amber)" : "var(--t3)" }}>
-                                      {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--green)" }}>✓ Complete ·</span>}
+                                    <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>
+                                      {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--t3)" }}>✓ Complete ·</span>}
                                       {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
                                       {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
                                       Spent {fmt(spent)} /{" "}
@@ -4319,7 +4995,7 @@ function AppInner() {
                 })()}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
                 <div style={{ ...S.card, padding: 18 }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                     <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
@@ -4383,79 +5059,154 @@ function AppInner() {
   );
   /* ── Accounts ── */
   const Accounts = (
+    <div>
+      <div style={{...S.sectionHdr,marginBottom:16}}>
+        <div>
+          <div style={S.sectionTitle}>Accounts</div>
+          <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Projections through end of {today.toLocaleString("default",{month:"long"})}</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" style={{}}/>
+        </div>
+      </div>
     <PageLayout
       isMobile={isMobile}
+      mobileRightFirst={true}
       left={
-        <div>
-          <div style={{...S.sectionHdr,marginBottom:8}}>
-            <div style={S.sectionTitle}>Accounts</div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank"/>
-              <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
-            </div>
-          </div>
-          <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>Projections based on your daily spend rate through end of {today.toLocaleString("default",{month:"long"})}.</div>
-          {plaidItems.length>0&&(
-            <div style={{...S.card,marginBottom:16}}>
-              <div style={S.cardTitle}>Connected Banks</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {plaidItems.map(item=>{
-                  const isStale = staleItemIds.has(item.item_id);
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {accounts.length===0
+            ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+            : (()=>{
+                // Group by Plaid connection (plaidItemId) so separate logins to the
+                // same bank appear as separate groups. Manual accounts go under "Manual".
+                const groups = {};
+                accounts.forEach(acct => {
+                  const key = acct.plaidItemId || "__manual__";
+                  if (!groups[key]) {
+                    // Find the plaidItem to get institution name; fall back to acct.institution
+                    const item = plaidItems.find(i => i.item_id === acct.plaidItemId);
+                    groups[key] = {
+                      label: item?.institution || acct.institution || "Manual",
+                      accts: [],
+                    };
+                  }
+                  groups[key].accts.push(acct);
+                });
+                // Sort: Plaid connections first (by institution name), manual last
+                const groupEntries = Object.entries(groups).sort(([ka, a], [kb, b]) => {
+                  if (ka === "__manual__") return 1;
+                  if (kb === "__manual__") return -1;
+                  return a.label.localeCompare(b.label);
+                });
+
+                function AcctRow({ acct, isLast }) {
+                  const spent=spentByAcct[acct.id]||0;
+                  const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
+                  const daily=today.getDate()>0?spent/today.getDate():0;
+                  const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
                   return (
-                    <div key={item.item_id} style={{
-                      background:"var(--surface)",
-                      border:`1px solid ${isStale?"var(--amber)44":"var(--border2)"}`,
-                      borderRadius:"var(--radius)",
-                      padding:"12px 14px",
-                    }}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                    <div style={{padding:"11px 14px",borderTop:"1px solid var(--border)"}}>
+                      <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:3}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                            🏦 {item.institution}
+                          <div style={{fontSize:13,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
+                          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 7px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
+                        <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}{acct.mask?" ····"+acct.mask:""}</span>
+                        {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
+                        <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
+                        {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
+                        {!isMobile&&<span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day · proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    {groupEntries.map(([key, group]) => {
+                      const { label: institution, accts } = group;
+                      const groupTotal = accts.reduce((s,a) => s+(a.balance||0), 0);
+                      return (
+                        <div key={institution} style={{...S.card,padding:0,overflow:"hidden"}}>
+                          {/* Bank header */}
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:15}}>🏦</span>
+                              <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>{institution}</span>
+                              <span style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>{accts.length} account{accts.length!==1?"s":""}</span>
+                            </div>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--t2)"}}>{fmt(groupTotal)}</span>
                           </div>
-                          {isStale&&(
-                            <div style={{fontSize:11,color:"var(--amber)",marginTop:3,display:"flex",alignItems:"center",gap:4}}>
-                              ⚠ Connection issue — no accounts found
+                          {/* Accounts in this group */}
+                          {isMobile ? (
+                            accts.map((acct,i) => <AcctRow key={acct.id} acct={acct} isLast={i===accts.length-1}/>)
+                          ) : (
+                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
+                              {accts.map((acct,i) => (
+                                <div key={acct.id} style={{borderRight:i%2===0&&i<accts.length-1?"1px solid var(--border)":"none"}}>
+                                  <AcctRow acct={acct} isLast={i>=accts.length-2}/>
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
-                        <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                          {!isStale&&(
-                            <button style={{...S.btn("ghost",true),fontSize:12,padding:"4px 10px"}}
-                              onClick={()=>doSync(item.item_id)} disabled={syncing}>
-                              {syncing?"…":"⟳ Sync"}
-                            </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()
+          }
+          <SecurityBadges compact />
+        </div>
+      }
+      right={
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {plaidItems.length>0&&(
+            <div style={{...S.card,padding:"10px 14px"}}>
+              <div style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {plaidItems.map(item=>{
+                  const isStale = staleItemIds.has(item.item_id);
+                  return (
+                    <div key={item.item_id}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,padding:"5px 0"}}>
+                        <span style={{fontSize:13,flex:1,minWidth:0,color:isStale?"var(--amber)":"var(--t1)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          {isStale?"⚠ ":""}{item.institution}
+                        </span>
+                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                          {isStale ? (
+                            <>
+                              <PlaidButton
+                                itemId={item.item_id}
+                                onSuccess={async (publicToken, institution) => {
+                                  await handlePlaidSuccess(publicToken, institution || item.institution);
+                                  setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
+                                  setReconnectingItemId(null);
+                                }}
+                                onExit={() => setReconnectingItemId(null)}
+                                label={reconnectingItemId === item.item_id ? "Opening…" : "Reconnect"}
+                                style={{fontSize:11,padding:"3px 8px"}}
+                              />
+                              <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Remove</button>
+                            </>
+                          ) : (
+                            <>
+                              <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>doSync(item.item_id)} disabled={syncing}>{syncing?"…":"⟳ Sync"}</button>
+                              <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Disconnect</button>
+                            </>
                           )}
-                          <button style={{...S.btn("danger",true),fontSize:12,padding:"4px 10px"}}
-                            onClick={()=>disconnectItem(item.item_id)}>
-                            Disconnect
-                          </button>
                         </div>
                       </div>
                       {isStale&&(
-                        <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                          <div style={{fontSize:12,color:"var(--t2)",marginBottom:10,lineHeight:1.5}}>
-                            This connection has expired. Reconnect to restore your accounts — your existing transactions and rules won't be affected.
-                          </div>
-                          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                            <PlaidButton
-                              itemId={item.item_id}
-                              onSuccess={async (publicToken, institution) => {
-                                // Update mode: same item_id is preserved server-side
-                                // Just exchange the new public token — no disconnect needed
-                                await handlePlaidSuccess(publicToken, institution || item.institution);
-                                setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
-                                setReconnectingItemId(null);
-                              }}
-                              onExit={() => setReconnectingItemId(null)}
-                              label={reconnectingItemId === item.item_id ? "Opening Plaid…" : "Reconnect"}
-                              style={{flex:isMobile?1:0, justifyContent:"center"}}
-                            />
-                            <button style={{...S.btn("danger",true),flex:isMobile?1:0}}
-                              onClick={()=>disconnectItem(item.item_id)}>
-                              Remove
-                            </button>
-                          </div>
+                        <div style={{fontSize:11,color:"var(--t3)",paddingBottom:4,lineHeight:1.4}}>
+                          Connection expired — reconnect to restore. Your data won't be affected.
                         </div>
                       )}
                     </div>
@@ -4464,146 +5215,145 @@ function AppInner() {
               </div>
             </div>
           )}
-          {accounts.length===0
-            ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
-            : <div style={{...S.card,padding:0,overflow:"hidden"}}>
-                {isMobile ? (
-                  /* Mobile: flat list inside the card, same as Connected Banks */
-                  accounts.map((acct,idx) => {
-                    const spent=spentByAcct[acct.id]||0;
-                    const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
-                    const daily=today.getDate()>0?spent/today.getDate():0;
-                    const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
-                    return (
-                      <div key={acct.id} style={{padding:"12px 14px",borderTop:idx>0?"1px solid var(--border)":"none"}}>
-                        <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:4}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:14,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
-                            {acct.institution&&<div style={{fontSize:11,color:"var(--t3)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.institution}</div>}
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                            <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 8px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                            <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
-                          </div>
-                        </div>
-                        <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
-                          <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}</span>
-                          {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
-                          <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
-                          {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
-                          <span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day</span>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  /* Desktop: 2-column grid */
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:12}}>
-                    {accounts.map(acct=>{
-                      const spent=spentByAcct[acct.id]||0;
-                      const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
-                      const daily=today.getDate()>0?spent/today.getDate():0;
-                      const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
-                      return (
-                        <div key={acct.id} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
-                          <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:4}}>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:14,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
-                              {acct.institution&&<div style={{fontSize:11,color:"var(--t3)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.institution}</div>}
-                            </div>
-                            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                              <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                              <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 8px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                              <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
-                            </div>
-                          </div>
-                          <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
-                            <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}</span>
-                            {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
-                            <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
-                            {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
-                            <span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day · proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-          }
-          <SecurityBadges compact />
         </div>
       }
     />
+    </div>
   );
 
   /* ── Rules ── */
-  const Rules = (
-    <PageLayout
-      isMobile={isMobile}
-      left={
-        <div>
-          <div style={{...S.sectionHdr,marginBottom:6}}>
-            <div style={S.sectionTitle}>Auto-Categorization Rules</div>
-            <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
-          </div>
-          <p style={{fontSize:12,color:"var(--t3)",marginBottom:4,lineHeight:1.6}}>Automatically assign categories to new transactions when they sync. Manual rules always take priority over AI rules.</p>
-          {rules.length > 0 && (
-            <div style={{fontSize:11,color:"var(--t3)",marginBottom:16,display:"flex",gap:12}}>
-              <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
-              <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
-            </div>
-          )}
+  const [ruleSearch, setRuleSearch] = useState("");
 
-          {rules.length===0 ? (
-            <div style={{...S.card,textAlign:"center",padding:48}}>
-              <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
-              <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
-              <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
-            </div>
-          ) : (
-            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8}}>
-              {rules.map((rule)=>{
-                const cat = catMap[rule.categoryId];
-                const isAi = rule.source === "ai";
-                return (
-                  <div key={rule.id}
-                    style={{
-                      background:"var(--card)",border:"1px solid var(--border)",
-                      borderRadius:"var(--radius)",padding:"9px 14px",
-                      borderLeft:rule.enabled
-                        ? `3px solid ${cat?.color||rule.typeOverride?"var(--amber)":"var(--cyan)"}`
-                        : "3px solid var(--border2)",
-                      opacity:rule.enabled?1:0.45,
-                    }}>
-                    <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0}}>
-                      {/* Line 1: pattern → destination + meta */}
-                      <div style={{display:"flex",alignItems:"center",gap:5,minWidth:0,overflow:"hidden"}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0,flex:1}}>"{rule.pattern}"</span>
-                        <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>→</span>
-                        {rule.typeOverride
-                          ? <span style={{fontSize:11,color:"var(--amber)",textTransform:"capitalize",flexShrink:0,whiteSpace:"nowrap"}}>{rule.typeOverride}</span>
-                          : cat ? <span style={{fontSize:11,color:cat.color,flexShrink:0,whiteSpace:"nowrap",maxWidth:90,overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
-                          : <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>No category</span>}
-                      </div>
-                      {/* Line 2: match type + AI badge + actions */}
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{fontSize:10,color:"var(--t3)",flex:1}}>{rule.matchType==="exact"?"Exact":rule.matchType==="starts"?"Starts with":"Contains"}{isAi?" · ✦ AI":""}</span>
-                        <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-                        <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)"}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-                        <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px"}} onClick={()=>deleteRule(rule.id)}>✕</button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+  const Rules = (() => {
+    const q = ruleSearch.toLowerCase().trim();
+    const filtered = rules.filter(r =>
+      !q ||
+      r.pattern.toLowerCase().includes(q) ||
+      catMap[r.categoryId]?.name.toLowerCase().includes(q) ||
+      r.typeOverride?.toLowerCase().includes(q)
+    );
+
+    // Split into category rules and type rules
+    const catRules  = filtered.filter(r => r.categoryId && !r.typeOverride);
+    const typeRules = filtered.filter(r => r.typeOverride);
+
+    // Group category rules by category, type rules by typeOverride
+    const byCat  = {};
+    catRules.forEach(r => { const k = r.categoryId || "__none__"; (byCat[k] = byCat[k] || []).push(r); });
+    const byType = {};
+    typeRules.forEach(r => { const k = r.typeOverride || "other"; (byType[k] = byType[k] || []).push(r); });
+
+    const TYPE_LABELS = { expense:"Expense", income:"Income", transfer:"Transfer", reimbursement:"Reimbursement", refund:"Refund" };
+
+    function RuleRow({ rule }) {
+      const cat  = catMap[rule.categoryId];
+      const isAi = rule.source === "ai";
+      return (
+        <div style={{
+          display:"flex", alignItems:"center", gap:8,
+          padding:"7px 12px",
+          background:"var(--card)", border:"1px solid var(--border)",
+          borderRadius:"var(--radius)",
+          borderLeft:`2px solid ${rule.enabled ? (rule.typeOverride ? "var(--amber)" : cat?.color || "var(--cyan)") : "var(--border2)"}`,
+          opacity: rule.enabled ? 1 : 0.45,
+        }}>
+          {/* Pattern */}
+          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>
+            "{rule.pattern}"
+          </span>
+          {/* Match type */}
+          <span style={{fontSize:10,color:"var(--t3)",flexShrink:0,whiteSpace:"nowrap"}}>
+            {rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts":"contains"}
+          </span>
+          {/* AI badge */}
+          {isAi && <span style={{fontSize:9,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"1px 5px",borderRadius:4,flexShrink:0}}>AI</span>}
+          {/* Actions */}
+          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
+          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
         </div>
-      }
-    />
-  );
+      );
+    }
+
+    function Section({ title, color, groups, labelFn }) {
+      if (!Object.keys(groups).length) return null;
+      return (
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:700,color,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>
+            {title}
+          </div>
+          <div style={isMobile ? {} : {columnCount:2,columnGap:12}}>
+            {Object.entries(groups).map(([key, groupRules]) => (
+              <div key={key} style={{breakInside:"avoid",marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:600,color:"var(--t2)",marginBottom:5,paddingLeft:2}}>
+                  {labelFn(key)}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  {groupRules.map(r => <RuleRow key={r.id} rule={r} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <PageLayout
+        isMobile={isMobile}
+        left={
+          <div>
+            <div style={{...S.sectionHdr,marginBottom:16}}>
+              <div style={S.sectionTitle}>Auto-Categorization Rules</div>
+              <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
+            </div>
+
+            {/* Stats + search on one row */}
+            {rules.length > 0 && (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,gap:12}}>
+                <div style={{display:"flex",gap:10,fontSize:11,color:"var(--t3)",flexShrink:0}}>
+                  <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
+                  <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
+                </div>
+                <div style={{position:"relative",maxWidth:220,width:"100%"}}>
+                  <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:12,pointerEvents:"none"}}>🔍</span>
+                  <input style={{...S.input,paddingLeft:28,fontSize:12,width:"100%",boxSizing:"border-box",height:30}}
+                    placeholder="Search rules…" value={ruleSearch} onChange={e=>setRuleSearch(e.target.value)}/>
+                </div>
+              </div>
+            )}
+
+            {rules.length === 0 ? (
+              <div style={{...S.card,textAlign:"center",padding:48}}>
+                <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
+                <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
+                <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{...S.card,textAlign:"center",padding:32}}>
+                <div style={{fontSize:13,color:"var(--t3)"}}>No rules match "{ruleSearch}"</div>
+              </div>
+            ) : (
+              <>
+                <Section
+                  title="Category Rules"
+                  color="var(--cyan)"
+                  groups={byCat}
+                  labelFn={key => key === "__none__" ? "No category" : catMap[key]?.name || "Unknown"}
+                />
+                <Section
+                  title="Type Rules"
+                  color="var(--amber)"
+                  groups={byType}
+                  labelFn={key => TYPE_LABELS[key] || key}
+                />
+              </>
+            )}
+          </div>
+        }
+      />
+    );
+  })();
 
 
   /* ── Calendar ── */
@@ -5122,21 +5872,19 @@ function AppInner() {
     );
 
     const DesktopCalendarView = (
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 12,
+            gap:10,
           }}
         >
-          <div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.5px", color: "var(--t1)" }}>
-              Recurring Calendar
-            </div>
-            <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 4 }}>
-              {recurringTxns.length} recurring transactions
+          <div style={{...S.sectionHdr, marginBottom:0}}>
+            <div style={S.sectionTitle}>Calendar</div>
+            <div style={{ fontSize: 11, color: "var(--t3)", fontFamily:"var(--font-mono)" }}>
+              {recurringTxns.length} recurring
             </div>
           </div>
 
@@ -5152,12 +5900,12 @@ function AppInner() {
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(0, 1fr) 340px",
-            gap: 16,
+            gap:10,
             alignItems: "start",
           }}
         >
           {/* LEFT COLUMN: calendar + recurring list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
             {/* Calendar card */}
             <div
               style={{
@@ -5471,7 +6219,7 @@ function AppInner() {
                         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap:10, flex: 1, minWidth: 0 }}>
                           <div
                             style={{
                               width: 30,
@@ -5524,7 +6272,7 @@ function AppInner() {
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap:10, flexShrink: 0, marginLeft: 10 }}>
                           <span
                             style={{
                               fontFamily: "var(--font-mono)",
@@ -5546,7 +6294,7 @@ function AppInner() {
           </div>
 
           {/* RIGHT COLUMN: sidebar */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
             <div
               style={{
                 background: "var(--card)",
@@ -5897,7 +6645,7 @@ function AppInner() {
                   const freq=t.recurringFreq||"monthly";
                   const freqLabel=freq==="biweekly"?"Bi-weekly":freq==="weekly"?"Weekly":freq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
                   return (
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat?.color||"var(--cyan)"}`}}>
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat?.color||"var(--cyan)"}`}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                         <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{freqLabel}{cat&&<span style={{color:cat.color}}> · {cat.name}</span>}</div>
@@ -5928,18 +6676,13 @@ function AppInner() {
         }}>Remove Recurring</button>
         <button style={S.btn("ghost")} onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
         <button style={S.btn("primary")} onClick={()=>{
-          setTransactions(p=>p.map(t=>t.id===editTarget.id?{
-            ...t,
-            name:           editTarget.name,
-            recurringDay:   editTarget.recurringDay,
-            recurringFreq:  editTarget.recurringFreq||"monthly",
-            recurringStart: editTarget.recurringStart||null,
-            categoryId:     editTarget.categoryId||null,
-          }:t));
+          const patch = { name: editTarget.name, recurringDay: editTarget.recurringDay, recurringFreq: editTarget.recurringFreq||"monthly", recurringStart: editTarget.recurringStart||null, categoryId: editTarget.categoryId||null };
+          setTransactions(p=>p.map(t=>t.id===editTarget.id?{...t,...patch}:t));
+          api.updateTransaction(editTarget.id, patch).catch(console.error);
           setModal(null);setEditTarget(null);showToast("Updated");
         }}>Save</button>
       </>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={{padding:"10px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",fontSize:12,color:"var(--t3)"}}>
           Original: <span style={{color:"var(--t1)",fontWeight:500}}>{editTarget.merchant}</span>
         </div>
@@ -5989,7 +6732,7 @@ function AppInner() {
           setModal(null);
         }}>Save</button>
       </>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}>
           <label style={S.label}>Merchant Pattern</label>
           <input style={S.input} placeholder='e.g. "Netflix"' value={ruleForm.pattern} onChange={e=>setRuleForm(p=>({...p,pattern:e.target.value}))}/>
@@ -6028,7 +6771,7 @@ function AppInner() {
   const CatModal = (
     <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Groceries" value={catForm.name} onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}/></div>
         <div style={S.field}><label style={S.label}>Monthly Limit ($)</label><input style={S.input} type="number" placeholder="500" value={catForm.limit} onChange={e=>setCatForm(p=>({...p,limit:e.target.value}))}/></div>
         <div style={S.field}>
@@ -6046,7 +6789,7 @@ function AppInner() {
   const AcctModal = (
     <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
         <div style={S.field}><label style={S.label}>Type</label>
           <select style={{...S.input,padding:"9px 12px"}} value={acctForm.type} onChange={e=>setAcctForm(p=>({...p,type:e.target.value}))}>
@@ -6061,9 +6804,9 @@ function AppInner() {
   const TxnModal = (
     <Modal title="Add Transaction" onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}><label style={S.label}>Type</label>
             <select style={{...S.input,padding:"9px 12px"}} value={txnForm.sign} onChange={e=>setTxnForm(p=>({...p,sign:e.target.value}))}>
               <option value="-1">Expense (−)</option><option value="1">Income (+)</option>
@@ -6072,7 +6815,7 @@ function AppInner() {
           <div style={S.field}><label style={S.label}>Amount ($)</label><input style={S.input} type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/></div>
         </div>
         <div style={S.field}><label style={S.label}>Date</label><input style={S.input} type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}><label style={S.label}>Category</label>
             <select style={{...S.input,padding:"9px 12px"}} value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
               <option value="">None</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
@@ -6104,6 +6847,8 @@ function AppInner() {
 
   const SettingsPage = (
     <SettingsView
+      theme={theme}
+      onSaveTheme={t => { setTheme(t); applyTheme(t); scheduleSaveRef.current?.({ theme: t }); try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {} }}
       transactions={transactions}
       accounts={accounts}
       categories={categories}
@@ -6126,6 +6871,22 @@ function AppInner() {
       }}
     />
   );
+
+  const DaniPageView = currentUser?.role === "owner" ? (
+    <DaniPage
+      accounts={accounts}
+      transactions={transactions}
+      recurringTxns={recurringTxns}
+      daniData={daniData}
+      isMobile={isMobile}
+      onSave={(patch) => {
+        if (patch.dani) {
+          setDaniData(patch.dani);
+          scheduleSaveRef.current?.({ dani: patch.dani });
+        }
+      }}
+    />
+  ) : null;
 
   const AdminPage = currentUser?.role === "owner" ? <AdminPanel /> : null;
 
@@ -6183,7 +6944,7 @@ function AppInner() {
 
   const AnalyticsPage = (
     <Analytics
-      transactions={transactions}
+      transactions={allTransactions ?? transactions}
       categories={categories}
       accounts={accounts}
       catMap={catMap}
@@ -6204,17 +6965,25 @@ function AppInner() {
         setInsightsTodos(todos);
         scheduleSaveRef.current?.({ insightsTodos: todos });
       }}
+      goals={goals}
+      onSaveGoal={saveGoal}
+      onDeleteGoal={deleteGoal}
+      onMarkRecurring={ids => {
+        setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, recurring:true } : t));
+        ids.forEach(id => api.updateTransaction(id, { recurring:true }));
+      }}
+      defaultTab={analyticsTab}
     />
   );
 
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView };
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:16}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
       <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">ℓ</div>
-      <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+      <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>
   );
@@ -6233,7 +7002,7 @@ function AppInner() {
         flexShrink:0, background: trialDaysLeft <= 1 ? "var(--red-dim)" : "#fbbf2415",
         borderBottom:`1px solid ${trialDaysLeft <= 1 ? "#ff4d6d44" : "#fbbf2433"}`,
         padding:"8px 16px", display:"flex", alignItems:"center",
-        justifyContent:"space-between", gap:12,
+        justifyContent:"space-between", gap:10,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color: trialDaysLeft <= 1 ? "var(--red)" : "var(--amber)"}}>
           <span style={{fontSize:14}}>{trialDaysLeft <= 1 ? "⚠️" : "⏳"}</span>
@@ -6272,13 +7041,73 @@ function AppInner() {
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
             <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+            <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳</span>}
             <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)"}}>{daysLeft()}d left</div>
+            <div style={{position:"relative"}}>
+                <button
+                  onClick={()=>setNotifOpen(p=>!p)}
+                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                  {notifCount > 0 && (
+                    <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
+                      {notifCount}
+                    </span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <>
+                    <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
+                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
+                      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
+                        {visibleNotifs.length > 0 && (
+                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
+                        )}
+                      </div>
+                      {visibleNotifs.length === 0 ? (
+                        <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
+                          <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>🔔</div>
+                          You're all caught up
+                        </div>
+                      ) : (
+                        <div style={{maxHeight:360,overflowY:"auto"}}>
+                          {visibleNotifs.map((n,i) => (
+                            <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
+                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
+                                {n.type==="review"?"📋":n.type==="reauth"?"🏦":"🎯"}
+                              </div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
+                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
+                                </div>
+                                <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
+                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                </div>
+                                <button
+                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                                  {n.type==="review"?"Review now →":n.type==="reauth"?"Reconnect →":"View goals →"}
+                                </button>
+                              </div>
+                              <button
+                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
+                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
           </div>
         </div>
 
@@ -6298,7 +7127,7 @@ function AppInner() {
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
             zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
           }}>
-            <SidebarContent onNav={id=>{ setView(id); setDrawerOpen(false); contentRef.current?.scrollTo({ top: 0 }); }} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
+            <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </div>
           {/* Content */}
           <div ref={contentRef} style={{position:"absolute",inset:0,overflowY:"auto"}} className="ledgr-content">
@@ -6316,11 +7145,71 @@ function AppInner() {
           <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t3)",letterSpacing:"-0.2px"}}>
             {NAV.find(n=>n.id===view)?.label}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
             {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>⟳ Syncing…</span>}
             <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
               {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} · {daysLeft()}d left
             </div>
+            <div style={{position:"relative"}}>
+                <button
+                  onClick={()=>setNotifOpen(p=>!p)}
+                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                  {notifCount > 0 && (
+                    <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
+                      {notifCount}
+                    </span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <>
+                    <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
+                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
+                      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                        <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
+                        {visibleNotifs.length > 0 && (
+                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
+                        )}
+                      </div>
+                      {visibleNotifs.length === 0 ? (
+                        <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
+                          <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>🔔</div>
+                          You're all caught up
+                        </div>
+                      ) : (
+                        <div style={{maxHeight:360,overflowY:"auto"}}>
+                          {visibleNotifs.map((n,i) => (
+                            <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
+                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
+                                {n.type==="review"?"📋":n.type==="reauth"?"🏦":"🎯"}
+                              </div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
+                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
+                                </div>
+                                <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
+                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                </div>
+                                <button
+                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                                  {n.type==="review"?"Review now →":n.type==="reauth"?"Reconnect →":"View goals →"}
+                                </button>
+                              </div>
+                              <button
+                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
+                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
           </div>
         </div>
 
@@ -6328,7 +7217,7 @@ function AppInner() {
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
           <aside style={{width:220,flexShrink:0,background:"var(--surface)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
-            <SidebarContent onNav={id=>{ setView(id); contentRef.current?.scrollTo({ top: 0 }); }} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
+            <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
           {/* Content */}
           <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">
@@ -6345,8 +7234,47 @@ function AppInner() {
       {(modal==="addRule"||modal==="editRule") && RuleModal}
       {EditRecurringModal}
 
+      {/* Category suggestion confirmation modal */}
+      {catSuggestions && (
+        <div style={{position:"fixed",inset:0,background:"#0009",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+          onClick={e=>{ if(e.target===e.currentTarget) setCatSuggestions(null); }}>
+          <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",width:"100%",maxWidth:580,maxHeight:"85vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"20px 20px 14px",borderBottom:"1px solid var(--border)"}}>
+              <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:4}}>✦ Suggested Categories</div>
+              <div style={{fontSize:12,color:"var(--t3)"}}>AI analyzed your transactions and suggested these categories. Set a monthly budget limit for each, then confirm to create them.</div>
+            </div>
+            <div style={{overflowY:"auto",padding:"14px 20px",flex:1,display:"flex",flexDirection:"column",gap:8}}>
+              {catSuggestions.map((s, i) => (
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"1px solid var(--border)",borderLeft:`3px solid ${s.color||"var(--cyan)"}`}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"var(--t1)"}}>{s.name}</div>
+                    <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{(s.transactions||[]).length} transaction{(s.transactions||[]).length!==1?"s":""}</div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    <span style={{fontSize:11,color:"var(--t3)"}}>Limit $</span>
+                    <input
+                      type="number" min="0" step="10"
+                      value={s.limit || ""}
+                      onChange={e => setCatSuggestions(prev => prev.map((x,j) => j===i ? {...x,limit:e.target.value} : x))}
+                      style={{...S.input,width:80,padding:"5px 8px",fontSize:13,textAlign:"right"}}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{padding:"14px 20px",borderTop:"1px solid var(--border)",display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button style={S.btn("ghost",true)} onClick={()=>setCatSuggestions(null)}>Cancel</button>
+              <button style={S.btn("primary",true)} onClick={()=>confirmCatSuggestions(catSuggestions)}>
+                Create {catSuggestions.length} Categories
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {rulePrompt&&(
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:420,width:"90vw"}}>
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:10,maxWidth:420,width:"90vw"}}>
           <div style={{flex:1,fontSize:13}}>
             <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Save as a rule?</div>
             <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; → <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>
@@ -6357,7 +7285,7 @@ function AppInner() {
       )}
 
       {typeRulePrompt&&(
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--amber)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:14,maxWidth:440,width:"90vw"}}>
+        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--amber)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:10,maxWidth:440,width:"90vw"}}>
           <div style={{flex:1,fontSize:13}}>
             <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Create a type rule?</div>
             <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
@@ -6406,7 +7334,7 @@ function AppInner() {
           zIndex:300,background:"var(--cyan)",color:"#000",
           borderRadius:12,padding:"12px 20px",
           boxShadow:"0 8px 32px #00000080",
-          display:"flex",alignItems:"center",gap:14,
+          display:"flex",alignItems:"center",gap:10,
           maxWidth:400,width:"90vw",cursor:"pointer",
         }} onClick={()=>{ setView("transactions"); setNewTxnCount(0); }}>
           <span style={{fontSize:18}}>⇅</span>
@@ -6425,7 +7353,7 @@ function AppInner() {
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:500,
           background:"var(--card)",border:"1px solid var(--border2)",borderRadius:12,
           padding:"12px 16px",boxShadow:"0 8px 32px #00000080",
-          display:"flex",alignItems:"center",gap:14,maxWidth:380,width:"90vw"}}>
+          display:"flex",alignItems:"center",gap:10,maxWidth:380,width:"90vw"}}>
           <span style={{fontSize:13,color:"var(--t1)",flex:1}}>{undoAction.label}</span>
           <button onClick={()=>{ undoAction.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}
             style={{...S.btn("primary",true),flexShrink:0}}>

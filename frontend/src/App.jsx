@@ -1,7 +1,7 @@
 /**
  * src/App.jsx — Ledgr personal finance app
  */
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment} from 'react';
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 import { debounce } from "./api.js";
@@ -4139,14 +4139,14 @@ function AppInner() {
                     const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
                     const valLabel=complete?"✓":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
                     return (
-                      <React.Fragment key={cat.id}>
+                      <Fragment key={cat.id}>
                         <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
                         <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
                         <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
                           <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
                         </div>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
-                      </React.Fragment>
+                      </Fragment>
                     );
                   })}
                 </div>
@@ -4257,14 +4257,14 @@ function AppInner() {
                       const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
                       const valLabel=complete?"✓":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
                       return (
-                        <React.Fragment key={cat.id}>
+                        <Fragment key={cat.id}>
                           <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
                           <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
                           <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
                             <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
                           </div>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
-                        </React.Fragment>
+                        </Fragment>
                       );
                     })}
                   </div>
@@ -4874,7 +4874,7 @@ function AppInner() {
                             const valLabel = over ? `-${fmt(Math.abs(remaining))} over` : complete ? "✓ done" : zero ? "fully spent" : `${fmt(remaining)} left`;
                             const isExpanded = budgetExpandedCatId === cat.id;
                             return (
-                              <React.Fragment key={cat.id}>
+                              <Fragment key={cat.id}>
                                 {/* Col 1: dot */}
                                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, display: "inline-block", flexShrink: 0, justifySelf: "center" }} />
                                 {/* Col 2: name */}
@@ -4995,7 +4995,7 @@ function AppInner() {
 
                                   </div>
                                 )}
-                              </React.Fragment>
+                              </Fragment>
                             );
                           })}
                         </div>

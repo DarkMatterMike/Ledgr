@@ -696,6 +696,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         isMobile ? (
           /* Mobile: stacked */
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <HealthScoreCard />
             <Card><SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} /><LineChart points={netWorthSeries} height={90} /></Card>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
               <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
@@ -710,15 +711,15 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
                 accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
             </div>
-            <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             <CashFlowBarChart last6={last6} cashMax={cashMax} />
-            <HealthScoreCard />
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
           <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
             {/* Column 1 */}
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {/* Row 0: Health Score */}
+              <HealthScoreCard />
               {/* Row 1: Net worth */}
               <Card>
                 <SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} />
@@ -745,9 +746,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <StatCard label="Avg daily spend" value={fmt(avgDailySpend)} sub="This month so far" accent="var(--cyan)" />
                 <StatCard label="Spend-free days" value={spendingFreeDays} sub="This month" accent={spendingFreeDays>=10?"var(--green)":spendingFreeDays>=5?"var(--amber)":"var(--red)"} />
               </div>
-              {/* Row 3: Spending Breakdown */}
-              <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
-              {/* Row 3b: Cash Flow */}
+              {/* Cash Flow */}
               <CashFlowBarChart last6={last6} cashMax={cashMax} />
               {/* Row 4: Monthly savings trend */}
               <Card>
@@ -773,8 +772,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   })}
                 </div>
               </Card>
-              {/* Health Score */}
-              <HealthScoreCard />
+
             </div>
             {/* Column 2: Action items */}
             {ActionItemsSidebar}

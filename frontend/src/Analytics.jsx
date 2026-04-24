@@ -1505,6 +1505,28 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           {isMobile && (
             <Card>
               <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : "Add suggestions from insights above"} />
+              {todos.length === 0 ? (
+                <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"20px 0" }}>
+                  Generate insights and tap "+ Add to To-Do" on any suggestion.
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                  {todos.map(todo => (
+                    <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                      <button onClick={() => removeTodo(todo.id)} style={{
+                        width:18, height:18, borderRadius:4, border:"1.5px solid var(--border2)",
+                        background:"none", cursor:"pointer", flexShrink:0, marginTop:2,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                      }}>
+                        <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
+                      </button>
+                      <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Spending velocity */}
           <Card>
@@ -1935,10 +1957,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       )}
     </div>
   );
-          </div>
-          {ActionItemsSidebar}
-        </div>
-      )}
 
   /* ── Two-column layout on desktop, single on mobile ─────────────── */
     function HealthScoreCard() { return (

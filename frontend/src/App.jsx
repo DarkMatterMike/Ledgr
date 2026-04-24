@@ -4825,14 +4825,14 @@ function AppInner() {
                     <div style={{ display:"flex", justifyContent:"center" }}>
                       <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
                         <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
-                        {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} {(()=>{ const arcLen = clampedPct * Math.PI * r; return (
+                        {clampedPct > 0.01 && (() => { const arcLen = clampedPct * Math.PI * r; return (
                           <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
                             fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
                             strokeDasharray={arcLen} strokeDashoffset={arcLen}
                             className="ledgr-arc-fill"
                             style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}
                           />
-                        );})()} }
+                        ); })()}
                       </svg>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
@@ -5037,14 +5037,14 @@ function AppInner() {
                       <div style={{ display:"flex", justifyContent:"center" }}>
                         <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
                           <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
-                          {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} {(()=>{ const arcLen = clampedPct * Math.PI * r; return (
+                          {clampedPct > 0.01 && (() => { const arcLen = clampedPct * Math.PI * r; return (
                           <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
                             fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
                             strokeDasharray={arcLen} strokeDashoffset={arcLen}
                             className="ledgr-arc-fill"
                             style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}
                           />
-                        );})()} }
+                        ); })()}
                         </svg>
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>

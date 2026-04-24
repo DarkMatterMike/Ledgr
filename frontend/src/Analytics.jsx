@@ -1384,6 +1384,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           {/* Col 1: AI Summary + Spending Velocity */}
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
+          <Card>
           <div style={{ marginBottom:12 }}>
               <SectionHead title="AI Financial Summary" sub="Claude analyzes your full financial picture" />
             </div>

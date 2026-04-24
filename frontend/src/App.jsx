@@ -5024,66 +5024,44 @@ function AppInner() {
           </div>
           <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>Projections based on your daily spend rate through end of {today.toLocaleString("default",{month:"long"})}.</div>
           {plaidItems.length>0&&(
-            <div style={{...S.card,marginBottom:16}}>
-              <div style={S.cardTitle}>Connected Banks</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{...S.card,marginBottom:12,padding:"10px 14px"}}>
+              <div style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {plaidItems.map(item=>{
                   const isStale = staleItemIds.has(item.item_id);
                   return (
-                    <div key={item.item_id} style={{
-                      background:"var(--surface)",
-                      border:`1px solid ${isStale?"var(--amber)44":"var(--border2)"}`,
-                      borderRadius:"var(--radius)",
-                      padding:"12px 14px",
-                    }}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                            🏦 {item.institution}
-                          </div>
-                          {isStale&&(
-                            <div style={{fontSize:11,color:"var(--amber)",marginTop:3,display:"flex",alignItems:"center",gap:4}}>
-                              ⚠ Connection issue — no accounts found
-                            </div>
+                    <div key={item.item_id}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,padding:"5px 0"}}>
+                        <span style={{fontSize:13,flex:1,minWidth:0,color:isStale?"var(--amber)":"var(--t1)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          {isStale?"⚠":""} {item.institution}
+                        </span>
+                        <div style={{display:"flex",gap:4,flexShrink:0}}>
+                          {isStale ? (
+                            <>
+                              <PlaidButton
+                                itemId={item.item_id}
+                                onSuccess={async (publicToken, institution) => {
+                                  await handlePlaidSuccess(publicToken, institution || item.institution);
+                                  setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
+                                  setReconnectingItemId(null);
+                                }}
+                                onExit={() => setReconnectingItemId(null)}
+                                label={reconnectingItemId === item.item_id ? "Opening…" : "Reconnect"}
+                                style={{fontSize:11,padding:"3px 8px"}}
+                              />
+                              <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Remove</button>
+                            </>
+                          ) : (
+                            <>
+                              <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>doSync(item.item_id)} disabled={syncing}>{syncing?"…":"⟳ Sync"}</button>
+                              <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Disconnect</button>
+                            </>
                           )}
-                        </div>
-                        <div style={{display:"flex",gap:6,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
-                          {!isStale&&(
-                            <button style={{...S.btn("ghost",true),fontSize:12,padding:"4px 10px"}}
-                              onClick={()=>doSync(item.item_id)} disabled={syncing}>
-                              {syncing?"…":"⟳ Sync"}
-                            </button>
-                          )}
-                          <button style={{...S.btn("danger",true),fontSize:12,padding:"4px 10px"}}
-                            onClick={()=>disconnectItem(item.item_id)}>
-                            Disconnect
-                          </button>
                         </div>
                       </div>
                       {isStale&&(
-                        <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                          <div style={{fontSize:12,color:"var(--t2)",marginBottom:10,lineHeight:1.5}}>
-                            This connection has expired. Reconnect to restore your accounts — your existing transactions and rules won't be affected.
-                          </div>
-                          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                            <PlaidButton
-                              itemId={item.item_id}
-                              onSuccess={async (publicToken, institution) => {
-                                // Update mode: same item_id is preserved server-side
-                                // Just exchange the new public token — no disconnect needed
-                                await handlePlaidSuccess(publicToken, institution || item.institution);
-                                setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
-                                setReconnectingItemId(null);
-                              }}
-                              onExit={() => setReconnectingItemId(null)}
-                              label={reconnectingItemId === item.item_id ? "Opening Plaid…" : "Reconnect"}
-                              style={{flex:isMobile?1:0, justifyContent:"center"}}
-                            />
-                            <button style={{...S.btn("danger",true),flex:isMobile?1:0}}
-                              onClick={()=>disconnectItem(item.item_id)}>
-                              Remove
-                            </button>
-                          </div>
+                        <div style={{fontSize:11,color:"var(--t3)",paddingBottom:4,lineHeight:1.4}}>
+                          Connection expired — reconnect to restore. Your data won't be affected.
                         </div>
                       )}
                     </div>

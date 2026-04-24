@@ -1586,7 +1586,13 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             onSaveTheme(next);
           }
 
-          function reset() { onSaveTheme({}); applyTheme({}); Object.keys(defaults).forEach(k => document.documentElement.style.removeProperty("--"+k.replace("bg","bg").replace("surface","surface").replace("card","card").replace("border2","border2").replace("border","border").replace("accent","cyan").replace("t1","t1").replace("t2","t2").replace("t3","t3"))); document.documentElement.style.removeProperty("--font-disp"); document.body.style.removeProperty("background"); }
+          function reset() {
+            const root = document.documentElement;
+            ["--bg","--surface","--card","--border","--border2","--cyan","--cyan-dim","--t1","--t2","--t3","--font-disp"].forEach(v => root.style.removeProperty(v));
+            document.body.style.removeProperty("background");
+            try { localStorage.removeItem("ledgr_theme"); } catch {}
+            onSaveTheme({});
+          }
 
           return (
             <div style={{display:"flex",flexDirection:"column",gap:16}}>

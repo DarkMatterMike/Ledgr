@@ -12,6 +12,7 @@ import { useAiChat } from "./hooks/useAiChat.js";
 import PortfolioView from "./PortfolioView.jsx";
 import AiChat from "./AiChat.jsx";
 import Analytics from "./Analytics.jsx";
+import DaniPage from "./DaniPage.jsx";
 
 /* ─── Mobile detection ──────────────────────────────────────────── */
 function useIsMobile() {
@@ -837,6 +838,19 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         {/* Owner-only nav items */}
         {currentUser?.role === "owner" && (
           <div style={{ marginTop:8, borderTop:"1px solid var(--border)", paddingTop:8, display:"flex", flexDirection:"column", gap:2 }}>
+            <button onClick={()=>onNav("dani")}
+              style={{
+                display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+                borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
+                border:`1px solid ${view==="dani"?"#f9a8d433":"transparent"}`,
+                background:view==="dani"?"#f9a8d411":"transparent",
+                color:view==="dani"?"#f9a8d4":"var(--t2)",
+                width:"100%",textAlign:"left",transition:"all 0.15s",
+              }}>
+              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>♡</span>
+              <span>Dani</span>
+              {view==="dani"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"#f9a8d4",display:"inline-block"}}/>}
+            </button>
             <button onClick={()=>onNav("admin")}
               style={{
                 display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
@@ -2327,6 +2341,7 @@ function AppInner() {
   /* ── Insights to-do list ── */
   const [insightsTodos, setInsightsTodos] = useState([]);
   const [theme,         setTheme]         = useState({});
+  const [daniData,      setDaniData]      = useState({ tab1:{ selectedAccountId:null, wishlist:[] }, tab2:{ selectedAccountId:null, wishlist:[] } });
   const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Load + Save (via hook) ── */
@@ -2343,6 +2358,7 @@ function AppInner() {
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
+      if (data.dani)           setDaniData(data.dani);
       if (data.theme)          { setTheme(data.theme); applyTheme(data.theme); }
       setTxnTotal(txnTotal || 0);
       setTxnOffset(100);
@@ -2364,6 +2380,7 @@ function AppInner() {
     onAnalyticsData: (data, allTxns) => {
       if (data.analyticsInsights) setAnalyticsInsights(data.analyticsInsights);
       if (data.insightsTodos)     setInsightsTodos(data.insightsTodos);
+      if (data.dani)              setDaniData(data.dani);
       if (data.theme)             { setTheme(data.theme); applyTheme(data.theme); }
       // Store the full transaction set for analytics computations.
       // Falls back to the paginated set if the full load failed.
@@ -6802,6 +6819,22 @@ function AppInner() {
     />
   );
 
+  const DaniPageView = currentUser?.role === "owner" ? (
+    <DaniPage
+      accounts={accounts}
+      transactions={transactions}
+      recurringTxns={recurringTxns}
+      daniData={daniData}
+      isMobile={isMobile}
+      onSave={(patch) => {
+        if (patch.dani) {
+          setDaniData(patch.dani);
+          scheduleSaveRef.current?.({ dani: patch.dani });
+        }
+      }}
+    />
+  ) : null;
+
   const AdminPage = currentUser?.role === "owner" ? <AdminPanel /> : null;
 
   // Free-tier users get read-only dashboard + settings, paywall for everything else
@@ -6887,8 +6920,8 @@ function AppInner() {
   );
 
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>

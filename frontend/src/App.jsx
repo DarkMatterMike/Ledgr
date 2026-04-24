@@ -4954,9 +4954,9 @@ function AppInner() {
                                 {budgetExpandedCatId === cat.id && (
                                   <div className="ledgr-expand" style={{ gridColumn: "1 / -1", paddingTop: 8, paddingBottom: 8 }} onClick={(e) => e.stopPropagation()}>
 
-                                    {/* Summary header — spent / limit + progress bar */}
+                                    {/* Summary header — spent / limit */}
                                     <div style={{ marginBottom: 12, padding: "10px 12px", background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
-                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                                         <span style={{ fontSize: 12, color: "var(--t3)" }}>
                                           {complete && <span style={{ color:"var(--t3)", fontWeight:600, marginRight:4 }}>✓ Complete ·</span>}
                                           {!complete && over && <span style={{ color:"var(--red)", fontWeight:600, marginRight:4 }}>Overspent ·</span>}
@@ -4970,9 +4970,6 @@ function AppInner() {
                                             <span onClick={(e)=>startEditLimit(cat,e)} style={{ fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--t1)", cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
                                           )}
                                         </span>
-                                      </div>
-                                      <div style={{ height: 5, background: "var(--border)", borderRadius: 99, overflow: "hidden" }}>
-                                        <div style={{ height:"100%", borderRadius:99, background:barC, width:`${displayPct}%`, transition:"width 0.5s" }} className="ledgr-bar" />
                                       </div>
                                     </div>
 

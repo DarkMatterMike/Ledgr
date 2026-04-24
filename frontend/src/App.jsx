@@ -4130,27 +4130,26 @@ function AppInner() {
             </div>
             {categories.length===0
               ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-              : sortedCategories.slice(0,6).map(cat=>{
-                  const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                  const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                  const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                  return (
-                    <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+              : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
+                  {sortedCategories.slice(0,6).map(cat=>{
+                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
+                    const barC=over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color;
+                    const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
+                    const valLabel=complete?"✓":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
+                    return (
+                      <React.Fragment key={cat.id}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
+                        <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
+                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
+                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                          {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
-                        </span>
-                      </div>
-                      <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}} className="ledgr-bar"/>
-                      </div>
-                    </div>
-                  );
-                })
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
             }
           </div>
 
@@ -4249,27 +4248,26 @@ function AppInner() {
               </div>
               {categories.length===0
                 ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-                : sortedCategories.slice(0,10).map(cat=>{
-                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                    return (
-                      <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                            <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                            <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
+                    {sortedCategories.slice(0,10).map(cat=>{
+                      const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                      const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                      const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
+                      const barC=over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color;
+                      const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
+                      const valLabel=complete?"✓":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
+                      return (
+                        <React.Fragment key={cat.id}>
+                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
+                          <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
+                          <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
+                            <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
                           </div>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                            {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
-                          </span>
-                        </div>
-                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}} className="ledgr-bar"/>
-                        </div>
-                      </div>
-                    );
-                  })
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
               }
             </div>
 

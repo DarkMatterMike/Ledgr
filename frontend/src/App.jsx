@@ -5095,14 +5095,27 @@ function AppInner() {
           {accounts.length===0
             ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
             : (()=>{
-                // Group by institution (manual accounts grouped under "Manual")
+                // Group by Plaid connection (plaidItemId) so separate logins to the
+                // same bank appear as separate groups. Manual accounts go under "Manual".
                 const groups = {};
                 accounts.forEach(acct => {
-                  const key = acct.institution || "Manual";
-                  if (!groups[key]) groups[key] = [];
-                  groups[key].push(acct);
+                  const key = acct.plaidItemId || "__manual__";
+                  if (!groups[key]) {
+                    // Find the plaidItem to get institution name; fall back to acct.institution
+                    const item = plaidItems.find(i => i.item_id === acct.plaidItemId);
+                    groups[key] = {
+                      label: item?.institution || acct.institution || "Manual",
+                      accts: [],
+                    };
+                  }
+                  groups[key].accts.push(acct);
                 });
-                const groupEntries = Object.entries(groups);
+                // Sort: Plaid connections first (by institution name), manual last
+                const groupEntries = Object.entries(groups).sort(([ka, a], [kb, b]) => {
+                  if (ka === "__manual__") return 1;
+                  if (kb === "__manual__") return -1;
+                  return a.label.localeCompare(b.label);
+                });
 
                 function AcctRow({ acct, isLast }) {
                   const spent=spentByAcct[acct.id]||0;
@@ -5134,7 +5147,8 @@ function AppInner() {
 
                 return (
                   <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    {groupEntries.map(([institution, accts]) => {
+                    {groupEntries.map(([key, group]) => {
+                      const { label: institution, accts } = group;
                       const groupTotal = accts.reduce((s,a) => s+(a.balance||0), 0);
                       return (
                         <div key={institution} style={{...S.card,padding:0,overflow:"hidden"}}>

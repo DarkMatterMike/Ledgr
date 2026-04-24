@@ -3061,6 +3061,7 @@ function AppInner() {
             available: pa.available,
             type: cap(pa.subtype || pa.type),
             institution: pa.institution,
+            mask: pa.mask,
           }));
         const updated = [...manual, ...plaidUpdated];
         // No saveData call needed — applySyncResultsToDB already wrote to the accounts table

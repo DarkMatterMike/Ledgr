@@ -547,7 +547,7 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [accts, ruleRows, categories, plaidItems, calendarAccounts,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
-           aiApiKey, plaidItemRows, insightsTodosData] = await Promise.all([
+           aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData] = await Promise.all([
       getAccounts(uid),
       getRules(uid),
       getData(uid, "categories"),
@@ -565,6 +565,8 @@ app.get("/api/data", async (req, res) => {
         [uid]
       ),
       getData(uid, "insightsTodos"),  // needed for dashboard Action Items card
+      getData(uid, "dani"),              // owner-only Dani page
+      getData(uid, "theme"),             // user theme preferences
     ]);
 
     const reauthItemIds = plaidItemRows.rows
@@ -585,6 +587,8 @@ app.get("/api/data", async (req, res) => {
       goals:            goals            || [],
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],
+      dani:             daniData          || null,
+      theme:            themeData          || null,
       access:           getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -779,7 +783,7 @@ app.get("/api/data/summary", async (req, res) => {
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { categories, plaidItems, calendarAccounts,
+    const { categories, plaidItems, dani, theme, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
@@ -797,6 +801,8 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiCatExamples))      ops.push(setData(uid, "aiCatExamples",      aiCatExamples));
     if (userProfile !== undefined && userProfile !== null) ops.push(setData(uid, "userProfile", userProfile));
     if (Array.isArray(insightsTodos))      ops.push(setData(uid, "insightsTodos",      insightsTodos));
+    if (dani !== undefined)                ops.push(setData(uid, "dani",              dani));
+    if (theme !== undefined)               ops.push(setData(uid, "theme",             theme));
     if (analyticsInsights !== undefined)   ops.push(setData(uid, "analyticsInsights",  analyticsInsights));
     if (Array.isArray(dismissedPairs))     ops.push(setData(uid, "dismissedPairs",     dismissedPairs));
     if (scanMemory !== undefined)          ops.push(setData(uid, "scanMemory",         scanMemory));

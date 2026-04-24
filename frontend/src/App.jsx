@@ -5094,71 +5094,77 @@ function AppInner() {
           )}
           {accounts.length===0
             ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
-            : <div style={{...S.card,padding:0,overflow:"hidden"}}>
-                {isMobile ? (
-                  /* Mobile: flat list inside the card, same as Connected Banks */
-                  accounts.map((acct,idx) => {
-                    const spent=spentByAcct[acct.id]||0;
-                    const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
-                    const daily=today.getDate()>0?spent/today.getDate():0;
-                    const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
-                    return (
-                      <div key={acct.id} style={{padding:"12px 14px",borderTop:idx>0?"1px solid var(--border)":"none"}}>
-                        <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:4}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:14,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
-                            {acct.institution&&<div style={{fontSize:11,color:"var(--t3)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.institution}</div>}
-                          </div>
-                          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                            <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 8px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                            <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
-                          </div>
+            : (()=>{
+                // Group by institution (manual accounts grouped under "Manual")
+                const groups = {};
+                accounts.forEach(acct => {
+                  const key = acct.institution || "Manual";
+                  if (!groups[key]) groups[key] = [];
+                  groups[key].push(acct);
+                });
+                const groupEntries = Object.entries(groups);
+
+                function AcctRow({ acct, isLast }) {
+                  const spent=spentByAcct[acct.id]||0;
+                  const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
+                  const daily=today.getDate()>0?spent/today.getDate():0;
+                  const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
+                  return (
+                    <div style={{padding:"11px 14px",borderTop:"1px solid var(--border)"}}>
+                      <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:3}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
                         </div>
-                        <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
-                          <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}{acct.mask?" ····"+acct.mask:""}</span>
-                          {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
-                          <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
-                          {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
-                          <span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day</span>
+                        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
+                          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 7px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
-                    );
-                  })
-                ) : (
-                  /* Desktop: 2-column grid */
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:12}}>
-                    {accounts.map(acct=>{
-                      const spent=spentByAcct[acct.id]||0;
-                      const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
-                      const daily=today.getDate()>0?spent/today.getDate():0;
-                      const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
+                        <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}{acct.mask?" ····"+acct.mask:""}</span>
+                        {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
+                        <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
+                        {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
+                        {!isMobile&&<span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day · proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    {groupEntries.map(([institution, accts]) => {
+                      const groupTotal = accts.reduce((s,a) => s+(a.balance||0), 0);
                       return (
-                        <div key={acct.id} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
-                          <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:4}}>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:14,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
-                              {acct.institution&&<div style={{fontSize:11,color:"var(--t3)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.institution}</div>}
+                        <div key={institution} style={{...S.card,padding:0,overflow:"hidden"}}>
+                          {/* Bank header */}
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:15}}>🏦</span>
+                              <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>{institution}</span>
+                              <span style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>{accts.length} account{accts.length!==1?"s":""}</span>
                             </div>
-                            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                              <span style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                              <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 8px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                              <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--t2)"}}>{fmt(groupTotal)}</span>
+                          </div>
+                          {/* Accounts in this group */}
+                          {isMobile ? (
+                            accts.map((acct,i) => <AcctRow key={acct.id} acct={acct} isLast={i===accts.length-1}/>)
+                          ) : (
+                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
+                              {accts.map((acct,i) => (
+                                <div key={acct.id} style={{borderRight:i%2===0&&i<accts.length-1?"1px solid var(--border)":"none"}}>
+                                  <AcctRow acct={acct} isLast={i>=accts.length-2}/>
+                                </div>
+                              ))}
                             </div>
-                          </div>
-                          <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
-                            <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}{acct.mask?" ····"+acct.mask:""}</span>
-                            {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
-                            <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
-                            {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
-                            <span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day · proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>
-                          </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                )}
-              </div>
+                );
+              })()
           }
           <SecurityBadges compact />
         </div>

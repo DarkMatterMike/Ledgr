@@ -135,7 +135,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
       if(t.amount<0) expenses+=Math.abs(t.amount)*days.length;
       else income+=Math.max(0,t.amount-DEDUCTION)*days.length;
     });
-    return(balance-100)-expenses+income;
+    return Math.max(0, (balance-100)-expenses+income);
   },[account,recurringTxns,balance]);
 
   const upcomingBills=useMemo(()=>{
@@ -314,7 +314,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
           <div style={card({padding:0,overflow:"hidden"})}>
             <div style={{padding:"14px 16px 10px",background:C.surface,borderBottom:`1px solid ${C.border}`}}>
               <div style={cardTitle}>Free to Spend</div>
-              <div style={{fontFamily:C.fontMono,fontSize:32,fontWeight:700,color:freeToSpend>0?C.green:C.red,lineHeight:1}}>{fmt(freeToSpend)}</div>
+              <div style={{fontFamily:C.fontMono,fontSize:32,fontWeight:700,color:freeToSpend>0?C.green:C.amber,lineHeight:1}}>{fmt(freeToSpend)}</div>
               <div style={{fontSize:11,color:C.t2,marginTop:4}}>After upcoming bills through end of {today.toLocaleDateString("en-US",{month:"long"})}</div>
             </div>
             <div style={{padding:"10px 16px",borderBottom:`1px solid ${C.border}`}}>

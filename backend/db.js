@@ -161,6 +161,7 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_start TEXT`);
+  await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS mask TEXT`);
   // ── Accounts table (replaces the JSON blob in app_data) ───────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS accounts (
@@ -257,6 +258,7 @@ function dbRowToAccount(row) {
     type:        row.type,
     institution: row.institution,
     isManual:    row.is_manual,
+    mask:        row.mask ?? null,
   };
 }
 
@@ -297,20 +299,21 @@ async function upsertAccount(userId, a) {
 
 // Plaid balance refresh — only updates balance fields, never the display name.
 // This preserves any custom name the user has given to a Plaid account.
-async function upsertAccountFromPlaid(userId, plaidId, plaidItemId, plaidName, balance, available, institution, type) {
+async function upsertAccountFromPlaid(userId, plaidId, plaidItemId, plaidName, balance, available, institution, type, mask) {
   const accountId = "a" + plaidId;
   await pool.query(`
-    INSERT INTO accounts (id, user_id, plaid_id, plaid_item_id, name, balance, available, type, institution, is_manual, updated_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,false,$10)
+    INSERT INTO accounts (id, user_id, plaid_id, plaid_item_id, name, balance, available, type, institution, mask, is_manual, updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false,$11)
     ON CONFLICT (id, user_id) DO UPDATE SET
       balance       = EXCLUDED.balance,
       available     = EXCLUDED.available,
       institution   = EXCLUDED.institution,
       type          = EXCLUDED.type,
+      mask          = EXCLUDED.mask,
       plaid_item_id = EXCLUDED.plaid_item_id,
       updated_at    = EXCLUDED.updated_at
       -- name is intentionally NOT updated — preserves any user customisation
-  `, [accountId, userId, plaidId, plaidItemId, plaidName, balance ?? 0, available ?? null, type ?? null, institution ?? null, Date.now()]);
+  `, [accountId, userId, plaidId, plaidItemId, plaidName, balance ?? 0, available ?? null, type ?? null, institution ?? null, mask ?? null, Date.now()]);
 }
 
 async function deleteAccountById(userId, id) {
@@ -857,7 +860,8 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
             a.balances.current,
             a.balances.available,
             item.institution,
-            a.subtype || a.type
+            a.subtype || a.type,
+            a.mask
           );
         }
       } catch (e) { console.error(`accountsGet failed for ${item.item_id}:`, e.message); }

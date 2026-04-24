@@ -712,7 +712,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
             <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             <CashFlowBarChart last6={last6} cashMax={cashMax} />
-            {HealthScoreCard}
+            <HealthScoreCard />
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
@@ -774,7 +774,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 </div>
               </Card>
               {/* Health Score */}
-              {HealthScoreCard}
+              <HealthScoreCard />
             </div>
             {/* Column 2: Action items */}
             {ActionItemsSidebar}
@@ -1711,7 +1711,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   );
 
   /* ── Two-column layout on desktop, single on mobile ─────────────── */
-  const HealthScoreCard = (
+
+
+
+  function HealthScoreCard() { return (
     <Card>
       <SectionHead title="Financial Health Score" />
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
@@ -1762,6 +1765,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       </div>
     </Card>
   );
+  }
 
   return (
     <div style={{ width:"100%" }}

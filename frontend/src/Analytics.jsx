@@ -1816,9 +1816,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               );
             })}
           </div>
-          {!isMobile && (
-            <div style={{ display:"flex", flexDirection:"column", gap:10, position:"sticky", top:16 }}>
-          </div>
           {/* Col 2: New goal + form + tracking info */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             <div style={{ display:"flex", justifyContent:"flex-end" }}>
@@ -1987,7 +1984,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 )}
               </Card>
             </div>
-          )}
+          {ActionItemsSidebar}
         </div>
       )}
     </div>

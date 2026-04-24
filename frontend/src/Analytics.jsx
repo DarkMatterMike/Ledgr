@@ -1564,11 +1564,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).slice(0,8).map((r,i) => (
                   <div key={r.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
                     borderBottom:i<Math.min(detectedRecurring.filter(r=>!dismissedRecurring.has(r.name)).length,8)-1?"1px solid var(--border)":"none" }}>
-                    <div style={{ width:32, height:32, borderRadius:8, background:"var(--surface)",
-                      border:"1px solid var(--border2)", flexShrink:0, overflow:"hidden",
+                    <div style={{ width:32, height:32, flexShrink:0, overflow:"hidden",
                       display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <img src={`https://www.google.com/s2/favicons?domain=${r.domainGuess}&sz=32`}
-                        alt="" style={{ width:20, height:20 }}
+                      <img src={`https://www.google.com/s2/favicons?domain=${r.domainGuess}&sz=64`}
+                        alt="" style={{ width:32, height:32, objectFit:"contain" }}
                         onError={e => { e.target.style.display="none"; e.target.parentNode.textContent="💳"; }} />
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>

@@ -211,17 +211,15 @@ const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",curren
 function MerchantIcon({ name, size=24 }) {
   const [err, setErr] = useState(false);
   if (!name || err) return (
-    <div style={{width:size,height:size,borderRadius:size/4,background:"var(--surface)",
-      border:"1px solid var(--border2)",flexShrink:0,display:"flex",alignItems:"center",
-      justifyContent:"center",fontSize:Math.round(size*0.5),color:"var(--t3)"}}>💳</div>
+    <span style={{width:size,height:size,flexShrink:0,display:"flex",alignItems:"center",
+      justifyContent:"center",fontSize:Math.round(size*0.5),color:"var(--t3)"}}>💳</span>
   );
   const domain = name.toLowerCase().replace(/[^a-z0-9\s]/g,"").replace(/\s+/g,"").slice(0,30)+".com";
   return (
-    <div style={{width:size,height:size,borderRadius:size/4,background:"var(--surface)",
-      border:"1px solid var(--border2)",flexShrink:0,overflow:"hidden",
+    <div style={{width:size,height:size,flexShrink:0,overflow:"hidden",
       display:"flex",alignItems:"center",justifyContent:"center"}}>
       <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=${size*2}`}
-        alt="" width={size*0.65} height={size*0.65}
+        alt="" width={size} height={size}
         onError={()=>setErr(true)} style={{objectFit:"contain"}}/>
     </div>
   );
@@ -3940,23 +3938,50 @@ function AppInner() {
 
   const Dashboard = (
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {/* Month bar — full width */}
-      <div className="ledgr-monthbar" style={{...S.monthBar,marginBottom:0,justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,justifyContent:"center",flex:1}}>
-          <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>‹</button>
-          <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",minWidth:isMobile?90:180,textAlign:"center"}}>
-            📅 {monthLabel(selectedMonth)}
-            {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
-          </span>
-          <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"6px 12px",fontSize:16,lineHeight:"1"}}>›</button>
+      {/* Month bar — spans first 2 columns only */}
+      {!isMobile && (
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
+          <div style={{...S.card,gridColumn:"1 / 3",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
+            {/* Arrows + month label */}
+            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>‹</button>
+              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>›</button>
+              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:16,color:"var(--t1)",marginLeft:10,whiteSpace:"nowrap"}}>
+                {monthLabel(selectedMonth)}
+                {isCurrentMonth&&<span style={{marginLeft:8,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",fontWeight:400}}>current</span>}
+              </span>
+            </div>
+            {/* Vertical divider */}
+            <div style={{width:1,alignSelf:"stretch",background:"var(--border2)",margin:"0 20px",flexShrink:0}}/>
+            {/* Stats stacked */}
+            <div style={{display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
+              {isCurrentMonth&&<div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Days left</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{daysLeft()}</div></div>}
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div></div>
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Income</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--green)"}}>{fmt(totalIncome)}</div></div>
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</div></div>
+            </div>
+          </div>
         </div>
-        <div className="ledgr-monthbar-meta" style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:12,color:"var(--t2)",justifyContent:"center",width:"100%"}}>
-          {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
-          <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
-          <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
-          <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+      )}
+      {/* Mobile month bar */}
+      {isMobile && (
+        <div style={{...S.card,padding:"10px 14px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+            <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>‹</button>
+            <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>›</button>
+            <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",marginLeft:6}}>
+              {monthLabel(selectedMonth)}
+              {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
+            </span>
+          </div>
+          <div style={{display:"flex",gap:16,fontSize:12,color:"var(--t2)"}}>
+            {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
+            <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
+            <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
+            <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+          </div>
         </div>
-      </div>
+      )}
 
       {isMobile ? (
         /* Mobile: single column */

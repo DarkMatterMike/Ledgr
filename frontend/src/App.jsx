@@ -5279,26 +5279,22 @@ function AppInner() {
         isMobile={isMobile}
         left={
           <div>
-            <div style={{...S.sectionHdr,marginBottom:16}}>
-              <div style={S.sectionTitle}>Auto-Categorization Rules</div>
+            <div style={{...S.sectionHdr,marginBottom:16}}>\n              <div style={S.sectionTitle}>Auto-Categorization Rules</div>
               <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
             </div>
-            <p style={{fontSize:12,color:"var(--t3)",marginBottom:12,lineHeight:1.6}}>Automatically assign categories or types to new transactions. Manual rules take priority over AI rules.</p>
 
-            {/* Search */}
+            {/* Stats + search on one row */}
             {rules.length > 0 && (
-              <div style={{position:"relative",marginBottom:14}}>
-                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:13}}>🔍</span>
-                <input style={{...S.input,paddingLeft:32,fontSize:13,width:"100%",boxSizing:"border-box"}}
-                  placeholder="Search rules…" value={ruleSearch} onChange={e=>setRuleSearch(e.target.value)}/>
-              </div>
-            )}
-
-            {/* Stats */}
-            {rules.length > 0 && (
-              <div style={{fontSize:11,color:"var(--t3)",marginBottom:16,display:"flex",gap:10}}>
-                <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
-                <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,gap:12}}>
+                <div style={{display:"flex",gap:10,fontSize:11,color:"var(--t3)",flexShrink:0}}>
+                  <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
+                  <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
+                </div>
+                <div style={{position:"relative",maxWidth:220,width:"100%"}}>
+                  <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:12,pointerEvents:"none"}}>🔍</span>
+                  <input style={{...S.input,paddingLeft:28,fontSize:12,width:"100%",boxSizing:"border-box",height:30}}
+                    placeholder="Search rules…" value={ruleSearch} onChange={e=>setRuleSearch(e.target.value)}/>
+                </div>
               </div>
             )}
 

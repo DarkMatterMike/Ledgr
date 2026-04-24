@@ -670,27 +670,7 @@ export default function DaniPage({
             )}
           </div>
 
-          {/* Wishlist summary against free-to-spend */}
-          {wishlist.length > 0 && (
-            <div style={card()}>
-              <div style={cardTitle}>Wishlist vs Balance</div>
-              {wishlistWithStatus.filter(w => w.status !== "purchased").map(item => (
-                <div key={item.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:6, minWidth:0, flex:1 }}>
-                    <span style={{ width:6, height:6, borderRadius:"50%", flexShrink:0, display:"inline-block", background: item.status==="now" ? C.green : item.status==="soon" ? C.amber : C.t2 }}/>
-                    <span style={{ fontSize:11, color: item.status==="now" ? C.t1 : item.status==="soon" ? C.t1 : C.t2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</span>
-                  </div>
-                  <span style={{ fontFamily:C.fontMono, fontSize:11, color: item.status==="now" ? C.t1 : item.status==="soon" ? C.t1 : C.t2, flexShrink:0, marginLeft:8 }}>{fmt(item.cost)}</span>
-                </div>
-              ))}
-              <div style={{ borderTop:`1px solid ${C.border}`, marginTop:6, paddingTop:8, display:"flex", justifyContent:"space-between" }}>
-                <span style={{ fontSize:11, color:C.t2 }}>Total wishlist</span>
-                <span style={{ fontFamily:C.fontMono, fontSize:12, fontWeight:700, color: wishlist.reduce((s,w)=>s+w.cost,0) <= freeToSpend ? C.green : C.amber }}>
-                  {fmt(wishlist.reduce((s,w)=>s+w.cost,0))}
-                </span>
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

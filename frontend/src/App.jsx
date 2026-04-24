@@ -1553,6 +1553,12 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             { name:"Ember",       bg:"#0f0800", surface:"#1a1000", card:"#221600", border:"#3a2200", border2:"#4a3000", accent:"#fbbf24", t1:"#f5e8d0", t2:"#a07840", t3:"#604820" },
             { name:"Rose",        bg:"#0f060a", surface:"#1a0c14", card:"#22101c", border:"#3a1a2a", border2:"#4a2038", accent:"#f472b6", t1:"#f5d8e8", t2:"#a06080", t3:"#603048" },
             { name:"Slate",       bg:"#080c10", surface:"#101620", card:"#16202c", border:"#1e2e3e", border2:"#263a4e", accent:"#60a5fa", t1:"#dce8f8", t2:"#6080a0", t3:"#304060" },
+            { name:"Obsidian",    bg:"#0c0c0c", surface:"#141414", card:"#1c1c1c", border:"#2a2a2a", border2:"#363636", accent:"#e2e8f0", t1:"#f0f0f0", t2:"#888888", t3:"#444444" },
+            { name:"Ocean",       bg:"#020b14", surface:"#041828", card:"#062038", border:"#0a3050", border2:"#0e4068", accent:"#38bdf8", t1:"#daf0ff", t2:"#5090b8", t3:"#205070" },
+            { name:"Crimson",     bg:"#0f0205", surface:"#1a0408", card:"#22080e", border:"#3a0e18", border2:"#4a1422", accent:"#f87171", t1:"#fde8e8", t2:"#a05060", t3:"#602030" },
+            { name:"Neon",        bg:"#020208", surface:"#060618", card:"#0a0a22", border:"#141440", border2:"#1e1e58", accent:"#39ff14", t1:"#e8ffe8", t2:"#50a050", t3:"#205020" },
+            { name:"Dusk",        bg:"#0a0710", surface:"#120e1c", card:"#181428", border:"#26203e", border2:"#342c52", accent:"#f59e0b", t1:"#f0eaff", t2:"#8878aa", t3:"#48386a" },
+            { name:"Arctic",      bg:"#06101a", surface:"#0e1e2e", card:"#142640", border:"#1e3858", border2:"#284a70", accent:"#67e8f9", t1:"#e0f8ff", t2:"#5a9ab8", t3:"#2a5a70" },
           ];
           const FONTS = [
             { label:"Syne (default)",      value:"'Syne', sans-serif" },

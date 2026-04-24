@@ -1072,8 +1072,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {/* ═══ SPENDING ════════════════════════════════════════════════ */}
       {tab === "spending" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
-          {/* Col 1: Income Sources + Top Merchants */}
+          {/* Col 1: Spending Pace + Income Sources + Top Merchants */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <SpendingPaceCard transactions={transactions} monthlyData={monthlyData} today={today} isMobile={isMobile} />
           {/* Income sources */}
           {incomeSources.length > 0 && (
             <Card>
@@ -1818,14 +1819,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           </div>
           {/* Col 2: New goal + form + tracking info */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            <div style={{ display:"flex", justifyContent:"flex-end" }}>
-              {goalForm === null && (
+            {goalForm === null && (
+              <div style={{ display:"flex", justifyContent:"flex-end" }}>
                 <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
                   style={{ padding:"5px 12px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:12, fontWeight:600, cursor:"pointer" }}>
                   + New goal
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             {goalForm !== null && (
               <Card style={{ border:"1px solid var(--cyan)44" }}>
                 <SectionHead title={goalForm.id ? "Edit goal" : "New goal"} />
@@ -1976,12 +1977,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               <Card style={{ padding:"14px 16px" }}>
                 <div style={{ fontSize:11, fontWeight:600, color:"var(--t2)", marginBottom:6 }}>How progress is tracked</div>
                 <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6 }}>When you transfer to savings, find that transaction and tap ⋯ → Add to goal to count it toward your target.</div>
-                {goalForm === null && (
-                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
-                    style={{ width:"100%", marginTop:12, padding:"9px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer" }}>
-                    + New goal
-                  </button>
-                )}
               </Card>
             </div>
           </div>

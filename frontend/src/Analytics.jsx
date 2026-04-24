@@ -1584,7 +1584,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           )}
 
           </div>
-          </div>
           {!isMobile && ActionItemsSidebar}
         </div>
       )}

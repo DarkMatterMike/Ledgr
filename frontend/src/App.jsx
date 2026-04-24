@@ -4952,7 +4952,7 @@ function AppInner() {
                                 {/* separator */}
                                 <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5}}/>
                                 {budgetExpandedCatId === cat.id && (
-                                  <div className="ledgr-expand" style={{ gridColumn: "1 / -1", paddingTop: 8, paddingBottom: 8 }} onClick={(e) => e.stopPropagation()}>
+                                  <div className="ledgr-expand" style={{ gridColumn: "1 / -1", margin: "0 -2px", padding: "10px 14px", background: "var(--bg)", borderRadius: "var(--radius)", borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
 
                                     {/* Summary header — spent / limit */}
                                     <div style={{ marginBottom: 12, padding: "10px 12px", background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>

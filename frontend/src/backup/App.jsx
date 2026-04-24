@@ -1,7 +1,7 @@
 /**
  * src/App.jsx — Ledgr personal finance app
  */
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment} from 'react';
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 import { debounce } from "./api.js";
@@ -56,6 +56,7 @@ button {
       50%       { text-shadow: 0 0 24px #00d4ffcc, 0 0 48px #00d4ff66, 0 0 72px #00d4ff33; opacity: 0.85; }
     }
     .ledgr-logo-pulse { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
+
     /* Loading screen — bounce */
     @keyframes ledgr-bounce {
       0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.33,0,0.66,0); }
@@ -70,48 +71,167 @@ button {
     }
     .ledgr-loading-text { animation: ledgr-breathe 2s ease-in-out infinite; }
 
-    /* Page content — fade in when view changes (opacity only — no transform to avoid breaking position:fixed) */
-    @keyframes ledgr-fade-in {
-      from { opacity: 0; }
-      to   { opacity: 1; }
+    /* ── View transitions — slide + fade ── */
+    @keyframes ledgr-view-slide-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    .ledgr-view-enter { animation: ledgr-fade-in 0.18s ease-out both; }
+    .ledgr-view-enter {
+      animation: ledgr-view-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
 
-    /* Cards — staggered fade in */
+    /* ── Cards — pronounced staggered rise ── */
     @keyframes ledgr-card-up {
       from { opacity: 0; }
       to   { opacity: 1; }
     }
-    .ledgr-card-anim { animation: ledgr-card-up 0.25s ease-out both; }
-    .ledgr-card-anim:nth-child(1) { animation-delay: 0ms; }
-    .ledgr-card-anim:nth-child(2) { animation-delay: 50ms; }
-    .ledgr-card-anim:nth-child(3) { animation-delay: 100ms; }
-    .ledgr-card-anim:nth-child(4) { animation-delay: 150ms; }
-    .ledgr-card-anim:nth-child(5) { animation-delay: 200ms; }
-    .ledgr-card-anim:nth-child(n+6) { animation-delay: 250ms; }
+    .ledgr-card-anim {
+      animation: ledgr-card-up 0.35s ease-out both;
+    }
+    .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms;   }
+    .ledgr-card-anim:nth-child(2)  { animation-delay: 70ms;  }
+    .ledgr-card-anim:nth-child(3)  { animation-delay: 140ms; }
+    .ledgr-card-anim:nth-child(4)  { animation-delay: 210ms; }
+    .ledgr-card-anim:nth-child(5)  { animation-delay: 280ms; }
+    .ledgr-card-anim:nth-child(6)  { animation-delay: 350ms; }
+    .ledgr-card-anim:nth-child(7)  { animation-delay: 400ms; }
+    .ledgr-card-anim:nth-child(n+8){ animation-delay: 440ms; }
+
+    /* ── Card hover lift ── */
+    .ledgr-card-hover {
+      transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+    .ledgr-card-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,212,255,0.08), 0 2px 8px rgba(0,0,0,0.3);
+      border-color: rgba(0,212,255,0.2) !important;
+    }
+
+    /* ── Stat number count-up shimmer ── */
+    @keyframes ledgr-stat-in {
+      from { opacity: 0; transform: scale(0.88) translateY(6px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .ledgr-stat-val {
+      animation: ledgr-stat-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-stat-val:nth-child(1) { animation-delay: 80ms;  }
+    .ledgr-stat-val:nth-child(2) { animation-delay: 160ms; }
+    .ledgr-stat-val:nth-child(3) { animation-delay: 240ms; }
+    .ledgr-stat-val:nth-child(4) { animation-delay: 320ms; }
+
+    /* ── Progress bars — animate width from 0 on mount ── */
+    @keyframes ledgr-bar-fill {
+      from { transform: scaleX(0); }
+      to   { transform: scaleX(1); }
+    }
+    .ledgr-bar {
+      transform-origin: left center;
+      animation: ledgr-bar-fill 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-bar:nth-child(1)  { animation-delay: 60ms;  }
+    .ledgr-bar:nth-child(2)  { animation-delay: 160ms; }
+    .ledgr-bar:nth-child(3)  { animation-delay: 260ms; }
+    .ledgr-bar:nth-child(4)  { animation-delay: 360ms; }
+    .ledgr-bar:nth-child(5)  { animation-delay: 460ms; }
+    .ledgr-bar:nth-child(n+6){ animation-delay: 560ms; }
+
+    /* ── Donut segments — fade + scale in per segment ── */
+    @keyframes ledgr-donut-seg-in {
+      from { opacity: 0; transform: scale(0.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .ledgr-donut-seg {
+      transform-origin: center;
+      transform-box: fill-box;
+      animation: ledgr-donut-seg-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-donut-seg:nth-child(1) { animation-delay: 80ms;  }
+    .ledgr-donut-seg:nth-child(2) { animation-delay: 180ms; }
+    .ledgr-donut-seg:nth-child(3) { animation-delay: 280ms; }
+    .ledgr-donut-seg:nth-child(4) { animation-delay: 380ms; }
+    .ledgr-donut-seg:nth-child(5) { animation-delay: 460ms; }
+
+    /* ── SVG line path draw-in ── */
+    @keyframes ledgr-path-draw {
+      from { stroke-dashoffset: var(--path-len, 2000); opacity: 0; }
+      10%  { opacity: 1; }
+      to   { stroke-dashoffset: 0; opacity: 1; }
+    }
+    .ledgr-path-draw {
+      stroke-dasharray: var(--path-len, 2000);
+      animation: ledgr-path-draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+    }
+    .ledgr-area-fade {
+      animation: ledgr-fade-in 0.8s ease-out 0.4s both;
+    }
+
+    /* ── Notification / banner slide-in from left ── */
+    @keyframes ledgr-slide-from-left {
+      from { opacity: 0; transform: translateX(-16px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .ledgr-notif-enter {
+      animation: ledgr-slide-from-left 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-notif-enter:nth-child(1) { animation-delay: 0ms;   }
+    .ledgr-notif-enter:nth-child(2) { animation-delay: 80ms;  }
+    .ledgr-notif-enter:nth-child(3) { animation-delay: 160ms; }
+
+    /* ── Transaction rows — stagger fade in ── */
+    @keyframes ledgr-row-in {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .ledgr-txn-row {
+      animation: ledgr-row-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-txn-row:nth-child(1)   { animation-delay: 0ms;   }
+    .ledgr-txn-row:nth-child(2)   { animation-delay: 30ms;  }
+    .ledgr-txn-row:nth-child(3)   { animation-delay: 60ms;  }
+    .ledgr-txn-row:nth-child(4)   { animation-delay: 90ms;  }
+    .ledgr-txn-row:nth-child(5)   { animation-delay: 120ms; }
+    .ledgr-txn-row:nth-child(6)   { animation-delay: 150ms; }
+    .ledgr-txn-row:nth-child(7)   { animation-delay: 180ms; }
+    .ledgr-txn-row:nth-child(8)   { animation-delay: 210ms; }
+    .ledgr-txn-row:nth-child(n+9) { animation-delay: 240ms; }
+
+    /* ── Tab pill slide ── */
+    @keyframes ledgr-tab-in {
+      from { opacity: 0; transform: scale(0.9); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .ledgr-tab-active { animation: ledgr-tab-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+    /* ── Generic fade-in (reused) ── */
+    @keyframes ledgr-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
 
     /* Modal — scale + fade in */
     @keyframes ledgr-modal-in {
-      from { opacity: 0; transform: scale(0.95) translateY(8px); }
+      from { opacity: 0; transform: scale(0.94) translateY(12px); }
       to   { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .ledgr-modal-anim { animation: ledgr-modal-in 0.18s ease-out both; }
+    .ledgr-modal-anim { animation: ledgr-modal-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
     /* Overlay — fade in */
     @keyframes ledgr-overlay-in {
       from { opacity: 0; }
       to   { opacity: 1; }
     }
-    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.15s ease-out both; }
+    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.2s ease-out both; }
 
     /* Toast — slide up from bottom */
     @keyframes ledgr-toast-in {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(16px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-    .ledgr-toast-anim { animation: ledgr-toast-in 0.2s ease-out both; }
+    .ledgr-toast-anim { animation: ledgr-toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-    /* Auth gate shake (already exists, keeping consistent) */
+    /* Shake */
     @keyframes shake {
       0%,100%{transform:translateX(0)}
       20%{transform:translateX(-8px)}
@@ -121,31 +241,48 @@ button {
     }
     .shake { animation: shake 0.5s ease; }
 
-    /* Chevron rotation for expand/collapse */
-    .ledgr-chevron { transition: transform 0.2s ease; display: inline-block; }
+    /* Chevron */
+    .ledgr-chevron { transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); display: inline-block; }
     .ledgr-chevron-open { transform: rotate(180deg); }
 
-    /* Expand panel — fade + clip down */
+    /* Expand panel */
     @keyframes ledgr-expand {
-      from { opacity: 0; max-height: 0; }
-      to   { opacity: 1; max-height: 800px; }
+      from { opacity: 0; max-height: 0; transform: translateY(-4px); }
+      to   { opacity: 1; max-height: 900px; transform: translateY(0); }
     }
     .ledgr-expand {
-      animation: ledgr-expand 0.22s ease-out both;
+      animation: ledgr-expand 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
       overflow: hidden;
     }
 
-    /* Install prompt slide-up */
+    /* Install prompt */
     @keyframes ledgr-slide-up {
       from { transform: translateY(100%); opacity: 0; }
       to   { transform: translateY(0);    opacity: 1; }
     }
-    .ledgr-slide-up { animation: ledgr-slide-up 0.3s ease-out both; }
+    .ledgr-slide-up { animation: ledgr-slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-    /* Nav item active indicator */
+    /* Nav active */
     @keyframes ledgr-nav-active {
       from { opacity: 0; transform: scaleX(0); }
       to   { opacity: 1; transform: scaleX(1); }
+    }
+
+    /* ── Goal / budget score rings ── */
+    @keyframes ledgr-ring-fill {
+      from { stroke-dashoffset: 200; }
+    }
+    .ledgr-ring-fill {
+      animation: ledgr-ring-fill 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+    }
+
+    /* ── Budget arc gauge — stroke draws in from zero ── */
+    @keyframes ledgr-arc-draw {
+      from { stroke-dashoffset: attr(stroke-dasharray); opacity: 0.3; }
+      to   { stroke-dashoffset: 0; opacity: 1; }
+    }
+    .ledgr-arc-fill {
+      animation: ledgr-arc-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
     }
 
     @media (max-width: 767px) {
@@ -3527,7 +3664,7 @@ function AppInner() {
           <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
             <div style={{height:"100%",borderRadius:99,
               background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
-              width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s"}}/>
+              width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s"}} className="ledgr-bar"/>
           </div>
         </div>
         <div style={{overflowY:"auto",flex:1}}>
@@ -3723,7 +3860,7 @@ function AppInner() {
                         strokeDasharray={`${dash} ${gap}`}
                         strokeDashoffset={-offsetAcc}
                         transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                      />
+                        />
                     );
                     offsetAcc += dash;
                     return circle;
@@ -3993,27 +4130,26 @@ function AppInner() {
             </div>
             {categories.length===0
               ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-              : sortedCategories.slice(0,6).map(cat=>{
-                  const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                  const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                  const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                  return (
-                    <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+              : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
+                  {sortedCategories.slice(0,6).map(cat=>{
+                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
+                    const barC=over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color;
+                    const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
+                    const valLabel=complete?"✓":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
+                    return (
+                      <Fragment key={cat.id}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
+                        <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
+                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
+                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                          {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
-                        </span>
-                      </div>
-                      <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
-                      </div>
-                    </div>
-                  );
-                })
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
+                      </Fragment>
+                    );
+                  })}
+                </div>
             }
           </div>
 
@@ -4052,7 +4188,7 @@ function AppInner() {
                             <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
                           </div>
                           <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
-                            <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                            <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
                           </div>
                           <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                             <span>{fmt(g.savedAmount||0)} saved</span>
@@ -4112,27 +4248,26 @@ function AppInner() {
               </div>
               {categories.length===0
                 ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-                : sortedCategories.slice(0,10).map(cat=>{
-                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                    return (
-                      <div key={cat.id} style={{marginBottom:10,cursor:"pointer",opacity:complete?0.7:1}} onClick={()=>setDrillCat(cat)}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}}>
-                          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}>
-                            <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",flexShrink:0}}/>
-                            <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat.name}</span>
+                : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
+                    {sortedCategories.slice(0,10).map(cat=>{
+                      const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                      const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                      const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
+                      const barC=over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color;
+                      const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
+                      const valLabel=complete?"✓":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
+                      return (
+                        <Fragment key={cat.id}>
+                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
+                          <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
+                          <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
+                            <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
                           </div>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)",flexShrink:0,marginLeft:8,fontWeight:600}}>
-                            {complete?"✓":over?`−${fmt(Math.abs(remaining))} over`:remaining===0?"Full":fmt(remaining)}
-                          </span>
-                        </div>
-                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
-                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,transition:"width 0.5s",background:over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color}}/>
-                        </div>
-                      </div>
-                    );
-                  })
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
+                        </Fragment>
+                      );
+                    })}
+                  </div>
               }
             </div>
 
@@ -4205,7 +4340,7 @@ function AppInner() {
                               <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
                             </div>
                             <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
-                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}}/>
+                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
                             </div>
                             <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                               <span>{fmt(g.savedAmount||0)} saved</span>
@@ -4688,7 +4823,14 @@ function AppInner() {
                     <div style={{ display:"flex", justifyContent:"center" }}>
                       <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
                         <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
-                        {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round" style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>}
+                        {clampedPct > 0.01 && (() => { const arcLen = clampedPct * Math.PI * r; return (
+                          <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
+                            fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
+                            strokeDasharray={arcLen} strokeDashoffset={arcLen}
+                            className="ledgr-arc-fill"
+                            style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}
+                          />
+                        ); })()}
                       </svg>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
@@ -4709,13 +4851,15 @@ function AppInner() {
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
-                      <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+                      <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                         </div>
 
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6, padding: 6 }}>
+                        {/* Single-line grid: dot | name | bar | value | menu
+                             grid-template-columns shared across all rows so bars align */}
+                        <div style={{ display: "grid", gridTemplateColumns: "8px auto 1fr auto auto", alignItems: "center", columnGap: 10, rowGap: 8, padding: "6px 10px" }}>
                           {section.cats.map((cat) => {
                             const spent = spentByCat[cat.id] || 0;
                             const pct = Math.min((spent / cat.limit) * 100, 100);
@@ -4725,64 +4869,55 @@ function AppInner() {
                             const zero = remaining === 0 && !over;
                             const complete = !over && (cat.completedMonths || []).includes(selectedMonth);
                             const barC = over ? "var(--red)" : complete ? "var(--t3)" : warn ? "var(--amber)" : zero ? "var(--t3)" : cat.color;
-                            const remColor = (complete || zero) ? "var(--t3)" : over ? "var(--red)" : "var(--green)";
-                            const remBg = (complete || zero) ? "var(--surface)" : over ? "var(--red-dim)" : "var(--green-dim)";
+                            const valColor = complete ? "var(--t3)" : over ? "var(--red)" : zero ? "var(--t3)" : "var(--green)";
                             const displayPct = complete ? 100 : pct;
+                            const valLabel = over ? `-${fmt(Math.abs(remaining))} over` : complete ? "✓ done" : zero ? "fully spent" : `${fmt(remaining)} left`;
+                            const isExpanded = budgetExpandedCatId === cat.id;
                             return (
-                              <div key={cat.id} onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }} style={{ background: "var(--card)", borderRadius: "var(--radius)", padding: "8px 10px", cursor: "pointer" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0, display: "inline-block" }} />
-                                  {editingCatNameId === cat.id ? (
-                                    <div style={{ display: "flex", gap: 6, alignItems: "center", flex: 1 }} onClick={(e) => e.stopPropagation()}>
-                                      <input autoFocus style={{ ...S.input, fontSize: 14, fontWeight: 600, padding: "3px 8px", flex: 1 }} value={editingCatName} onChange={(e) => setEditingCatName(e.target.value)} onBlur={() => saveCatName(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveCatName(cat.id); if (e.key === "Escape") setEditingCatNameId(null); }} />
-                                    </div>
-                                  ) : (
-                                    <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Tap to rename" style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text" }}>{cat.name}</span>
-                                  )}
-                                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: remColor, background: remBg, border: `1px solid ${remColor}33`, borderRadius: 6, padding: "2px 7px", flexShrink: 0 }}>{over ? `-${fmt(Math.abs(remaining))}` : fmt(remaining)}</span>
-                                  <div style={{ position: "relative", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }}
-                                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 18, padding: "2px 6px", lineHeight: 1, borderRadius: "var(--radius)" }}
-                                    >⋯</button>
-                                    {budgetKebabId === cat.id && (
-                                      <>
-                                        <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
-                                        <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                            {complete ? "✓ Unmark Complete" : "✓ Mark Complete"}
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>
-                                            Edit Category
-                                          </button>
-                                          <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>
-                                            Delete
-                                          </button>
-                                        </div>
-                                      </>
-                                    )}
+                              <Fragment key={cat.id}>
+                                {/* Col 1: dot */}
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, display: "inline-block", flexShrink: 0, justifySelf: "center" }} />
+                                {/* Col 2: name */}
+                                {editingCatNameId === cat.id ? (
+                                  <div onClick={(e) => e.stopPropagation()} style={{ minWidth: 0 }}>
+                                    <input autoFocus style={{ ...S.input, fontSize: 13, padding: "2px 6px", width: "100%" }} value={editingCatName} onChange={(e) => setEditingCatName(e.target.value)} onBlur={() => saveCatName(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveCatName(cat.id); if (e.key === "Escape") setEditingCatNameId(null); }} />
                                   </div>
+                                ) : (
+                                  <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Tap to rename" style={{ fontSize: 13, fontWeight: 500, color: complete ? "var(--t3)" : "var(--t1)", whiteSpace: "nowrap", cursor: "text", opacity: complete ? 0.6 : 1 }}>{cat.name}</span>
+                                )}
+                                {/* Col 3: bar track */}
+                                <div
+                                  onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }}
+                                  style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", cursor: "pointer", minWidth: 0 }}
+                                >
+                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%` }} className="ledgr-bar"
+                                    title={`Spent ${fmt(spent)} of ${fmt(cat.limit)}`} />
                                 </div>
-                                <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
-                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
+                                {/* Col 4: value */}
+                                {editingLimitId === cat.id ? (
+                                  <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                    <input type="number" autoFocus style={{ background: "none", border: "none", borderBottom: "1px solid var(--cyan)", fontSize: 12, color: "var(--t1)", outline: "none", width: 70, fontFamily: "var(--font-mono)" }} value={editingLimitVal} onChange={(e) => setEditingLimitVal(e.target.value)} onBlur={() => saveLimit(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveLimit(cat.id); if (e.key === "Escape") setEditingLimitId(null); }} />
+                                  </div>
+                                ) : (
+                                  <span onClick={(e) => startEditLimit(cat, e)} style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: valColor, whiteSpace: "nowrap", cursor: "text", textAlign: "right" }}>{valLabel}</span>
+                                )}
+                                {/* Col 5: kebab menu */}
+                                <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
+                                  <button onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "4px 4px", lineHeight: 1, borderRadius: "var(--radius)" }}>⋯</button>
+                                  {budgetKebabId === cat.id && (
+                                    <>
+                                      <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
+                                      <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                        <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>{complete ? "✓ Unmark Complete" : "✓ Mark Complete"}</button>
+                                        <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>Edit Category</button>
+                                        <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>Delete</button>
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                  <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>
-                                    {complete && <span style={{ fontWeight: 600, marginRight: 4, color: "var(--t3)" }}>✓ Complete ·</span>}
-                                    {!complete && over && <span style={{ fontWeight: 600, marginRight: 4 }}>Overspent ·</span>}
-                                    {!complete && zero && <span style={{ marginRight: 4 }}>Fully spent ·</span>}
-                                    Spent {fmt(spent)} /{" "}
-                                    {editingLimitId === cat.id ? (
-                                      <input type="number" autoFocus style={{ background: "none", border: "none", borderBottom: "1px solid var(--cyan)", fontSize: 12, color: "var(--t1)", outline: "none", width: 70, fontFamily: "var(--font-mono)" }} value={editingLimitVal} onChange={(e) => setEditingLimitVal(e.target.value)} onBlur={() => saveLimit(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveLimit(cat.id); if (e.key === "Escape") setEditingLimitId(null); }} onClick={(e) => e.stopPropagation()} />
-                                    ) : (
-                                      <span onClick={(e) => startEditLimit(cat, e)} style={{ cursor: "text", color: "var(--t3)", textDecoration: "underline dotted", textUnderlineOffset: 2 }}>{fmt(cat.limit)}</span>
-                                    )}
-                                  </span>
-                                  <span className={`ledgr-chevron${budgetExpandedCatId === cat.id ? " ledgr-chevron-open" : ""}`} style={{ color: "var(--t3)", fontSize: 12 }}>▼</span>
-                                </div>
-
+                                {/* Expand row — spans all 5 cols */}
                                 {budgetExpandedCatId === cat.id && (
-                                  <div className="ledgr-expand" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
+                                  <div className="ledgr-expand" style={{ gridColumn: "1 / -1", marginTop: 4, paddingTop: 8, borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
 
                                     {/* Assigned transactions */}
                                     {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).length === 0 ? (
@@ -4860,7 +4995,7 @@ function AppInner() {
 
                                   </div>
                                 )}
-                              </div>
+                              </Fragment>
                             );
                           })}
                         </div>
@@ -4893,7 +5028,14 @@ function AppInner() {
                       <div style={{ display:"flex", justifyContent:"center" }}>
                         <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
                           <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
-                          {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round" style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>}
+                          {clampedPct > 0.01 && (() => { const arcLen = clampedPct * Math.PI * r; return (
+                          <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
+                            fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
+                            strokeDasharray={arcLen} strokeDashoffset={arcLen}
+                            className="ledgr-arc-fill"
+                            style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}
+                          />
+                        ); })()}
                         </svg>
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
@@ -4914,8 +5056,8 @@ function AppInner() {
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
-                        <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+                        <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                           </div>
@@ -4968,7 +5110,7 @@ function AppInner() {
                                     </div>
                                   </div>
                                   <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
-                                    <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} />
+                                    <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%`, transition: "width 0.5s" }} className="ledgr-bar" />
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <span style={{ fontSize: 12, color: over ? "var(--red)" : (warn && !zero && !complete) ? "var(--amber)" : "var(--t3)" }}>

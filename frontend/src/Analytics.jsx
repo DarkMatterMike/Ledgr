@@ -114,6 +114,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError,   setAiError]   = useState(null);
   const [userCorrections, setUserCorrections] = useState("");
+  const [dismissedRecurring, setDismissedRecurring] = useState(new Set());
   const [goalForm, setGoalForm]   = useState(null); // null = closed, {} = new, {id,...} = edit
   const touchStartX = useRef(null);
   useEffect(() => { if (defaultTab && TABS.includes(defaultTab)) setTab(defaultTab); }, [defaultTab]);
@@ -711,6 +712,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
             <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             <CashFlowBarChart last6={last6} cashMax={cashMax} />
+            {HealthScoreCard}
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
@@ -771,6 +773,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   })}
                 </div>
               </Card>
+            </div>
+              {/* Health Score */}
+              {HealthScoreCard}
             </div>
             {/* Column 2: Action items */}
             {ActionItemsSidebar}
@@ -1132,63 +1137,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
 
-          {/* ── Financial Health Score ── */}
-          <Card>
-            <SectionHead title="Financial Health Score" />
-            <div style={{ display:"flex", alignItems:"center", gap:isMobile?16:24, flexWrap:"wrap" }}>
-              {/* Circular gauge */}
-              <div style={{ position:"relative", flexShrink:0 }}>
-                {(()=>{
-                  const r=54, cx=64, cy=64, stroke=10;
-                  const circ = 2*Math.PI*r;
-                  const filled = circ * (healthScore.score/100);
-                  return (
-                    <svg width={128} height={128} viewBox="0 0 128 128">
-                      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke}/>
-                      <circle cx={cx} cy={cy} r={r} fill="none" stroke={healthScore.color} strokeWidth={stroke}
-                        strokeDasharray={`${filled} ${circ}`}
-                        strokeLinecap="round"
-                        transform={`rotate(-90 ${cx} ${cy})`}
-                        style={{ transition:"stroke-dasharray 0.8s ease" }}/>
-                      <text x={cx} y={cy-8} textAnchor="middle" fill={healthScore.color}
-                        style={{ fontSize:28, fontWeight:700, fontFamily:"var(--font-mono)" }}>{healthScore.score}</text>
-                      <text x={cx} y={cy+10} textAnchor="middle" fill={healthScore.color}
-                        style={{ fontSize:13, fontWeight:700, fontFamily:"var(--font-disp)" }}>{healthScore.grade}</text>
-                      <text x={cx} y={cy+26} textAnchor="middle" fill="var(--t3)"
-                        style={{ fontSize:9, fontFamily:"var(--font-body)" }}>{healthScore.label}</text>
-                    </svg>
-                  );
-                })()}
-              </div>
-              {/* Breakdown bars */}
-              <div style={{ flex:1, minWidth:180, display:"flex", flexDirection:"column", gap:8 }}>
-                {healthScore.breakdown.map(item => (
-                  <div key={item.label}>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
-                      <span style={{ fontSize:11, color:"var(--t2)", display:"flex", alignItems:"center", gap:5 }}>
-                        <span>{item.icon}</span>{item.label}
-                        {item.note && <span style={{ color:"var(--t3)", fontSize:10 }}>· {item.note}</span>}
-                      </span>
-                      <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{item.pts}/{item.max}</span>
-                    </div>
-                    <div style={{ height:4, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
-                      <div style={{ height:"100%", borderRadius:99,
-                        width:`${(item.pts/item.max)*100}%`,
-                        background: item.pts/item.max >= 0.8 ? "var(--green)" : item.pts/item.max >= 0.5 ? "var(--cyan)" : item.pts/item.max >= 0.3 ? "var(--amber)" : "var(--red)",
-                        transition:"width 0.6s ease" }}/>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
+          {/* Health Score shown on Overview tab */}
 
           {/* ── Detected Recurring Charges ── */}
-          {detectedRecurring.length > 0 && (
+          {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).length > 0 && (
             <Card>
               <SectionHead title="Detected recurring charges" sub={`${detectedRecurring.length} unconfirmed — confirm to track on your calendar`} />
               <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-                {detectedRecurring.slice(0,8).map((r,i) => (
+                {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).slice(0,8).map((r,i) => (
                   <div key={r.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
                     borderBottom:i<Math.min(detectedRecurring.length,8)-1?"1px solid var(--border)":"none" }}>
                     {/* Merchant icon */}
@@ -1212,13 +1168,22 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                       <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:700, color:"var(--red)" }}>{fmt(r.amount)}</div>
                       <div style={{ fontSize:10, color:"var(--t3)" }}>{r.freqLabel.toLowerCase()}</div>
                     </div>
-                    <button
-                      onClick={() => onMarkRecurring && onMarkRecurring(r.txnIds)}
-                      style={{ padding:"4px 10px", borderRadius:"var(--radius)", fontSize:11, fontWeight:600,
-                        background:"var(--cyan-dim)", color:"var(--cyan)", border:"1px solid var(--cyan)44",
-                        cursor:"pointer", flexShrink:0, whiteSpace:"nowrap" }}>
-                      ✓ Confirm
-                    </button>
+                    <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                      <button
+                        onClick={() => onMarkRecurring && onMarkRecurring(r.txnIds)}
+                        style={{ padding:"4px 10px", borderRadius:"var(--radius)", fontSize:11, fontWeight:600,
+                          background:"var(--cyan-dim)", color:"var(--cyan)", border:"1px solid var(--cyan)44",
+                          cursor:"pointer", whiteSpace:"nowrap" }}>
+                        ✓ Confirm
+                      </button>
+                      <button
+                        onClick={() => setDismissedRecurring(p => new Set([...p, r.name]))}
+                        style={{ padding:"4px 8px", borderRadius:"var(--radius)", fontSize:11,
+                          background:"none", color:"var(--t3)", border:"1px solid var(--border2)",
+                          cursor:"pointer", lineHeight:1 }}>
+                        ✕
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1747,6 +1712,58 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   );
 
   /* ── Two-column layout on desktop, single on mobile ─────────────── */
+  const HealthScoreCard = (
+    <Card>
+      <SectionHead title="Financial Health Score" />
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
+        {/* Gauge — front and center */}
+        {(()=>{
+          const r=68,cx=80,cy=80,stroke=12;
+          const circ=2*Math.PI*r;
+          const filled=circ*(healthScore.score/100);
+          return (
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+              <svg width={160} height={160} viewBox="0 0 160 160">
+                <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke}/>
+                <circle cx={cx} cy={cy} r={r} fill="none" stroke={healthScore.color} strokeWidth={stroke}
+                  strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
+                  transform={`rotate(-90 ${cx} ${cy})`}
+                  style={{ transition:"stroke-dasharray 0.8s ease" }}/>
+                <text x={cx} y={cy-10} textAnchor="middle" fill={healthScore.color}
+                  style={{ fontSize:36, fontWeight:800, fontFamily:"var(--font-mono)" }}>{healthScore.score}</text>
+                <text x={cx} y={cy+16} textAnchor="middle" fill={healthScore.color}
+                  style={{ fontSize:15, fontWeight:700, fontFamily:"var(--font-disp)" }}>{healthScore.grade}</text>
+                <text x={cx} y={cy+34} textAnchor="middle" fill="var(--t3)"
+                  style={{ fontSize:10, fontFamily:"var(--font-body)" }}>{healthScore.label}</text>
+              </svg>
+            </div>
+          );
+        })()}
+        {/* Breakdown bars */}
+        <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:10 }}>
+          {healthScore.breakdown.map(item => (
+            <div key={item.label}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                <span style={{ fontSize:11, color:"var(--t2)", display:"flex", alignItems:"center", gap:6 }}>
+                  <span>{item.icon}</span>
+                  <span style={{ fontWeight:500 }}>{item.label}</span>
+                  {item.note && <span style={{ color:"var(--t3)", fontSize:10 }}>· {item.note}</span>}
+                </span>
+                <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t2)", fontWeight:600 }}>{item.pts}/{item.max}</span>
+              </div>
+              <div style={{ height:5, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
+                <div style={{ height:"100%", borderRadius:99,
+                  width:`${(item.pts/item.max)*100}%`,
+                  background: item.pts/item.max>=0.8?"var(--green)":item.pts/item.max>=0.5?"var(--cyan)":item.pts/item.max>=0.3?"var(--amber)":"var(--red)",
+                  transition:"width 0.6s ease" }}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+
   return (
     <div style={{ width:"100%" }}
       onTouchStart={isMobile ? handleTouchStart : undefined}

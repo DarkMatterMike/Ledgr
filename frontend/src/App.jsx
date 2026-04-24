@@ -206,6 +206,26 @@ const DAYS_OF_WEEK = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const today        = new Date();
 const pad          = n => String(n).padStart(2,"0");
 const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+
+/* ── Merchant icon — Google favicon service ─────────────────────── */
+function MerchantIcon({ name, size=24 }) {
+  const [err, setErr] = React.useState(false);
+  if (!name || err) return (
+    <div style={{width:size,height:size,borderRadius:size/4,background:"var(--surface)",
+      border:"1px solid var(--border2)",flexShrink:0,display:"flex",alignItems:"center",
+      justifyContent:"center",fontSize:Math.round(size*0.5),color:"var(--t3)"}}>💳</div>
+  );
+  const domain = name.toLowerCase().replace(/[^a-z0-9\s]/g,"").replace(/\s+/g,"").slice(0,30)+".com";
+  return (
+    <div style={{width:size,height:size,borderRadius:size/4,background:"var(--surface)",
+      border:"1px solid var(--border2)",flexShrink:0,overflow:"hidden",
+      display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <img src={`https://www.google.com/s2/favicons?domain=${domain}&sz=${size*2}`}
+        alt="" width={size*0.65} height={size*0.65}
+        onError={()=>setErr(true)} style={{objectFit:"contain"}}/>
+    </div>
+  );
+}
 const cap          = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
 const NAV = [
@@ -1015,6 +1035,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
         </div>
         {(t.recurring||!reviewed)&&<span style={{width:7,height:7,borderRadius:"50%",flexShrink:0,background:t.recurring?"var(--amber)":"var(--cyan)"}}/>}
+        <MerchantIcon name={t.merchant||t.name} size={24}/>
         <span style={{fontSize:13,fontWeight:500,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}

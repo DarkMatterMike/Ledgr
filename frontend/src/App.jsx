@@ -1649,17 +1649,17 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               {/* Color pickers */}
               <div>
                 <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Colors</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:"10px 12px"}}>
                   {VARS.map(({key,label})=>(
                     <div key={key} style={{display:"flex",flexDirection:"column",gap:4}}>
-                      <div style={{fontSize:11,color:"var(--t2)"}}>{label}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{fontSize:10,color:"var(--t2)",fontFamily:"var(--font-body)",letterSpacing:"0.3px"}}>{label}</div>
+                      <div style={{display:"flex",alignItems:"stretch",height:30,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",overflow:"hidden"}}>
                         <input type="color" value={current[key]||defaults[key]}
                           onChange={e=>patch(key,e.target.value)}
-                          style={{width:28,height:28,borderRadius:"var(--radius)",border:"1px solid var(--border2)",cursor:"pointer",padding:2,background:"var(--surface)"}}/>
+                          style={{width:30,height:"100%",border:"none",borderRight:"1px solid var(--border2)",cursor:"pointer",padding:0,background:"none",flexShrink:0,display:"block"}}/>
                         <input type="text" value={current[key]||defaults[key]}
                           onChange={e=>{ if(/^#[0-9a-fA-F]{6}$/.test(e.target.value)) patch(key,e.target.value); }}
-                          style={{flex:1,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",padding:"4px 6px",fontSize:11,color:"var(--t1)",fontFamily:"var(--font-mono)",outline:"none"}}/>
+                          style={{flex:1,background:"none",border:"none",padding:"0 8px",fontSize:11,color:"var(--t1)",fontFamily:"var(--font-mono)",outline:"none",minWidth:0,lineHeight:"30px"}}/>
                       </div>
                     </div>
                   ))}

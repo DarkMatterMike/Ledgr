@@ -4858,7 +4858,7 @@ function AppInner() {
                         </div>
 
                         {/* Single-line grid: dot | name | bar | spent/limit | remaining | menu+chevron */}
-                        <div style={{ display: "grid", gridTemplateColumns: "8px auto 1fr auto auto auto", alignItems: "center", columnGap: 10, rowGap: 0, padding: "4px 10px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "8px 1fr auto auto" : "8px auto 1fr auto auto auto", alignItems: "center", columnGap: isMobile ? 8 : 10, rowGap: 0, padding: "4px 10px" }}>
                           {section.cats.map((cat) => {
                             const spent = spentByCat[cat.id] || 0;
                             const pct = Math.min((spent / cat.limit) * 100, 100);
@@ -4873,56 +4873,75 @@ function AppInner() {
                             const valLabel = over ? `-${fmt(Math.abs(remaining))} over` : complete ? "✓ done" : zero ? "fully spent" : `${fmt(remaining)} left`;
                             return (
                               <Fragment key={cat.id}>
-                                {/* row padding top */}
+                                {/* row padding */}
                                 <div style={{gridColumn:"1/-1",height:8}}/>
-                                {/* Col 1: dot */}
+                                {/* dot */}
                                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, display: "inline-block", justifySelf: "center" }} />
-                                {/* Col 2: name */}
+                                {/* name */}
                                 {editingCatNameId === cat.id ? (
-                                  <div onClick={(e) => e.stopPropagation()}>
+                                  <div onClick={(e) => e.stopPropagation()} style={{minWidth:0}}>
                                     <input autoFocus style={{ ...S.input, fontSize: 13, padding: "2px 6px", width: "100%" }} value={editingCatName} onChange={(e) => setEditingCatName(e.target.value)} onBlur={() => saveCatName(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveCatName(cat.id); if (e.key === "Escape") setEditingCatNameId(null); }} />
                                   </div>
                                 ) : (
-                                  <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Tap to rename" style={{ fontSize: 13, fontWeight: 500, color: complete ? "var(--t3)" : "var(--t1)", whiteSpace: "nowrap", cursor: "text", opacity: complete ? 0.6 : 1 }}>{cat.name}</span>
+                                  <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Tap to rename"
+                                    style={{ fontSize: 13, fontWeight: 500, color: complete ? "var(--t3)" : "var(--t1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "text", opacity: complete ? 0.6 : 1 }}>{cat.name}</span>
                                 )}
-                                {/* Col 3: bar */}
-                                <div onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }}
-                                  style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", cursor: "pointer", minWidth: 0 }}>
-                                  <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%` }} className="ledgr-bar" title={`Spent ${fmt(spent)} of ${fmt(cat.limit)}`} />
-                                </div>
-                                {/* Col 4: spent / limit */}
-                                <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--t3)", whiteSpace: "nowrap" }}>
-                                  {fmt(spent)}&thinsp;/&thinsp;
-                                  {editingLimitId === cat.id ? (
-                                    <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background: "none", border: "none", borderBottom: "1px solid var(--cyan)", fontSize: 11, color: "var(--t1)", outline: "none", width: 60, fontFamily: "var(--font-mono)" }} value={editingLimitVal} onChange={(e) => setEditingLimitVal(e.target.value)} onBlur={() => saveLimit(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveLimit(cat.id); if (e.key === "Escape") setEditingLimitId(null); }} />
-                                  ) : (
-                                    <span onClick={(e) => startEditLimit(cat, e)} style={{ cursor: "text", textDecoration: "underline dotted", textUnderlineOffset: 2 }}>{fmt(cat.limit)}</span>
-                                  )}
-                                </span>
-                                {/* Col 5: remaining/status badge */}
-                                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: valColor, whiteSpace: "nowrap", textAlign: "right", minWidth: 80 }}>{valLabel}</span>
-                                {/* Col 6: kebab + chevron */}
-                                <div style={{ display: "flex", alignItems: "center", gap: 2 }} onClick={(e) => e.stopPropagation()}>
-                                  <span onClick={() => { setBudgetExpandedCatId(prev => prev === cat.id ? null : cat.id); setBudgetTxnSearch(""); }}
-                                    className={`ledgr-chevron${budgetExpandedCatId === cat.id ? " ledgr-chevron-open" : ""}`}
-                                    style={{ color: "var(--t3)", fontSize: 10, cursor: "pointer", padding: "4px 2px" }}>▼</span>
-                                  <div style={{ position: "relative" }}>
-                                    <button onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "4px 4px", lineHeight: 1, borderRadius: "var(--radius)" }}>⋯</button>
-                                    {budgetKebabId === cat.id && (
+                                {/* bar — desktop only; mobile gets full-width bar below */}
+                                {!isMobile && (
+                                  <div onClick={() => { setBudgetExpandedCatId(p => p === cat.id ? null : cat.id); setBudgetTxnSearch(""); }}
+                                    style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", cursor: "pointer", minWidth: 0 }}>
+                                    <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%` }} className="ledgr-bar" title={`${fmt(spent)} of ${fmt(cat.limit)}`} />
+                                  </div>
+                                )}
+                                {/* spent/limit — desktop only */}
+                                {!isMobile && (
+                                  <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--t3)", whiteSpace: "nowrap", minWidth: 110, textAlign: "right" }}>
+                                    {fmt(spent)}&thinsp;/&thinsp;
+                                    {editingLimitId === cat.id
+                                      ? <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background:"none", border:"none", borderBottom:"1px solid var(--cyan)", fontSize:11, color:"var(--t1)", outline:"none", width:60, fontFamily:"var(--font-mono)" }} value={editingLimitVal} onChange={(e)=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={(e)=>{ if(e.key==="Enter")saveLimit(cat.id); if(e.key==="Escape")setEditingLimitId(null); }} />
+                                      : <span onClick={(e)=>startEditLimit(cat,e)} style={{ cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
+                                    }
+                                  </span>
+                                )}
+                                {/* remaining badge */}
+                                <span style={{ fontFamily:"var(--font-mono)", fontSize:11, fontWeight:700, color:valColor, whiteSpace:"nowrap", textAlign:"right", minWidth: isMobile ? 0 : 90 }}>{valLabel}</span>
+                                {/* chevron + kebab */}
+                                <div style={{ display:"flex", alignItems:"center", gap:2 }} onClick={(e)=>e.stopPropagation()}>
+                                  <span onClick={()=>{ setBudgetExpandedCatId(p => p===cat.id ? null : cat.id); setBudgetTxnSearch(""); }}
+                                    className={`ledgr-chevron${budgetExpandedCatId===cat.id?" ledgr-chevron-open":""}`}
+                                    style={{ color:"var(--t3)", fontSize:10, cursor:"pointer", padding:"4px 2px" }}>▼</span>
+                                  <div style={{ position:"relative" }}>
+                                    <button onClick={(e)=>{ e.stopPropagation(); setBudgetKebabId(p=>p===cat.id?null:cat.id); }} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16, padding:"4px 4px", lineHeight:1, borderRadius:"var(--radius)" }}>⋯</button>
+                                    {budgetKebabId===cat.id && (
                                       <>
                                         <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
-                                        <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
-                                          <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>{complete ? "✓ Unmark Complete" : "✓ Mark Complete"}</button>
-                                          <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>Edit Category</button>
-                                          <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>Delete</button>
+                                        <div style={{ position:"absolute", right:0, top:"100%", zIndex:40, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", boxShadow:"0 4px 16px #00000055", minWidth:160, overflow:"hidden" }}>
+                                          <button onClick={()=>{ toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display:"block", width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:"var(--t1)", borderBottom:"1px solid var(--border)" }}>{complete?"✓ Unmark Complete":"✓ Mark Complete"}</button>
+                                          <button onClick={(e)=>{ e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display:"block", width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:"var(--t1)", borderBottom:"1px solid var(--border)" }}>Edit Category</button>
+                                          <button onClick={(e)=>{ e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display:"block", width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:"var(--red)" }}>Delete</button>
                                         </div>
                                       </>
                                     )}
                                   </div>
                                 </div>
-                                {/* row separator */}
+                                {/* mobile: full-width bar + spent/limit on its own row */}
+                                {isMobile && (
+                                  <div style={{ gridColumn:"1/-1", display:"flex", alignItems:"center", gap:8, paddingBottom:2 }}>
+                                    <div onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}
+                                      style={{ flex:1, height:4, background:"var(--border)", borderRadius:99, overflow:"hidden", cursor:"pointer" }}>
+                                      <div style={{ height:"100%", borderRadius:99, background:barC, width:`${displayPct}%` }} className="ledgr-bar" />
+                                    </div>
+                                    <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--t3)", whiteSpace:"nowrap", flexShrink:0 }}>
+                                      {fmt(spent)}&thinsp;/&thinsp;
+                                      {editingLimitId===cat.id
+                                        ? <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background:"none", border:"none", borderBottom:"1px solid var(--cyan)", fontSize:10, color:"var(--t1)", outline:"none", width:50, fontFamily:"var(--font-mono)" }} value={editingLimitVal} onChange={(e)=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={(e)=>{ if(e.key==="Enter")saveLimit(cat.id); if(e.key==="Escape")setEditingLimitId(null); }} />
+                                        : <span onClick={(e)=>startEditLimit(cat,e)} style={{ cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
+                                      }
+                                    </span>
+                                  </div>
+                                )}
+                                {/* separator */}
                                 <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5}}/>
-                                {/* Expand panel — spans all 6 cols */}
                                 {budgetExpandedCatId === cat.id && (
                                   <div className="ledgr-expand" style={{ gridColumn: "1 / -1", paddingTop: 8, paddingBottom: 8 }} onClick={(e) => e.stopPropagation()}>
 
@@ -5069,7 +5088,7 @@ function AppInner() {
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                           </div>
                           {/* Single-line grid matching left column */}
-                          <div style={{ display: "grid", gridTemplateColumns: "8px auto 1fr auto auto auto", alignItems: "center", columnGap: 10, rowGap: 0, padding: "4px 10px" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "8px 1fr auto auto" : "8px auto 1fr auto auto auto", alignItems: "center", columnGap: isMobile ? 8 : 10, rowGap: 0, padding: "4px 10px" }}>
                             {section.cats.map((cat) => {
                               const spent = spentByCat[cat.id] || 0;
                               const pct = Math.min((spent / cat.limit) * 100, 100);

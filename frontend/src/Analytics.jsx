@@ -1629,7 +1629,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             );
           })()}
 
-          {/* Savings rate trend */}
+          {/* Net savings trend */}
           {(()=>{
             const months = monthlySavings.filter(m => m.value !== 0);
             if (months.length < 2) return null;
@@ -1637,6 +1637,40 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             const improving = months.length >= 2 && months[months.length-1].value > months[months.length-2].value;
             const avgSavings = Math.round(months.reduce((s,m) => s+m.value, 0) / months.length);
             return (
+              <Card>
+                <SectionHead
+                  title="Net savings trend"
+                  sub={`6-month avg: ${avgSavings >= 0 ? "+" : ""}${fmt(avgSavings)}/mo · ${improving ? "↑ improving" : "↓ declining"}`}
+                />
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4, alignItems:"end", height:60, marginBottom:6 }}>
+                  {months.map((m, i) => {
+                    const positive = m.value >= 0;
+                    const h = Math.max(Math.round((Math.abs(m.value) / maxAbs) * 56), 2);
+                    return (
+                      <div key={m.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%" }}>
+                        <div style={{ width:"100%", height:h,
+                          background: positive ? "var(--green)" : "var(--red)",
+                          borderRadius: positive ? "3px 3px 0 0" : "0 0 3px 3px",
+                          opacity: i === months.length-1 ? 1 : 0.55,
+                          transition:"height 0.4s",
+                        }}/>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4 }}>
+                  {months.map((m, i) => (
+                    <div key={m.label} style={{ textAlign:"center" }}>
+                      <div style={{ fontSize:9, color:"var(--t3)", overflow:"hidden" }}>{m.label.split(" ")[0]}</div>
+                      {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color: m.value>=0?"var(--green)":"var(--red)" }}>
+                        {m.value>=0?"+":""}{fmt(m.value)}
+                      </div>}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            );
+          })()}
 
           {/* Chronic overspenders */}
           {(()=>{
@@ -1668,25 +1702,27 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             );
           })()}
 
-          <Card>
-                <SectionHead
-                  title="Net savings trend"
+          {/* Net savings trend */}
+          {(()=>{
+            const months = monthlySavings.filter(m => m.value !== 0);
+            if (months.length < 2) return null;
+            const maxAbs = Math.max(...months.map(m => Math.abs(m.value)), 1);
+            const improving = months.length >= 2 && months[months.length-1].value > months[months.length-2].value;
+            const avgSavings = Math.round(months.reduce((s,m) => s+m.value, 0) / months.length);
+            return (
+              <Card>
+                <SectionHead title="Net savings trend"
                   sub={`6-month avg: ${avgSavings >= 0 ? "+" : ""}${fmt(avgSavings)}/mo · ${improving ? "↑ improving" : "↓ declining"}`}
                 />
                 <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4, alignItems:"end", height:60, marginBottom:6 }}>
                   {months.map((m, i) => {
                     const positive = m.value >= 0;
-                    const h = Math.max(Math.round((Math.abs(m.value)/maxAbs)*52), 3);
+                    const h = Math.max(Math.round((Math.abs(m.value) / maxAbs) * 56), 2);
                     return (
-                      <div key={m.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-                        <div style={{ width:"100%", height:52, display:"flex", alignItems: positive?"flex-end":"flex-start" }}>
-                          <div style={{ width:"100%", height:h,
-                            background: positive ? "var(--green)" : "var(--red)",
-                            borderRadius: positive ? "3px 3px 0 0" : "0 0 3px 3px",
-                            opacity: i === months.length-1 ? 1 : 0.55,
-                            transition:"height 0.4s",
-                          }}/>
-                        </div>
+                      <div key={m.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%" }}>
+                        <div style={{ width:"100%", height:h, background: positive ? "var(--green)" : "var(--red)",
+                          borderRadius: positive ? "3px 3px 0 0" : "0 0 3px 3px",
+                          opacity: i === months.length-1 ? 1 : 0.55, transition:"height 0.4s" }}/>
                       </div>
                     );
                   })}
@@ -1694,7 +1730,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4 }}>
                   {months.map((m, i) => (
                     <div key={m.label} style={{ textAlign:"center" }}>
-                      <div style={{ fontSize:9, color:"var(--t3)", overflow:"hidden" }}>{m.label.split(" ")[0]}</div>
+                      <div style={{ fontSize:9, color:"var(--t3)" }}>{m.label.split(" ")[0]}</div>
                       {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color: m.value>=0?"var(--green)":"var(--red)" }}>
                         {m.value>=0?"+":""}{fmt(m.value)}
                       </div>}
@@ -1704,14 +1740,12 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </Card>
             );
           })()}
-
-          {/* AI Insights */}
-          <Card>
           </div>
           {!isMobile && ActionItemsSidebar}
         </div>
       )}
-      {/* ═══ GOALS ════════════════════════════════════════════════ */}
+
+            {/* ═══ GOALS ════════════════════════════════════════════════ */}
       {tab === "goals" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           {/* Col 1: Goals list */}

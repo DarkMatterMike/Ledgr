@@ -1034,6 +1034,7 @@ app.get("/api/plaid/accounts", async (req, res) => {
         allAccounts.push(...r.data.accounts.map(a => ({
           account_id: a.account_id, item_id: item.item_id, institution: item.institution,
           name: a.name, official: a.official_name, type: a.type, subtype: a.subtype,
+          mask: a.mask,
           balance: a.balances.current, available: a.balances.available, currency: a.balances.iso_currency_code,
         })));
       } catch (err) { console.error(`accountsGet error for ${item.item_id}:`, err.response?.data || err.message); }

@@ -5115,7 +5115,7 @@ function AppInner() {
                           </div>
                         </div>
                         <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
-                          <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}</span>
+                          <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}{acct.mask?" ····"+acct.mask:""}</span>
                           {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
                           <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
                           {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
@@ -5146,7 +5146,7 @@ function AppInner() {
                             </div>
                           </div>
                           <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
-                            <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}</span>
+                            <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}{acct.mask?" ····"+acct.mask:""}</span>
                             {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
                             <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
                             {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}

@@ -1749,15 +1749,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {/* ═══ GOALS ════════════════════════════════════════════════ */}
       {tab === "goals" && (
         <div>
-          {/* Button row above grid */}
-          <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:10 }}>
-            {goalForm === null && (
-              <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
-                style={{ padding:"5px 12px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-                + New goal
-              </button>
-            )}
-          </div>
           <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           {/* Col 1: Goals list */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -2049,9 +2040,18 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       onTouchEnd={isMobile ? handleTouchEnd : undefined}>
 
       {/* Page title */}
-      <div style={{ marginBottom:16 }}>
-        <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:700, letterSpacing:"-0.5px", color:"var(--t1)", lineHeight:1 }}>Analytics</div>
-        <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{transactions.filter(t => t.amount < 0).length} transactions · {monthlyData.filter(m => m.spending > 0).length} months of data</div>
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:16 }}>
+        <div>
+          <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:700, letterSpacing:"-0.5px", color:"var(--t1)", lineHeight:1 }}>Analytics</div>
+          <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{transactions.filter(t => t.amount < 0).length} transactions · {monthlyData.filter(m => m.spending > 0).length} months of data</div>
+        </div>
+        {tab === "goals" && goalForm === null && (
+          <button
+            onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
+            style={{ padding:"5px 12px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:12, fontWeight:600, cursor:"pointer", flexShrink:0 }}>
+            + New goal
+          </button>
+        )}
       </div>
 
       {isMobile ? (

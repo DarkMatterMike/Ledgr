@@ -1601,45 +1601,46 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           }
 
           return (
-            <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              {/* Presets */}
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
+              {/* Presets — 4-column grid, all buttons same width */}
               <div>
                 <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Presets</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:6}}>
                   {PRESETS.map(p=>(
                     <button key={p.name} onClick={()=>applyPreset(p)} style={{
-                      display:"flex",alignItems:"center",gap:6,
-                      padding:"5px 10px",borderRadius:"var(--radius)",fontSize:11,fontWeight:500,
-                      border:`1px solid ${current.accent||"var(--border2)"}22`,
+                      display:"flex",alignItems:"center",gap:6,justifyContent:"flex-start",
+                      padding:"6px 10px",borderRadius:"var(--radius)",fontSize:11,fontWeight:500,
+                      border:`1px solid ${current.accent||"var(--border2)"}33`,
                       background:"var(--surface)",color:"var(--t2)",cursor:"pointer",
-                      transition:"all 0.15s",
+                      transition:"all 0.15s",whiteSpace:"nowrap",overflow:"hidden",
                     }}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor=current.accent||"var(--cyan)";e.currentTarget.style.color="var(--t1)";}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor=`${current.accent||"var(--border2)"}22`;e.currentTarget.style.color="var(--t2)";}}>
-                      <span style={{display:"inline-flex",gap:2}}>
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=`${current.accent||"var(--border2)"}33`;e.currentTarget.style.color="var(--t2)";}}>
+                      <span style={{display:"inline-flex",gap:3,flexShrink:0}}>
                         {["bg","accent","t1"].map(k=>(
-                          <span key={k} style={{width:8,height:8,borderRadius:"50%",background:p[k],display:"inline-block",flexShrink:0}}/>
+                          <span key={k} style={{width:7,height:7,borderRadius:"50%",background:p[k],display:"inline-block"}}/>
                         ))}
                       </span>
-                      {p.name}
+                      <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Page title font */}
+              {/* Page title font — 3-column grid */}
               <div>
                 <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Page Title Font</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:6}}>
                   {FONTS.map(f=>{
                     const active=(current.fontDisp||"'Syne', sans-serif")===f.value;
                     return(
                       <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
-                        padding:"5px 12px",borderRadius:"var(--radius)",fontSize:12,
+                        padding:"7px 10px",borderRadius:"var(--radius)",fontSize:13,textAlign:"center",
                         fontFamily:f.value,
                         border:`1px solid ${active?"var(--cyan)":"var(--border2)"}`,
                         background:active?"var(--cyan-dim)":"var(--surface)",
                         color:active?"var(--cyan)":"var(--t2)",cursor:"pointer",transition:"all 0.15s",
+                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
                       }}>
                         {f.label}
                       </button>

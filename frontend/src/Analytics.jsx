@@ -1748,7 +1748,17 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
             {/* ═══ GOALS ════════════════════════════════════════════════ */}
       {tab === "goals" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
+        <div>
+          {/* Button row above grid */}
+          <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:10 }}>
+            {goalForm === null && (
+              <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
+                style={{ padding:"5px 12px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                + New goal
+              </button>
+            )}
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           {/* Col 1: Goals list */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {goals.length === 0 && goalForm === null ? (
@@ -1817,16 +1827,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               );
             })}
           </div>
-          {/* Col 2: New goal + form + tracking info */}
+          {/* Col 2: Goal form + tracking info */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {goalForm === null && (
-              <div style={{ display:"flex", justifyContent:"flex-end" }}>
-                <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
-                  style={{ padding:"5px 12px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-                  + New goal
-                </button>
-              </div>
-            )}
             {goalForm !== null && (
               <Card style={{ border:"1px solid var(--cyan)44" }}>
                 <SectionHead title={goalForm.id ? "Edit goal" : "New goal"} />
@@ -1981,6 +1983,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             </div>
           </div>
           {ActionItemsSidebar}
+        </div>
         </div>
       )}
     </div>

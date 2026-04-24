@@ -835,7 +835,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {catTrends.slice(0,6).map(c => {
               const frac = c.avg / totalSpent;
               const dash = frac * circ, gap = circ - dash;
-              const el = <circle key={c.id} cx={size/2} cy={size/2} r={r} fill="none" stroke={c.color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offsetAcc} transform={`rotate(-90 ${size/2} ${size/2})`} className="ledgr-donut-seg" />;
+              const el = <circle key={c.id} cx={size/2} cy={size/2} r={r} fill="none" stroke={c.color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offsetAcc} transform={`rotate(-90 ${size/2} ${size/2})`} />;
               offsetAcc += dash;
               return el;
             })}
@@ -1092,7 +1092,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     </div>
                   </div>
                   <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden", marginLeft:24 }}>
-                    <div style={{ height:"100%", width:`${pct(s.total, incomeSources[0]?.total||1)}%`, background:"var(--green)", borderRadius:99, transition:"width 0.5s" }} />
+                    <div style={{ height:"100%", width:`${pct(s.total, incomeSources[0]?.total||1)}%`, background:"var(--green)", borderRadius:99, transition:"width 0.5s" }} className="ledgr-bar" />
                   </div>
                 </div>
               ))}
@@ -1115,7 +1115,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   </div>
                 </div>
                 <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden", marginLeft:24 }}>
-                  <div style={{ height:"100%", width:`${pct(m.total, merchantTotals[0]?.total||1)}%`, background:"var(--cyan)", borderRadius:99, transition:"width 0.5s" }} />
+                  <div style={{ height:"100%", width:`${pct(m.total, merchantTotals[0]?.total||1)}%`, background:"var(--cyan)", borderRadius:99, transition:"width 0.5s" }} className="ledgr-bar" />
                 </div>
               </div>
             ))}

@@ -82,11 +82,11 @@ button {
 
     /* ── Cards — pronounced staggered rise ── */
     @keyframes ledgr-card-up {
-      from { opacity: 0; transform: translateY(22px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
     .ledgr-card-anim {
-      animation: ledgr-card-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation: ledgr-card-up 0.35s ease-out both;
     }
     .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms;   }
     .ledgr-card-anim:nth-child(2)  { animation-delay: 70ms;  }
@@ -128,14 +128,14 @@ button {
     }
     .ledgr-bar {
       transform-origin: left center;
-      animation: ledgr-bar-fill 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+      animation: ledgr-bar-fill 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    .ledgr-bar:nth-child(1)  { animation-delay: 80ms;  }
+    .ledgr-bar:nth-child(1)  { animation-delay: 60ms;  }
     .ledgr-bar:nth-child(2)  { animation-delay: 160ms; }
-    .ledgr-bar:nth-child(3)  { animation-delay: 240ms; }
-    .ledgr-bar:nth-child(4)  { animation-delay: 320ms; }
-    .ledgr-bar:nth-child(5)  { animation-delay: 400ms; }
-    .ledgr-bar:nth-child(n+6){ animation-delay: 480ms; }
+    .ledgr-bar:nth-child(3)  { animation-delay: 260ms; }
+    .ledgr-bar:nth-child(4)  { animation-delay: 360ms; }
+    .ledgr-bar:nth-child(5)  { animation-delay: 460ms; }
+    .ledgr-bar:nth-child(n+6){ animation-delay: 560ms; }
 
     /* ── Donut segments — fade + scale in per segment ── */
     @keyframes ledgr-donut-seg-in {
@@ -274,6 +274,15 @@ button {
     }
     .ledgr-ring-fill {
       animation: ledgr-ring-fill 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+    }
+
+    /* ── Budget arc gauge — stroke draws in from zero ── */
+    @keyframes ledgr-arc-draw {
+      from { stroke-dashoffset: attr(stroke-dasharray); opacity: 0.3; }
+      to   { stroke-dashoffset: 0; opacity: 1; }
+    }
+    .ledgr-arc-fill {
+      animation: ledgr-arc-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
     }
 
     @media (max-width: 767px) {
@@ -3851,8 +3860,7 @@ function AppInner() {
                         strokeDasharray={`${dash} ${gap}`}
                         strokeDashoffset={-offsetAcc}
                         transform={`rotate(-90 ${size / 2} ${size / 2})`}
-                        className="ledgr-donut-seg"
-                      />
+                        />
                     );
                     offsetAcc += dash;
                     return circle;
@@ -4817,7 +4825,14 @@ function AppInner() {
                     <div style={{ display:"flex", justifyContent:"center" }}>
                       <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
                         <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
-                        {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round" style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>}
+                        {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} {(()=>{ const arcLen = clampedPct * Math.PI * r; return (
+                          <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
+                            fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
+                            strokeDasharray={arcLen} strokeDashoffset={arcLen}
+                            className="ledgr-arc-fill"
+                            style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}
+                          />
+                        );})()} }
                       </svg>
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
@@ -5022,7 +5037,14 @@ function AppInner() {
                       <div style={{ display:"flex", justifyContent:"center" }}>
                         <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
                           <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${rx} ${ry}`} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round"/>
-                          {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round" style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}/>}
+                          {clampedPct > 0.01 && <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`} {(()=>{ const arcLen = clampedPct * Math.PI * r; return (
+                          <path d={`M ${lx} ${ly} A ${r} ${r} 0 0 1 ${ex} ${ey}`}
+                            fill="none" stroke={gaugeColor} strokeWidth={sw} strokeLinecap="round"
+                            strokeDasharray={arcLen} strokeDashoffset={arcLen}
+                            className="ledgr-arc-fill"
+                            style={{ filter:`drop-shadow(0 0 6px ${gaugeColor}99)` }}
+                          />
+                        );})()} }
                         </svg>
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>

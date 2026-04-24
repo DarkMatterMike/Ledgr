@@ -4858,7 +4858,7 @@ function AppInner() {
                         </div>
 
                         {/* Single-line grid: dot | name | bar | spent/limit | remaining | menu+chevron */}
-                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "8px 1fr auto auto" : "8px auto 1fr auto auto auto", alignItems: "center", columnGap: isMobile ? 8 : 10, rowGap: 0, padding: "4px 10px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "8px 1fr auto auto" : "8px auto 1fr auto auto auto auto auto", alignItems: "center", columnGap: isMobile ? 8 : 10, rowGap: 0, padding: isMobile ? "2px 10px" : "4px 10px" }}>
                           {section.cats.map((cat) => {
                             const spent = spentByCat[cat.id] || 0;
                             const pct = Math.min((spent / cat.limit) * 100, 100);
@@ -4900,10 +4900,15 @@ function AppInner() {
                                     <div style={{ height:"100%", borderRadius:99, background:barC, width:`${displayPct}%` }} className="ledgr-bar" title={`${fmt(spent)} of ${fmt(cat.limit)}`} />
                                   </div>
                                 )}
-                                {/* spent/limit — desktop only */}
+                                {/* spent | slash | limit — desktop only, 3 separate cols for perfect alignment */}
                                 {!isMobile && (
-                                  <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", whiteSpace:"nowrap", minWidth:110, textAlign:"right", justifySelf:"end" }}>
-                                    {fmt(spent)}&thinsp;/&thinsp;
+                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", whiteSpace:"nowrap", textAlign:"right", justifySelf:"end" }}>{fmt(spent)}</span>
+                                )}
+                                {!isMobile && (
+                                  <span style={{ color:"var(--t3)", fontSize:11, textAlign:"center", opacity:0.5 }}>/</span>
+                                )}
+                                {!isMobile && (
+                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", whiteSpace:"nowrap", justifySelf:"start" }}>
                                     {editingLimitId===cat.id
                                       ? <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background:"none", border:"none", borderBottom:"1px solid var(--cyan)", fontSize:11, color:"var(--t1)", outline:"none", width:60, fontFamily:"var(--font-mono)" }} value={editingLimitVal} onChange={(e)=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={(e)=>{ if(e.key==="Enter")saveLimit(cat.id); if(e.key==="Escape")setEditingLimitId(null); }} />
                                       : <span onClick={(e)=>startEditLimit(cat,e)} style={{ cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
@@ -4935,26 +4940,41 @@ function AppInner() {
                                     )}
                                   </div>
                                 </div>
-                                {/* mobile: full-width bar + spent/limit */}
+                                {/* mobile: slim bar spanning full width */}
                                 {isMobile && (
-                                  <div style={{ gridColumn:"1/-1", display:"flex", alignItems:"center", gap:8, paddingBottom:2 }}
+                                  <div style={{ gridColumn:"1/-1", paddingBottom:3, minWidth:0 }}
                                     onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}>
-                                    <div style={{ flex:1, height:4, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
+                                    <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
                                       <div style={{ height:"100%", borderRadius:99, background:barC, width:`${displayPct}%` }} className="ledgr-bar" />
                                     </div>
-                                    <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--t3)", whiteSpace:"nowrap", flexShrink:0, width:100, textAlign:"right" }}>
-                                      {fmt(spent)}&thinsp;/&thinsp;
-                                      {editingLimitId===cat.id
-                                        ? <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background:"none", border:"none", borderBottom:"1px solid var(--cyan)", fontSize:10, color:"var(--t1)", outline:"none", width:50, fontFamily:"var(--font-mono)" }} value={editingLimitVal} onChange={(e)=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={(e)=>{ if(e.key==="Enter")saveLimit(cat.id); if(e.key==="Escape")setEditingLimitId(null); }} />
-                                        : <span onClick={(e)=>{ e.stopPropagation(); startEditLimit(cat,e); }} style={{ cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
-                                      }
-                                    </span>
                                   </div>
                                 )}
                                 {/* separator */}
                                 <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5}}/>
                                 {budgetExpandedCatId === cat.id && (
                                   <div className="ledgr-expand" style={{ gridColumn: "1 / -1", paddingTop: 8, paddingBottom: 8 }} onClick={(e) => e.stopPropagation()}>
+
+                                    {/* Summary header — spent / limit + progress bar */}
+                                    <div style={{ marginBottom: 12, padding: "10px 12px", background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
+                                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                                        <span style={{ fontSize: 12, color: "var(--t3)" }}>
+                                          {complete && <span style={{ color:"var(--t3)", fontWeight:600, marginRight:4 }}>✓ Complete ·</span>}
+                                          {!complete && over && <span style={{ color:"var(--red)", fontWeight:600, marginRight:4 }}>Overspent ·</span>}
+                                          Spent <span style={{ fontFamily:"var(--font-mono)", fontWeight:700, color: over?"var(--red)":"var(--t1)" }}>{fmt(spent)}</span>
+                                        </span>
+                                        <span style={{ fontSize: 12, color: "var(--t3)" }}>
+                                          Limit{" "}
+                                          {editingLimitId === cat.id ? (
+                                            <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background:"none", border:"none", borderBottom:"1px solid var(--cyan)", fontSize:12, color:"var(--t1)", outline:"none", width:70, fontFamily:"var(--font-mono)" }} value={editingLimitVal} onChange={(e)=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={(e)=>{ if(e.key==="Enter")saveLimit(cat.id); if(e.key==="Escape")setEditingLimitId(null); }} />
+                                          ) : (
+                                            <span onClick={(e)=>startEditLimit(cat,e)} style={{ fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--t1)", cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                      <div style={{ height: 5, background: "var(--border)", borderRadius: 99, overflow: "hidden" }}>
+                                        <div style={{ height:"100%", borderRadius:99, background:barC, width:`${displayPct}%`, transition:"width 0.5s" }} className="ledgr-bar" />
+                                      </div>
+                                    </div>
 
                                     {/* Assigned transactions */}
                                     {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).length === 0 ? (
@@ -5099,7 +5119,7 @@ function AppInner() {
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                           </div>
                           {/* Single-line grid matching left column */}
-                          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "8px 1fr auto auto" : "8px auto 1fr auto auto auto", alignItems: "center", columnGap: isMobile ? 8 : 10, rowGap: 0, padding: "4px 10px" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "8px 1fr auto auto" : "8px auto 1fr auto auto auto auto auto", alignItems: "center", columnGap: isMobile ? 8 : 10, rowGap: 0, padding: isMobile ? "2px 10px" : "4px 10px" }}>
                             {section.cats.map((cat) => {
                               const spent = spentByCat[cat.id] || 0;
                               const pct = Math.min((spent / cat.limit) * 100, 100);
@@ -5126,12 +5146,13 @@ function AppInner() {
                                   <div onClick={() => setBudgetDrillCat(cat)} style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", cursor: "pointer", minWidth: 0 }}>
                                     <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%` }} className="ledgr-bar" title={`Spent ${fmt(spent)} of ${fmt(cat.limit)}`} />
                                   </div>
-                                  <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--t3)", whiteSpace: "nowrap", textAlign: "right", justifySelf: "end" }}>
-                                    {fmt(spent)}&thinsp;/&thinsp;
+                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", whiteSpace:"nowrap", textAlign:"right", justifySelf:"end" }}>{fmt(spent)}</span>
+                                  <span style={{ color:"var(--t3)", fontSize:11, textAlign:"center", opacity:0.5 }}>/</span>
+                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", whiteSpace:"nowrap", justifySelf:"start" }}>
                                     {editingLimitId === cat.id ? (
-                                      <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background: "none", border: "none", borderBottom: "1px solid var(--cyan)", fontSize: 11, color: "var(--t1)", outline: "none", width: 60, fontFamily: "var(--font-mono)" }} value={editingLimitVal} onChange={(e) => setEditingLimitVal(e.target.value)} onBlur={() => saveLimit(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveLimit(cat.id); if (e.key === "Escape") setEditingLimitId(null); }} />
+                                      <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background:"none", border:"none", borderBottom:"1px solid var(--cyan)", fontSize:11, color:"var(--t1)", outline:"none", width:60, fontFamily:"var(--font-mono)" }} value={editingLimitVal} onChange={(e)=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={(e)=>{ if(e.key==="Enter")saveLimit(cat.id); if(e.key==="Escape")setEditingLimitId(null); }} />
                                     ) : (
-                                      <span onClick={(e) => startEditLimit(cat, e)} style={{ cursor: "text", textDecoration: "underline dotted", textUnderlineOffset: 2 }}>{fmt(cat.limit)}</span>
+                                      <span onClick={(e)=>startEditLimit(cat,e)} style={{ cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
                                     )}
                                   </span>
                                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: valColor, whiteSpace: "nowrap", textAlign: "right", justifySelf: "end", minWidth: 90 }}>{valLabel}</span>

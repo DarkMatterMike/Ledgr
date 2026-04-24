@@ -12,7 +12,6 @@ import { useAiChat } from "./hooks/useAiChat.js";
 import PortfolioView from "./PortfolioView.jsx";
 import AiChat from "./AiChat.jsx";
 import Analytics from "./Analytics.jsx";
-import DaniPage from "./DaniPage.jsx";
 
 /* ─── Mobile detection ──────────────────────────────────────────── */
 function useIsMobile() {
@@ -838,19 +837,6 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         {/* Owner-only nav items */}
         {currentUser?.role === "owner" && (
           <div style={{ marginTop:8, borderTop:"1px solid var(--border)", paddingTop:8, display:"flex", flexDirection:"column", gap:2 }}>
-            <button onClick={()=>onNav("dani")}
-              style={{
-                display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
-                borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
-                border:`1px solid ${view==="dani"?"#f9a8d433":"transparent"}`,
-                background:view==="dani"?"#f9a8d411":"transparent",
-                color:view==="dani"?"#f9a8d4":"var(--t2)",
-                width:"100%",textAlign:"left",transition:"all 0.15s",
-              }}>
-              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>♡</span>
-              <span>Dani</span>
-              {view==="dani"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"#f9a8d4",display:"inline-block"}}/>}
-            </button>
             <button onClick={()=>onNav("admin")}
               style={{
                 display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
@@ -1223,7 +1209,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -1556,6 +1542,135 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         )}
       </SettingsSection>
 
+
+      {/* ── Theme ──────────────────────────────────────────────── */}
+      <SettingsSection title="Appearance">
+        {(()=>{
+          const PRESETS = [
+            { name:"Ledgr Dark",  bg:"#06090f", surface:"#0c1220", card:"#101826", border:"#1a2640", border2:"#243452", accent:"#00d4ff", t1:"#e2eaf8", t2:"#7a8fa8", t3:"#3d5070" },
+            { name:"Midnight",    bg:"#0a0a0f", surface:"#111120", card:"#181828", border:"#232340", border2:"#2d2d55", accent:"#a78bfa", t1:"#e8e8ff", t2:"#8080b0", t3:"#404070" },
+            { name:"Deep Green",  bg:"#020d08", surface:"#071a10", card:"#0c2018", border:"#123022", border2:"#1a4030", accent:"#00e676", t1:"#d8f5e4", t2:"#60a878", t3:"#2a6040" },
+            { name:"Ember",       bg:"#0f0800", surface:"#1a1000", card:"#221600", border:"#3a2200", border2:"#4a3000", accent:"#fbbf24", t1:"#f5e8d0", t2:"#a07840", t3:"#604820" },
+            { name:"Rose",        bg:"#0f060a", surface:"#1a0c14", card:"#22101c", border:"#3a1a2a", border2:"#4a2038", accent:"#f472b6", t1:"#f5d8e8", t2:"#a06080", t3:"#603048" },
+            { name:"Slate",       bg:"#080c10", surface:"#101620", card:"#16202c", border:"#1e2e3e", border2:"#263a4e", accent:"#60a5fa", t1:"#dce8f8", t2:"#6080a0", t3:"#304060" },
+          ];
+          const FONTS = [
+            { label:"Syne (default)",      value:"'Syne', sans-serif" },
+            { label:"DM Sans",             value:"'DM Sans', sans-serif" },
+            { label:"Dancing Script",      value:"'Dancing Script', cursive" },
+            { label:"JetBrains Mono",      value:"'JetBrains Mono', monospace" },
+            { label:"Georgia",             value:"'Georgia', serif" },
+            { label:"Trebuchet MS",        value:"'Trebuchet MS', sans-serif" },
+          ];
+          const VARS = [
+            { key:"bg",      label:"Background" },
+            { key:"surface", label:"Surface" },
+            { key:"card",    label:"Card" },
+            { key:"border",  label:"Border" },
+            { key:"border2", label:"Border 2" },
+            { key:"accent",  label:"Accent" },
+            { key:"t1",      label:"Text primary" },
+            { key:"t2",      label:"Text secondary" },
+            { key:"t3",      label:"Text muted" },
+          ];
+          const defaults = PRESETS[0];
+          const current = { ...defaults, fontDisp:"'Syne', sans-serif", ...theme };
+
+          function patch(k, v) {
+            const next = { ...current, [k]: v };
+            onSaveTheme(next);
+          }
+
+          function applyPreset(preset) {
+            const next = { ...current, ...preset };
+            onSaveTheme(next);
+          }
+
+          function reset() { onSaveTheme({}); applyTheme({}); Object.keys(defaults).forEach(k => document.documentElement.style.removeProperty("--"+k.replace("bg","bg").replace("surface","surface").replace("card","card").replace("border2","border2").replace("border","border").replace("accent","cyan").replace("t1","t1").replace("t2","t2").replace("t3","t3"))); document.documentElement.style.removeProperty("--font-disp"); document.body.style.removeProperty("background"); }
+
+          return (
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              {/* Presets */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Presets</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {PRESETS.map(p=>(
+                    <button key={p.name} onClick={()=>applyPreset(p)} style={{
+                      display:"flex",alignItems:"center",gap:6,
+                      padding:"5px 10px",borderRadius:"var(--radius)",fontSize:11,fontWeight:500,
+                      border:`1px solid ${current.accent||"var(--border2)"}22`,
+                      background:"var(--surface)",color:"var(--t2)",cursor:"pointer",
+                      transition:"all 0.15s",
+                    }}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=current.accent||"var(--cyan)";e.currentTarget.style.color="var(--t1)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=`${current.accent||"var(--border2)"}22`;e.currentTarget.style.color="var(--t2)";}}>
+                      <span style={{display:"inline-flex",gap:2}}>
+                        {["bg","accent","t1"].map(k=>(
+                          <span key={k} style={{width:8,height:8,borderRadius:"50%",background:p[k],display:"inline-block",flexShrink:0}}/>
+                        ))}
+                      </span>
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Page title font */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Page Title Font</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {FONTS.map(f=>{
+                    const active=(current.fontDisp||"'Syne', sans-serif")===f.value;
+                    return(
+                      <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
+                        padding:"5px 12px",borderRadius:"var(--radius)",fontSize:12,
+                        fontFamily:f.value,
+                        border:`1px solid ${active?"var(--cyan)":"var(--border2)"}`,
+                        background:active?"var(--cyan-dim)":"var(--surface)",
+                        color:active?"var(--cyan)":"var(--t2)",cursor:"pointer",transition:"all 0.15s",
+                      }}>
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{marginTop:8,padding:"8px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"1px solid var(--border)"}}>
+                  <span style={{fontFamily:current.fontDisp||"'Syne', sans-serif",fontSize:18,fontWeight:700,color:"var(--t1)"}}>Dashboard</span>
+                  <span style={{fontSize:11,color:"var(--t3)",marginLeft:12}}>preview</span>
+                </div>
+              </div>
+
+              {/* Color pickers */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Colors</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10}}>
+                  {VARS.map(({key,label})=>(
+                    <div key={key} style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{fontSize:11,color:"var(--t2)"}}>{label}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <input type="color" value={current[key]||defaults[key]}
+                          onChange={e=>patch(key,e.target.value)}
+                          style={{width:28,height:28,borderRadius:"var(--radius)",border:"1px solid var(--border2)",cursor:"pointer",padding:2,background:"var(--surface)"}}/>
+                        <input type="text" value={current[key]||defaults[key]}
+                          onChange={e=>{ if(/^#[0-9a-fA-F]{6}$/.test(e.target.value)) patch(key,e.target.value); }}
+                          style={{flex:1,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",padding:"4px 6px",fontSize:11,color:"var(--t1)",fontFamily:"var(--font-mono)",outline:"none"}}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset */}
+              <div style={{display:"flex",justifyContent:"flex-end"}}>
+                <button onClick={reset} style={{...S.btn("ghost",true),color:"var(--t3)"}}>
+                  Reset to defaults
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </SettingsSection>
+
       {/* Data export */}
       <SettingsSection title="Your Data">
         <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
@@ -1633,6 +1748,23 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 /* ═══════════════════════════════════════════════════════════════════
    MAIN APP
 ═══════════════════════════════════════════════════════════════════ */
+/* ── Theme application helper ──────────────────────────────────── */
+function applyTheme(theme) {
+  if (!theme) return;
+  const root = document.documentElement;
+  const vars = [
+    ["--bg", theme.bg], ["--surface", theme.surface], ["--card", theme.card],
+    ["--border", theme.border], ["--border2", theme.border2],
+    ["--cyan", theme.accent], ["--cyan-dim", theme.accent ? theme.accent + "22" : null],
+    ["--t1", theme.t1], ["--t2", theme.t2], ["--t3", theme.t3],
+  ];
+  vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
+  if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
+  if (theme.bg) document.body.style.background = theme.bg;
+}
+// Apply stored theme immediately on page load to prevent flash
+try { const t = localStorage.getItem("ledgr_theme"); if (t) applyTheme(JSON.parse(t)); } catch {}
+
 function AdminPanel() {
   const isMobile = useIsMobile();
   const [users,    setUsers]    = useState([]);
@@ -2181,7 +2313,6 @@ function AppInner() {
 
   /* ── Insights to-do list ── */
   const [insightsTodos, setInsightsTodos] = useState([]);
-  const [daniData, setDaniData]           = useState({ selectedAccountId: null, wishlist: [] });
   const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Load + Save (via hook) ── */
@@ -2198,7 +2329,6 @@ function AppInner() {
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
-      if (data.dani)           setDaniData(data.dani);
       setTxnTotal(txnTotal || 0);
       setTxnOffset(100);
       if (data.reauthItemIds?.length) setStaleItemIds(new Set(data.reauthItemIds));
@@ -6631,6 +6761,8 @@ function AppInner() {
 
   const SettingsPage = (
     <SettingsView
+      theme={theme}
+      onSaveTheme={t => { setTheme(t); applyTheme(t); scheduleSaveRef.current?.({ theme: t }); try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {} }}
       transactions={transactions}
       accounts={accounts}
       categories={categories}
@@ -6653,22 +6785,6 @@ function AppInner() {
       }}
     />
   );
-
-  const DaniPageView = currentUser?.role === "owner" ? (
-    <DaniPage
-      accounts={accounts}
-      transactions={transactions}
-      recurringTxns={recurringTxns}
-      daniData={daniData}
-      isMobile={isMobile}
-      onSave={(patch) => {
-        if (patch.dani) {
-          setDaniData(patch.dani);
-          scheduleSaveRef.current?.({ dani: patch.dani });
-        }
-      }}
-    />
-  ) : null;
 
   const AdminPage = currentUser?.role === "owner" ? <AdminPanel /> : null;
 
@@ -6755,8 +6871,8 @@ function AppInner() {
   );
 
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>

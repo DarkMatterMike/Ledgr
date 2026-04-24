@@ -547,7 +547,7 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [accts, ruleRows, categories, plaidItems, calendarAccounts,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
-           aiApiKey, plaidItemRows, insightsTodosData, daniData] = await Promise.all([
+           aiApiKey, plaidItemRows, insightsTodosData] = await Promise.all([
       getAccounts(uid),
       getRules(uid),
       getData(uid, "categories"),
@@ -565,7 +565,6 @@ app.get("/api/data", async (req, res) => {
         [uid]
       ),
       getData(uid, "insightsTodos"),  // needed for dashboard Action Items card
-      getData(uid, "dani"),              // owner-only Dani page
     ]);
 
     const reauthItemIds = plaidItemRows.rows
@@ -586,7 +585,6 @@ app.get("/api/data", async (req, res) => {
       goals:            goals            || [],
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],
-      dani:             daniData          || null,
       access:           getAccessLevel(req.user),
     });
   } catch (err) { serverError(res, err); }
@@ -781,7 +779,7 @@ app.get("/api/data/summary", async (req, res) => {
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { categories, plaidItems, dani, calendarAccounts,
+    const { categories, plaidItems, calendarAccounts,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
@@ -805,7 +803,6 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     if (Array.isArray(goals))              ops.push(setData(uid, "goals",             goals));
-    if (dani !== undefined)                ops.push(setData(uid, "dani",              dani));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -1041,13 +1038,26 @@ app.get("/api/plaid/accounts", async (req, res) => {
         })));
       } catch (err) { console.error(`accountsGet error for ${item.item_id}:`, err.response?.data || err.message); }
     }
-    // Deduplicate by account_id — same account_id from multiple connections gets collapsed
+    // Deduplicate by account_id
     const seen = new Set();
     const deduped = allAccounts.filter(a => {
       if (seen.has(a.account_id)) return false;
       seen.add(a.account_id);
       return true;
     });
+
+    // Apply user-defined name overrides stored in the accounts table
+    // (upsertAccountFromPlaid preserves custom names set via PATCH /api/accounts/:id)
+    const { rows: dbAccounts } = await pool.query(
+      `SELECT plaid_id, name FROM accounts WHERE user_id = $1 AND plaid_id IS NOT NULL`,
+      [req.user.id]
+    );
+    const nameOverrides = {};
+    dbAccounts.forEach(row => { nameOverrides[row.plaid_id] = row.name; });
+    deduped.forEach(a => {
+      if (nameOverrides[a.account_id]) a.name = nameOverrides[a.account_id];
+    });
+
     res.json({ accounts: deduped });
   } catch (err) { serverError(res, err); }
 });

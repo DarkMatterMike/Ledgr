@@ -6925,6 +6925,10 @@ function AppInner() {
       goals={goals}
       onSaveGoal={saveGoal}
       onDeleteGoal={deleteGoal}
+      onMarkRecurring={ids => {
+        setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, recurring:true } : t));
+        ids.forEach(id => api.updateTransaction(id, { recurring:true }));
+      }}
       defaultTab={analyticsTab}
     />
   );

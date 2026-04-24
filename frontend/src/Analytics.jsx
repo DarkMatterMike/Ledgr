@@ -106,245 +106,9 @@ function AdherenceCell({ spent, limit, label }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   SPENDING PACE CHART
-═══════════════════════════════════════════════════════════════════ */
-const PACE_RANGES = [
-  { key:"last",  label:"Last month" },
-  { key:"avg3",  label:"3 mo avg"   },
-  { key:"avg6",  label:"6 mo avg"   },
-  { key:"avg12", label:"12 mo avg"  },
-];
-
-function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
-  const [range,       setRange]       = useState("last");
-  const [pickerOpen,  setPickerOpen]  = useState(false);
-
-  const fmtK = n => n >= 1000 ? "$" + (n/1000).toFixed(1) + "k" : "$" + Math.round(n);
-
-  // Current month cumulative spending by day
-  const thisYM   = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
-
-  const thisMonthPoints = useMemo(() => {
-    const byDay = {};
-    transactions.forEach(t => {
-      if (!t.date?.startsWith(thisYM) || t.amount >= 0) return;
-      if (["transfer","income","reimbursement"].includes(t.type)) return;
-      const day = parseInt(t.date.slice(8,10), 10);
-      byDay[day] = (byDay[day] || 0) + Math.abs(t.amount);
-    });
-    let cum = 0;
-    return Array.from({ length: daysInMonth }, (_, i) => {
-      if (i + 1 > today.getDate()) return null; // future days undefined
-      cum += byDay[i + 1] || 0;
-      return cum;
-    });
-  }, [transactions, thisYM, daysInMonth, today]);
-
-  // Comparison line — varies by range selection
-  const compPoints = useMemo(() => {
-    const counts = { last:1, avg3:3, avg6:6, avg12:12 }[range];
-    const isLast = range === "last";
-
-    // Build per-day spending for the relevant past months
-    const months = monthlyData.slice(-(counts + 1), -1).slice(-counts); // exclude current month
-    if (!months.length) return Array(daysInMonth).fill(null);
-
-    const perDayPerMonth = months.map(m => {
-      const byDay = {};
-      transactions.forEach(t => {
-        if (!t.date?.startsWith(m.ym) || t.amount >= 0) return;
-        if (["transfer","income","reimbursement"].includes(t.type)) return;
-        const day = parseInt(t.date.slice(8,10), 10);
-        byDay[day] = (byDay[day] || 0) + Math.abs(t.amount);
-      });
-      return byDay;
-    });
-
-    if (isLast) {
-      // Single line: cumulative for last month
-      const m = perDayPerMonth[0] || {};
-      const daysInComp = new Date(
-        parseInt(months[0].ym.slice(0,4)),
-        parseInt(months[0].ym.slice(5,7)),
-        0
-      ).getDate();
-      let cum = 0;
-      return Array.from({ length: daysInMonth }, (_, i) => {
-        if (i >= daysInComp) return cum; // hold last value if comp month shorter
-        cum += m[i + 1] || 0;
-        return cum;
-      });
-    } else {
-      // Average line: average cumulative across N months
-      return Array.from({ length: daysInMonth }, (_, i) => {
-        const vals = perDayPerMonth.map(m => {
-          let cum = 0;
-          for (let d = 1; d <= i + 1; d++) cum += m[d] || 0;
-          return cum;
-        }).filter(v => v > 0 || i === 0);
-        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-      });
-    }
-  }, [transactions, monthlyData, range, daysInMonth]);
-
-  const thisTotal = thisMonthPoints[today.getDate() - 1] || 0;
-  const compTotal = compPoints[daysInMonth - 1] || compPoints.filter(Boolean).at(-1) || 0;
-  const selectedLabel = PACE_RANGES.find(r => r.key === range)?.label || "Last month";
-
-  // SVG dimensions
-  const W = 600, H = 180, PAD = { top:16, right:16, bottom:32, left:44 };
-  const innerW = W - PAD.left - PAD.right;
-  const innerH = H - PAD.top  - PAD.bottom;
-
-  const allVals = [...thisMonthPoints, ...compPoints].filter(v => v != null && v > 0);
-  const maxVal  = Math.max(...allVals, 1);
-
-  const xOf = i => PAD.left + (i / (daysInMonth - 1)) * innerW;
-  const yOf = v => PAD.top  + innerH - (v / maxVal) * innerH;
-
-  function buildPath(points, stopAtNull = true) {
-    let d = "";
-    points.forEach((v, i) => {
-      if (v == null) { if (stopAtNull) return; else return; }
-      d += (d === "" ? "M" : "L") + `${xOf(i).toFixed(1)},${yOf(v).toFixed(1)} `;
-    });
-    return d.trim();
-  }
-
-  // Area fill for this month (up to today)
-  function buildArea(points) {
-    const defined = points.map((v,i) => v != null ? i : null).filter(i => i !== null);
-    if (!defined.length) return "";
-    const first = defined[0], last = defined[defined.length-1];
-    let d = `M${xOf(first).toFixed(1)},${(PAD.top+innerH).toFixed(1)} `;
-    defined.forEach(i => { d += `L${xOf(i).toFixed(1)},${yOf(points[i]).toFixed(1)} `; });
-    d += `L${xOf(last).toFixed(1)},${(PAD.top+innerH).toFixed(1)} Z`;
-    return d;
-  }
-
-  // Y-axis gridlines
-  const gridVals = [0.25, 0.5, 0.75, 1].map(f => Math.round(maxVal * f));
-  // X-axis day labels
-  const xLabels = [1, 6, 11, 16, 21, 26, 31].filter(d => d <= daysInMonth);
-
-  return (
-    <Card style={{ position:"relative" }}>
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12, gap:8 }}>
-        <div>
-          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.8px", color:"var(--t3)", textTransform:"uppercase", marginBottom:4 }}>
-            Spending Pace
-          </div>
-          <div style={{ display:"flex", gap:16, alignItems:"baseline", flexWrap:"wrap" }}>
-            <div>
-              <span style={{ fontSize:11, color:"var(--t3)" }}>This month: </span>
-              <span style={{ fontSize:14, fontWeight:700, fontFamily:"var(--font-mono)", color:"var(--cyan)" }}>{fmt(thisTotal)}</span>
-            </div>
-            <div>
-              <span style={{ fontSize:11, color:"var(--t3)" }}>{selectedLabel === "Last month" ? "Last month:" : "Avg:"} </span>
-              <span style={{ fontSize:13, fontWeight:600, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(compTotal)}</span>
-            </div>
-          </div>
-        </div>
-        {/* Range picker */}
-        <div style={{ position:"relative", flexShrink:0 }}>
-          <button
-            onClick={() => setPickerOpen(p => !p)}
-            style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px",
-              background:"var(--surface)", border:"1px solid var(--border2)",
-              borderRadius:20, cursor:"pointer", fontSize:12, color:"var(--t1)", fontWeight:500 }}>
-            {selectedLabel}
-            <span style={{ fontSize:10, color:"var(--t3)" }}>▾</span>
-          </button>
-          {pickerOpen && (
-            <>
-              <div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={() => setPickerOpen(false)} />
-              <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
-                background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
-                boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
-                {PACE_RANGES.map(r => (
-                  <button key={r.key}
-                    onClick={() => { setRange(r.key); setPickerOpen(false); }}
-                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-                      width:"100%", padding:"11px 16px", background:"none", border:"none",
-                      cursor:"pointer", fontSize:13, color: r.key === range ? "var(--cyan)" : "var(--t1)",
-                      fontWeight: r.key === range ? 700 : 400,
-                      borderBottom:"1px solid var(--border)" }}>
-                    {r.label}
-                    {r.key === range && <span style={{ fontSize:14, color:"var(--cyan)" }}>✓</span>}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Chart */}
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:"auto", overflow:"visible" }}>
-        <defs>
-          <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-
-        {/* Gridlines + Y labels */}
-        {gridVals.map(v => (
-          <g key={v}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={yOf(v)} y2={yOf(v)}
-              stroke="var(--border)" strokeWidth="1" strokeDasharray="4,4" />
-            <text x={PAD.left - 6} y={yOf(v) + 4} textAnchor="end"
-              style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
-              {fmtK(v)}
-            </text>
-          </g>
-        ))}
-
-        {/* X-axis labels */}
-        {xLabels.map(d => (
-          <text key={d} x={xOf(d-1)} y={H - 6} textAnchor="middle"
-            style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
-            {d}
-          </text>
-        ))}
-
-        {/* Area fill — this month */}
-        <path d={buildArea(thisMonthPoints)} fill="url(#paceGrad)" />
-
-        {/* Comparison line */}
-        <path d={buildPath(compPoints, false)} fill="none"
-          stroke="var(--t3)" strokeWidth="1.5" strokeDasharray="0" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* This month line */}
-        <path d={buildPath(thisMonthPoints)} fill="none"
-          stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Today marker */}
-        {thisMonthPoints[today.getDate()-1] != null && (
-          <circle cx={xOf(today.getDate()-1)} cy={yOf(thisMonthPoints[today.getDate()-1])}
-            r="4" fill="var(--cyan)" stroke="var(--card)" strokeWidth="2" />
-        )}
-      </svg>
-
-      {/* Legend */}
-      <div style={{ display:"flex", gap:16, justifyContent:"center", marginTop:6 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
-          <div style={{ width:16, height:2.5, borderRadius:2, background:"var(--cyan)" }} /> This month
-        </div>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
-          <div style={{ width:16, height:2, borderRadius:2, background:"var(--t3)" }} /> {selectedLabel}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
    MAIN
 ═══════════════════════════════════════════════════════════════════ */
-export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange, goals = [], onSaveGoal, onDeleteGoal, defaultTab = "overview" }) {
+export default function Analytics({ transactions, categories, accounts, catMap, isMobile, hasApiKey, userProfile, aiInsights, onSetAiInsights, todos = [], onTodosChange, goals = [], onSaveGoal, onDeleteGoal, onMarkRecurring, defaultTab = "overview" }) {
   const TABS = ["overview","spending","budget","insights","goals"];
   const [tab, setTab] = useState(defaultTab);
   const [aiLoading, setAiLoading] = useState(false);
@@ -552,6 +316,101 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   const monthlySavings = useMemo(() =>
     last6.map(m => ({ label: m.label, value: Math.round(m.income - m.spending) }))
   , [last6]);
+
+  /* ── Financial Health Score ──────────────────────────────────────── */
+  const healthScore = useMemo(() => {
+    let score = 0;
+    const breakdown = [];
+
+    // 1. Budget adherence (0-30 pts)
+    if (categories.length > 0 && thisMonthD) {
+      const catScores = categories.map(cat => {
+        const spent = thisMonthD.byCategory[cat.id] || 0;
+        if (!cat.limit) return null;
+        return spent <= cat.limit ? 1 : Math.max(0, 1 - ((spent - cat.limit) / cat.limit));
+      }).filter(s => s !== null);
+      const pts = catScores.length ? Math.round((catScores.reduce((a,b)=>a+b,0)/catScores.length)*30) : 15;
+      score += pts;
+      breakdown.push({ label:"Budget Adherence", pts, max:30, icon:"📊" });
+    } else {
+      score += 15;
+      breakdown.push({ label:"Budget Adherence", pts:15, max:30, icon:"📊", note:"Set budgets to improve" });
+    }
+
+    // 2. Savings rate (0-25 pts)
+    if (savingsRate !== null) {
+      const pts = savingsRate >= 20 ? 25 : savingsRate >= 10 ? 18 : savingsRate >= 0 ? 10 : 0;
+      score += pts;
+      breakdown.push({ label:"Savings Rate", pts, max:25, icon:"💰", note:`${savingsRate}% avg` });
+    } else {
+      score += 12;
+      breakdown.push({ label:"Savings Rate", pts:12, max:25, icon:"💰", note:"Add income for accuracy" });
+    }
+
+    // 3. Spending trend (0-20 pts)
+    if (momChange !== null) {
+      const pts = momChange <= -10 ? 20 : momChange <= 0 ? 16 : momChange <= 10 ? 10 : momChange <= 20 ? 5 : 0;
+      score += pts;
+      breakdown.push({ label:"Spending Trend", pts, max:20, icon:"📈", note:`${momChange > 0 ? "+" : ""}${momChange}% vs last month` });
+    } else {
+      score += 10;
+      breakdown.push({ label:"Spending Trend", pts:10, max:20, icon:"📈" });
+    }
+
+    // 4. Goal progress (0-15 pts)
+    if (goals.length > 0) {
+      const avgGoal = goals.map(g => g.targetAmount > 0 ? Math.min((g.savedAmount||0)/g.targetAmount, 1) : 0).reduce((a,b)=>a+b,0) / goals.length;
+      const pts = Math.round(avgGoal * 15);
+      score += pts;
+      breakdown.push({ label:"Goal Progress", pts, max:15, icon:"🎯", note:`${goals.length} active goal${goals.length!==1?"s":""}` });
+    } else {
+      breakdown.push({ label:"Goal Progress", pts:0, max:15, icon:"🎯", note:"Set savings goals" });
+    }
+
+    // 5. Cash flow (0-10 pts)
+    const posMonths = last6.filter(m => m.income > 0 && m.income >= m.spending).length;
+    const cashPts = Math.round((posMonths / Math.max(last6.length, 1)) * 10);
+    score += cashPts;
+    breakdown.push({ label:"Cash Flow", pts:cashPts, max:10, icon:"💳", note:`${posMonths}/${last6.length} months positive` });
+
+    const clamped = Math.min(100, Math.max(0, score));
+    const grade = clamped >= 85 ? "A" : clamped >= 70 ? "B" : clamped >= 55 ? "C" : clamped >= 40 ? "D" : "F";
+    const label = clamped >= 85 ? "Excellent" : clamped >= 70 ? "Good" : clamped >= 55 ? "Fair" : clamped >= 40 ? "Needs Work" : "Critical";
+    const color = clamped >= 85 ? "var(--green)" : clamped >= 70 ? "var(--cyan)" : clamped >= 55 ? "var(--amber)" : "var(--red)";
+    return { score:clamped, grade, label, color, breakdown };
+  }, [categories, thisMonthD, savingsRate, momChange, goals, last6]);
+
+  /* ── Recurring charge detection ──────────────────────────────────── */
+  const detectedRecurring = useMemo(() => {
+    const expenses = transactions.filter(t => t.amount < 0 && !["transfer","income","reimbursement"].includes(t.type));
+    const byMerchant = {};
+    expenses.forEach(t => {
+      const key = (t.merchant || t.name || "").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,20);
+      if (!key) return;
+      if (!byMerchant[key]) byMerchant[key] = { name: t.merchant || t.name, txns: [] };
+      byMerchant[key].txns.push(t);
+    });
+    const candidates = [];
+    Object.values(byMerchant).forEach(({ name, txns }) => {
+      if (txns.length < 2) return;
+      if (txns.every(t => t.recurring)) return; // already marked
+      txns.sort((a,b) => a.date.localeCompare(b.date));
+      const amounts = txns.map(t => Math.abs(t.amount));
+      const avgAmt = amounts.reduce((a,b)=>a+b,0)/amounts.length;
+      if (!amounts.every(a => Math.abs(a - avgAmt)/Math.max(avgAmt,0.01) < 0.06)) return;
+      const dates = txns.map(t => new Date(t.date+"T12:00:00").getTime());
+      const intervals = [];
+      for (let i=1; i<dates.length; i++) intervals.push(Math.round((dates[i]-dates[i-1])/86400000));
+      const avgInterval = intervals.reduce((a,b)=>a+b,0)/intervals.length;
+      const near = [7,14,30,90,365].find(r => Math.abs(avgInterval-r) <= 4);
+      if (!near) return;
+      const freqLabel = near<=7?"Weekly":near<=14?"Bi-weekly":near<=31?"Monthly":near<=91?"Quarterly":"Yearly";
+      const cleanName = name.toLowerCase().replace(/[^a-z]/g,"");
+      const domainGuess = `${cleanName}.com`;
+      candidates.push({ name, amount:avgAmt, freqLabel, domainGuess, txnIds:txns.map(t=>t.id), count:txns.length });
+    });
+    return candidates.sort((a,b) => b.amount - a.amount);
+  }, [transactions]);
 
   const weekOfMonthData = useMemo(() => {
     const weeks = [0,0,0,0,0];
@@ -923,15 +782,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {tab === "spending" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
-
-          {/* ── Spending Pace ─────────────────────────────────────────── */}
-          <SpendingPaceCard
-            transactions={transactions}
-            monthlyData={monthlyData}
-            today={today}
-            isMobile={isMobile}
-          />
-
           <Card>
             <SectionHead title="Top merchants" sub="All time, by total spend" />
             {merchantTotals.map((m, i) => (
@@ -1281,6 +1131,99 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {tab === "insights" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
+
+          {/* ── Financial Health Score ── */}
+          <Card>
+            <SectionHead title="Financial Health Score" />
+            <div style={{ display:"flex", alignItems:"center", gap:isMobile?16:24, flexWrap:"wrap" }}>
+              {/* Circular gauge */}
+              <div style={{ position:"relative", flexShrink:0 }}>
+                {(()=>{
+                  const r=54, cx=64, cy=64, stroke=10;
+                  const circ = 2*Math.PI*r;
+                  const filled = circ * (healthScore.score/100);
+                  return (
+                    <svg width={128} height={128} viewBox="0 0 128 128">
+                      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke}/>
+                      <circle cx={cx} cy={cy} r={r} fill="none" stroke={healthScore.color} strokeWidth={stroke}
+                        strokeDasharray={`${filled} ${circ}`}
+                        strokeLinecap="round"
+                        transform={`rotate(-90 ${cx} ${cy})`}
+                        style={{ transition:"stroke-dasharray 0.8s ease" }}/>
+                      <text x={cx} y={cy-8} textAnchor="middle" fill={healthScore.color}
+                        style={{ fontSize:28, fontWeight:700, fontFamily:"var(--font-mono)" }}>{healthScore.score}</text>
+                      <text x={cx} y={cy+10} textAnchor="middle" fill={healthScore.color}
+                        style={{ fontSize:13, fontWeight:700, fontFamily:"var(--font-disp)" }}>{healthScore.grade}</text>
+                      <text x={cx} y={cy+26} textAnchor="middle" fill="var(--t3)"
+                        style={{ fontSize:9, fontFamily:"var(--font-body)" }}>{healthScore.label}</text>
+                    </svg>
+                  );
+                })()}
+              </div>
+              {/* Breakdown bars */}
+              <div style={{ flex:1, minWidth:180, display:"flex", flexDirection:"column", gap:8 }}>
+                {healthScore.breakdown.map(item => (
+                  <div key={item.label}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                      <span style={{ fontSize:11, color:"var(--t2)", display:"flex", alignItems:"center", gap:5 }}>
+                        <span>{item.icon}</span>{item.label}
+                        {item.note && <span style={{ color:"var(--t3)", fontSize:10 }}>· {item.note}</span>}
+                      </span>
+                      <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{item.pts}/{item.max}</span>
+                    </div>
+                    <div style={{ height:4, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
+                      <div style={{ height:"100%", borderRadius:99,
+                        width:`${(item.pts/item.max)*100}%`,
+                        background: item.pts/item.max >= 0.8 ? "var(--green)" : item.pts/item.max >= 0.5 ? "var(--cyan)" : item.pts/item.max >= 0.3 ? "var(--amber)" : "var(--red)",
+                        transition:"width 0.6s ease" }}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* ── Detected Recurring Charges ── */}
+          {detectedRecurring.length > 0 && (
+            <Card>
+              <SectionHead title="Detected recurring charges" sub={`${detectedRecurring.length} unconfirmed — confirm to track on your calendar`} />
+              <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+                {detectedRecurring.slice(0,8).map((r,i) => (
+                  <div key={r.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
+                    borderBottom:i<Math.min(detectedRecurring.length,8)-1?"1px solid var(--border)":"none" }}>
+                    {/* Merchant icon */}
+                    <div style={{ width:32, height:32, borderRadius:8, background:"var(--surface)",
+                      border:"1px solid var(--border2)", flexShrink:0, overflow:"hidden",
+                      display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <img
+                        src={`https://www.google.com/s2/favicons?domain=${r.domainGuess}&sz=32`}
+                        alt=""
+                        style={{ width:20, height:20 }}
+                        onError={e => { e.target.style.display="none"; e.target.parentNode.innerHTML=`<span style="fontSize:14;color:var(--t3)">💳</span>`; }}
+                      />
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.name}</div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
+                        {r.freqLabel} · {r.count} charges found
+                      </div>
+                    </div>
+                    <div style={{ textAlign:"right", flexShrink:0, marginRight:10 }}>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:700, color:"var(--red)" }}>{fmt(r.amount)}</div>
+                      <div style={{ fontSize:10, color:"var(--t3)" }}>{r.freqLabel.toLowerCase()}</div>
+                    </div>
+                    <button
+                      onClick={() => onMarkRecurring && onMarkRecurring(r.txnIds)}
+                      style={{ padding:"4px 10px", borderRadius:"var(--radius)", fontSize:11, fontWeight:600,
+                        background:"var(--cyan-dim)", color:"var(--cyan)", border:"1px solid var(--cyan)44",
+                        cursor:"pointer", flexShrink:0, whiteSpace:"nowrap" }}>
+                      ✓ Confirm
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Spending velocity */}
           <Card>

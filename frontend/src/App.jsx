@@ -4853,8 +4853,8 @@ function AppInner() {
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
-                      <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+                      <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                         </div>
@@ -5058,8 +5058,8 @@ function AppInner() {
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
-                        <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+                        <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                           </div>

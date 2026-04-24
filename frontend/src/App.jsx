@@ -5116,7 +5116,7 @@ function AppInner() {
           <div style={{...S.card,padding:"10px 14px"}}>
             <div style={{...S.cardTitle,marginBottom:8}}>Add Account</div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank Account"/>
+              <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank Account" style={{width:"100%",justifyContent:"center"}}/>
               <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center"}} onClick={openAddAcct}>+ Add Manual Account</button>
             </div>
           </div>

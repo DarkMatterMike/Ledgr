@@ -4252,11 +4252,13 @@ function AppInner() {
         left={(
           <div>
         {/* Header */}
-        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
+        <div style={{...S.sectionHdr, marginBottom:16}}>
           <div style={S.sectionTitle}>All Transactions</div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
-            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Total Balance</div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
+              <div style={{fontSize:10,color:"var(--t3)"}}>Total Balance</div>
+            </div>
           </div>
         </div>
 
@@ -5034,9 +5036,15 @@ function AppInner() {
   /* ── Accounts ── */
   const Accounts = (
     <div>
-      <div style={{...S.sectionHdr,marginBottom:10}}>
-        <div style={S.sectionTitle}>Accounts</div>
-        <div style={{fontSize:12,color:"var(--t3)"}}>Projections through end of {today.toLocaleString("default",{month:"long"})}</div>
+      <div style={{...S.sectionHdr,marginBottom:16}}>
+        <div>
+          <div style={S.sectionTitle}>Accounts</div>
+          <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Projections through end of {today.toLocaleString("default",{month:"long"})}</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" style={{}}/>
+        </div>
       </div>
     <PageLayout
       isMobile={isMobile}
@@ -5136,13 +5144,6 @@ function AppInner() {
       }
       right={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{...S.card,padding:"10px 14px"}}>
-            <div style={{...S.cardTitle,marginBottom:8}}>Add Account</div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank Account" style={{width:"100%",justifyContent:"center"}}/>
-              <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center"}} onClick={openAddAcct}>+ Add Manual Account</button>
-            </div>
-          </div>
           {plaidItems.length>0&&(
             <div style={{...S.card,padding:"10px 14px"}}>
               <div style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
@@ -5278,7 +5279,7 @@ function AppInner() {
         isMobile={isMobile}
         left={
           <div>
-            <div style={{...S.sectionHdr,marginBottom:6}}>
+            <div style={{...S.sectionHdr,marginBottom:16}}>
               <div style={S.sectionTitle}>Auto-Categorization Rules</div>
               <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
             </div>

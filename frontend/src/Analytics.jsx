@@ -828,12 +828,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           </div>
         ) : (
           /* Desktop: larger left, narrower right — matching PageLayout */
-          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
-            {/* Column 1 */}
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
+            {/* Col 1: Health Score + Net Worth + Stats */}
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-              {/* Row 0: Health Score */}
               <HealthScoreCard />
-              {/* Row 1: Net worth */}
               <Card>
                 <SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} />
                 <LineChart points={netWorthSeries} height={90} />
@@ -843,8 +841,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   </div>
                 )}
               </Card>
-              {/* Row 2: 6 mini stats */}
-              <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr", gap:10 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
                   sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
                 <StatCard label="Savings rate" value={savingsRate!=null?`${savingsRate}%`:"—"}
@@ -859,9 +856,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <StatCard label="Avg daily spend" value={fmt(avgDailySpend)} sub="This month so far" accent="var(--cyan)" />
                 <StatCard label="Spend-free days" value={spendingFreeDays} sub="This month" accent={spendingFreeDays>=10?"var(--green)":spendingFreeDays>=5?"var(--amber)":"var(--red)"} />
               </div>
-              {/* Cash Flow */}
+            </div>
+            {/* Col 2: Cash Flow + Monthly Savings */}
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               <CashFlowBarChart last6={last6} cashMax={cashMax} />
-              {/* Row 4: Monthly savings trend */}
               <Card>
                 <SectionHead title="Monthly savings" sub="Income minus spending, last 6 months" />
                 <div style={{ display:"grid", gridTemplateColumns:`repeat(${monthlySavings.length},1fr)`, gap:6, alignItems:"end" }}>
@@ -876,18 +874,17 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                             background:positive?"var(--green)":"var(--red)", transition:"height 0.4s" }} />
                         </div>
                         <div style={{ fontSize:9, color:"var(--t3)", textAlign:"center" }}>{m.label}</div>
-                        {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center",
+                        <div style={{ fontSize:9, fontFamily:"var(--font-mono)", textAlign:"center",
                           color:positive?"var(--green)":"var(--red)", fontWeight:600 }}>
                           {positive?"+":""}{fmt(m.value)}
-                        </div>}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               </Card>
-
             </div>
-            {/* Column 2: Action items */}
+            {/* Col 3: Action Items */}
             {ActionItemsSidebar}
           </div>
         )
@@ -895,8 +892,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ SPENDING ════════════════════════════════════════════════ */}
       {tab === "spending" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
-          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
+          {/* Col 1: Spending Pace + Top Merchants */}
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <SpendingPaceCard transactions={transactions} monthlyData={monthlyData} today={today} isMobile={isMobile} />
           <Card>
             <SectionHead title="Top merchants" sub="All time, by total spend" />
@@ -918,7 +916,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </div>
             ))}
           </Card>
-
+          </div>
+          {/* Col 2: Day of Week + Category Trends + Notable */}
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <Card>
             <SectionHead title="Spending by day of week" sub="Total, all time" />
             <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, alignItems:"end" }}>
@@ -1245,10 +1245,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
       {/* ═══ INSIGHTS ════════════════════════════════════════════════ */}
       {tab === "insights" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
+          {/* Col 1: Recurring Detection + Spending Velocity */}
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
-
-          {/* Health Score shown on Overview tab */}
 
           {/* ── Detected Recurring Charges ── */}
           {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).length > 0 && (
@@ -1325,7 +1324,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </div>
             </div>
           </Card>
-
+          </div>
+          {/* Col 2: Chronic Overspend + Biggest Txns + Savings Trend */}
+          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
           {/* Chronic overspenders */}
           {(()=>{
             const chronic = budgetGrid.filter(r => r.streak >= 2).sort((a,b) => b.streak - a.streak);
@@ -1583,13 +1584,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           )}
 
           </div>
+          </div>
           {!isMobile && ActionItemsSidebar}
         </div>
       )}
 
       {/* ═══ GOALS ════════════════════════════════════════════════════ */}
       {tab === "goals" && (
-        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {goalForm !== null && (
               <Card style={{ border:"1px solid var(--cyan)44" }}>

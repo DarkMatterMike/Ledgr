@@ -209,7 +209,7 @@ const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",curren
 
 /* ── Merchant icon — Google favicon service ─────────────────────── */
 function MerchantIcon({ name, size=24 }) {
-  const [err, setErr] = React.useState(false);
+  const [err, setErr] = useState(false);
   if (!name || err) return (
     <div style={{width:size,height:size,borderRadius:size/4,background:"var(--surface)",
       border:"1px solid var(--border2)",flexShrink:0,display:"flex",alignItems:"center",

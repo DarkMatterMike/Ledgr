@@ -262,12 +262,13 @@ const PAGE_RIGHT_COL_W = 340;
 const PAGE_COL_GAP = 10;
 const SHARED_LEFT_WIDTH = `calc(100% - ${PAGE_RIGHT_COL_W + PAGE_COL_GAP}px)`;
 
-function PageLayout({ left, right = null, isMobile = false }) {
+function PageLayout({ left, right = null, isMobile = false, mobileRightFirst = false }) {
   if (isMobile) {
     return (
       <div style={{ width: "100%" }}>
+        {mobileRightFirst && right ? <div style={{ marginBottom: 10 }}>{right}</div> : null}
         {left}
-        {right ? <div style={{ marginTop: 16 }}>{right}</div> : null}
+        {!mobileRightFirst && right ? <div style={{ marginTop: 16 }}>{right}</div> : null}
       </div>
     );
   }
@@ -5018,6 +5019,7 @@ function AppInner() {
       </div>
     <PageLayout
       isMobile={isMobile}
+      mobileRightFirst={true}
       left={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {accounts.length===0

@@ -1574,7 +1574,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             { key:"t3",      label:"Text muted" },
           ];
           const defaults = PRESETS[0];
-          const current = { ...defaults, fontDisp:"'Syne', sans-serif", ...theme };
+          const current = { ...defaults, fontDisp:"'Syne', sans-serif", ...(theme||{}) };
 
           function patch(k, v) {
             const next = { ...current, [k]: v };
@@ -2319,6 +2319,7 @@ function AppInner() {
 
   /* ── Insights to-do list ── */
   const [insightsTodos, setInsightsTodos] = useState([]);
+  const [theme,         setTheme]         = useState({});
   const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Load + Save (via hook) ── */
@@ -2335,6 +2336,7 @@ function AppInner() {
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
+      if (data.theme)          { setTheme(data.theme); applyTheme(data.theme); }
       setTxnTotal(txnTotal || 0);
       setTxnOffset(100);
       if (data.reauthItemIds?.length) setStaleItemIds(new Set(data.reauthItemIds));
@@ -2355,6 +2357,7 @@ function AppInner() {
     onAnalyticsData: (data, allTxns) => {
       if (data.analyticsInsights) setAnalyticsInsights(data.analyticsInsights);
       if (data.insightsTodos)     setInsightsTodos(data.insightsTodos);
+      if (data.theme)             { setTheme(data.theme); applyTheme(data.theme); }
       // Store the full transaction set for analytics computations.
       // Falls back to the paginated set if the full load failed.
       if (allTxns?.length) setAllTransactions(allTxns);

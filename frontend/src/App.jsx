@@ -5279,7 +5279,8 @@ function AppInner() {
         isMobile={isMobile}
         left={
           <div>
-            <div style={{...S.sectionHdr,marginBottom:16}}>\n              <div style={S.sectionTitle}>Auto-Categorization Rules</div>
+            <div style={{...S.sectionHdr,marginBottom:16}}>
+              <div style={S.sectionTitle}>Auto-Categorization Rules</div>
               <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
             </div>
 

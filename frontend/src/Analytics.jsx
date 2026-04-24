@@ -116,9 +116,12 @@ const PACE_RANGES = [
 ];
 
 function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
-  const [range,      setRange]      = useState("last");
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [range,       setRange]       = useState("last");
+  const [pickerOpen,  setPickerOpen]  = useState(false);
+
   const fmtK = n => n >= 1000 ? "$" + (n/1000).toFixed(1) + "k" : "$" + Math.round(n);
+
+  // Current month cumulative spending by day
   const thisYM   = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
   const daysInMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
 
@@ -132,17 +135,21 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
     });
     let cum = 0;
     return Array.from({ length: daysInMonth }, (_, i) => {
-      if (i + 1 > today.getDate()) return null;
+      if (i + 1 > today.getDate()) return null; // future days undefined
       cum += byDay[i + 1] || 0;
       return cum;
     });
   }, [transactions, thisYM, daysInMonth, today]);
 
+  // Comparison line — varies by range selection
   const compPoints = useMemo(() => {
     const counts = { last:1, avg3:3, avg6:6, avg12:12 }[range];
-    const isLast  = range === "last";
-    const months  = monthlyData.slice(-(counts + 1), -1).slice(-counts);
+    const isLast = range === "last";
+
+    // Build per-day spending for the relevant past months
+    const months = monthlyData.slice(-(counts + 1), -1).slice(-counts); // exclude current month
     if (!months.length) return Array(daysInMonth).fill(null);
+
     const perDayPerMonth = months.map(m => {
       const byDay = {};
       transactions.forEach(t => {
@@ -153,67 +160,237 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
       });
       return byDay;
     });
+
     if (isLast) {
+      // Single line: cumulative for last month
       const m = perDayPerMonth[0] || {};
-      const daysInComp = new Date(parseInt(months[0].ym.slice(0,4)), parseInt(months[0].ym.slice(5,7)), 0).getDate();
+      const daysInComp = new Date(
+        parseInt(months[0].ym.slice(0,4)),
+        parseInt(months[0].ym.slice(5,7)),
+        0
+      ).getDate();
       let cum = 0;
       return Array.from({ length: daysInMonth }, (_, i) => {
-        if (i >= daysInComp) return cum;
+        if (i >= daysInComp) return cum; // hold last value if comp month shorter
         cum += m[i + 1] || 0;
         return cum;
       });
     } else {
+      // Average line: average cumulative across N months
       return Array.from({ length: daysInMonth }, (_, i) => {
-        const vals = perDayPerMonth.map(m => { let c=0; for (let d=1;d<=i+1;d++) c+=m[d]||0; return c; }).filter(v => v > 0 || i === 0);
-        return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+        const vals = perDayPerMonth.map(m => {
+          let cum = 0;
+          for (let d = 1; d <= i + 1; d++) cum += m[d] || 0;
+          return cum;
+        }).filter(v => v > 0 || i === 0);
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
       });
     }
   }, [transactions, monthlyData, range, daysInMonth]);
 
-  const thisTotal    = thisMonthPoints[today.getDate() - 1] || 0;
-  const compTotal    = compPoints[daysInMonth - 1] || compPoints.filter(Boolean).at(-1) || 0;
+  const thisTotal = thisMonthPoints[today.getDate() - 1] || 0;
+  const compTotal = compPoints[daysInMonth - 1] || compPoints.filter(Boolean).at(-1) || 0;
   const selectedLabel = PACE_RANGES.find(r => r.key === range)?.label || "Last month";
-  const W=600, H=180, PAD={top:16,right:16,bottom:32,left:44};
-  const innerW=W-PAD.left-PAD.right, innerH=H-PAD.top-PAD.bottom;
-  const allVals=[...thisMonthPoints,...compPoints].filter(v=>v!=null&&v>0);
-  const maxVal=Math.max(...allVals,1);
-  const xOf=i=>PAD.left+(i/(daysInMonth-1))*innerW;
-  const yOf=v=>PAD.top+innerH-(v/maxVal)*innerH;
-  function buildPath(pts,stopAtNull=true){let d="";pts.forEach((v,i)=>{if(v==null)return;d+=(d===""?"M":"L")+`${xOf(i).toFixed(1)},${yOf(v).toFixed(1)} `;});return d.trim();}
-  function buildArea(pts){const def=pts.map((v,i)=>v!=null?i:null).filter(i=>i!==null);if(!def.length)return"";const first=def[0],last=def[def.length-1];let d=`M${xOf(first).toFixed(1)},${(PAD.top+innerH).toFixed(1)} `;def.forEach(i=>{d+=`L${xOf(i).toFixed(1)},${yOf(pts[i]).toFixed(1)} `;});d+=`L${xOf(last).toFixed(1)},${(PAD.top+innerH).toFixed(1)} Z`;return d;}
-  const gridVals=[0.25,0.5,0.75,1].map(f=>Math.round(maxVal*f));
-  const xLabels=[1,6,11,16,21,26,31].filter(d=>d<=daysInMonth);
+
+  // SVG dimensions
+  const W = 600, H = 180, PAD = { top:16, right:16, bottom:32, left:44 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top  - PAD.bottom;
+
+  const allVals = [...thisMonthPoints, ...compPoints].filter(v => v != null && v > 0);
+  const maxVal  = Math.max(...allVals, 1);
+
+  const xOf = i => PAD.left + (i / (daysInMonth - 1)) * innerW;
+  const yOf = v => PAD.top  + innerH - (v / maxVal) * innerH;
+
+  function buildPath(points, stopAtNull = true) {
+    let d = "";
+    points.forEach((v, i) => {
+      if (v == null) { if (stopAtNull) return; else return; }
+      d += (d === "" ? "M" : "L") + `${xOf(i).toFixed(1)},${yOf(v).toFixed(1)} `;
+    });
+    return d.trim();
+  }
+
+  // Area fill for this month (up to today)
+  function buildArea(points) {
+    const defined = points.map((v,i) => v != null ? i : null).filter(i => i !== null);
+    if (!defined.length) return "";
+    const first = defined[0], last = defined[defined.length-1];
+    let d = `M${xOf(first).toFixed(1)},${(PAD.top+innerH).toFixed(1)} `;
+    defined.forEach(i => { d += `L${xOf(i).toFixed(1)},${yOf(points[i]).toFixed(1)} `; });
+    d += `L${xOf(last).toFixed(1)},${(PAD.top+innerH).toFixed(1)} Z`;
+    return d;
+  }
+
+  // Y-axis gridlines
+  const gridVals = [0.25, 0.5, 0.75, 1].map(f => Math.round(maxVal * f));
+  // X-axis day labels
+  const xLabels = [1, 6, 11, 16, 21, 26, 31].filter(d => d <= daysInMonth);
 
   return (
     <Card style={{ position:"relative" }}>
+      {/* Header */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12, gap:8 }}>
         <div>
-          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.8px", color:"var(--t3)", textTransform:"uppercase", marginBottom:4 }}>Spending Pace</div>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.8px", color:"var(--t3)", textTransform:"uppercase", marginBottom:4 }}>
+            Spending Pace
+          </div>
           <div style={{ display:"flex", gap:16, alignItems:"baseline", flexWrap:"wrap" }}>
-            <div><span style={{ fontSize:11, color:"var(--t3)" }}>This month: </span><span style={{ fontSize:14, fontWeight:700, fontFamily:"var(--font-mono)", color:"var(--cyan)" }}>{fmt(thisTotal)}</span></div>
-            <div><span style={{ fontSize:11, color:"var(--t3)" }}>{selectedLabel==="Last month"?"Last month:":"Avg:"} </span><span style={{ fontSize:13, fontWeight:600, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(compTotal)}</span></div>
+            <div>
+              <span style={{ fontSize:11, color:"var(--t3)" }}>This month: </span>
+              <span style={{ fontSize:14, fontWeight:700, fontFamily:"var(--font-mono)", color:"var(--cyan)" }}>{fmt(thisTotal)}</span>
+            </div>
+            <div>
+              <span style={{ fontSize:11, color:"var(--t3)" }}>{selectedLabel === "Last month" ? "Last month:" : "Avg:"} </span>
+              <span style={{ fontSize:13, fontWeight:600, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(compTotal)}</span>
+            </div>
           </div>
         </div>
+        {/* Range picker */}
         <div style={{ position:"relative", flexShrink:0 }}>
-          <button onClick={()=>setPickerOpen(p=>!p)} style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px", background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:20, cursor:"pointer", fontSize:12, color:"var(--t1)", fontWeight:500 }}>
-            {selectedLabel}<span style={{ fontSize:10, color:"var(--t3)" }}>▾</span>
+          <button
+            onClick={() => setPickerOpen(p => !p)}
+            style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px",
+              background:"var(--surface)", border:"1px solid var(--border2)",
+              borderRadius:20, cursor:"pointer", fontSize:12, color:"var(--t1)", fontWeight:500 }}>
+            {selectedLabel}
+            <span style={{ fontSize:10, color:"var(--t3)" }}>▾</span>
           </button>
-          {pickerOpen&&(<><div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={()=>setPickerOpen(false)}/><div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12, boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>{PACE_RANGES.map(r=>(<button key={r.key} onClick={()=>{setRange(r.key);setPickerOpen(false);}} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", width:"100%", padding:"11px 16px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:r.key===range?"var(--cyan)":"var(--t1)", fontWeight:r.key===range?700:400, borderBottom:"1px solid var(--border)" }}>{r.label}{r.key===range&&<span style={{ fontSize:14, color:"var(--cyan)" }}>✓</span>}</button>))}</div></> )}
+          {pickerOpen && (
+            <>
+              <div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={() => setPickerOpen(false)} />
+              <div style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
+                background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
+                boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
+                {PACE_RANGES.map(r => (
+                  <button key={r.key}
+                    onClick={() => { setRange(r.key); setPickerOpen(false); }}
+                    style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                      width:"100%", padding:"11px 16px", background:"none", border:"none",
+                      cursor:"pointer", fontSize:13, color: r.key === range ? "var(--cyan)" : "var(--t1)",
+                      fontWeight: r.key === range ? 700 : 400,
+                      borderBottom:"1px solid var(--border)" }}>
+                    {r.label}
+                    {r.key === range && <span style={{ fontSize:14, color:"var(--cyan)" }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Chart */}
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:"auto", overflow:"visible" }}>
-        <defs><linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.25"/><stop offset="100%" stopColor="var(--cyan)" stopOpacity="0.02"/></linearGradient></defs>
-        {gridVals.map(v=>(<g key={v}><line x1={PAD.left} x2={W-PAD.right} y1={yOf(v)} y2={yOf(v)} stroke="var(--border)" strokeWidth="1" strokeDasharray="4,4"/><text x={PAD.left-6} y={yOf(v)+4} textAnchor="end" style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>{fmtK(v)}</text></g>))}
-        {xLabels.map(d=>(<text key={d} x={xOf(d-1)} y={H-6} textAnchor="middle" style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>{d}</text>))}
-        <path d={buildArea(thisMonthPoints)} fill="url(#paceGrad)"/>
-        <path d={buildPath(compPoints,false)} fill="none" stroke="var(--t3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d={buildPath(thisMonthPoints)} fill="none" stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        {thisMonthPoints[today.getDate()-1]!=null&&(<circle cx={xOf(today.getDate()-1)} cy={yOf(thisMonthPoints[today.getDate()-1])} r="4" fill="var(--cyan)" stroke="var(--card)" strokeWidth="2"/>)}
+        <defs>
+          <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+
+        {/* Gridlines + Y labels */}
+        {gridVals.map(v => (
+          <g key={v}>
+            <line x1={PAD.left} x2={W - PAD.right} y1={yOf(v)} y2={yOf(v)}
+              stroke="var(--border)" strokeWidth="1" strokeDasharray="4,4" />
+            <text x={PAD.left - 6} y={yOf(v) + 4} textAnchor="end"
+              style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
+              {fmtK(v)}
+            </text>
+          </g>
+        ))}
+
+        {/* X-axis labels */}
+        {xLabels.map(d => (
+          <text key={d} x={xOf(d-1)} y={H - 6} textAnchor="middle"
+            style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
+            {d}
+          </text>
+        ))}
+
+        {/* Area fill — this month */}
+        <path d={buildArea(thisMonthPoints)} fill="url(#paceGrad)" />
+
+        {/* Comparison line */}
+        <path d={buildPath(compPoints, false)} fill="none"
+          stroke="var(--t3)" strokeWidth="1.5" strokeDasharray="0" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* This month line */}
+        <path d={buildPath(thisMonthPoints)} fill="none"
+          stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Today marker */}
+        {thisMonthPoints[today.getDate()-1] != null && (
+          <circle cx={xOf(today.getDate()-1)} cy={yOf(thisMonthPoints[today.getDate()-1])}
+            r="4" fill="var(--cyan)" stroke="var(--card)" strokeWidth="2" />
+        )}
       </svg>
+
+      {/* Legend */}
       <div style={{ display:"flex", gap:16, justifyContent:"center", marginTop:6 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}><div style={{ width:16, height:2.5, borderRadius:2, background:"var(--cyan)" }}/> This month</div>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}><div style={{ width:16, height:2, borderRadius:2, background:"var(--t3)" }}/> {selectedLabel}</div>
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
+          <div style={{ width:16, height:2.5, borderRadius:2, background:"var(--cyan)" }} /> This month
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
+          <div style={{ width:16, height:2, borderRadius:2, background:"var(--t3)" }} /> {selectedLabel}
+        </div>
       </div>
+    </Card>
+  );
+}
+
+function SpendingPatternCard({ dowData, dowMax, weekOfMonthData, isMobile }) {
+  const [view, setView] = useState("day");
+  return (
+    <Card>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+        <SectionHead title={view==="day"?"Spending by day of week":"Spending by week of month"} sub="Total, all time" />
+        <div style={{ display:"flex", gap:3, background:"var(--surface)", borderRadius:"var(--radius)", padding:3 }}>
+          {[["day","By Day"],["week","By Week"]].map(([k,l]) => (
+            <button key={k} onClick={()=>setView(k)} style={{
+              padding:"3px 10px", borderRadius:"var(--radius)", fontSize:11, fontWeight:500,
+              background:view===k?"var(--card)":"transparent",
+              color:view===k?"var(--t1)":"var(--t2)", border:"none", cursor:"pointer",
+            }}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {view==="day" ? (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, alignItems:"end" }}>
+          {dowData.map(d => {
+            const h = dowMax>0?Math.round((d.total/dowMax)*72):0;
+            const isTop = d.total === Math.max(...dowData.map(x=>x.total));
+            return (
+              <div key={d.day} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+                {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(d.total)}</div>}
+                <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
+                  <div style={{ width:"100%", height:h, minHeight:d.total>0?3:0, background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
+                </div>
+                <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{d.day.slice(0,3)}</div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:6, alignItems:"end" }}>
+          {weekOfMonthData.map(w => {
+            const wMax = Math.max(...weekOfMonthData.map(x=>x.total), 1);
+            const h = wMax>0?Math.round((w.total/wMax)*72):0;
+            const isTop = w.total === Math.max(...weekOfMonthData.map(x=>x.total));
+            return (
+              <div key={w.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+                {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(w.total)}</div>}
+                <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
+                  <div style={{ width:"100%", height:h, minHeight:w.total>0?3:0, background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
+                </div>
+                <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{w.label}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Card>
   );
 }
@@ -526,6 +703,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     return candidates.sort((a,b) => b.amount - a.amount);
   }, [transactions]);
 
+
   const weekOfMonthData = useMemo(() => {
     const weeks = [0,0,0,0,0];
     transactions.filter(t => t.amount < 0 && t.date).forEach(t => {
@@ -824,23 +1002,15 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 subColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
                 accent={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"} />
             </div>
+            <SpendingBreakdown catTrends={catTrends} subscriptions={subscriptions} monthlyData={monthlyData} />
             <CashFlowBarChart last6={last6} cashMax={cashMax} />
           </div>
         ) : (
-          /* Desktop: larger left, narrower right — matching PageLayout */
+          /* Desktop: 3-column */
           <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
-            {/* Col 1: Health Score + Net Worth + Stats */}
+            {/* Col 1: Health Score + Stats */}
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               <HealthScoreCard />
-              <Card>
-                <SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} />
-                <LineChart points={netWorthSeries} height={90} />
-                {(userProfile?.manualAssets||[]).length > 0 && (
-                  <div style={{ fontSize:11, color:"var(--t3)", marginTop:8 }}>
-                    Assets: {fmt((userProfile.manualAssets||[]).reduce((s,a)=>s+(a.value||0),0))} · Liabilities: {fmt((userProfile.manualLiabilities||[]).reduce((s,l)=>s+(l.value||0),0))}
-                  </div>
-                )}
-              </Card>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                 <StatCard label="Avg monthly spend" value={fmt(avgSpending)}
                   sub={momChange!=null?`${momChange>0?"+":""}${momChange}% vs last month`:""} subColor={momChange>0?"var(--red)":"var(--green)"} accent="var(--cyan)" />
@@ -857,8 +1027,17 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <StatCard label="Spend-free days" value={spendingFreeDays} sub="This month" accent={spendingFreeDays>=10?"var(--green)":spendingFreeDays>=5?"var(--amber)":"var(--red)"} />
               </div>
             </div>
-            {/* Col 2: Cash Flow + Monthly Savings */}
+            {/* Col 2: Net Worth + Cash Flow + Monthly Savings */}
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              <Card>
+                <SectionHead title="Net worth" sub={`Current: ${fmt(currentNetWorth)}`} />
+                <LineChart points={netWorthSeries} height={90} />
+                {(userProfile?.manualAssets||[]).length > 0 && (
+                  <div style={{ fontSize:11, color:"var(--t3)", marginTop:8 }}>
+                    Assets: {fmt((userProfile.manualAssets||[]).reduce((s,a)=>s+(a.value||0),0))} · Liabilities: {fmt((userProfile.manualLiabilities||[]).reduce((s,l)=>s+(l.value||0),0))}
+                  </div>
+                )}
+              </Card>
               <CashFlowBarChart last6={last6} cashMax={cashMax} />
               <Card>
                 <SectionHead title="Monthly savings" sub="Income minus spending, last 6 months" />
@@ -893,9 +1072,33 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {/* ═══ SPENDING ════════════════════════════════════════════════ */}
       {tab === "spending" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
-          {/* Col 1: Spending Pace + Top Merchants */}
+          {/* Col 1: Income Sources + Top Merchants */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <SpendingPaceCard transactions={transactions} monthlyData={monthlyData} today={today} isMobile={isMobile} />
+          {/* Income sources */}
+          {incomeSources.length > 0 && (
+            <Card>
+              <SectionHead title="Income sources" sub="All time, by total received" />
+              {incomeSources.map((s, i) => (
+                <div key={s.name} style={{ marginBottom:10 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, gap:8 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                      <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", flexShrink:0, width:16, textAlign:"right" }}>{i+1}</span>
+                      <span style={{ fontSize:12, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{s.name}</span>
+                    </div>
+                    <div style={{ display:"flex", gap:10, flexShrink:0 }}>
+                      <span style={{ fontSize:11, color:"var(--t3)" }}>{s.count}×</span>
+                      <span style={{ fontSize:13, fontFamily:"var(--font-mono)", fontWeight:600, color:"var(--green)" }}>{fmt(s.total)}</span>
+                    </div>
+                  </div>
+                  <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden", marginLeft:24 }}>
+                    <div style={{ height:"100%", width:`${pct(s.total, incomeSources[0]?.total||1)}%`, background:"var(--green)", borderRadius:99, transition:"width 0.5s" }} />
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {/* Top spending day */}
           <Card>
             <SectionHead title="Top merchants" sub="All time, by total spend" />
             {merchantTotals.map((m, i) => (
@@ -917,27 +1120,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             ))}
           </Card>
           </div>
-          {/* Col 2: Day of Week + Category Trends + Notable */}
+          {/* Col 2: Spending Pattern + Category Trends + Category Momentum + Notable */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <Card>
-            <SectionHead title="Spending by day of week" sub="Total, all time" />
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, alignItems:"end" }}>
-              {dowData.map(d => {
-                const h = dowMax>0?Math.round((d.total/dowMax)*72):0;
-                const isTop = d.total === Math.max(...dowData.map(x=>x.total));
-                return (
-                  <div key={d.day} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
-                    {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:"100%", textAlign:"center" }}>{fmt(d.total)}</div>}
-                    <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
-                      <div style={{ width:"100%", height:h, minHeight:d.total>0?3:0, background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
-                    </div>
-                    <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{d.day.slice(0,3)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
+          <SpendingPatternCard dowData={dowData} dowMax={dowMax} weekOfMonthData={weekOfMonthData} isMobile={isMobile} />
           <Card>
             <SectionHead title="Category trends" sub="Last 3 months" />
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -1000,54 +1185,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               );
             })}
           </Card>
-
-          {/* Spending by week of month */}
-          <Card>
-            <SectionHead title="Spending by week of month" sub="All time, which week you spend most" />
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:4, alignItems:"end" }}>
-              {weekOfMonthData.map(w => {
-                const wMax = Math.max(...weekOfMonthData.map(x=>x.total), 1);
-                const h = Math.round((w.total/wMax)*72);
-                const isTop = w.total === wMax;
-                return (
-                  <div key={w.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
-                    {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(w.total)}</div>}
-                    <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
-                      <div style={{ width:"100%", height:Math.max(h,2), minHeight:w.total>0?3:0,
-                        background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
-                    </div>
-                    <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{w.label}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          {/* Income sources */}
-          {incomeSources.length > 0 && (
-            <Card>
-              <SectionHead title="Income sources" sub="All time, by total received" />
-              {incomeSources.map((s, i) => (
-                <div key={s.name} style={{ marginBottom:10 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3, gap:8 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
-                      <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t3)", flexShrink:0, width:16, textAlign:"right" }}>{i+1}</span>
-                      <span style={{ fontSize:12, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{s.name}</span>
-                    </div>
-                    <div style={{ display:"flex", gap:10, flexShrink:0 }}>
-                      <span style={{ fontSize:11, color:"var(--t3)" }}>{s.count}×</span>
-                      <span style={{ fontSize:13, fontFamily:"var(--font-mono)", fontWeight:600, color:"var(--green)" }}>{fmt(s.total)}</span>
-                    </div>
-                  </div>
-                  <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden", marginLeft:24 }}>
-                    <div style={{ height:"100%", width:`${pct(s.total, incomeSources[0]?.total||1)}%`, background:"var(--green)", borderRadius:99, transition:"width 0.5s" }} />
-                  </div>
-                </div>
-              ))}
-            </Card>
-          )}
-
-          {/* Top spending day */}
           {topSpendingDay && (
             <Card>
               <SectionHead title="Notable spending days" sub="Largest single day all time" />
@@ -1064,7 +1201,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           {!isMobile && ActionItemsSidebar}
         </div>
       )}
-
       {/* ═══ BUDGET ══════════════════════════════════════════════════ */}
       {tab === "budget" && (
         isMobile ? (
@@ -1246,200 +1382,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       {/* ═══ INSIGHTS ════════════════════════════════════════════════ */}
       {tab === "insights" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
-          {/* Col 1: Recurring Detection + Spending Velocity */}
+          {/* Col 1: AI Summary + Spending Velocity */}
           <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
-
-          {/* ── Detected Recurring Charges ── */}
-          {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).length > 0 && (
-            <Card>
-              <SectionHead title="Detected recurring charges" sub={`${detectedRecurring.length} unconfirmed — confirm to track on your calendar`} />
-              <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-                {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).slice(0,8).map((r,i) => (
-                  <div key={r.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
-                    borderBottom:i<Math.min(detectedRecurring.length,8)-1?"1px solid var(--border)":"none" }}>
-                    {/* Merchant icon */}
-                    <div style={{ width:32, height:32, borderRadius:8, background:"var(--surface)",
-                      border:"1px solid var(--border2)", flexShrink:0, overflow:"hidden",
-                      display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      <img
-                        src={`https://www.google.com/s2/favicons?domain=${r.domainGuess}&sz=32`}
-                        alt=""
-                        style={{ width:20, height:20 }}
-                        onError={e => { e.target.style.display="none"; e.target.parentNode.innerHTML=`<span style="fontSize:14;color:var(--t3)">💳</span>`; }}
-                      />
-                    </div>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.name}</div>
-                      <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
-                        {r.freqLabel} · {r.count} charges found
-                      </div>
-                    </div>
-                    <div style={{ textAlign:"right", flexShrink:0, marginRight:10 }}>
-                      <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:700, color:"var(--red)" }}>{fmt(r.amount)}</div>
-                      <div style={{ fontSize:10, color:"var(--t3)" }}>{r.freqLabel.toLowerCase()}</div>
-                    </div>
-                    <div style={{ display:"flex", gap:4, flexShrink:0 }}>
-                      <button
-                        onClick={() => onMarkRecurring && onMarkRecurring(r.txnIds)}
-                        style={{ padding:"4px 10px", borderRadius:"var(--radius)", fontSize:11, fontWeight:600,
-                          background:"var(--cyan-dim)", color:"var(--cyan)", border:"1px solid var(--cyan)44",
-                          cursor:"pointer", whiteSpace:"nowrap" }}>
-                        ✓ Confirm
-                      </button>
-                      <button
-                        onClick={() => setDismissedRecurring(p => new Set([...p, r.name]))}
-                        style={{ padding:"4px 8px", borderRadius:"var(--radius)", fontSize:11,
-                          background:"none", color:"var(--t3)", border:"1px solid var(--border2)",
-                          cursor:"pointer", lineHeight:1 }}>
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Spending velocity */}
-          <Card>
-            <SectionHead title="This month's spending pace" sub={`Day ${dayOfMonth} of ${daysInMonth_} — projected to end of month`} />
-            <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-              <div style={{ flex:1, minWidth:200 }}>
-                <div style={{ height:10, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:8 }}>
-                  <div style={{ height:"100%", width:`${Math.min(velocityPct||0,100)}%`,
-                    background:velocityPct>100?"var(--red)":velocityPct>85?"var(--amber)":"var(--green)",
-                    borderRadius:99, transition:"width 0.5s" }} />
-                </div>
-                <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--t3)" }}>
-                  <span>Spent: {fmt(thisMonthD?.spending)}</span>
-                  <span>Budget: {fmt(totalBudget)}</span>
-                </div>
-              </div>
-              <div style={{ textAlign:"right", flexShrink:0 }}>
-                <div style={{ fontSize:20, fontFamily:"var(--font-mono)", fontWeight:700,
-                  color:velocityPct>100?"var(--red)":velocityPct>85?"var(--amber)":"var(--green)" }}>
-                  {fmt(projectedSpend)}
-                </div>
-                <div style={{ fontSize:11, color:"var(--t3)" }}>projected total</div>
-              </div>
-            </div>
-          </Card>
-          </div>
-          {/* Col 2: Chronic Overspend + Biggest Txns + Savings Trend */}
-          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
-          {/* Chronic overspenders */}
-          {(()=>{
-            const chronic = budgetGrid.filter(r => r.streak >= 2).sort((a,b) => b.streak - a.streak);
-            if (!chronic.length) return null;
-            return (
-              <Card>
-                <SectionHead title="Chronic overspending" sub="Categories over budget 2+ months in a row" />
-                {chronic.slice(0,5).map((r, i) => {
-                  const avgOver = r.avgSp - r.cat.limit;
-                  return (
-                    <div key={r.cat.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0",
-                      borderBottom:i<Math.min(chronic.length,5)-1?"1px solid var(--border)":"none" }}>
-                      <span style={{ width:8, height:8, borderRadius:"50%", background:r.cat.color, flexShrink:0, display:"inline-block" }}/>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.cat.name}</div>
-                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
-                          {r.streak} month streak · avg {fmt(r.avgSp)}/mo vs {fmt(r.cat.limit)} limit
-                        </div>
-                      </div>
-                      <div style={{ textAlign:"right", flexShrink:0 }}>
-                        <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:700, color:"var(--red)" }}>+{fmt(avgOver)}</div>
-                        <div style={{ fontSize:10, color:"var(--t3)" }}>avg over</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </Card>
-            );
-          })()}
-
-          {/* Biggest transactions this month */}
-          {(()=>{
-            const thisYm = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
-            const bigTxns = transactions
-              .filter(t => t.amount < 0 && t.date?.startsWith(thisYm) && !["transfer","income","reimbursement"].includes(t.type))
-              .sort((a,b) => a.amount - b.amount)
-              .slice(0,6);
-            if (!bigTxns.length) return null;
-            const monthTotal = bigTxns.reduce((s,t) => s + Math.abs(t.amount), 0);
-            const thisMonthSpending = thisMonthD?.spending || 1;
-            return (
-              <Card>
-                <SectionHead title="Biggest transactions this month" sub={`Top ${bigTxns.length} account for ${Math.round(monthTotal/thisMonthSpending*100)}% of spending`} />
-                {bigTxns.map((t, i) => {
-                  const cat = catMap[t.categoryId];
-                  return (
-                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0",
-                      borderBottom:i<bigTxns.length-1?"1px solid var(--border)":"none" }}>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:13, fontWeight:500, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
-                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1, display:"flex", alignItems:"center", gap:5 }}>
-                          <span>{t.date}</span>
-                          {cat && <><span>·</span><span style={{ color:cat.color }}>{cat.name}</span></>}
-                        </div>
-                      </div>
-                      <div style={{ fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--red)", flexShrink:0 }}>
-                        {fmt(Math.abs(t.amount))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </Card>
-            );
-          })()}
-
-          {/* Savings rate trend */}
-          {(()=>{
-            const months = monthlySavings.filter(m => m.value !== 0);
-            if (months.length < 2) return null;
-            const maxAbs = Math.max(...months.map(m => Math.abs(m.value)), 1);
-            const improving = months.length >= 2 && months[months.length-1].value > months[months.length-2].value;
-            const avgSavings = Math.round(months.reduce((s,m) => s+m.value, 0) / months.length);
-            return (
-              <Card>
-                <SectionHead
-                  title="Net savings trend"
-                  sub={`6-month avg: ${avgSavings >= 0 ? "+" : ""}${fmt(avgSavings)}/mo · ${improving ? "↑ improving" : "↓ declining"}`}
-                />
-                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4, alignItems:"end", height:60, marginBottom:6 }}>
-                  {months.map((m, i) => {
-                    const positive = m.value >= 0;
-                    const h = Math.max(Math.round((Math.abs(m.value)/maxAbs)*52), 3);
-                    return (
-                      <div key={m.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-                        <div style={{ width:"100%", height:52, display:"flex", alignItems: positive?"flex-end":"flex-start" }}>
-                          <div style={{ width:"100%", height:h,
-                            background: positive ? "var(--green)" : "var(--red)",
-                            borderRadius: positive ? "3px 3px 0 0" : "0 0 3px 3px",
-                            opacity: i === months.length-1 ? 1 : 0.55,
-                            transition:"height 0.4s",
-                          }}/>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4 }}>
-                  {months.map((m, i) => (
-                    <div key={m.label} style={{ textAlign:"center" }}>
-                      <div style={{ fontSize:9, color:"var(--t3)", overflow:"hidden" }}>{m.label.split(" ")[0]}</div>
-                      {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color: m.value>=0?"var(--green)":"var(--red)" }}>
-                        {m.value>=0?"+":""}{fmt(m.value)}
-                      </div>}
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            );
-          })()}
-
-          {/* AI Insights */}
-          <Card>
-            <div style={{ marginBottom:12 }}>
+          <div style={{ marginBottom:12 }}>
               <SectionHead title="AI Financial Summary" sub="Claude analyzes your full financial picture" />
             </div>
 
@@ -1560,38 +1505,273 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           {isMobile && (
             <Card>
               <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : "Add suggestions from insights above"} />
-              {todos.length === 0 ? (
-                <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"20px 0" }}>
-                  Generate insights and tap "+ Add to To-Do" on any suggestion.
+
+          {/* Spending velocity */}
+          <Card>
+            <SectionHead title="This month's spending pace" sub={`Day ${dayOfMonth} of ${daysInMonth_} — projected to end of month`} />
+            <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+              <div style={{ flex:1, minWidth:200 }}>
+                <div style={{ height:10, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:8 }}>
+                  <div style={{ height:"100%", width:`${Math.min(velocityPct||0,100)}%`,
+                    background:velocityPct>100?"var(--red)":velocityPct>85?"var(--amber)":"var(--green)",
+                    borderRadius:99, transition:"width 0.5s" }} />
                 </div>
-              ) : (
-                <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                  {todos.map(todo => (
-                    <div key={todo.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-                      <button onClick={() => removeTodo(todo.id)} style={{
-                        width:18, height:18, borderRadius:4, border:"1.5px solid var(--border2)",
-                        background:"none", cursor:"pointer", flexShrink:0, marginTop:2,
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                      }}>
-                        <span style={{ fontSize:10, color:"var(--cyan)", lineHeight:1 }}>✓</span>
-                      </button>
-                      <span style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{todo.text}</span>
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--t3)" }}>
+                  <span>Spent: {fmt(thisMonthD?.spending)}</span>
+                  <span>Budget: {fmt(totalBudget)}</span>
+                </div>
+              </div>
+              <div style={{ textAlign:"right", flexShrink:0 }}>
+                <div style={{ fontSize:20, fontFamily:"var(--font-mono)", fontWeight:700,
+                  color:velocityPct>100?"var(--red)":velocityPct>85?"var(--amber)":"var(--green)" }}>
+                  {fmt(projectedSpend)}
+                </div>
+                <div style={{ fontSize:11, color:"var(--t3)" }}>projected total</div>
+              </div>
+            </div>
+          </Card>
+          </div>
+          {/* Col 2: Detected Recurring + Biggest Txns + Chronic + Net Savings */}
+          <div style={{ display:"flex", flexDirection:"column", gap: isMobile?16:20 }}>
+          {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).length > 0 && (
+            <Card>
+              <SectionHead title="Detected recurring charges" sub={`${detectedRecurring.filter(r=>!dismissedRecurring.has(r.name)).length} unconfirmed — confirm to track`} />
+              <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+                {detectedRecurring.filter(r => !dismissedRecurring.has(r.name)).slice(0,8).map((r,i) => (
+                  <div key={r.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0",
+                    borderBottom:i<Math.min(detectedRecurring.filter(r=>!dismissedRecurring.has(r.name)).length,8)-1?"1px solid var(--border)":"none" }}>
+                    <div style={{ width:32, height:32, borderRadius:8, background:"var(--surface)",
+                      border:"1px solid var(--border2)", flexShrink:0, overflow:"hidden",
+                      display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <img src={`https://www.google.com/s2/favicons?domain=${r.domainGuess}&sz=32`}
+                        alt="" style={{ width:20, height:20 }}
+                        onError={e => { e.target.style.display="none"; e.target.parentNode.textContent="💳"; }} />
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.name}</div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>{r.freqLabel} · {r.count} charges found</div>
+                    </div>
+                    <div style={{ textAlign:"right", flexShrink:0, marginRight:10 }}>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:700, color:"var(--red)" }}>{fmt(r.amount)}</div>
+                      <div style={{ fontSize:10, color:"var(--t3)" }}>{r.freqLabel.toLowerCase()}</div>
+                    </div>
+                    <div style={{ display:"flex", gap:4, flexShrink:0 }}>
+                      <button onClick={() => onMarkRecurring && onMarkRecurring(r.txnIds)}
+                        style={{ padding:"4px 10px", borderRadius:"var(--radius)", fontSize:11, fontWeight:600,
+                          background:"var(--cyan-dim)", color:"var(--cyan)", border:"1px solid var(--cyan)44",
+                          cursor:"pointer", whiteSpace:"nowrap" }}>✓ Confirm</button>
+                      <button onClick={() => setDismissedRecurring(p => new Set([...p, r.name]))}
+                        style={{ padding:"4px 8px", borderRadius:"var(--radius)", fontSize:11,
+                          background:"none", color:"var(--t3)", border:"1px solid var(--border2)",
+                          cursor:"pointer", lineHeight:1 }}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </Card>
           )}
 
+          {/* Biggest transactions this month */}
+          {(()=>{
+            const thisYm = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+            const bigTxns = transactions
+              .filter(t => t.amount < 0 && t.date?.startsWith(thisYm) && !["transfer","income","reimbursement"].includes(t.type))
+              .sort((a,b) => a.amount - b.amount)
+              .slice(0,6);
+            if (!bigTxns.length) return null;
+            const monthTotal = bigTxns.reduce((s,t) => s + Math.abs(t.amount), 0);
+            const thisMonthSpending = thisMonthD?.spending || 1;
+            return (
+              <Card>
+                <SectionHead title="Biggest transactions this month" sub={`Top ${bigTxns.length} account for ${Math.round(monthTotal/thisMonthSpending*100)}% of spending`} />
+                {bigTxns.map((t, i) => {
+                  const cat = catMap[t.categoryId];
+                  return (
+                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0",
+                      borderBottom:i<bigTxns.length-1?"1px solid var(--border)":"none" }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:500, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
+                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1, display:"flex", alignItems:"center", gap:5 }}>
+                          <span>{t.date}</span>
+                          {cat && <><span>·</span><span style={{ color:cat.color }}>{cat.name}</span></>}
+                        </div>
+                      </div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--red)", flexShrink:0 }}>
+                        {fmt(Math.abs(t.amount))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+            );
+          })()}
+
+          {/* Savings rate trend */}
+          {(()=>{
+            const months = monthlySavings.filter(m => m.value !== 0);
+            if (months.length < 2) return null;
+            const maxAbs = Math.max(...months.map(m => Math.abs(m.value)), 1);
+            const improving = months.length >= 2 && months[months.length-1].value > months[months.length-2].value;
+            const avgSavings = Math.round(months.reduce((s,m) => s+m.value, 0) / months.length);
+            return (
+
+          {/* Chronic overspenders */}
+          {(()=>{
+            const chronic = budgetGrid.filter(r => r.streak >= 2).sort((a,b) => b.streak - a.streak);
+            if (!chronic.length) return null;
+            return (
+              <Card>
+                <SectionHead title="Chronic overspending" sub="Categories over budget 2+ months in a row" />
+                {chronic.slice(0,5).map((r, i) => {
+                  const avgOver = r.avgSp - r.cat.limit;
+                  return (
+                    <div key={r.cat.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0",
+                      borderBottom:i<Math.min(chronic.length,5)-1?"1px solid var(--border)":"none" }}>
+                      <span style={{ width:8, height:8, borderRadius:"50%", background:r.cat.color, flexShrink:0, display:"inline-block" }}/>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.cat.name}</div>
+                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>
+                          {r.streak} month streak · avg {fmt(r.avgSp)}/mo vs {fmt(r.cat.limit)} limit
+                        </div>
+                      </div>
+                      <div style={{ textAlign:"right", flexShrink:0 }}>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:13, fontWeight:700, color:"var(--red)" }}>+{fmt(avgOver)}</div>
+                        <div style={{ fontSize:10, color:"var(--t3)" }}>avg over</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </Card>
+            );
+          })()}
+
+          <Card>
+                <SectionHead
+                  title="Net savings trend"
+                  sub={`6-month avg: ${avgSavings >= 0 ? "+" : ""}${fmt(avgSavings)}/mo · ${improving ? "↑ improving" : "↓ declining"}`}
+                />
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4, alignItems:"end", height:60, marginBottom:6 }}>
+                  {months.map((m, i) => {
+                    const positive = m.value >= 0;
+                    const h = Math.max(Math.round((Math.abs(m.value)/maxAbs)*52), 3);
+                    return (
+                      <div key={m.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                        <div style={{ width:"100%", height:52, display:"flex", alignItems: positive?"flex-end":"flex-start" }}>
+                          <div style={{ width:"100%", height:h,
+                            background: positive ? "var(--green)" : "var(--red)",
+                            borderRadius: positive ? "3px 3px 0 0" : "0 0 3px 3px",
+                            opacity: i === months.length-1 ? 1 : 0.55,
+                            transition:"height 0.4s",
+                          }}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:`repeat(${months.length},1fr)`, gap:4 }}>
+                  {months.map((m, i) => (
+                    <div key={m.label} style={{ textAlign:"center" }}>
+                      <div style={{ fontSize:9, color:"var(--t3)", overflow:"hidden" }}>{m.label.split(" ")[0]}</div>
+                      {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color: m.value>=0?"var(--green)":"var(--red)" }}>
+                        {m.value>=0?"+":""}{fmt(m.value)}
+                      </div>}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            );
+          })()}
+
+          {/* AI Insights */}
+          <Card>
           </div>
           {!isMobile && ActionItemsSidebar}
         </div>
       )}
-
-      {/* ═══ GOALS ════════════════════════════════════════════════════ */}
+      {/* ═══ GOALS ════════════════════════════════════════════════ */}
       {tab === "goals" && (
         <div style={{ display:"grid", gridTemplateColumns: isMobile?"1fr":"minmax(0,1fr) minmax(0,1fr) 340px", gap:10, alignItems:"start" }}>
+          {/* Col 1: Goals list */}
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {goals.length === 0 && goalForm === null ? (
+              <Card>
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"40px 0", gap:10 }}>
+                  <span style={{ fontSize:36, opacity:0.3 }}>🎯</span>
+                  <div style={{ fontSize:15, fontWeight:600, color:"var(--t1)" }}>No goals yet</div>
+                  <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", maxWidth:280 }}>Create a savings goal to track progress and assign transactions toward it.</div>
+                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
+                    style={{ padding:"10px 20px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", marginTop:4 }}>
+                    + Create first goal
+                  </button>
+                </div>
+              </Card>
+            ) : goals.map(g => {
+              const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+              const deadline = g.deadline ? new Date(g.deadline + "T12:00:00") : null;
+              const daysLeft = deadline ? Math.ceil((deadline.getTime()-Date.now())/86400000) : null;
+              const barColor = pct>=100?"var(--green)":pct>=60?"var(--cyan)":pct>=30?"var(--amber)":"var(--red)";
+              const assignedTxns = transactions.filter(t=>(g.assignedTxnIds||[]).includes(t.id));
+              return (
+                <Card key={g.id}>
+                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12, gap:10 }}>
+                    <div>
+                      <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)", marginBottom:2 }}>{g.title}</div>
+                      <div style={{ fontSize:12, color:"var(--t3)" }}>
+                        {g.periodAmount>0 && <span>{fmt(g.periodAmount)} / {g.period||"month"}</span>}
+                        {deadline && <span style={{ marginLeft:8 }}>· due {deadline.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
+                        {daysLeft!=null && daysLeft>0 && <span style={{ color:daysLeft<30?"var(--amber)":"var(--t3)", marginLeft:4 }}>({daysLeft}d left)</span>}
+                        {daysLeft!=null && daysLeft<=0 && <span style={{ color:"var(--red)", marginLeft:4 }}>(past deadline)</span>}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                      <button onClick={()=>setGoalForm({...g})} style={{ padding:"5px 10px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:11, cursor:"pointer" }}>Edit</button>
+                      <button onClick={()=>onDeleteGoal(g.id)} style={{ padding:"5px 8px", borderRadius:"var(--radius)", border:"none", background:"none", color:"var(--t3)", fontSize:14, cursor:"pointer" }}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6, fontSize:12 }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontWeight:700, color:barColor }}>{fmt(g.savedAmount||0)} saved</span>
+                    <span style={{ color:"var(--t3)" }}>of {fmt(g.targetAmount)}</span>
+                  </div>
+                  <div style={{ height:8, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:6 }}>
+                    <div style={{ height:"100%", borderRadius:99, width:`${pct}%`, background:barColor, transition:"width 0.5s" }} />
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--t3)", marginBottom:assignedTxns.length>0?12:0 }}>
+                    <span>{pct}% complete</span>
+                    {pct<100 && <span>{fmt((g.targetAmount||0)-(g.savedAmount||0))} remaining</span>}
+                    {pct>=100 && <span style={{ color:"var(--green)", fontWeight:600 }}>Goal reached!</span>}
+                  </div>
+                  {assignedTxns.length > 0 && (
+                    <div style={{ borderTop:"1px solid var(--border)", paddingTop:10 }}>
+                      <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Assigned transactions</div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                        {assignedTxns.slice(0,5).map(t=>(
+                          <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12 }}>
+                            <span style={{ color:"var(--t3)", flexShrink:0, width:68, fontFamily:"var(--font-mono)", fontSize:11 }}>{t.date}</span>
+                            <span style={{ flex:1, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</span>
+                            <span style={{ fontFamily:"var(--font-mono)", color:"var(--green)", fontWeight:600, flexShrink:0 }}>{fmt(Math.abs(t.amount))}</span>
+                          </div>
+                        ))}
+                        {assignedTxns.length>5 && <div style={{ fontSize:11, color:"var(--t3)" }}>+{assignedTxns.length-5} more</div>}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+          {!isMobile && (
+            <div style={{ display:"flex", flexDirection:"column", gap:10, position:"sticky", top:16 }}>
+          </div>
+          {/* Col 2: New goal + form + tracking info */}
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div style={{ display:"flex", justifyContent:"flex-end" }}>
+              {goalForm === null && (
+                <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
+                  style={{ padding:"5px 12px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                  + New goal
+                </button>
+              )}
+            </div>
             {goalForm !== null && (
               <Card style={{ border:"1px solid var(--cyan)44" }}>
                 <SectionHead title={goalForm.id ? "Edit goal" : "New goal"} />
@@ -1722,73 +1902,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 </div>
               </Card>
             )}
-            {goals.length === 0 && goalForm === null ? (
-              <Card>
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"40px 0", gap:10 }}>
-                  <span style={{ fontSize:36, opacity:0.3 }}>🎯</span>
-                  <div style={{ fontSize:15, fontWeight:600, color:"var(--t1)" }}>No goals yet</div>
-                  <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", maxWidth:280 }}>Create a savings goal to track progress and assign transactions toward it.</div>
-                  <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
-                    style={{ padding:"10px 20px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", marginTop:4 }}>
-                    + Create first goal
-                  </button>
-                </div>
-              </Card>
-            ) : goals.map(g => {
-              const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
-              const deadline = g.deadline ? new Date(g.deadline + "T12:00:00") : null;
-              const daysLeft = deadline ? Math.ceil((deadline.getTime()-Date.now())/86400000) : null;
-              const barColor = pct>=100?"var(--green)":pct>=60?"var(--cyan)":pct>=30?"var(--amber)":"var(--red)";
-              const assignedTxns = transactions.filter(t=>(g.assignedTxnIds||[]).includes(t.id));
-              return (
-                <Card key={g.id}>
-                  <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12, gap:10 }}>
-                    <div>
-                      <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)", marginBottom:2 }}>{g.title}</div>
-                      <div style={{ fontSize:12, color:"var(--t3)" }}>
-                        {g.periodAmount>0 && <span>{fmt(g.periodAmount)} / {g.period||"month"}</span>}
-                        {deadline && <span style={{ marginLeft:8 }}>· due {deadline.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>}
-                        {daysLeft!=null && daysLeft>0 && <span style={{ color:daysLeft<30?"var(--amber)":"var(--t3)", marginLeft:4 }}>({daysLeft}d left)</span>}
-                        {daysLeft!=null && daysLeft<=0 && <span style={{ color:"var(--red)", marginLeft:4 }}>(past deadline)</span>}
-                      </div>
-                    </div>
-                    <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                      <button onClick={()=>setGoalForm({...g})} style={{ padding:"5px 10px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:11, cursor:"pointer" }}>Edit</button>
-                      <button onClick={()=>onDeleteGoal(g.id)} style={{ padding:"5px 8px", borderRadius:"var(--radius)", border:"none", background:"none", color:"var(--t3)", fontSize:14, cursor:"pointer" }}>✕</button>
-                    </div>
-                  </div>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6, fontSize:12 }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontWeight:700, color:barColor }}>{fmt(g.savedAmount||0)} saved</span>
-                    <span style={{ color:"var(--t3)" }}>of {fmt(g.targetAmount)}</span>
-                  </div>
-                  <div style={{ height:8, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:6 }}>
-                    <div style={{ height:"100%", borderRadius:99, width:`${pct}%`, background:barColor, transition:"width 0.5s" }} />
-                  </div>
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--t3)", marginBottom:assignedTxns.length>0?12:0 }}>
-                    <span>{pct}% complete</span>
-                    {pct<100 && <span>{fmt((g.targetAmount||0)-(g.savedAmount||0))} remaining</span>}
-                    {pct>=100 && <span style={{ color:"var(--green)", fontWeight:600 }}>Goal reached!</span>}
-                  </div>
-                  {assignedTxns.length > 0 && (
-                    <div style={{ borderTop:"1px solid var(--border)", paddingTop:10 }}>
-                      <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Assigned transactions</div>
-                      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                        {assignedTxns.slice(0,5).map(t=>(
-                          <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12 }}>
-                            <span style={{ color:"var(--t3)", flexShrink:0, width:68, fontFamily:"var(--font-mono)", fontSize:11 }}>{t.date}</span>
-                            <span style={{ flex:1, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</span>
-                            <span style={{ fontFamily:"var(--font-mono)", color:"var(--green)", fontWeight:600, flexShrink:0 }}>{fmt(Math.abs(t.amount))}</span>
-                          </div>
-                        ))}
-                        {assignedTxns.length>5 && <div style={{ fontSize:11, color:"var(--t3)" }}>+{assignedTxns.length-5} more</div>}
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-          {!isMobile && (
             <div style={{ display:"flex", flexDirection:"column", gap:10, position:"sticky", top:16 }}>
               {goals.length > 0 && (
                 <Card style={{ padding:"14px 16px" }}>
@@ -1822,12 +1935,13 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       )}
     </div>
   );
+          </div>
+          {ActionItemsSidebar}
+        </div>
+      )}
 
   /* ── Two-column layout on desktop, single on mobile ─────────────── */
-
-
-
-  function HealthScoreCard() { return (
+    function HealthScoreCard() { return (
     <Card>
       <SectionHead title="Financial Health Score" />
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>

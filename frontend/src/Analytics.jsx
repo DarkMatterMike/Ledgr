@@ -773,7 +773,6 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   })}
                 </div>
               </Card>
-            </div>
               {/* Health Score */}
               {HealthScoreCard}
             </div>

@@ -366,7 +366,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile }) {
    DaniPage — tab shell
    ════════════════════════════════════════════════════════════════════ */
 const TABS=["tab1","tab2"];
-const TAB_LABELS=["Dani","Mike"];
+const TAB_LABELS=["Stearns","Cap1 Child"];
 
 export default function DaniPage({accounts=[],transactions=[],recurringTxns=[],daniData={},isMobile=false,onSave}){
   const[activeTab,setActiveTab]=useState("tab1");
@@ -399,11 +399,11 @@ export default function DaniPage({accounts=[],transactions=[],recurringTxns=[],d
             const active=activeTab===t;
             return(
               <button key={t} onClick={()=>setActiveTab(t)} style={{
-                padding:"5px 18px",borderRadius:"var(--radius)",fontSize:13,fontWeight:active?600:400,
-                color:active?"var(--t1)":"var(--t2)",background:active?"var(--card)":"transparent",
-                border:"none",cursor:"pointer",transition:"all 0.15s",
-                boxShadow:active?"0 1px 4px #0004":"none",
-                flex:isMobile?1:undefined,
+                padding:"7px 8px",borderRadius:"var(--radius)",fontSize:12,fontWeight:500,
+                cursor:"pointer",border:"1px solid transparent",
+                background:active?"var(--cyan)":"transparent",
+                color:active?"#000":"var(--t2)",transition:"all 0.15s",whiteSpace:"nowrap",
+                textAlign:"center",flex:isMobile?1:undefined,
               }}>{TAB_LABELS[i]}</button>
             );
           })}

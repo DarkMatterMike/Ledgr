@@ -1984,6 +1984,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 )}
               </Card>
             </div>
+          </div>
           {ActionItemsSidebar}
         </div>
       )}

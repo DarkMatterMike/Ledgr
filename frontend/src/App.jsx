@@ -5014,11 +5014,11 @@ function AppInner() {
     <PageLayout
       isMobile={isMobile}
       left={
-        <div>
-          <div style={{...S.sectionHdr,marginBottom:8}}>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{...S.sectionHdr,marginBottom:0}}>
             <div style={S.sectionTitle}>Accounts</div>
+            <div style={{fontSize:12,color:"var(--t3)"}}>Projections through end of {today.toLocaleString("default",{month:"long"})}</div>
           </div>
-          <div style={{fontSize:13,color:"var(--t2)",marginBottom:12}}>Projections based on your daily spend rate through end of {today.toLocaleString("default",{month:"long"})}.</div>
           {accounts.length===0
             ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
             : (()=>{
@@ -5112,6 +5112,13 @@ function AppInner() {
       }
       right={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{...S.card,padding:"10px 14px"}}>
+            <div style={{...S.cardTitle,marginBottom:8}}>Add Account</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="🏦 Link Bank Account"/>
+              <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center"}} onClick={openAddAcct}>+ Add Manual Account</button>
+            </div>
+          </div>
           {plaidItems.length>0&&(
             <div style={{...S.card,padding:"10px 14px"}}>
               <div style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
@@ -5159,13 +5166,6 @@ function AppInner() {
               </div>
             </div>
           )}
-          <div style={{...S.card,padding:"10px 14px"}}>
-            <div style={{...S.cardTitle,marginBottom:8}}>Add Account</div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="🏦 Link Bank Account"/>
-              <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center"}} onClick={openAddAcct}>+ Add Manual Account</button>
-            </div>
-          </div>
         </div>
       }
     />

@@ -177,7 +177,21 @@ app.post("/api/billing/webhook",
   }
 );
 
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+const ALLOWED_ORIGINS = [
+  FRONTEND_URL,
+  "https://ledgrfinance.app",
+  "https://www.ledgrfinance.app",
+  "https://app.ledgrfinance.app",
+  "https://ledgr-eight-zeta.vercel.app",
+  "https://ledgr-landing-omega.vercel.app",
+];
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
 app.use(helmet({
   crossOriginEmbedderPolicy: false, // needed for Plaid Link iframe
   contentSecurityPolicy: {

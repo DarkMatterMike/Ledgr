@@ -4494,57 +4494,20 @@ function AppInner() {
 
 
   function TxnActionBar() {
-    const [moreOpen, setMoreOpen] = useState(false);
     return (
-      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,position:"relative"}}>
+      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
         <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
-        {!isMobile && <>
-          <button style={S.btn("ghost",true)} onClick={scanForDuplicates}>Scan Duplicates</button>
-          <button style={S.btn("ghost",true)} onClick={()=>{resetCsvImport();setCsvImportOpen(true);}}>Import CSV</button>
-          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"⟳ Syncing…":"⟳ Sync"}</button>}
-          {aiChat.hasApiKey&&(
-            <button style={S.btn("ghost",true)} disabled={autoCatRunning}
-              onClick={async()=>{
-                const count = await runAutoCategorize();
-                showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");
-              }}>
-              {autoCatRunning?"✦ Categorizing…":"✦ Auto-categorize"}
-            </button>
-          )}
-        </>}
-        {isMobile && <>
-          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"⟳":"⟳ Sync"}</button>}
-          <button style={{...S.btn("ghost",true),padding:"5px 10px"}} onClick={()=>setMoreOpen(p=>!p)}>⋯</button>
-          {moreOpen&&(
-            <div style={{position:"absolute",top:"100%",right:0,marginTop:4,zIndex:200,
-              background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",
-              minWidth:180,boxShadow:"0 8px 24px #00000060",overflow:"hidden"}}
-              onClick={()=>setMoreOpen(false)}>
-              <button onClick={scanForDuplicates}
-                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",
-                  background:"none",border:"none",color:"var(--t1)",fontSize:13,cursor:"pointer"}}>
-                Scan Duplicates
-              </button>
-              <button onClick={()=>{resetCsvImport();setCsvImportOpen(true);}}
-                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",
-                  background:"none",border:"none",color:"var(--t1)",fontSize:13,cursor:"pointer"}}>
-                Import CSV
-              </button>
-              {aiChat.hasApiKey&&(
-                <button disabled={autoCatRunning}
-                  onClick={async()=>{
-                    const count = await runAutoCategorize();
-                    showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");
-                  }}
-                  style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",
-                    background:"none",border:"none",color:"var(--t1)",fontSize:13,cursor:"pointer",
-                    opacity:autoCatRunning?0.5:1}}>
-                  {autoCatRunning?"✦ Categorizing…":"✦ Auto-categorize"}
-                </button>
-              )}
-            </div>
-          )}
-        </>}
+        <button style={S.btn("ghost",true)} onClick={()=>{resetCsvImport();setCsvImportOpen(true);}}>Import CSV</button>
+        <button style={S.btn("ghost",true)} onClick={scanForDuplicates}>Scan Duplicates</button>
+        {aiChat.hasApiKey&&(
+          <button style={S.btn("ghost",true)} disabled={autoCatRunning}
+            onClick={async()=>{
+              const count = await runAutoCategorize();
+              showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");
+            }}>
+            {autoCatRunning?"✦ Categorizing…":"✦ Auto-categorize"}
+          </button>
+        )}
       </div>
     );
   }

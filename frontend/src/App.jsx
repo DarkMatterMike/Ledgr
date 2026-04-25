@@ -1131,134 +1131,6 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
           💬 Support
         </button>
 
-        {/* CSV Import modal */}
-        {csvImportOpen && (
-          <div style={{position:"fixed",inset:0,background:"#0009",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
-            onClick={e=>{ if(e.target===e.currentTarget) resetCsvImport(); }}>
-            <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",padding:24}}>
-              {/* Header */}
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-                <div>
-                  <div style={{...S.sectionTitle}}>Import CSV</div>
-                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Step {csvStep==="upload"?1:csvStep==="map"?2:3} of 3 — {csvStep==="upload"?"Upload file":csvStep==="map"?"Map columns":"Preview & confirm"}</div>
-                </div>
-                <button onClick={resetCsvImport} style={{background:"none",border:"none",color:"var(--t3)",fontSize:18,cursor:"pointer",lineHeight:1}}>✕</button>
-              </div>
-
-              {/* Step 1: Upload */}
-              {csvStep === "upload" && (
-                <div>
-                  <div style={{border:"2px dashed var(--border2)",borderRadius:8,padding:"40px 24px",textAlign:"center",marginBottom:16,cursor:"pointer",transition:"border-color 0.2s"}}
-                    onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor="var(--cyan)"}}
-                    onDragLeave={e=>{e.currentTarget.style.borderColor="var(--border2)"}}
-                    onDrop={e=>{e.preventDefault();e.currentTarget.style.borderColor="var(--border2)";handleCsvFile(e.dataTransfer.files[0])}}
-                    onClick={()=>document.getElementById("csv-file-input").click()}>
-                    <div style={{fontSize:32,marginBottom:12}}>📂</div>
-                    <div style={{fontSize:14,color:"var(--t1)",fontWeight:600,marginBottom:6}}>Drop a CSV file here</div>
-                    <div style={{fontSize:12,color:"var(--t3)"}}>or click to browse — exported from any bank or app</div>
-                    <input id="csv-file-input" type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>handleCsvFile(e.target.files[0])}/>
-                  </div>
-                  <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.6}}>
-                    CSV must contain at least: a <strong style={{color:"var(--t2)"}}>date</strong>, a <strong style={{color:"var(--t2)"}}>description</strong>, and an <strong style={{color:"var(--t2)"}}>amount</strong> column. Most bank exports work automatically.
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Map columns */}
-              {csvStep === "map" && (
-                <div>
-                  <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>
-                    {csvRows.length} rows detected in <strong style={{color:"var(--t1)"}}>{csvFile?.name}</strong>. Map the columns below:
-                  </div>
-                  {[["date","Date *"],["name","Description *"],["amount","Amount *"]].map(([key,label])=>(
-                    <div key={key} style={{marginBottom:14}}>
-                      <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>{label}</div>
-                      <select value={csvMap[key]} onChange={e=>setCsvMap(p=>({...p,[key]:e.target.value}))}
-                        style={{...S.input,width:"100%",fontSize:13}}>
-                        <option value="">— select column —</option>
-                        {csvHeaders.map(h=><option key={h} value={h}>{h}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                  {/* Optional account assignment */}
-                  <div style={{marginBottom:20}}>
-                    <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Assign to Account (optional)</div>
-                    <select value={csvAccountId} onChange={e=>setCsvAccountId(e.target.value)} style={{...S.input,width:"100%",fontSize:13}}>
-                      <option value="">— no account —</option>
-                      {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
-                  </div>
-                  <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-                    <button style={S.btn("ghost",true)} onClick={()=>setCsvStep("upload")}>← Back</button>
-                    <button style={S.btn("primary",true)}
-                      disabled={!csvMap.date||!csvMap.name||!csvMap.amount}
-                      onClick={()=>setCsvStep("preview")}>
-                      Preview →
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Preview */}
-              {csvStep === "preview" && (
-                <div>
-                  {csvResult ? (
-                    <div style={{textAlign:"center",padding:"24px 0"}}>
-                      {csvResult.error ? (
-                        <>
-                          <div style={{fontSize:32,marginBottom:12}}>❌</div>
-                          <div style={{fontSize:14,color:"var(--red)",marginBottom:16}}>{csvResult.error}</div>
-                          <button style={S.btn("ghost",true)} onClick={()=>setCsvResult(null)}>Try Again</button>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{fontSize:32,marginBottom:12}}>✅</div>
-                          <div style={{fontSize:15,color:"var(--t1)",fontWeight:600,marginBottom:6}}>
-                            {csvResult.imported} transaction{csvResult.imported===1?"":"s"} imported
-                          </div>
-                          {csvResult.skipped>0&&<div style={{fontSize:12,color:"var(--t3)",marginBottom:16}}>{csvResult.skipped} duplicate{csvResult.skipped===1?"":"s"} skipped</div>}
-                          <button style={S.btn("primary",true)} onClick={resetCsvImport}>Done</button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{fontSize:13,color:"var(--t2)",marginBottom:12}}>
-                        Importing <strong style={{color:"var(--t1)"}}>{csvRows.length}</strong> rows — duplicates will be skipped automatically.
-                      </div>
-                      {/* Preview table */}
-                      <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden",marginBottom:16}}>
-                        <div style={{display:"grid",gridTemplateColumns:"120px 1fr 90px",padding:"8px 12px",background:"var(--card)",borderBottom:"1px solid var(--border)"}}>
-                          {["Date","Description","Amount"].map(h=><div key={h} style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>{h}</div>)}
-                        </div>
-                        <div style={{maxHeight:280,overflowY:"auto"}}>
-                          {csvRows.slice(0,50).map((row,i)=>{
-                            const rawAmt = (row[csvMap.amount]||"0").replace(/[,$\s]/g,"");
-                            const amt = parseFloat(rawAmt)||0;
-                            return (
-                              <div key={i} style={{display:"grid",gridTemplateColumns:"120px 1fr 90px",padding:"7px 12px",borderBottom:i<Math.min(csvRows.length,50)-1?"1px solid var(--border)":"none",alignItems:"center"}}>
-                                <div style={{fontSize:12,color:"var(--t2)",fontFamily:"var(--font-mono)"}}>{row[csvMap.date]}</div>
-                                <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:8}}>{row[csvMap.name]}</div>
-                                <div style={{fontSize:12,fontFamily:"var(--font-mono)",color:amt>=0?"var(--green)":"var(--red)",textAlign:"right"}}>{amt>=0?"+":""}{amt.toFixed(2)}</div>
-                              </div>
-                            );
-                          })}
-                          {csvRows.length>50&&<div style={{padding:"8px 12px",fontSize:11,color:"var(--t3)",textAlign:"center"}}>…and {csvRows.length-50} more</div>}
-                        </div>
-                      </div>
-                      <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-                        <button style={S.btn("ghost",true)} onClick={()=>setCsvStep("map")}>← Back</button>
-                        <button style={S.btn("primary",true)} disabled={csvImporting} onClick={submitCsvImport}>
-                          {csvImporting?"Importing…":`Import ${csvRows.length} Rows`}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Support modal */}
         {supportOpen && (
@@ -7399,6 +7271,7 @@ function AppInner() {
       <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>
+
   );
 
   const _trialUser = api.getStoredUser();
@@ -7776,6 +7649,136 @@ function AppInner() {
             style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px"}}>✕</button>
         </div>
       )}
+
+
+      {/* CSV Import modal */}
+        {csvImportOpen && (
+          <div style={{position:"fixed",inset:0,background:"#0009",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+            onClick={e=>{ if(e.target===e.currentTarget) resetCsvImport(); }}>
+            <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",padding:24}}>
+              {/* Header */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
+                <div>
+                  <div style={{...S.sectionTitle}}>Import CSV</div>
+                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Step {csvStep==="upload"?1:csvStep==="map"?2:3} of 3 — {csvStep==="upload"?"Upload file":csvStep==="map"?"Map columns":"Preview & confirm"}</div>
+                </div>
+                <button onClick={resetCsvImport} style={{background:"none",border:"none",color:"var(--t3)",fontSize:18,cursor:"pointer",lineHeight:1}}>✕</button>
+              </div>
+
+              {/* Step 1: Upload */}
+              {csvStep === "upload" && (
+                <div>
+                  <div style={{border:"2px dashed var(--border2)",borderRadius:8,padding:"40px 24px",textAlign:"center",marginBottom:16,cursor:"pointer",transition:"border-color 0.2s"}}
+                    onDragOver={e=>{e.preventDefault();e.currentTarget.style.borderColor="var(--cyan)"}}
+                    onDragLeave={e=>{e.currentTarget.style.borderColor="var(--border2)"}}
+                    onDrop={e=>{e.preventDefault();e.currentTarget.style.borderColor="var(--border2)";handleCsvFile(e.dataTransfer.files[0])}}
+                    onClick={()=>document.getElementById("csv-file-input").click()}>
+                    <div style={{fontSize:32,marginBottom:12}}>📂</div>
+                    <div style={{fontSize:14,color:"var(--t1)",fontWeight:600,marginBottom:6}}>Drop a CSV file here</div>
+                    <div style={{fontSize:12,color:"var(--t3)"}}>or click to browse — exported from any bank or app</div>
+                    <input id="csv-file-input" type="file" accept=".csv,text/csv" style={{display:"none"}} onChange={e=>handleCsvFile(e.target.files[0])}/>
+                  </div>
+                  <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.6}}>
+                    CSV must contain at least: a <strong style={{color:"var(--t2)"}}>date</strong>, a <strong style={{color:"var(--t2)"}}>description</strong>, and an <strong style={{color:"var(--t2)"}}>amount</strong> column. Most bank exports work automatically.
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Map columns */}
+              {csvStep === "map" && (
+                <div>
+                  <div style={{fontSize:13,color:"var(--t2)",marginBottom:16}}>
+                    {csvRows.length} rows detected in <strong style={{color:"var(--t1)"}}>{csvFile?.name}</strong>. Map the columns below:
+                  </div>
+                  {[["date","Date *"],["name","Description *"],["amount","Amount *"]].map(([key,label])=>(
+                    <div key={key} style={{marginBottom:14}}>
+                      <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>{label}</div>
+                      <select value={csvMap[key]} onChange={e=>setCsvMap(p=>({...p,[key]:e.target.value}))}
+                        style={{...S.input,width:"100%",fontSize:13}}>
+                        <option value="">— select column —</option>
+                        {csvHeaders.map(h=><option key={h} value={h}>{h}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                  {/* Optional account assignment */}
+                  <div style={{marginBottom:20}}>
+                    <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Assign to Account (optional)</div>
+                    <select value={csvAccountId} onChange={e=>setCsvAccountId(e.target.value)} style={{...S.input,width:"100%",fontSize:13}}>
+                      <option value="">— no account —</option>
+                      {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </div>
+                  <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+                    <button style={S.btn("ghost",true)} onClick={()=>setCsvStep("upload")}>← Back</button>
+                    <button style={S.btn("primary",true)}
+                      disabled={!csvMap.date||!csvMap.name||!csvMap.amount}
+                      onClick={()=>setCsvStep("preview")}>
+                      Preview →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Preview */}
+              {csvStep === "preview" && (
+                <div>
+                  {csvResult ? (
+                    <div style={{textAlign:"center",padding:"24px 0"}}>
+                      {csvResult.error ? (
+                        <>
+                          <div style={{fontSize:32,marginBottom:12}}>❌</div>
+                          <div style={{fontSize:14,color:"var(--red)",marginBottom:16}}>{csvResult.error}</div>
+                          <button style={S.btn("ghost",true)} onClick={()=>setCsvResult(null)}>Try Again</button>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{fontSize:32,marginBottom:12}}>✅</div>
+                          <div style={{fontSize:15,color:"var(--t1)",fontWeight:600,marginBottom:6}}>
+                            {csvResult.imported} transaction{csvResult.imported===1?"":"s"} imported
+                          </div>
+                          {csvResult.skipped>0&&<div style={{fontSize:12,color:"var(--t3)",marginBottom:16}}>{csvResult.skipped} duplicate{csvResult.skipped===1?"":"s"} skipped</div>}
+                          <button style={S.btn("primary",true)} onClick={resetCsvImport}>Done</button>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{fontSize:13,color:"var(--t2)",marginBottom:12}}>
+                        Importing <strong style={{color:"var(--t1)"}}>{csvRows.length}</strong> rows — duplicates will be skipped automatically.
+                      </div>
+                      {/* Preview table */}
+                      <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden",marginBottom:16}}>
+                        <div style={{display:"grid",gridTemplateColumns:"120px 1fr 90px",padding:"8px 12px",background:"var(--card)",borderBottom:"1px solid var(--border)"}}>
+                          {["Date","Description","Amount"].map(h=><div key={h} style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>{h}</div>)}
+                        </div>
+                        <div style={{maxHeight:280,overflowY:"auto"}}>
+                          {csvRows.slice(0,50).map((row,i)=>{
+                            const rawAmt = (row[csvMap.amount]||"0").replace(/[,$\s]/g,"");
+                            const amt = parseFloat(rawAmt)||0;
+                            return (
+                              <div key={i} style={{display:"grid",gridTemplateColumns:"120px 1fr 90px",padding:"7px 12px",borderBottom:i<Math.min(csvRows.length,50)-1?"1px solid var(--border)":"none",alignItems:"center"}}>
+                                <div style={{fontSize:12,color:"var(--t2)",fontFamily:"var(--font-mono)"}}>{row[csvMap.date]}</div>
+                                <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingRight:8}}>{row[csvMap.name]}</div>
+                                <div style={{fontSize:12,fontFamily:"var(--font-mono)",color:amt>=0?"var(--green)":"var(--red)",textAlign:"right"}}>{amt>=0?"+":""}{amt.toFixed(2)}</div>
+                              </div>
+                            );
+                          })}
+                          {csvRows.length>50&&<div style={{padding:"8px 12px",fontSize:11,color:"var(--t3)",textAlign:"center"}}>…and {csvRows.length-50} more</div>}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+                        <button style={S.btn("ghost",true)} onClick={()=>setCsvStep("map")}>← Back</button>
+                        <button style={S.btn("primary",true)} disabled={csvImporting} onClick={submitCsvImport}>
+                          {csvImporting?"Importing…":`Import ${csvRows.length} Rows`}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
       <Toast msg={toast}/>
     </div>

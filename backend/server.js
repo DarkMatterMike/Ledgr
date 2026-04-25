@@ -85,6 +85,7 @@ if (!STRIPE_WEBHOOK_SECRET)         console.warn("⚠  STRIPE_WEBHOOK_SECRET not
 if (!process.env.RESEND_API_KEY)    console.warn("⚠  RESEND_API_KEY not set");
 
 const app = express();
+app.set("trust proxy", 1); // Required for rate limiting behind Railway/Vercel proxy
 
 const IS_PROD = process.env.NODE_ENV === "production";
 

@@ -297,6 +297,123 @@ app.get("/api/health/users", async (_req, res) => {
 });
 
 
+// POST /api/transactions/import — bulk import CSV transactions
+// Accepts an array of pre-parsed transaction objects from the frontend.
+// Deduplicates via fingerprint, applies user rules for categorization, then upserts.
+const importLimiter = rateLimit({ windowMs: 60*60*1000, max: 10, message: { error: "Too many import requests." } });
+app.post("/api/transactions/import", importLimiter, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { rows, accountId } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0)
+      return res.status(400).json({ error: "No rows provided" });
+    if (rows.length > 5000)
+      return res.status(400).json({ error: "Maximum 5,000 rows per import" });
+
+    // Load user rules for auto-categorization
+    const rules = await getRules(uid);
+
+    // Normalize and dedup
+    const crypto = require("crypto");
+    const seen = new Set();
+    const toInsert = [];
+
+    for (const row of rows) {
+      const date   = row.date   || "";
+      const name   = (row.name  || row.description || row.merchant || "").trim();
+      const amount = parseFloat(row.amount);
+      if (!date || !name || isNaN(amount)) continue;
+
+      // Compute fingerprint for dedup
+      const rawName = name.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+      const fp = `${date}__${amount}__${rawName}`;
+      if (seen.has(fp)) continue;
+      seen.add(fp);
+
+      // Apply rules for category
+      let categoryId = row.categoryId || null;
+      let userCategorized = false;
+      if (!categoryId && rules.length) {
+        const nameLower = name.toLowerCase();
+        for (const rule of rules) {
+          if (!rule.enabled) continue;
+          const pattern = rule.pattern.toLowerCase();
+          const match = rule.matchType === "startsWith" ? nameLower.startsWith(pattern)
+                      : rule.matchType === "endsWith"   ? nameLower.endsWith(pattern)
+                      : rule.matchType === "exact"      ? nameLower === pattern
+                      : nameLower.includes(pattern);
+          if (match) { categoryId = rule.categoryId; userCategorized = true; break; }
+        }
+      }
+
+      const id = "csv_" + crypto.randomBytes(10).toString("hex");
+      toInsert.push({
+        id,
+        name,
+        merchant: name,
+        date,
+        amount,
+        accountId:       accountId || null,
+        categoryId,
+        userCategorized,
+        type:            amount < 0 ? "expense" : "income",
+        pending:         false,
+        reviewed:        false,
+        fingerprint:     fp,
+      });
+    }
+
+    if (toInsert.length === 0)
+      return res.status(400).json({ error: "No valid rows after parsing" });
+
+    // Check which fingerprints already exist to avoid true duplicates
+    const { rows: existingRows } = await pool.query(
+      `SELECT fingerprint FROM transactions WHERE user_id = $1 AND fingerprint = ANY($2::text[])`,
+      [uid, toInsert.map(t => t.fingerprint)]
+    );
+    const existingFps = new Set(existingRows.map(r => r.fingerprint));
+    const newRows = toInsert.filter(t => !existingFps.has(t.fingerprint));
+
+    if (newRows.length === 0)
+      return res.json({ imported: 0, skipped: toInsert.length, message: "All rows already exist" });
+
+    await upsertTransactionsBatch(uid, newRows);
+    console.log(`[import] User ${uid} imported ${newRows.length} transactions (${toInsert.length - newRows.length} skipped as duplicates)`);
+    res.json({ imported: newRows.length, skipped: toInsert.length - newRows.length });
+  } catch (err) { serverError(res, err); }
+});
+
+// POST /api/support — sends a support message from a logged-in user to the owner inbox.
+// Rate-limited to 5 messages per hour to prevent spam.
+const supportLimiter = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: "Too many support requests. Please try again later." } });
+app.post("/api/support", supportLimiter, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { subject, message } = req.body;
+    if (!message?.trim()) return res.status(400).json({ error: "Message is required" });
+    if (!OWNER_EMAIL) return res.status(503).json({ error: "Support not configured" });
+
+    const user = await getUserById(uid);
+    const subjectLine = subject?.trim() || "Support Request";
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0d1117;color:#e6edf3;border-radius:12px">
+        <div style="font-size:20px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span> support</div>
+        <div style="font-size:11px;color:#8b949e;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #21262d">
+          From: ${user?.email || "unknown"} &nbsp;·&nbsp; User ID: ${uid}
+        </div>
+        <h2 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#e6edf3">${subjectLine}</h2>
+        <div style="font-size:14px;color:#c9d1d9;line-height:1.7;white-space:pre-wrap">${message.trim()}</div>
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #21262d;font-size:11px;color:#8b949e">
+          Reply directly to this email to respond to the user.
+        </div>
+      </div>
+    `;
+    await sendEmail(OWNER_EMAIL, `[ledgr support] ${subjectLine}`, html);
+    console.log(`[support] Message from ${user?.email} (${uid}): ${subjectLine}`);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)  return res.status(400).json({ error: "Email and password required" });
@@ -398,37 +515,6 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
 /* ── All routes below require auth ───────────────────────────────── */
 app.use(requireAuth);
-
-// POST /api/support — sends a support message from a logged-in user to the owner inbox.
-// Rate-limited to 5 messages per hour to prevent spam.
-const supportLimiter = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: "Too many support requests. Please try again later." } });
-app.post("/api/support", supportLimiter, async (req, res) => {
-  try {
-    const uid = req.user.id;
-    const { subject, message } = req.body;
-    if (!message?.trim()) return res.status(400).json({ error: "Message is required" });
-    if (!OWNER_EMAIL) return res.status(503).json({ error: "Support not configured" });
-
-    const user = await getUserById(uid);
-    const subjectLine = subject?.trim() || "Support Request";
-    const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0d1117;color:#e6edf3;border-radius:12px">
-        <div style="font-size:20px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span> support</div>
-        <div style="font-size:11px;color:#8b949e;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #21262d">
-          From: ${user?.email || "unknown"} &nbsp;·&nbsp; User ID: ${uid}
-        </div>
-        <h2 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#e6edf3">${subjectLine}</h2>
-        <div style="font-size:14px;color:#c9d1d9;line-height:1.7;white-space:pre-wrap">${message.trim()}</div>
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #21262d;font-size:11px;color:#8b949e">
-          Reply directly to this email to respond to the user.
-        </div>
-      </div>
-    `;
-    await sendEmail(OWNER_EMAIL, `[ledgr support] ${subjectLine}`, html);
-    console.log(`[support] Message from ${user?.email} (${uid}): ${subjectLine}`);
-    res.json({ ok: true });
-  } catch (err) { serverError(res, err); }
-});
 
 // Track last activity — update at most once per 5 minutes to avoid a DB write on every request.
 // Uses a simple in-memory map since precision isn't critical — worst case we lose the

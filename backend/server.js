@@ -296,36 +296,6 @@ app.get("/api/health/users", async (_req, res) => {
   } catch (err) { serverError(res, err); }
 });
 
-// POST /api/support — sends a support message from a logged-in user to the owner inbox.
-// Rate-limited to 5 messages per hour to prevent spam.
-const supportLimiter = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: "Too many support requests. Please try again later." } });
-app.post("/api/support", supportLimiter, async (req, res) => {
-  try {
-    const uid = req.user.id;
-    const { subject, message } = req.body;
-    if (!message?.trim()) return res.status(400).json({ error: "Message is required" });
-    if (!OWNER_EMAIL) return res.status(503).json({ error: "Support not configured" });
-
-    const user = await getUserById(uid);
-    const subjectLine = subject?.trim() || "Support Request";
-    const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0d1117;color:#e6edf3;border-radius:12px">
-        <div style="font-size:20px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span> support</div>
-        <div style="font-size:11px;color:#8b949e;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #21262d">
-          From: ${user?.email || "unknown"} &nbsp;·&nbsp; User ID: ${uid}
-        </div>
-        <h2 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#e6edf3">${subjectLine}</h2>
-        <div style="font-size:14px;color:#c9d1d9;line-height:1.7;white-space:pre-wrap">${message.trim()}</div>
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #21262d;font-size:11px;color:#8b949e">
-          Reply directly to this email to respond to the user.
-        </div>
-      </div>
-    `;
-    await sendEmail(OWNER_EMAIL, `[ledgr support] ${subjectLine}`, html);
-    console.log(`[support] Message from ${user?.email} (${uid}): ${subjectLine}`);
-    res.json({ ok: true });
-  } catch (err) { serverError(res, err); }
-});
 
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   const { email, password } = req.body;
@@ -428,6 +398,37 @@ app.post("/api/auth/reset-password", async (req, res) => {
 
 /* ── All routes below require auth ───────────────────────────────── */
 app.use(requireAuth);
+
+// POST /api/support — sends a support message from a logged-in user to the owner inbox.
+// Rate-limited to 5 messages per hour to prevent spam.
+const supportLimiter = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: "Too many support requests. Please try again later." } });
+app.post("/api/support", supportLimiter, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const { subject, message } = req.body;
+    if (!message?.trim()) return res.status(400).json({ error: "Message is required" });
+    if (!OWNER_EMAIL) return res.status(503).json({ error: "Support not configured" });
+
+    const user = await getUserById(uid);
+    const subjectLine = subject?.trim() || "Support Request";
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0d1117;color:#e6edf3;border-radius:12px">
+        <div style="font-size:20px;font-weight:800;margin-bottom:4px">ledgr<span style="color:#00d4ff">.</span> support</div>
+        <div style="font-size:11px;color:#8b949e;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #21262d">
+          From: ${user?.email || "unknown"} &nbsp;·&nbsp; User ID: ${uid}
+        </div>
+        <h2 style="font-size:16px;font-weight:600;margin:0 0 12px;color:#e6edf3">${subjectLine}</h2>
+        <div style="font-size:14px;color:#c9d1d9;line-height:1.7;white-space:pre-wrap">${message.trim()}</div>
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #21262d;font-size:11px;color:#8b949e">
+          Reply directly to this email to respond to the user.
+        </div>
+      </div>
+    `;
+    await sendEmail(OWNER_EMAIL, `[ledgr support] ${subjectLine}`, html);
+    console.log(`[support] Message from ${user?.email} (${uid}): ${subjectLine}`);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
 
 // Track last activity — update at most once per 5 minutes to avoid a DB write on every request.
 // Uses a simple in-memory map since precision isn't critical — worst case we lose the

@@ -1,14 +1,397 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-    <meta name="theme-color" content="#06090f" />
-    <title>ledgr.</title>
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ledgr. — Personal Finance, Without the Noise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#06090f;--surface:#0c1220;--card:#101826;--border:#1a2640;--border2:#243452;
+      --t1:#e2eaf8;--t2:#7a8fa8;--t3:#3d5070;
+      --cyan:#00d4ff;--cdim:rgba(0,212,255,0.08);--green:#00e676;
+      --amber:#ffab40;--red:#ff5252;--purple:#a78bfa;--radius:6px;
+      --fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+    }
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--t1);font-family:var(--fb);font-size:16px;line-height:1.6;overflow-x:hidden}
+
+    /* NAV */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:60px;background:rgba(6,9,15,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+    .nl{font-family:var(--fd);font-size:20px;font-weight:800;color:var(--t1);letter-spacing:-0.5px;text-decoration:none}
+    .nl span{color:var(--cyan)}
+    .nlinks{display:flex;gap:28px;list-style:none}
+    .nlinks a{color:var(--t2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+    .nlinks a:hover{color:var(--t1)}
+    .nctas{display:flex;gap:10px;align-items:center}
+    .bg{background:none;border:1px solid var(--border2);color:var(--t2);padding:7px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .2s;font-family:var(--fb)}
+    .bg:hover{border-color:var(--t2);color:var(--t1)}
+    .bp{background:var(--cyan);color:#000;border:none;padding:8px 18px;border-radius:var(--radius);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;font-family:var(--fb);transition:opacity .2s}
+    .bp:hover{opacity:.85}
+
+    /* HERO */
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 60px;position:relative;overflow:hidden}
+    .hglow{position:absolute;top:10%;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(ellipse at center,rgba(0,212,255,0.08) 0%,transparent 70%);pointer-events:none}
+    .hbadge{display:inline-flex;align-items:center;gap:6px;background:var(--cdim);border:1px solid rgba(0,212,255,0.2);border-radius:99px;padding:5px 14px;font-size:12px;color:var(--cyan);font-weight:600;letter-spacing:.5px;margin-bottom:28px;text-transform:uppercase}
+    .hero h1{font-family:var(--fd);font-size:clamp(42px,7vw,84px);font-weight:800;line-height:1.04;letter-spacing:-2px;color:var(--t1);max-width:880px;margin-bottom:20px}
+    .hero h1 em{font-style:normal;color:var(--cyan)}
+    .hsub{font-size:clamp(15px,2vw,18px);color:var(--t2);max-width:580px;margin-bottom:40px;font-weight:300}
+    .hctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:56px}
+    .bh{background:var(--cyan);color:#000;border:none;padding:14px 28px;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;font-family:var(--fb);transition:opacity .2s}
+    .bh:hover{opacity:.85}
+    .bhg{background:none;border:1px solid var(--border2);color:var(--t2);padding:14px 28px;border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;font-family:var(--fb);transition:all .2s}
+    .bhg:hover{border-color:var(--t2);color:var(--t1)}
+
+    /* STATS */
+    .stats{display:flex;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;max-width:800px;width:100%;margin:0 auto}
+    .si{flex:1;min-width:130px;padding:16px 20px;border-right:1px solid var(--border);text-align:center}
+    .si:last-child{border-right:none}
+    .sv{font-family:var(--fm);font-size:20px;font-weight:500;color:var(--t1);display:block}
+    .sv.c{color:var(--cyan)} .sv.g{color:var(--green)}
+    .sl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px;display:block}
+
+    /* HERO IMAGE */
+    .hero-img-wrap{width:100%;max-width:480px;margin:64px auto 0;position:relative}
+    .hero-img-wrap img{width:100%;border-radius:24px;box-shadow:0 60px 140px rgba(0,212,255,0.15),0 0 0 1px rgba(0,212,255,0.08)}
+
+    /* DIVIDER */
+    .div{width:100%;height:1px;background:var(--border)}
+
+    /* SECTION BASE */
+    section{padding:90px 24px;max-width:1100px;margin:0 auto}
+    .sb{font-size:11px;font-weight:600;color:var(--cyan);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px}
+    section h2{font-family:var(--fd);font-size:clamp(28px,4vw,48px);font-weight:800;letter-spacing:-1px;color:var(--t1);margin-bottom:14px;max-width:640px}
+    section h2 em{font-style:normal;color:var(--cyan)}
+    .ss{font-size:16px;color:var(--t2);max-width:520px;margin-bottom:52px;font-weight:300;line-height:1.7}
+
+    /* SCREENSHOT FEATURE SECTIONS */
+    .sfeat{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;max-width:1100px;margin:0 auto;padding:90px 40px}
+    .sfeat.rev{direction:rtl}
+    .sfeat.rev>*{direction:ltr}
+    .sfeat-img{position:relative}
+    .sfeat-img img{width:100%;max-width:340px;border-radius:18px;box-shadow:0 40px 100px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.04);display:block;margin:0 auto}
+    .sfeat-copy .sb{margin-bottom:10px}
+    .sfeat-copy h2{max-width:100%;margin-bottom:14px;font-size:clamp(24px,3vw,38px)}
+    .sfeat-copy .ss{margin-bottom:28px}
+    .feat-bullets{display:flex;flex-direction:column;gap:10px}
+    .fb{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--t2);line-height:1.5}
+    .fb-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);flex-shrink:0;margin-top:6px}
+    .fb strong{color:var(--t1);font-weight:600}
+
+    /* INFOGRAPHIC SECTION */
+    .infographic-section{max-width:1100px;margin:0 auto;padding:90px 40px}
+    .infographic-section img{width:100%;border-radius:16px;box-shadow:0 40px 100px rgba(0,0,0,0.5)}
+
+    /* CHECKLIST */
+    .checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:0;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .ci{background:var(--card);padding:14px 18px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--t2);transition:all .15s}
+    .ci:hover{background:var(--surface);color:var(--t1)}
+    .cd{width:6px;height:6px;border-radius:50%;background:var(--cyan);flex-shrink:0}
+
+    /* PRIVACY GRID */
+    .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    .pc{background:var(--card);padding:24px;transition:background .15s}
+    .pc:hover{background:var(--surface)}
+    .pi{font-size:22px;margin-bottom:10px;display:block}
+    .pt{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--t1);margin-bottom:6px}
+    .pd{font-size:13px;color:var(--t2);line-height:1.6}
+
+    /* STEPS */
+    .steps{display:flex;flex-direction:column}
+    .step{display:grid;grid-template-columns:60px 1fr;gap:24px;padding:28px 0;border-bottom:1px solid var(--border);align-items:start}
+    .step:last-child{border-bottom:none}
+    .sn{font-family:var(--fm);font-size:12px;font-weight:500;color:var(--cyan);background:var(--cdim);border:1px solid rgba(0,212,255,0.2);border-radius:6px;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
+    .st{font-family:var(--fd);font-size:17px;font-weight:700;color:var(--t1);margin-bottom:6px}
+    .sd{font-size:14px;color:var(--t2);line-height:1.65}
+
+    /* FAQ */
+    .fi{border-bottom:1px solid var(--border)}
+    .fq{width:100%;background:none;border:none;color:var(--t1);font-family:var(--fb);font-size:15px;font-weight:500;padding:20px 0;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px}
+    .fq:hover{color:var(--cyan)}
+    .fc{color:var(--t3);font-size:18px;flex-shrink:0;transition:transform .2s}
+    .fi.open .fc{transform:rotate(180deg)}
+    .fa{font-size:14px;color:var(--t2);line-height:1.7;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s}
+    .fi.open .fa{max-height:220px;padding-bottom:20px}
+
+    /* CTA */
+    .cta{text-align:center;padding:100px 24px;position:relative;overflow:hidden}
+    .ctag{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse at bottom,rgba(0,212,255,0.1) 0%,transparent 70%);pointer-events:none}
+    .cta h2{font-family:var(--fd);font-size:clamp(32px,5vw,58px);font-weight:800;letter-spacing:-1.5px;color:var(--t1);margin:0 auto 14px;max-width:600px}
+    .cta p{font-size:16px;color:var(--t2);margin-bottom:36px;font-weight:300}
+
+    /* FOOTER */
+    footer{border-top:1px solid var(--border);padding:28px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+    .flo{font-family:var(--fd);font-size:16px;font-weight:800;color:var(--t1)}
+    .flo span{color:var(--cyan)}
+    .fli{display:flex;gap:24px;flex-wrap:wrap}
+    .fli a{font-size:13px;color:var(--t3);text-decoration:none;transition:color .2s}
+    .fli a:hover{color:var(--t1)}
+    .fco{font-size:12px;color:var(--t3)}
+
+    @media(max-width:768px){
+      nav{padding:0 20px}
+      .nlinks{display:none}
+      .sfeat,.sfeat.rev{grid-template-columns:1fr;direction:ltr}
+      .sfeat-img img{max-width:260px}
+      .infographic-section{padding:60px 20px}
+      footer{flex-direction:column;text-align:center}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="nl">ledgr<span>.</span></a>
+  <ul class="nlinks">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#privacy">Privacy</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <div class="nctas">
+    <a href="https://ledgr-eight-zeta.vercel.app?demo=true" class="bg">Try Demo</a>
+    <a href="https://ledgr-eight-zeta.vercel.app" class="bp">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hglow"></div>
+  <div class="hbadge">No ads &middot; No upsells &middot; No engagement tricks</div>
+  <h1>Your finances,<br><em>finally understood.</em></h1>
+  <p class="hsub">Ledgr connects to your bank, categorizes every transaction automatically, scores your financial health, and delivers AI-powered insights &mdash; all in a private, ad-free app built for people who actually want to know their numbers.</p>
+  <div class="hctas">
+    <a href="https://ledgr-eight-zeta.vercel.app" class="bh">Get Started Free &rarr;</a>
+    <a href="https://ledgr-eight-zeta.vercel.app?demo=true" class="bhg">Try the Demo</a>
+  </div>
+  <div class="stats">
+    <div class="si"><span class="sv c">Live</span><span class="sl">Bank Sync</span></div>
+    <div class="si"><span class="sv">27</span><span class="sl">Features</span></div>
+    <div class="si"><span class="sv g">0&ndash;100</span><span class="sl">Health Score</span></div>
+    <div class="si"><span class="sv">$0</span><span class="sl">To Get Started</span></div>
+    <div class="si"><span class="sv c">Zero</span><span class="sl">Ads or Upsells</span></div>
+  </div>
+  <div class="hero-img-wrap">
+    <img src="img-dashboard-hero.png" alt="Ledgr dashboard on iPhone showing spending breakdown and budget progress" loading="eager"/>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<!-- FEATURE SECTION 1: Dashboard -->
+<div class="sfeat" id="features">
+  <div class="sfeat-img">
+    <img src="img-dashboard-desk.png" alt="Ledgr dashboard showing monthly summary, spending breakdown chart, and budget progress"/>
+  </div>
+  <div class="sfeat-copy">
+    <div class="sb">&#x2756; Dashboard</div>
+    <h2>Everything at a glance, <em>every month.</em></h2>
+    <p class="ss">The Ledgr dashboard gives you a complete picture of your month &mdash; income, spending, net, and a visual breakdown by category &mdash; the moment you open the app.</p>
+    <div class="feat-bullets">
+      <div class="fb"><div class="fb-dot"></div><div><strong>Monthly summary bar</strong> &mdash; Income, spent, and net with days left in the current month</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Spending breakdown donut chart</strong> &mdash; Every category visualized by total spend, color-coded and ranked</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Budget progress bars</strong> &mdash; See every category limit, how much is used, and which ones are over</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Goals snapshot</strong> &mdash; Your savings goals and progress visible right from the dashboard</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Month picker</strong> &mdash; Navigate any past month to compare spending history</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<!-- FEATURE SECTION 2: Budgets -->
+<div class="sfeat rev">
+  <div class="sfeat-img">
+    <img src="img-budgets-hand.png" alt="Hand holding iPhone showing Ledgr Budget Categories page with overspent and in-progress categories"/>
+  </div>
+  <div class="sfeat-copy">
+    <div class="sb">&#x1F4CA; Budgeting</div>
+    <h2>Smart budgets. <em>Real accountability.</em></h2>
+    <p class="ss">Set monthly limits per category and Ledgr tracks every dollar in real time. Overspent categories are clearly flagged &mdash; no surprises at the end of the month.</p>
+    <div class="feat-bullets">
+      <div class="fb"><div class="fb-dot"></div><div><strong>Budget creation &amp; tracking</strong> &mdash; Set monthly limits per category with visual progress bars</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Overspent alerts</strong> &mdash; Categories over their limit are clearly flagged in red with exact overage amounts</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Budget progress monitoring</strong> &mdash; A 12-month adherence heatmap reveals chronic spending patterns you'd miss month-to-month</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>AI budget optimization</strong> &mdash; Let Claude analyze your spending and suggest smarter limits based on your history</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<!-- FEATURE SECTION 3: Analytics -->
+<div class="sfeat">
+  <div class="sfeat-img">
+    <img src="img-analytics-hand.png" alt="Hand holding iPhone showing Ledgr Analytics page with spending pace chart and top merchants"/>
+  </div>
+  <div class="sfeat-copy">
+    <div class="sb">&#x2756; Analytics</div>
+    <h2>Deeper insights. <em>Smarter decisions.</em></h2>
+    <p class="ss">Five analytics tabs give you a complete view of your financial life &mdash; from spending pace and merchant trends to AI-generated summaries and goal tracking.</p>
+    <div class="feat-bullets">
+      <div class="fb"><div class="fb-dot"></div><div><strong>Spending pace</strong> &mdash; Track cumulative spend day-by-day vs. last month. Know if you're running hot before the month ends</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Top merchants</strong> &mdash; Ranked by total spend with count, so you know exactly where your money actually goes</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Spending by day of week</strong> &mdash; Discover which days you spend the most and why</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>Category trends</strong> &mdash; 3-month momentum per category, flagging what's rising and what's improving</div></div>
+      <div class="fb"><div class="fb-dot"></div><div><strong>AI Financial Summary</strong> &mdash; Claude analyzes your full picture and surfaces the one thing to do this month</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="div"></div>
+
+<!-- NEW IN LEDGR INFOGRAPHIC -->
+<div class="infographic-section">
+  <div class="sb" style="text-align:center;margin-bottom:20px">&#x2756; See It All</div>
+  <img src="img-new-in-ledgr.png" alt="Ledgr feature overview showing recurring charges, AI insights, analytics, themes, financial health score, and budget control"/>
+</div>
+
+<div class="div"></div>
+
+<!-- FULL CHECKLIST -->
+<section>
+  <div class="sb">&#x2756; Complete Feature List</div>
+  <h2>Everything <em>included.</em></h2>
+  <p class="ss">All 27 features ship in the base app. No premium tier. No gated features. No upsells ever.</p>
+  <div class="checklist">
+    <div class="ci"><div class="cd"></div>Bank sync via Plaid</div>
+    <div class="ci"><div class="cd"></div>Transaction tracking</div>
+    <div class="ci"><div class="cd"></div>Automatic categorization</div>
+    <div class="ci"><div class="cd"></div>Manual category editing</div>
+    <div class="ci"><div class="cd"></div>Budget creation and tracking</div>
+    <div class="ci"><div class="cd"></div>Budget progress monitoring</div>
+    <div class="ci"><div class="cd"></div>Overspending alerts</div>
+    <div class="ci"><div class="cd"></div>Spending breakdowns by category</div>
+    <div class="ci"><div class="cd"></div>Spending pace analytics</div>
+    <div class="ci"><div class="cd"></div>Merchant insights</div>
+    <div class="ci"><div class="cd"></div>Recurring charge detection</div>
+    <div class="ci"><div class="cd"></div>Financial health score</div>
+    <div class="ci"><div class="cd"></div>AI insights &amp; recommendations</div>
+    <div class="ci"><div class="cd"></div>Goal suggestions</div>
+    <div class="ci"><div class="cd"></div>Action item / to-do tracking</div>
+    <div class="ci"><div class="cd"></div>Goal tracking</div>
+    <div class="ci"><div class="cd"></div>Net income / spending summary</div>
+    <div class="ci"><div class="cd"></div>CSV import</div>
+    <div class="ci"><div class="cd"></div>Duplicate transaction scanning</div>
+    <div class="ci"><div class="cd"></div>Review-needed workflow</div>
+    <div class="ci"><div class="cd"></div>Customizable analytics views</div>
+    <div class="ci"><div class="cd"></div>Themes &amp; appearance customization</div>
+    <div class="ci"><div class="cd"></div>Font customization</div>
+    <div class="ci"><div class="cd"></div>App-wide animations</div>
+    <div class="ci"><div class="cd"></div>Dashboard analytics</div>
+    <div class="ci"><div class="cd"></div>Privacy-first experience</div>
+    <div class="ci"><div class="cd"></div>No ads, no upsells, no engagement tricks</div>
+  </div>
+</section>
+
+<div class="div"></div>
+
+<!-- PRIVACY -->
+<section id="privacy">
+  <div class="sb">&#x2756; Privacy First</div>
+  <h2>No ads. No upsells.<br><em>No engagement tricks.</em></h2>
+  <p class="ss">Ledgr is built on one principle: your financial data is yours. We don't sell it, we don't use it to target you, and we don't build features to keep you hooked.</p>
+  <div class="pgrid">
+    <div class="pc"><span class="pi">&#x1F512;</span><div class="pt">Read-Only Bank Access</div><p class="pd">Ledgr connects via Plaid's read-only API. It cannot move money, initiate payments, or touch your accounts in any way.</p></div>
+    <div class="pc"><span class="pi">&#x1F511;</span><div class="pt">No Passwords Stored</div><p class="pd">Your banking credentials never touch Ledgr's servers. Plaid handles authentication directly with your bank.</p></div>
+    <div class="pc"><span class="pi">&#x1F6E1;&#xFE0F;</span><div class="pt">Encrypted at Rest</div><p class="pd">All data is encrypted with row-level security. No other user can ever access your account or see your transactions.</p></div>
+    <div class="pc"><span class="pi">&#x1F6AB;</span><div class="pt">Zero Ads. Forever.</div><p class="pd">Your data is never sold, shared with advertisers, or used to target you. No exceptions and no asterisks.</p></div>
+    <div class="pc"><span class="pi">&#x1F916;</span><div class="pt">Your AI Key</div><p class="pd">AI features use your own Claude API key. Requests go from your browser directly to Anthropic &mdash; Ledgr never proxies your data for AI.</p></div>
+    <div class="pc"><span class="pi">&#x1F9D8;</span><div class="pt">No Engagement Tricks</div><p class="pd">No streaks. No dark-pattern notifications. No infinite feed. Open it when you want. Close it when you're done.</p></div>
+  </div>
+</section>
+
+<div class="div"></div>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="sb">&#x2756; How It Works</div>
+  <h2>Up and running <em>in minutes.</em></h2>
+  <p class="ss">No spreadsheets. No exports. No complicated setup. Connect your bank and go.</p>
+  <div class="steps">
+    <div class="step"><div class="sn">01</div><div><div class="st">Create an Account</div><p class="sd">Sign up with your email. No credit card required. You're in the app in under 60 seconds.</p></div></div>
+    <div class="step"><div class="sn">02</div><div><div class="st">Connect Your Bank</div><p class="sd">Link checking, savings, or credit card accounts via Plaid. Read-only access &mdash; Ledgr never sees your credentials. Supports 12,000+ US institutions. Or import a CSV if you prefer.</p></div></div>
+    <div class="step"><div class="sn">03</div><div><div class="st">Transactions Sync Automatically</div><p class="sd">Your history pulls in immediately and is categorized using your rules. The more you use it, the smarter it gets.</p></div></div>
+    <div class="step"><div class="sn">04</div><div><div class="st">Set Budgets &amp; Goals</div><p class="sd">Define monthly spending limits per category. Create savings goals with deadlines &mdash; Ledgr calculates exactly how much to set aside each period to hit them on time.</p></div></div>
+    <div class="step"><div class="sn">05</div><div><div class="st">Get AI Insights (Optional)</div><p class="sd">Add your own Claude API key from Anthropic and generate a full personalized financial analysis any time &mdash; patterns, risks, wins, and one clear action for this month.</p></div></div>
+  </div>
+</section>
+
+<div class="div"></div>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="sb">&#x2756; FAQ</div>
+  <h2>Questions, <em>answered.</em></h2>
+  <p class="ss">The things people ask most before signing up.</p>
+  <div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">How does Ledgr connect to my bank?<span class="fc">&#x2304;</span></button><div class="fa">Ledgr uses Plaid &mdash; the same bank connectivity layer used by thousands of financial apps. You authenticate directly with your bank through Plaid's interface. Ledgr never sees your username or password. The connection is strictly read-only.</div></div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">Can Ledgr move money or make transactions?<span class="fc">&#x2304;</span></button><div class="fa">No. Ledgr uses read-only Plaid access. It can read your transaction history and balances, but it cannot initiate payments, transfers, or any action on your accounts whatsoever.</div></div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">What is the AI Financial Summary?<span class="fc">&#x2304;</span></button><div class="fa">Powered by Claude (Anthropic). You bring your own API key &mdash; aggregated financial data (totals, category breakdowns, trends) is sent directly from your browser to Anthropic's API. Raw transaction descriptions and account numbers are never included. Ledgr never proxies this data through its own servers.</div></div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">Which banks are supported?<span class="fc">&#x2304;</span></button><div class="fa">Any institution supported by Plaid &mdash; over 12,000 US banks and credit unions including Chase, Bank of America, Wells Fargo, Citi, Capital One, and most regional banks. If yours isn't listed, you can import transactions via CSV.</div></div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">Is Ledgr free?<span class="fc">&#x2304;</span></button><div class="fa">Ledgr is free to get started &mdash; create an account, link your bank, and access the full feature set. The AI Summary feature requires your own Claude API key from Anthropic. You pay Anthropic directly at their standard rates; Ledgr takes no cut.</div></div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">How does the Financial Health Score work?<span class="fc">&#x2304;</span></button><div class="fa">Your score is calculated across five factors: Budget Adherence (30 pts), Savings Rate (25 pts), Spending Trend (20 pts), Goal Progress (15 pts), and Cash Flow (10 pts). Each is evaluated from your live transaction data and updates automatically with every sync.</div></div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">Can I customize how the app looks?<span class="fc">&#x2304;</span></button><div class="fa">Yes. Ledgr ships with 12 color themes, 6 display font options, and 9 individual color pickers. Your preferences sync across devices via your account.</div></div>
+    <div class="fi"><button class="fq" onclick="tfaq(this)">My bank isn't supported by Plaid. Can I still use Ledgr?<span class="fc">&#x2304;</span></button><div class="fa">Yes. Export a CSV from your bank's website and import it directly into Ledgr. The importer auto-detects column headers, deduplicates against existing transactions, and runs your categorization rules on import automatically.</div></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta">
+  <div class="ctag"></div>
+  <h2>Start understanding your money today.</h2>
+  <p>Connect your bank in 60 seconds. No credit card. No ads. No nonsense.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="https://ledgr-eight-zeta.vercel.app" class="bh">Get Started Free &rarr;</a>
+    <a href="https://ledgr-eight-zeta.vercel.app?demo=true" class="bhg">Try the Demo</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="flo">ledgr<span>.</span></div>
+  <div class="fli">
+    <a href="#features">Features</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://ledgr-eight-zeta.vercel.app?demo=true">Try Demo</a>
+    <a href="https://ledgr-eight-zeta.vercel.app">App</a>
+  </div>
+  <div class="fco">&copy; 2026 Ledgr. All rights reserved.</div>
+</footer>
+
+<script>
+  function tfaq(btn){
+    const item=btn.parentElement;
+    const open=item.classList.contains('open');
+    document.querySelectorAll('.fi').forEach(el=>el.classList.remove('open'));
+    if(!open)item.classList.add('open');
+  }
+
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0) scale(1)';}
+    });
+  },{threshold:0.06});
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    // Hero stagger
+    document.querySelectorAll('.hero>*').forEach((el,i)=>{
+      el.style.opacity='0';el.style.transform='translateY(20px)';
+      el.style.transition=`opacity 0.65s ease ${i*.12}s,transform 0.65s ease ${i*.12}s`;
+      setTimeout(()=>{el.style.opacity='1';el.style.transform='translateY(0)';},60);
+    });
+    // Scroll reveals
+    document.querySelectorAll('.sfeat-img,.sfeat-copy,.ci,.pc,.step,.infographic-section img').forEach(el=>{
+      el.style.opacity='0';el.style.transform='translateY(16px) scale(0.99)';
+      el.style.transition='opacity 0.45s ease,transform 0.45s ease';
+      obs.observe(el);
+    });
+  });
+</script>
+</body>
 </html>

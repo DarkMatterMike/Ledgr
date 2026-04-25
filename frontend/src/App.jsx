@@ -948,104 +948,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
   const [supportSending, setSupportSending] = useState(false);
-  // CSV import state
-  const [csvImportOpen,    setCsvImportOpen]    = useState(false);
-  const [csvFile,          setCsvFile]          = useState(null);
-  const [csvHeaders,       setCsvHeaders]       = useState([]);
-  const [csvRows,          setCsvRows]          = useState([]);
-  const [csvMap,           setCsvMap]           = useState({ date:"", name:"", amount:"" });
-  const [csvAccountId,     setCsvAccountId]     = useState("");
-  const [csvStep,          setCsvStep]          = useState("upload"); // upload | map | preview
-  const [csvImporting,     setCsvImporting]     = useState(false);
-  const [csvResult,        setCsvResult]        = useState(null);
 
-  function parseCsvText(text) {
-    const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) return { headers: [], rows: [] };
-    // Handle quoted fields
-    function splitLine(line) {
-      const result = []; let cur = ""; let inQ = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') { inQ = !inQ; }
-        else if (ch === "," && !inQ) { result.push(cur.trim()); cur = ""; }
-        else cur += ch;
-      }
-      result.push(cur.trim());
-      return result;
-    }
-    const headers = splitLine(lines[0]);
-    const rows = lines.slice(1).map(l => {
-      const vals = splitLine(l);
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
-      return obj;
-    }).filter(r => Object.values(r).some(v => v));
-    return { headers, rows };
-  }
-
-  function autoDetectColumns(headers) {
-    const lower = headers.map(h => h.toLowerCase());
-    const find = (...terms) => headers[lower.findIndex(h => terms.some(t => h.includes(t)))] || "";
-    return {
-      date:   find("date", "posted", "time", "when"),
-      name:   find("description", "desc", "merchant", "name", "payee", "memo", "narrative"),
-      amount: find("amount", "debit", "credit", "sum", "value"),
-    };
-  }
-
-  function handleCsvFile(file) {
-    if (!file) return;
-    setCsvFile(file);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const { headers, rows } = parseCsvText(e.target.result);
-      setCsvHeaders(headers);
-      setCsvRows(rows);
-      setCsvMap(autoDetectColumns(headers));
-      setCsvStep("map");
-    };
-    reader.readAsText(file);
-  }
-
-  async function submitCsvImport() {
-    setCsvImporting(true);
-    setCsvResult(null);
-    try {
-      // Build normalized rows from mapped columns
-      const rows = csvRows.map(r => {
-        const rawAmt = (r[csvMap.amount] || "0").replace(/[,$\s]/g, "");
-        // Some banks use negative for debits, some use separate debit/credit cols
-        // Negate so expenses are negative (matching Ledgr convention)
-        const amt = parseFloat(rawAmt) || 0;
-        return { date: r[csvMap.date] || "", name: r[csvMap.name] || "", amount: -Math.abs(amt) };
-      }).filter(r => r.date && r.name && r.amount !== 0);
-
-      const res = await fetch(import.meta.env.VITE_API_URL + "/api/transactions/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + localStorage.getItem("ledgr_token") },
-        body: JSON.stringify({ rows, accountId: csvAccountId || null }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Import failed");
-      setCsvResult(data);
-      // Trigger a data refresh
-      if (data.imported > 0) {
-        showToast(`✓ Imported ${data.imported} transaction${data.imported===1?"":"s"}${data.skipped?" ("+data.skipped+" duplicates skipped)":""}`);
-        await doSync();
-      }
-    } catch(e) {
-      setCsvResult({ error: e.message });
-    } finally {
-      setCsvImporting(false);
-    }
-  }
-
-  function resetCsvImport() {
-    setCsvImportOpen(false); setCsvFile(null); setCsvHeaders([]); setCsvRows([]);
-    setCsvMap({ date:"", name:"", amount:"" }); setCsvAccountId("");
-    setCsvStep("upload"); setCsvImporting(false); setCsvResult(null);
-  }
 
   async function submitSupport() {
     if (!supportMessage.trim()) return;
@@ -2486,6 +2389,16 @@ function AppInner() {
 
   /* ── State ── */
   const [view,          setView]          = useState("dashboard");
+  // CSV import state
+  const [csvImportOpen,    setCsvImportOpen]    = useState(false);
+  const [csvFile,          setCsvFile]          = useState(null);
+  const [csvHeaders,       setCsvHeaders]       = useState([]);
+  const [csvRows,          setCsvRows]          = useState([]);
+  const [csvMap,           setCsvMap]           = useState({ date:"", name:"", amount:"" });
+  const [csvAccountId,     setCsvAccountId]     = useState("");
+  const [csvStep,          setCsvStep]          = useState("upload");
+  const [csvImporting,     setCsvImporting]     = useState(false);
+  const [csvResult,        setCsvResult]        = useState(null);
   const [drawerOpen,    setDrawerOpen]    = useState(false);
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [dismissedNotifs, setDismissedNotifs] = useState(new Set()); // Set of notif ids dismissed this session
@@ -4491,6 +4404,95 @@ function AppInner() {
   );
 
   /* ── Transactions ── */
+  function parseCsvText(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return { headers: [], rows: [] };
+    // Handle quoted fields
+    function splitLine(line) {
+      const result = []; let cur = ""; let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === "," && !inQ) { result.push(cur.trim()); cur = ""; }
+        else cur += ch;
+      }
+      result.push(cur.trim());
+      return result;
+    }
+    const headers = splitLine(lines[0]);
+    const rows = lines.slice(1).map(l => {
+      const vals = splitLine(l);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = vals[i] ?? ""; });
+      return obj;
+    }).filter(r => Object.values(r).some(v => v));
+    return { headers, rows };
+  }
+
+  function autoDetectColumns(headers) {
+    const lower = headers.map(h => h.toLowerCase());
+    const find = (...terms) => headers[lower.findIndex(h => terms.some(t => h.includes(t)))] || "";
+    return {
+      date:   find("date", "posted", "time", "when"),
+      name:   find("description", "desc", "merchant", "name", "payee", "memo", "narrative"),
+      amount: find("amount", "debit", "credit", "sum", "value"),
+    };
+  }
+
+  function handleCsvFile(file) {
+    if (!file) return;
+    setCsvFile(file);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const { headers, rows } = parseCsvText(e.target.result);
+      setCsvHeaders(headers);
+      setCsvRows(rows);
+      setCsvMap(autoDetectColumns(headers));
+      setCsvStep("map");
+    };
+    reader.readAsText(file);
+  }
+
+  async function submitCsvImport() {
+    setCsvImporting(true);
+    setCsvResult(null);
+    try {
+      // Build normalized rows from mapped columns
+      const rows = csvRows.map(r => {
+        const rawAmt = (r[csvMap.amount] || "0").replace(/[,$\s]/g, "");
+        // Some banks use negative for debits, some use separate debit/credit cols
+        // Negate so expenses are negative (matching Ledgr convention)
+        const amt = parseFloat(rawAmt) || 0;
+        return { date: r[csvMap.date] || "", name: r[csvMap.name] || "", amount: -Math.abs(amt) };
+      }).filter(r => r.date && r.name && r.amount !== 0);
+
+      const res = await fetch(import.meta.env.VITE_API_URL + "/api/transactions/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + localStorage.getItem("ledgr_token") },
+        body: JSON.stringify({ rows, accountId: csvAccountId || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Import failed");
+      setCsvResult(data);
+      // Trigger a data refresh
+      if (data.imported > 0) {
+        showToast(`✓ Imported ${data.imported} transaction${data.imported===1?"":"s"}${data.skipped?" ("+data.skipped+" duplicates skipped)":""}`);
+        await doSync();
+      }
+    } catch(e) {
+      setCsvResult({ error: e.message });
+    } finally {
+      setCsvImporting(false);
+    }
+  }
+
+  function resetCsvImport() {
+    setCsvImportOpen(false); setCsvFile(null); setCsvHeaders([]); setCsvRows([]);
+    setCsvMap({ date:"", name:"", amount:"" }); setCsvAccountId("");
+    setCsvStep("upload"); setCsvImporting(false); setCsvResult(null);
+  }
+
+
   const Transactions = (()=>{
     // Group filtered transactions by date
     const grouped = filteredTxns.reduce((acc, t) => {

@@ -36,7 +36,9 @@ input, select, textarea, button { font-family: var(--font-body); }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
-/* ── Prevent iOS Safari auto-zoom on input focus ── */
-input, textarea, select {
-  font-size: 16px !important;
+/* Prevent iOS Safari auto-zoom on input focus */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
 }

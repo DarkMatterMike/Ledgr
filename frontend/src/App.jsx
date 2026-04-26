@@ -926,7 +926,7 @@ function AuthGate({ onAuth }) {
 export default function App() {
   // Wake up the Railway backend immediately on load to minimize cold start delay
   useEffect(() => {
-    fetch(import.meta.env.VITE_API_URL + "/api/health").catch(() => {});
+    fetch((import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app") + "/api/health").catch(() => {});
   }, []);
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());

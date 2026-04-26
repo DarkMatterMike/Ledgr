@@ -801,7 +801,17 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
 
   if (removed.length > 0) {
     const removeIds = removed.map(r => r.transaction_id);
-    await removeTransactionsByIds(userId, removeIds);
+    // Only delete transactions that haven't been reviewed or user-categorized
+    // This prevents Plaid cursor resets from wiping user data
+    await pool.query(
+      `DELETE FROM transactions 
+       WHERE user_id = $1 
+       AND id = ANY($2::text[])
+       AND user_categorized = false
+       AND reviewed = false
+       AND notes IS NULL`,
+      [userId, removeIds]
+    );
     removeIds.forEach(id => existingIds.delete(id));
   }
 

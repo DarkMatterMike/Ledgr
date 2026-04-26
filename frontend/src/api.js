@@ -12,6 +12,17 @@ export function getToken()  { return localStorage.getItem(TOKEN_KEY) || ""; }
 export function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
 export function clearToken(){ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }
 
+export async function logout() {
+  try {
+    // Tell server to invalidate the token (increments token_version)
+    await request("/api/auth/logout", { method: "POST" });
+  } catch (e) {
+    // Ignore errors — clear locally regardless
+  } finally {
+    clearToken();
+  }
+}
+
 export function getStoredUser() {
   try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; }
 }

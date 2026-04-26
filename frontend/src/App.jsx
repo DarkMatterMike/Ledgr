@@ -924,6 +924,10 @@ function AuthGate({ onAuth }) {
 }
 
 export default function App() {
+  // Wake up the Railway backend immediately on load to minimize cold start delay
+  useEffect(() => {
+    fetch(import.meta.env.VITE_API_URL + "/api/health").catch(() => {});
+  }, []);
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());
 
@@ -1364,7 +1368,7 @@ function Paywall({ onUpgrade }) {
       </div>
 
       <button
-        onClick={() => { api.clearToken(); window.location.reload(); }}
+        onClick={() => { api.logout().then(() => window.location.reload()); }}
         style={{ fontSize:12, color:"var(--t3)", background:"none", border:"none", cursor:"pointer" }}>
         Sign out
       </button>
@@ -1897,7 +1901,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       {/* Sign out */}
       <SettingsSection title="Account">
         <button style={{ ...S.btn("danger"), width:"100%" }}
-          onClick={() => { api.clearToken(); window.location.reload(); }}>
+          onClick={() => { api.logout().then(() => window.location.reload()); }}>
           Sign Out
         </button>
       </SettingsSection>

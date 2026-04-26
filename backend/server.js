@@ -59,6 +59,7 @@ const {
   PLAID_ENV,
   syncItemTransactions,
   applySyncResultsToDB,
+  syncItemTransactions,
 } = require("./db");
 
 /* ── Config ──────────────────────────────────────────────────────── */
@@ -85,7 +86,7 @@ if (!STRIPE_WEBHOOK_SECRET)         console.warn("⚠  STRIPE_WEBHOOK_SECRET not
 if (!process.env.RESEND_API_KEY)    console.warn("⚠  RESEND_API_KEY not set");
 
 const app = express();
-app.set("trust proxy", 1); // Required for rate limiting behind Railway/Vercel proxy
+app.set("trust proxy", 1);
 
 const IS_PROD = process.env.NODE_ENV === "production";
 
@@ -240,13 +241,17 @@ app.use((req, res, next) => {
 
 /* ── JWT auth middleware ──────────────────────────────────────────── */
 async function requireAuth(req, res, next) {
-  if (!JWT_SECRET) return next();
+  if (!JWT_SECRET) return res.status(500).json({ error: "Server misconfigured — JWT_SECRET not set" });
   const auth = req.headers["authorization"];
   if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
   try {
     const payload = jwt.verify(auth.slice(7), JWT_SECRET);
     const user    = await getUserById(payload.userId);
     if (!user) return res.status(401).json({ error: "User not found" });
+    // Token version check — invalidates tokens issued before logout/password change
+    if ((payload.tv ?? 0) < (user.token_version ?? 0)) {
+      return res.status(401).json({ error: "Token revoked — please log in again" });
+    }
     req.user = user;
     next();
   } catch {
@@ -311,93 +316,6 @@ app.get("/api/health/users", async (_req, res) => {
   } catch (err) { serverError(res, err); }
 });
 
-
-// POST /api/transactions/import — bulk import CSV transactions
-// Accepts an array of pre-parsed transaction objects from the frontend.
-// Deduplicates via fingerprint, applies user rules for categorization, then upserts.
-const importLimiter = rateLimit({ windowMs: 60*60*1000, max: 10, message: { error: "Too many import requests." } });
-app.post("/api/transactions/import", importLimiter, async (req, res) => {
-  try {
-    const uid = req.user.id;
-    const { rows, accountId } = req.body;
-    if (!Array.isArray(rows) || rows.length === 0)
-      return res.status(400).json({ error: "No rows provided" });
-    if (rows.length > 5000)
-      return res.status(400).json({ error: "Maximum 5,000 rows per import" });
-
-    // Load user rules for auto-categorization
-    const rules = await getRules(uid);
-
-    // Normalize and dedup
-    const crypto = require("crypto");
-    const seen = new Set();
-    const toInsert = [];
-
-    for (const row of rows) {
-      const date   = row.date   || "";
-      const name   = (row.name  || row.description || row.merchant || "").trim();
-      const amount = parseFloat(row.amount);
-      if (!date || !name || isNaN(amount)) continue;
-
-      // Compute fingerprint for dedup
-      const rawName = name.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-      const fp = `${date}__${amount}__${rawName}`;
-      if (seen.has(fp)) continue;
-      seen.add(fp);
-
-      // Apply rules for category
-      let categoryId = row.categoryId || null;
-      let userCategorized = false;
-      if (!categoryId && rules.length) {
-        const nameLower = name.toLowerCase();
-        for (const rule of rules) {
-          if (!rule.enabled) continue;
-          const pattern = rule.pattern.toLowerCase();
-          const match = rule.matchType === "startsWith" ? nameLower.startsWith(pattern)
-                      : rule.matchType === "endsWith"   ? nameLower.endsWith(pattern)
-                      : rule.matchType === "exact"      ? nameLower === pattern
-                      : nameLower.includes(pattern);
-          if (match) { categoryId = rule.categoryId; userCategorized = true; break; }
-        }
-      }
-
-      const id = "csv_" + crypto.randomBytes(10).toString("hex");
-      toInsert.push({
-        id,
-        name,
-        merchant: name,
-        date,
-        amount,
-        accountId:       accountId || null,
-        categoryId,
-        userCategorized,
-        type:            amount < 0 ? "expense" : "income",
-        pending:         false,
-        reviewed:        false,
-        fingerprint:     fp,
-      });
-    }
-
-    if (toInsert.length === 0)
-      return res.status(400).json({ error: "No valid rows after parsing" });
-
-    // Check which fingerprints already exist to avoid true duplicates
-    const { rows: existingRows } = await pool.query(
-      `SELECT fingerprint FROM transactions WHERE user_id = $1 AND fingerprint = ANY($2::text[])`,
-      [uid, toInsert.map(t => t.fingerprint)]
-    );
-    const existingFps = new Set(existingRows.map(r => r.fingerprint));
-    const newRows = toInsert.filter(t => !existingFps.has(t.fingerprint));
-
-    if (newRows.length === 0)
-      return res.json({ imported: 0, skipped: toInsert.length, message: "All rows already exist" });
-
-    await upsertTransactionsBatch(uid, newRows);
-    console.log(`[import] User ${uid} imported ${newRows.length} transactions (${toInsert.length - newRows.length} skipped as duplicates)`);
-    res.json({ imported: newRows.length, skipped: toInsert.length - newRows.length });
-  } catch (err) { serverError(res, err); }
-});
-
 // POST /api/support — sends a support message from a logged-in user to the owner inbox.
 // Rate-limited to 5 messages per hour to prevent spam.
 const supportLimiter = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: "Too many support requests. Please try again later." } });
@@ -437,7 +355,7 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
   try {
     if (await getUserByEmail(email)) return res.status(409).json({ error: "Email already registered" });
     const user  = await createUser(email, password);
-    const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
+    const token = jwt.sign({ userId: user.id, email: user.email, role: user.role, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: "30d" });
     // Send welcome email (non-blocking)
     if (user.role !== "owner") emailWelcome(user.email).catch(() => {});
     res.json({ token, user: { id: user.id, email: user.email, name: user.name || null, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
@@ -481,12 +399,23 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
       [Date.now(), user.id]
     );
 
-    const token = jwt.sign({ userId: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "30d" });
+    const token = jwt.sign({ userId: user.id, email: user.email, role: user.role, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token, user: { id: user.id, email: user.email, name: user.name || null, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
   } catch (err) {
     console.error("Login error:", err.message);
     res.status(500).json({ error: IS_PROD ? "Login failed" : err.message });
   }
+});
+
+/* ── Logout — invalidates all existing tokens ────────────────────── */
+app.post("/api/auth/logout", requireAuth, async (req, res) => {
+  try {
+    await pool.query(
+      "UPDATE users SET token_version = COALESCE(token_version, 0) + 1 WHERE id = $1",
+      [req.user.id]
+    );
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
 });
 
 /* ── Forgot / reset password (public) ────────────────────────────── */
@@ -1071,25 +1000,48 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
 // Plaid webhook — handles token expiry and login required notifications
 app.post("/api/plaid/webhook", express.json(), async (req, res) => {
   try {
+    // Verify the webhook came from Plaid using the verification header
+    const plaidVerificationHeader = req.headers["plaid-verification"];
+    if (plaidVerificationHeader && process.env.PLAID_WEBHOOK_SECRET) {
+      try {
+        await plaidClient.webhookVerificationKeyGet({ key_id: plaidVerificationHeader });
+      } catch (verifyErr) {
+        console.error("Plaid webhook verification failed:", verifyErr.message);
+        return res.status(401).json({ error: "Webhook verification failed" });
+      }
+    }
+
     const { webhook_type, webhook_code, item_id, error: plaidError } = req.body;
     console.log("Plaid webhook:", webhook_type, webhook_code, item_id);
 
+    // Auto-sync when Plaid signals new transactions are available
+    if (webhook_type === "TRANSACTIONS" && [
+      "SYNC_UPDATES_AVAILABLE", "DEFAULT_UPDATE",
+      "INITIAL_UPDATE", "HISTORICAL_UPDATE"
+    ].includes(webhook_code)) {
+      try {
+        const { rows } = await pool.query(
+          "SELECT user_id FROM plaid_items WHERE item_id = $1", [item_id]
+        );
+        if (rows.length > 0) {
+          const uid = rows[0].user_id;
+          const result = await syncItemTransactions(uid, item_id);
+          await applySyncResultsToDB(uid, result.added, result.modified, result.removed);
+          console.log(`Webhook auto-sync ${item_id}: +${result.added.length} ~${result.modified.length} -${result.removed.length}`);
+        }
+      } catch (e) {
+        console.error(`Webhook auto-sync failed for ${item_id}:`, e.message);
+      }
+    }
+
     if (webhook_type === "ITEM") {
       if (webhook_code === "ERROR" && plaidError?.error_code === "ITEM_LOGIN_REQUIRED") {
-        // Mark item as needing re-auth in DB so frontend can show the alert
-        await pool.query(
-          "UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1",
-          [item_id]
-        );
+        await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item_id]);
         console.log(`Item ${item_id} marked needs_reauth via webhook`);
       }
-      if (webhook_code === "PENDING_EXPIRATION") {
-        // Token expiring within ~7 days — mark for proactive warning
-        await pool.query(
-          "UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1",
-          [item_id]
-        );
-        console.log(`Item ${item_id} PENDING_EXPIRATION — marked needs_reauth`);
+      if (["PENDING_EXPIRATION", "USER_PERMISSION_REVOKED", "ACCESS_CONSENT_EXPIRING", "ACCESS_CONSENT_EXPIRED"].includes(webhook_code)) {
+        await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item_id]);
+        console.log(`Item ${item_id} ${webhook_code} — marked needs_reauth`);
       }
     }
     res.json({ ok: true });

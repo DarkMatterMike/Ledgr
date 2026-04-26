@@ -53,9 +53,13 @@ function decrypt(text) {
 }
 
 /* ── VAPID ────────────────────────────────────────────────────────── */
-const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || "FApjnt7VlZhG7Bw1t_wYv9BksoW0wFwz97bqGq-vSew";
-webpush.setVapidDetails("mailto:admin@ledgr.app", VAPID_PUBLIC, VAPID_PRIVATE);
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails("mailto:admin@ledgr.app", VAPID_PUBLIC, VAPID_PRIVATE);
+} else {
+  console.warn("⚠  VAPID keys not set — push notifications disabled");
+}
 
 /* ── PostgreSQL ───────────────────────────────────────────────────── */
 const pool = new Pool({
@@ -160,6 +164,7 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_user_acct   ON transactions(user_id, account_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_start TEXT`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS mask TEXT`);
   // ── Accounts table (replaces the JSON blob in app_data) ───────────
@@ -782,6 +787,11 @@ async function syncItemTransactions(userId, targetItemId = null) {
         if (code === "ITEM_LOGIN_REQUIRED" || code === "ITEM_NOT_FOUND") {
           await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item.item_id]);
           console.error(`Item ${item.item_id} needs re-auth (${code})`);
+        } else if (code === "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION") {
+          await updateCursor(item.item_id, null);
+          console.warn(`Item ${item.item_id} cursor reset due to mutation during pagination`);
+        } else if (code === "PRODUCT_NOT_READY") {
+          console.log(`Item ${item.item_id} transactions not ready yet`);
         } else {
           console.error(`sync error for item ${item.item_id}:`, err.response?.data || err.message);
         }
@@ -801,11 +811,11 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
 
   if (removed.length > 0) {
     const removeIds = removed.map(r => r.transaction_id);
-    // Only delete transactions that haven't been reviewed or user-categorized
-    // This prevents Plaid cursor resets from wiping user data
+    // Only delete transactions the user hasn't touched — prevents Plaid cursor
+    // resets from wiping user-categorized or reviewed transactions
     await pool.query(
-      `DELETE FROM transactions 
-       WHERE user_id = $1 
+      `DELETE FROM transactions
+       WHERE user_id = $1
        AND id = ANY($2::text[])
        AND user_categorized = false
        AND reviewed = false
@@ -848,8 +858,52 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
       return true;
     });
 
-  for (const t of newTxns) {
-    await upsertTransactionRow(userId, t);
+  // Bulk insert all new transactions in a single query for performance
+  if (newTxns.length > 0) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      // Build bulk INSERT with all rows
+      const vals = [];
+      const rows = newTxns.map((t, i) => {
+        const fp = t.fingerprint || computeFingerprint(t);
+        const base = i * 26;
+        vals.push(
+          t.id, userId,
+          t.plaidAccountId || null, t.plaidItemId || null, t.accountId || null,
+          t.date, t.authorized_date || null,
+          t.merchant || null, t.name || "",
+          t.amount,
+          t.categoryId || null, t.userCategorized || false,
+          t.pending || false, t.type || (t.amount < 0 ? "expense" : "income"),
+          t.recurring || false, t.recurringDay || null,
+          t.recurringFreq || null, t.recurringStart || null,
+          t.notes || null, t.reviewed || false,
+          t.currency || null, t.logo_url || null,
+          t.institution || null, fp,
+          JSON.stringify({}), Date.now()
+        );
+        return `($${base+1},$${base+2},$${base+3},$${base+4},$${base+5},$${base+6},$${base+7},$${base+8},$${base+9},$${base+10},$${base+11},$${base+12},$${base+13},$${base+14},$${base+15},$${base+16},$${base+17},$${base+18},$${base+19},$${base+20},$${base+21},$${base+22},$${base+23},$${base+24},$${base+25},$${base+26})`;
+      });
+      await client.query(`
+        INSERT INTO transactions (
+          id, user_id, plaid_account_id, plaid_item_id, account_id,
+          date, authorized_date, merchant, name, amount,
+          category_id, user_categorized, pending, type,
+          recurring, recurring_day, recurring_freq, recurring_start, notes, reviewed,
+          currency, logo_url, institution, fingerprint, metadata, updated_at
+        ) VALUES ${rows.join(",")}
+        ON CONFLICT (id, user_id) DO NOTHING`,
+        vals
+      );
+      await client.query("COMMIT");
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.error("Bulk insert failed, falling back to individual upserts:", e.message);
+      for (const t of newTxns) await upsertTransactionRow(userId, t);
+    } finally {
+      client.release();
+    }
   }
 
   // Refresh account balances — writes to accounts table, never overwrites user names

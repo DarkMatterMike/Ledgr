@@ -59,7 +59,6 @@ const {
   PLAID_ENV,
   syncItemTransactions,
   applySyncResultsToDB,
-  syncItemTransactions,
 } = require("./db");
 
 /* ── Config ──────────────────────────────────────────────────────── */

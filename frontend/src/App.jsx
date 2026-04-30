@@ -1773,6 +1773,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             const root = document.documentElement;
             ["--bg","--surface","--card","--border","--border2","--cyan","--cyan-dim","--t1","--t2","--t3","--font-disp"].forEach(v => root.style.removeProperty(v));
             document.body.style.removeProperty("background");
+            document.body.style.removeProperty("background-image");
+            document.body.style.removeProperty("background-color");
             try { localStorage.removeItem("ledgr_theme"); } catch {}
             onSaveTheme({});
           }
@@ -1802,6 +1804,64 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Background Image */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Background Image</div>
+                <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                  {/* Hidden file input */}
+                  <input
+                    id="ledgr-bg-upload"
+                    type="file"
+                    accept="image/*"
+                    style={{display:"none"}}
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      // Warn if file is very large
+                      if (file.size > 8 * 1024 * 1024) {
+                        alert("Image is very large and may slow down the app. Consider using an image under 8MB.");
+                      }
+                      const reader = new FileReader();
+                      reader.onload = ev => {
+                        const next = { ...current, bgImage: ev.target.result };
+                        onSaveTheme(next);
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = ""; // reset so same file can be re-selected
+                    }}
+                  />
+                  {/* Choose image button */}
+                  <button
+                    onClick={() => document.getElementById("ledgr-bg-upload").click()}
+                    style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:8, borderColor:"var(--border2)"}}>
+                    <span>🖼</span>
+                    <span>{current.bgImage ? "Change image" : "Choose image"}</span>
+                  </button>
+                  {/* Preview + remove */}
+                  {current.bgImage && (
+                    <>
+                      <div style={{width:60,height:36,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border2)",flexShrink:0}}>
+                        <img src={current.bgImage} alt="bg preview" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const next = { ...current };
+                          delete next.bgImage;
+                          onSaveTheme(next);
+                        }}
+                        style={{...S.btn("ghost",true), color:"var(--t3)", borderColor:"var(--border2)"}}>
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
+                {current.bgImage && (
+                  <div style={{marginTop:8,fontSize:11,color:"var(--t3)"}}>
+                    Tip: dark color presets pair well with a background image. Reduce opacity by adjusting the Background color.
+                  </div>
+                )}
               </div>
 
               {/* Page title font — 3-column grid */}
@@ -1950,7 +2010,18 @@ function applyTheme(theme) {
   ];
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
-  if (theme.bg) document.body.style.background = theme.bg;
+  if (theme.bgImage) {
+    document.body.style.backgroundImage = `url(${theme.bgImage})`;
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundPosition = "center";
+    document.body.style.backgroundAttachment = "fixed";
+    document.body.style.backgroundRepeat = "no-repeat";
+    // Keep bg color as overlay fallback
+    if (theme.bg) document.body.style.backgroundColor = theme.bg;
+  } else {
+    document.body.style.backgroundImage = "";
+    if (theme.bg) document.body.style.background = theme.bg;
+  }
 }
 // Apply stored theme immediately on page load to prevent flash
 try { const t = localStorage.getItem("ledgr_theme"); if (t) applyTheme(JSON.parse(t)); } catch {}
@@ -7052,7 +7123,15 @@ function AppInner({ isDemo = false }) {
   const SettingsPage = (
     <SettingsView
       theme={theme}
-      onSaveTheme={t => { setTheme(t); applyTheme(t); scheduleSaveRef.current?.({ theme: t }); try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {} }}
+      onSaveTheme={t => {
+        setTheme(t);
+        applyTheme(t);
+        // Strip bgImage before server save — base64 images are too large for app_data
+        // They live only in localStorage on each device
+        const { bgImage, ...themeForServer } = t;
+        scheduleSaveRef.current?.({ theme: themeForServer });
+        try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {}
+      }}
       transactions={transactions}
       accounts={accounts}
       categories={categories}

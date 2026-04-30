@@ -1775,6 +1775,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             document.body.style.removeProperty("background");
             document.body.style.removeProperty("background-image");
             document.body.style.removeProperty("background-color");
+            document.documentElement.classList.remove("ledgr-has-bgimage");
             try { localStorage.removeItem("ledgr_theme"); } catch {}
             onSaveTheme({});
           }
@@ -2011,16 +2012,18 @@ function applyTheme(theme) {
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
   if (theme.bgImage) {
-    document.body.style.backgroundImage = `url(${theme.bgImage})`;
-    document.body.style.backgroundSize = "cover";
-    document.body.style.backgroundPosition = "center";
-    document.body.style.backgroundAttachment = "fixed";
-    document.body.style.backgroundRepeat = "no-repeat";
-    // Keep bg color as overlay fallback
-    if (theme.bg) document.body.style.backgroundColor = theme.bg;
+    // Image mode — make bg/surface/card semi-transparent so image shows through
+    const bg = theme.bg || "#06090f";
+    root.style.setProperty("--bg",      bg + "cc"); // ~80% opacity
+    root.style.setProperty("--surface", (theme.surface || "#0c1220") + "dd");
+    root.style.setProperty("--card",    (theme.card    || "#101826") + "ee");
+    document.body.style.backgroundImage = "";
+    document.body.style.background = "transparent";
+    document.documentElement.classList.add("ledgr-has-bgimage");
   } else {
     document.body.style.backgroundImage = "";
     if (theme.bg) document.body.style.background = theme.bg;
+    document.documentElement.classList.remove("ledgr-has-bgimage");
   }
 }
 // Apply stored theme immediately on page load to prevent flash
@@ -7277,7 +7280,14 @@ function AppInner({ isDemo = false }) {
     : null;
 
   return (
-    <div style={{...S.shell, paddingTop: isDemo ? 45 : 0}}>
+    <div style={{...S.shell, paddingTop: isDemo ? 45 : 0, ...(theme.bgImage ? {
+      background: "transparent",
+      backgroundImage: `url(${theme.bgImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundAttachment: "fixed",
+      backgroundRepeat: "no-repeat",
+    } : {})}}>
     {/* ─── Demo mode banner ─── */}
     {isDemo && (
       <div style={{

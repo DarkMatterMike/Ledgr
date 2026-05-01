@@ -1773,6 +1773,9 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             const root = document.documentElement;
             ["--bg","--surface","--card","--border","--border2","--cyan","--cyan-dim","--t1","--t2","--t3","--font-disp"].forEach(v => root.style.removeProperty(v));
             document.body.style.removeProperty("background");
+            document.body.style.removeProperty("background-image");
+            document.body.style.removeProperty("background-color");
+            document.documentElement.classList.remove("ledgr-has-bgimage");
             try { localStorage.removeItem("ledgr_theme"); } catch {}
             onSaveTheme({});
           }
@@ -1802,6 +1805,64 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Background Image */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Background Image</div>
+                <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                  {/* Hidden file input */}
+                  <input
+                    id="ledgr-bg-upload"
+                    type="file"
+                    accept="image/*"
+                    style={{display:"none"}}
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      // Warn if file is very large
+                      if (file.size > 8 * 1024 * 1024) {
+                        alert("Image is very large and may slow down the app. Consider using an image under 8MB.");
+                      }
+                      const reader = new FileReader();
+                      reader.onload = ev => {
+                        const next = { ...current, bgImage: ev.target.result };
+                        onSaveTheme(next);
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = ""; // reset so same file can be re-selected
+                    }}
+                  />
+                  {/* Choose image button */}
+                  <button
+                    onClick={() => document.getElementById("ledgr-bg-upload").click()}
+                    style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:8, borderColor:"var(--border2)"}}>
+                    <span>🖼</span>
+                    <span>{current.bgImage ? "Change image" : "Choose image"}</span>
+                  </button>
+                  {/* Preview + remove */}
+                  {current.bgImage && (
+                    <>
+                      <div style={{width:60,height:36,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border2)",flexShrink:0}}>
+                        <img src={current.bgImage} alt="bg preview" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const next = { ...current };
+                          delete next.bgImage;
+                          onSaveTheme(next);
+                        }}
+                        style={{...S.btn("ghost",true), color:"var(--t3)", borderColor:"var(--border2)"}}>
+                        Remove
+                      </button>
+                    </>
+                  )}
+                </div>
+                {current.bgImage && (
+                  <div style={{marginTop:8,fontSize:11,color:"var(--t3)"}}>
+                    Tip: dark color presets pair well with a background image. Reduce opacity by adjusting the Background color.
+                  </div>
+                )}
               </div>
 
               {/* Page title font — 3-column grid */}
@@ -1950,7 +2011,20 @@ function applyTheme(theme) {
   ];
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
-  if (theme.bg) document.body.style.background = theme.bg;
+  if (theme.bgImage) {
+    // Image mode — make bg/surface/card semi-transparent so image shows through
+    const bg = theme.bg || "#06090f";
+    root.style.setProperty("--bg",      bg + "cc"); // ~80% opacity
+    root.style.setProperty("--surface", (theme.surface || "#0c1220") + "dd");
+    root.style.setProperty("--card",    (theme.card    || "#101826") + "ee");
+    document.body.style.backgroundImage = "";
+    document.body.style.background = "transparent";
+    document.documentElement.classList.add("ledgr-has-bgimage");
+  } else {
+    document.body.style.backgroundImage = "";
+    if (theme.bg) document.body.style.background = theme.bg;
+    document.documentElement.classList.remove("ledgr-has-bgimage");
+  }
 }
 // Apply stored theme immediately on page load to prevent flash
 try { const t = localStorage.getItem("ledgr_theme"); if (t) applyTheme(JSON.parse(t)); } catch {}
@@ -2432,10 +2506,9 @@ function AppInner({ isDemo = false }) {
   const [budgetDrillCat, setBudgetDrillCat] = useState(null);
   const [calendarDay,      setCalendarDay]      = useState(null);
   const [calendarAcctPopup,setCalendarAcctPopup]= useState(null);
-  const [selectedMonth,    setSelectedMonth]    = useState(() => localStorage.getItem("ledgr_month") || currentMonth);
+  const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
   const [calendarMonth,    setCalendarMonth]    = useState(currentMonth);
-  const [calendarAccounts,   setCalendarAccounts]   = useState(null);
-  const [calendarSplitView, setCalendarSplitView] = useState("full"); // "full" | "split"
+  const [calendarAccounts, setCalendarAccounts] = useState(null);
   const [editingCalAccts,  setEditingCalAccts]  = useState(false);
   const [search,        setSearch]        = useState("");
   const txnSearchInputRef = useRef(null);
@@ -2523,9 +2596,9 @@ function AppInner({ isDemo = false }) {
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce,
           resetAnalyticsLoad } = isDemo ? { initialized:true, scheduleSave:()=>{}, loadPortfolioOnce:()=>{}, loadAiOnce:()=>{}, loadAnalyticsOnce:()=>{}, resetAnalyticsLoad:()=>{} } : useAppData({
-    accounts, categories, transactions, plaidItems, rules, calendarAccounts, calendarSplitView,
+    accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
-    setCalendarAccounts, setCalendarSplitView, setAccess, setLoading, applyRules,
+    setCalendarAccounts, setAccess, setLoading, applyRules,
     onData: (data, txnTotal) => {
       aiChat.loadFromData(data);
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
@@ -2931,15 +3004,13 @@ function AppInner({ isDemo = false }) {
   function prevMonth() {
     const [y,m]=selectedMonth.split("-").map(Number);
     const d=new Date(y,m-2,1);
-    const month=`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
-    setSelectedMonth(month);
-    localStorage.setItem("ledgr_month", month);
+    setSelectedMonth(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
   }
   function nextMonth() {
     const [y,m]=selectedMonth.split("-").map(Number);
     const d=new Date(y,m,1);
     const next=`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
-    if(next<=currentMonth) { setSelectedMonth(next); localStorage.setItem("ledgr_month", next); }
+    if(next<=currentMonth) setSelectedMonth(next);
   }
   function prevCalMonth() {
     const [y,m]=calendarMonth.split("-").map(Number);
@@ -5593,23 +5664,6 @@ function AppInner({ isDemo = false }) {
     const acctTotal   = acctEntries.reduce((a,e)=>a+e.total,0);
     const acctLabel   = isPastCalMonth?`Charged in ${monthLabel(calendarMonth)}`:isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
 
-    // Split by half-month for split view
-    const byAccountFirst  = {};
-    const byAccountSecond = {};
-    shownIds.forEach(id=>{ const a=acctMap[id]; if(a){ byAccountFirst[id]={id,name:a.name,total:0,count:0}; byAccountSecond[id]={id,name:a.name,total:0,count:0}; } });
-    relevantTxns.forEach(t=>{
-      if (!t.accountId||!byAccountFirst[t.accountId]) return;
-      if (t.amount>=0) return;
-      const day = parseInt((t.date||"").split("-")[2]||"0");
-      const bucket = day<=15 ? byAccountFirst : byAccountSecond;
-      bucket[t.accountId].total += Math.abs(t.amount);
-      bucket[t.accountId].count += 1;
-    });
-    const firstEntries  = Object.values(byAccountFirst).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
-    const secondEntries = Object.values(byAccountSecond).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
-    const firstTotal    = firstEntries.reduce((a,e)=>a+e.total,0);
-    const secondTotal   = secondEntries.reduce((a,e)=>a+e.total,0);
-
     const selectedDayTxns = calendarDay?.day && calendarTxnsByDay[calendarDay.day]
       ? calendarTxnsByDay[calendarDay.day]
       : [];
@@ -5822,38 +5876,70 @@ function AppInner({ isDemo = false }) {
 
         {acctEntries.length > 0 && (
           <div style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
-            {/* Header row with label, total, and view dropdown */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)" }}>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "1.2px",
+                  color: "var(--t3)",
+                  fontFamily: "var(--font-disp)",
+                }}
+              >
                 {acctLabel}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--red)" }}>
-                  {fmt(acctTotal)}
-                </span>
-                <select
-                  value={calendarSplitView}
-                  onChange={e => setCalendarSplitView(e.target.value)}
-                  style={{ ...S.input, fontSize: 10, padding: "2px 6px", height: 22, width: "auto", cursor: "pointer" }}
-                >
-                  <option value="full">Full</option>
-                  <option value="split">Split</option>
-                </select>
-              </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--red)",
+                }}
+              >
+                {fmt(acctTotal)}
+              </span>
             </div>
 
-            {calendarSplitView === "full" ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {acctEntries.slice(0, 3).map((acct) => (
-                  <button
-                    key={acct.id}
-                    type="button"
-                    onClick={() => setCalendarAcctPopup(acct)}
-                    style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--t3)" }}>{acct.count} charges</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {acctEntries.slice(0, 3).map((acct) => (
+                <button
+                  key={acct.id}
+                  type="button"
+                  onClick={() => setCalendarAcctPopup(acct)}
+                  style={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius)",
+                    padding: "10px 12px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    width: "100%",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    appearance: "none",
+                    WebkitAppearance: "none",
+                    touchAction: "manipulation",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: "var(--t1)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {acct.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--t3)" }}>
+                      {acct.count} charges
+                    </div>
                   </div>
 
                   <div
@@ -5870,57 +5956,6 @@ function AppInner({ isDemo = false }) {
                 </button>
               ))}
             </div>
-            ) : (
-              /* Split view: first half then second half */
-              <div>
-                {/* First half: 1–15 */}
-                <div style={{ marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>1st – 15th</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--red)" }}>{fmt(firstTotal)}</div>
-                  </div>
-                  {firstEntries.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {firstEntries.map(acct => (
-                        <div key={acct.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 10px", background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t1)" }}>{acct.name}</div>
-                            <div style={{ fontSize: 10, color: "var(--t3)" }}>{acct.count} charges</div>
-                          </div>
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--red)", flexShrink: 0 }}>{fmt(acct.total)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 12, color: "var(--t3)", padding: "6px 0" }}>No charges</div>
-                  )}
-                </div>
-                {/* Divider */}
-                <div style={{ height: 1, background: "var(--border)", margin: "10px 0" }}/>
-                {/* Second half: 16–end */}
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>16th – End</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--red)" }}>{fmt(secondTotal)}</div>
-                  </div>
-                  {secondEntries.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {secondEntries.map(acct => (
-                        <div key={acct.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 10px", background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t1)" }}>{acct.name}</div>
-                            <div style={{ fontSize: 10, color: "var(--t3)" }}>{acct.count} charges</div>
-                          </div>
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--red)", flexShrink: 0 }}>{fmt(acct.total)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 12, color: "var(--t3)", padding: "6px 0" }}>No charges</div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -7091,7 +7126,15 @@ function AppInner({ isDemo = false }) {
   const SettingsPage = (
     <SettingsView
       theme={theme}
-      onSaveTheme={t => { setTheme(t); applyTheme(t); scheduleSaveRef.current?.({ theme: t }); try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {} }}
+      onSaveTheme={t => {
+        setTheme(t);
+        applyTheme(t);
+        // Strip bgImage before server save — base64 images are too large for app_data
+        // They live only in localStorage on each device
+        const { bgImage, ...themeForServer } = t;
+        scheduleSaveRef.current?.({ theme: themeForServer });
+        try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {}
+      }}
       transactions={transactions}
       accounts={accounts}
       categories={categories}
@@ -7237,7 +7280,14 @@ function AppInner({ isDemo = false }) {
     : null;
 
   return (
-    <div style={{...S.shell, paddingTop: isDemo ? 45 : 0}}>
+    <div style={{...S.shell, paddingTop: isDemo ? 45 : 0, ...(theme.bgImage ? {
+      background: "transparent",
+      backgroundImage: `url(${theme.bgImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundAttachment: "fixed",
+      backgroundRepeat: "no-repeat",
+    } : {})}}>
     {/* ─── Demo mode banner ─── */}
     {isDemo && (
       <div style={{

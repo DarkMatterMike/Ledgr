@@ -2599,7 +2599,7 @@ function AppInner({ isDemo = false }) {
           resetAnalyticsLoad } = isDemo ? { initialized:true, scheduleSave:()=>{}, loadPortfolioOnce:()=>{}, loadAiOnce:()=>{}, loadAnalyticsOnce:()=>{}, resetAnalyticsLoad:()=>{} } : useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
-    setCalendarAccounts, setAccess, setLoading, applyRules,
+    setCalendarAccounts, setCalendarSplitView, setAccess, setLoading, applyRules,
     onData: (data, txnTotal) => {
       aiChat.loadFromData(data);
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
@@ -7716,3 +7716,4 @@ function AppInner({ isDemo = false }) {
     </div>
   );
 }
+

@@ -383,8 +383,24 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top:0, left:0, width:180 });
   const btnRef = useRef(null);
+  const dropRef = useRef(null);
   const selected = options.find(o => String(o.value) === String(value)) || options[0];
   const isBlock = style.width === "100%" || style.flex;
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e) {
+      if (btnRef.current?.contains(e.target)) return; // button handles its own toggle
+      if (dropRef.current?.contains(e.target)) return; // inside dropdown, let click fire
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+    };
+  }, [open]);
 
   function openMenu(e) {
     e.stopPropagation();
@@ -398,32 +414,28 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
     setOpen(o => !o);
   }
 
-  // Portal content — renders directly on document.body, escaping any scroll/overflow container
-  const portal = (open && typeof document !== "undefined") ? createPortal(
-    <>
-      <div style={{ position:"fixed", inset:0, zIndex:400 }} onClick={() => setOpen(false)} />
-      <div style={{
-        position:"fixed", top: pos.top, left: pos.left, minWidth: pos.width,
-        zIndex:401, background:"var(--card)", border:"1px solid var(--border2)",
-        borderRadius:12, boxShadow:"0 8px 32px #000c", maxHeight:320, overflowY:"auto",
-      }}>
-        {options.map((o, i) => (
-          <button key={String(o.value)} type="button"
-            onClick={e => { e.stopPropagation(); onChange(o.value); setOpen(false); }}
-            style={{
-              display:"flex", alignItems:"center", justifyContent:"space-between",
-              width:"100%", padding:"11px 16px", background:"none", border:"none",
-              borderBottom: i < options.length-1 ? "1px solid var(--border)" : "none",
-              cursor:"pointer", fontSize:13, textAlign:"left",
-              color: String(o.value) === String(value) ? "var(--cyan)" : "var(--t1)",
-              fontWeight: String(o.value) === String(value) ? 700 : 400,
-            }}>
-            <span>{o.label}</span>
-            {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14 }}>✓</span>}
-          </button>
-        ))}
-      </div>
-    </>,
+  const portal = open ? createPortal(
+    <div ref={dropRef} style={{
+      position:"fixed", top: pos.top, left: pos.left, minWidth: pos.width,
+      zIndex:401, background:"var(--card)", border:"1px solid var(--border2)",
+      borderRadius:12, boxShadow:"0 8px 32px #000c", maxHeight:320, overflowY:"auto",
+    }}>
+      {options.map((o, i) => (
+        <button key={String(o.value)} type="button"
+          onClick={() => { onChange(o.value); setOpen(false); }}
+          style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            width:"100%", padding:"11px 16px", background:"none", border:"none",
+            borderBottom: i < options.length-1 ? "1px solid var(--border)" : "none",
+            cursor:"pointer", fontSize:13, textAlign:"left",
+            color: String(o.value) === String(value) ? "var(--cyan)" : "var(--t1)",
+            fontWeight: String(o.value) === String(value) ? 700 : 400,
+          }}>
+          <span>{o.label}</span>
+          {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14 }}>✓</span>}
+        </button>
+      ))}
+    </div>,
     document.body
   ) : null;
 

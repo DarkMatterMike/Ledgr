@@ -907,7 +907,7 @@ function AuthGate({ onAuth }) {
                 {legalModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </div>
               <button onClick={()=>setLegalModal(null)}
-                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>✸</button>
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>✕</button>
             </div>
             <div style={{overflowY:"auto",flex:1,fontSize:13,color:"var(--t2)",lineHeight:1.7}}>
               {legalModal === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
@@ -1233,7 +1233,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
                 value={editingName} onChange={e=>setEditingName(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
               <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✴</button>
-              <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✸</button>
+              <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
             </div>
           )}
 
@@ -1663,7 +1663,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     value={a.value || ""} onChange={e => setProfileForm(p => {
                       const assets = [...p.manualAssets]; assets[i] = { ...assets[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualAssets: assets };
                     })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>✸</button>
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>✕</button>
                 </div>
               ))}
               <button style={{ ...S.btn("ghost",true), width:"100%" }}
@@ -1685,7 +1685,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     value={l.value || ""} onChange={e => setProfileForm(p => {
                       const liabs = [...p.manualLiabilities]; liabs[i] = { ...liabs[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualLiabilities: liabs };
                     })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>✸</button>
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>✕</button>
                 </div>
               ))}
               <button style={{ ...S.btn("ghost",true), width:"100%" }}
@@ -1981,7 +1981,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               {legalDoc === "privacy" ? "Privacy Policy" : "Terms of Service"}
             </div>
             <button onClick={() => setLegalDoc(null)}
-              style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:20, lineHeight:1 }}>✸</button>
+              style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:20, lineHeight:1 }}>✕</button>
           </div>
           <div style={{ overflowY:"auto", flex:1, fontSize:13, color:"var(--t2)", lineHeight:1.7 }}>
             {legalDoc === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
@@ -2151,7 +2151,7 @@ function AdminPanel() {
                     <div style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:2}}>{user.id.slice(0,8)}…</div>
                   </div>
                   {!editing && user.role !== "owner" && (
-                    <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✸</button>
+                    <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✕</button>
                   )}
                 </div>
 
@@ -2297,7 +2297,7 @@ function AdminPanel() {
                             setEditForm({ subscription_status: user.subscription_status, role: user.role });
                           }}>Edit</button>
                           {user.role !== "owner" && (
-                            <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✸</button>
+                            <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✕</button>
                           )}
                         </div>
                       )}
@@ -2613,6 +2613,23 @@ function AppInner({ isDemo = false }) {
       setTxnTotal(txnTotal || 0);
       setTxnOffset(100);
       if (data.reauthItemIds?.length) setStaleItemIds(new Set(data.reauthItemIds));
+
+      // Clean up orphaned Plaid accounts — accounts whose item no longer exists
+      if (data.accounts && data.plaidItems !== undefined) {
+        const activeItemIds = new Set((data.plaidItems || []).map(i => i.item_id));
+        const orphanItemIds = [...new Set(
+          (data.accounts || [])
+            .filter(a => a.plaidItemId && !activeItemIds.has(a.plaidItemId))
+            .map(a => a.plaidItemId)
+        )];
+        if (orphanItemIds.length > 0) {
+          console.log("Cleaning up orphaned Plaid accounts for items:", orphanItemIds);
+          orphanItemIds.forEach(id => api.deleteAccountsByItem(id).catch(() => {}));
+          // Remove from local state immediately
+          setAccounts(prev => prev.filter(a => !a.plaidItemId || activeItemIds.has(a.plaidItemId)));
+        }
+      }
+
       api.loadSummary(currentMonth).then(s => {
         setSummary(s);
         setSummaryMonth(s.month);
@@ -3297,10 +3314,13 @@ function AppInner({ isDemo = false }) {
         const manual = prev.filter(a => !a.plaidId);
         // Build a map of existing Plaid accounts by plaidId to preserve custom names
         const byPlaidId = Object.fromEntries(prev.filter(a => a.plaidId).map(a => [a.plaidId, a]));
+        // Active item IDs from the current plaidItems state
+        const activeItemIds = new Set(plaidItems.map(i => i.item_id));
         // Merge: update balances for existing, add new ones, deduplicate by plaidId
         const seen = new Set();
         const plaidUpdated = plaidAccts
           .filter(pa => { const dup = seen.has(pa.account_id); seen.add(pa.account_id); return !dup; })
+          .filter(pa => activeItemIds.has(pa.item_id)) // only keep accounts from active items
           .map(pa => ({
             // Preserve existing record (custom name, id) or create fresh
             ...(byPlaidId[pa.account_id] || { id: "a" + pa.account_id }),
@@ -3315,6 +3335,15 @@ function AppInner({ isDemo = false }) {
           }));
         const updated = [...manual, ...plaidUpdated];
         // No saveData call needed — applySyncResultsToDB already wrote to the accounts table
+        // Detect and clean up orphaned item IDs from DB
+        const activeItemIds = new Set(plaidItems.map(i => i.item_id));
+        const orphanItemIds = [...new Set(
+          prev.filter(a => a.plaidItemId && !activeItemIds.has(a.plaidItemId))
+              .map(a => a.plaidItemId)
+        )];
+        if (orphanItemIds.length > 0) {
+          orphanItemIds.forEach(id => api.deleteAccountsByItem(id).catch(() => {}));
+        }
         return updated;
       });
       setTransactions(prev=>{
@@ -3739,7 +3768,7 @@ function AppInner({ isDemo = false }) {
             <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
             <div style={{fontSize:17,fontWeight:700,color:"var(--t1)"}}>{drillCat.name}</div>
           </div>
-          <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✸</button>
+          <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12,flexShrink:0}}>
           {[
@@ -4540,7 +4569,7 @@ function AppInner({ isDemo = false }) {
               )}
               <button onClick={()=>{ setFilterReview(p=>!p); setSearch(""); setFilterCat("all"); }}
                 style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
-                {filterReview?"✸ Clear":"Review ›"}
+                {filterReview?"✕ Clear":"Review ›"}
               </button>
             </div>
           </div>
@@ -4559,7 +4588,7 @@ function AppInner({ isDemo = false }) {
                 setShowReconcile(p=>!p);
               }}
                 style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
-                {showReconcile?"✸ Close":"Review ›"}
+                {showReconcile?"✕ Close":"Review ›"}
               </button>
             </div>
             {showReconcile&&(
@@ -4670,7 +4699,7 @@ function AppInner({ isDemo = false }) {
             </select>
             <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}}
               onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
-              {selectedTxns.size > 0 ? `✸ ${selectedTxns.size}` : "Select All"}
+              {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
             </button>
           </div>
         </div>
@@ -4881,7 +4910,7 @@ function AppInner({ isDemo = false }) {
                       </button>
                       <button style={{ ...S.btn("ghost", true), fontSize:12 }}
                         onClick={() => setLimitSuggestions(p => p.filter(x => x.categoryId !== s.categoryId))}>
-                        ✸
+                        ✕
                       </button>
                     </div>
                   </div>
@@ -5082,7 +5111,7 @@ function AppInner({ isDemo = false }) {
                                             <button
                                               title="Remove from this category"
                                               onClick={() => { updateTxnCat(t.id, ""); showToast("Removed from " + cat.name); }}
-                                              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>✸</button>
+                                              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>✕</button>
                                           </div>
                                         ))}
                                       </div>
@@ -5392,7 +5421,7 @@ function AppInner({ isDemo = false }) {
                         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
                           <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 7px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✸</button>
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
@@ -5548,7 +5577,7 @@ function AppInner({ isDemo = false }) {
           {/* Actions */}
           <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
           <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✸</button>
+          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
         </div>
       );
     }
@@ -6907,7 +6936,7 @@ function AppInner({ isDemo = false }) {
                   <div style={S.modalTitle}>{calendarAcctPopup.name}</div>
                   <div style={{fontSize:12,color:"var(--t3)",marginTop:-14}}>{calendarAcctPopup.count} charge{calendarAcctPopup.count!==1?"s":""} · {fmt(calendarAcctPopup.total)} total</div>
                 </div>
-                <button onClick={()=>setCalendarAcctPopup(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✸</button>
+                <button onClick={()=>setCalendarAcctPopup(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {[...calendarAcctPopup.txns].sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
@@ -7592,7 +7621,7 @@ function AppInner({ isDemo = false }) {
             <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; ← <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>
           </div>
           <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
-          <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✸</button>
+          <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
         </div>
       )}
 
@@ -7603,7 +7632,7 @@ function AppInner({ isDemo = false }) {
             <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
           </div>
           <button style={{...S.btn("primary",true),background:"var(--amber)",borderColor:"var(--amber)"}} onClick={confirmTypeRule}>Save Rule</button>
-          <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>✸</button>
+          <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>✕</button>
         </div>
       )}
 
@@ -7636,7 +7665,7 @@ function AppInner({ isDemo = false }) {
           </select>
           <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>bulkMarkReviewed(true)}>✴ Reviewed</button>
           <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
-          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✸</button>
+          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✕</button>
         </div>
       )}
 
@@ -7657,7 +7686,7 @@ function AppInner({ isDemo = false }) {
             <div style={{fontSize:12,opacity:0.7}}>Tap to view</div>
           </div>
           <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}}
-            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000"}}>✸</button>
+            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000"}}>✕</button>
         </div>
       )}
 
@@ -7672,7 +7701,7 @@ function AppInner({ isDemo = false }) {
             Undo
           </button>
           <button onClick={()=>setUndoAction(null)}
-            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px"}}>✸</button>
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px"}}>✕</button>
         </div>
       )}
 

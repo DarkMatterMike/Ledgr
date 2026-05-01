@@ -823,7 +823,24 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     // accounts → POST/PATCH/DELETE /api/accounts/*
     // rules    → POST/PATCH/DELETE /api/rules/*
     // transactions → PATCH/DELETE /api/transactions/*
-    if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
+    if (categories !== undefined) {
+      // Guard: never overwrite existing categories with an empty array
+      // An empty save is almost always a bug (corrupted render, bad state init)
+      // If the user intentionally deletes all categories, the array will go []
+      // only after they've explicitly deleted each one — which goes through
+      // individual setCategories calls, not a bulk empty save.
+      if (Array.isArray(categories) && categories.length === 0) {
+        const existing = await getData(uid, "categories");
+        if (Array.isArray(existing) && existing.length > 0) {
+          console.warn(`Blocked empty categories save for user ${uid} — existing has ${existing.length} categories`);
+          // Don't push to ops — skip this save
+        } else {
+          ops.push(setData(uid, "categories", categories));
+        }
+      } else {
+        ops.push(setData(uid, "categories", categories));
+      }
+    }
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
     if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
     if (calendarSplitView)                  ops.push(setData(uid, "calendarSplitView", calendarSplitView));

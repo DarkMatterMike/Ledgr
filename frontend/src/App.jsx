@@ -407,7 +407,7 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null,
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
     <div>
-      <button style={{...S.btn("primary"), ...style}} onClick={fetchToken} disabled={loading}>{loading?"…":"🏦 "+label}</button>
+      <button style={{...S.btn("primary"), ...style}} onClick={fetchToken} disabled={loading}>{loading?"…":label}</button>
       {error && <div style={{marginTop:8,fontSize:12,color:"var(--red)"}}>{error}</div>}
     </div>
   );
@@ -4138,7 +4138,7 @@ function AppInner({ isDemo = false }) {
     {
       id: "bank",
       done: plaidItems.length > 0 || accounts.length > 0,
-      icon: "🏦",
+      icon: "▣",
       title: "Connect your bank",
       desc: "Link a bank account to automatically import transactions.",
       action: () => navigate("accounts"),
@@ -4654,7 +4654,7 @@ function AppInner({ isDemo = false }) {
         <div style={{marginBottom:14,display:"flex",flexDirection:"column",gap:6}}>
           {/* Row 1: Search (always full width) */}
           <div style={{position:"relative"}}>
-            <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:13}}>🔔</span>
+            
             <input ref={txnSearchInputRef} onFocus={()=>{txnSearchHadFocusRef.current=true;}} onBlur={()=>{txnSearchHadFocusRef.current=false;}} style={{...S.input,paddingLeft:32,fontSize:13,width:"100%",boxSizing:"border-box"}} placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
           </div>
           {/* Row 2: Dropdowns + Select All — side by side on both mobile and desktop */}
@@ -5383,7 +5383,7 @@ function AppInner({ isDemo = false }) {
                   const spent=spentByAcct[acct.id]||0;
                   const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
                   const daily=today.getDate()>0?spent/today.getDate():0;
-                  const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
+                  const typeIcon=acct.type==="Credit"?"◈":acct.type==="Savings"?"◉":"▣";
                   return (
                     <div style={{padding:"11px 14px",borderTop:"1px solid var(--border)"}}>
                       <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:3}}>
@@ -5417,7 +5417,7 @@ function AppInner({ isDemo = false }) {
                           {/* Bank header */}
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
                             <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontSize:15}}>🏦</span>
+                              
                               <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>{institution}</span>
                               <span style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>{accts.length} account{accts.length!==1?"s":""}</span>
                             </div>
@@ -5595,7 +5595,7 @@ function AppInner({ isDemo = false }) {
                   <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
                 </div>
                 <div style={{position:"relative",maxWidth:220,width:"100%"}}>
-                  <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:12,pointerEvents:"none"}}>🔔</span>
+                  
                   <input style={{...S.input,paddingLeft:28,fontSize:12,width:"100%",boxSizing:"border-box",height:30}}
                     placeholder="Search rules…" value={ruleSearch} onChange={e=>setRuleSearch(e.target.value)}/>
                 </div>
@@ -6071,7 +6071,7 @@ function AppInner({ isDemo = false }) {
             ) : (
               recurringTxns
                 .slice()
-                .sort((a, b) => (a.recurringDay || 0) - (b.recurringDay || 0))
+                .sort((a, b) => (parseInt(a.recurringDay)||0) - (parseInt(b.recurringDay)||0))
                 .map((t, idx) => {
                   const cat = catMap[t.categoryId];
                   return (
@@ -6449,13 +6449,7 @@ function AppInner({ isDemo = false }) {
                 <div style={S.cardTitle}>All Recurring Transactions</div>
 
                 {[...recurringTxns]
-                  .sort((a, b) => {
-                    const freqOrder = { weekly: 0, biweekly: 1, monthly: 2, annual: 3 };
-                    const fa = freqOrder[a.recurringFreq || "monthly"] ?? 2;
-                    const fb = freqOrder[b.recurringFreq || "monthly"] ?? 2;
-                    if (fa !== fb) return fa - fb;
-                    return (a.recurringDay || 0) - (b.recurringDay || 0);
-                  })
+                  .sort((a, b) => (parseInt(a.recurringDay)||0) - (parseInt(b.recurringDay)||0))
                   .map((t) => {
                     const cat = catMap[t.categoryId];
                     return (
@@ -7401,7 +7395,7 @@ function AppInner({ isDemo = false }) {
                           {visibleNotifs.map((n,i) => (
                             <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
                               <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"◎":n.type==="reauth"?"🏦":"›"}
+                                {n.type==="review"?"◎":n.type==="reauth"?"◈":"›"}
                               </div>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
@@ -7503,7 +7497,7 @@ function AppInner({ isDemo = false }) {
                           {visibleNotifs.map((n,i) => (
                             <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
                               <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"◎":n.type==="reauth"?"🏦":"›"}
+                                {n.type==="review"?"◎":n.type==="reauth"?"◈":"›"}
                               </div>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>

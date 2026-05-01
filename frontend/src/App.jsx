@@ -381,58 +381,30 @@ function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMo
 /* ─── CustomSelect — matches the spending pace dropdown style ──────── */
 function CustomSelect({ value, onChange, options, style = {}, compact = false }) {
   const [open, setOpen] = useState(false);
-  const [dropPos, setDropPos] = useState({ top:0, left:0, width:180 });
-  const ref = useRef(null);
+  const [pos, setPos] = useState({ top:0, left:0, width:180 });
   const btnRef = useRef(null);
   const selected = options.find(o => String(o.value) === String(value)) || options[0];
-
-  useEffect(() => {
-    if (!open) return;
-    // Use setTimeout to skip the current event cycle so the opening click
-    // doesn't immediately trigger the close listener
-    const id = setTimeout(() => {
-      const close = e => {
-        if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-      };
-      document.addEventListener("click", close);
-      document.addEventListener("touchstart", close);
-      return () => {
-        document.removeEventListener("click", close);
-        document.removeEventListener("touchstart", close);
-      };
-    }, 0);
-    return () => clearTimeout(id);
-  }, [open]);
-
-  function handleOpen(e) {
-    e.stopPropagation();
-    if (open) { setOpen(false); return; }
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      const width = Math.max(r.width, 180);
-      // Flip left if would overflow right edge
-      const left = r.left + width > window.innerWidth - 8
-        ? Math.max(8, r.right - width)
-        : r.left;
-      // Flip up if insufficient space below (max dropdown ~320px)
-      const spaceBelow = window.innerHeight - r.bottom;
-      const top = spaceBelow < 200
-        ? Math.max(8, r.top - 326)
-        : r.bottom + 6;
-      setDropPos({ top, left, width });
-    }
-    setOpen(true);
-  }
-
   const isBlock = style.width === "100%" || style.flex;
 
+  function openMenu(e) {
+    e.stopPropagation();
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const w = Math.max(r.width, 180);
+    const left = (r.left + w > window.innerWidth - 8) ? Math.max(8, r.right - w) : r.left;
+    const spaceBelow = window.innerHeight - r.bottom;
+    const top = spaceBelow < 200 ? Math.max(8, r.top - 326) : r.bottom + 6;
+    setPos({ top, left, width: w });
+    setOpen(o => !o);
+  }
+
+  function pick(v) { onChange(v); setOpen(false); }
+
   return (
-    <div ref={ref} style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={handleOpen}
-        style={{
+    <>
+      {open && <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={() => setOpen(false)} />}
+      <div style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
+        <button ref={btnRef} type="button" onClick={openMenu} style={{
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:6,
           width: isBlock ? "100%" : "auto",
           padding: compact ? "5px 10px" : "8px 14px",
@@ -441,40 +413,33 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
           fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
           whiteSpace:"nowrap", boxSizing:"border-box",
         }}>
-        <span style={{overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{selected?.label}</span>
-        <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
-      </button>
-      {open && (
-        <>
-          <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={e=>{e.stopPropagation();setOpen(false);}} />
+          <span style={{ overflow:"hidden", textOverflow:"ellipsis", minWidth:0 }}>{selected?.label}</span>
+          <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
+        </button>
+        {open && (
           <div style={{
-            position:"fixed",
-            top: dropPos.top, left: dropPos.left,
-            minWidth: dropPos.width,
-            zIndex:300,
-            background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
-            boxShadow:"0 8px 24px #0008",
-            maxHeight:320, overflowY:"auto",
+            position:"fixed", top: pos.top, left: pos.left, minWidth: pos.width,
+            zIndex:300, background:"var(--card)", border:"1px solid var(--border2)",
+            borderRadius:12, boxShadow:"0 8px 32px #000a", maxHeight:320, overflowY:"auto",
           }}>
             {options.map((o, i) => (
-              <button key={String(o.value)} type="button"
-                onClick={e=>{e.stopPropagation(); onChange(o.value); setOpen(false);}}
+              <button key={String(o.value)} type="button" onClick={e => { e.stopPropagation(); pick(o.value); }}
                 style={{
                   display:"flex", alignItems:"center", justifyContent:"space-between",
                   width:"100%", padding:"11px 16px", background:"none", border:"none",
-                  borderBottom: i < options.length - 1 ? "1px solid var(--border)" : "none",
+                  borderBottom: i < options.length-1 ? "1px solid var(--border)" : "none",
                   cursor:"pointer", fontSize:13, textAlign:"left",
                   color: String(o.value) === String(value) ? "var(--cyan)" : "var(--t1)",
                   fontWeight: String(o.value) === String(value) ? 700 : 400,
                 }}>
                 <span>{o.label}</span>
-                {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14, flexShrink:0 }}>✓</span>}
+                {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14 }}>✓</span>}
               </button>
             ))}
           </div>
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 

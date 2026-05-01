@@ -2509,7 +2509,7 @@ function AppInner({ isDemo = false }) {
   const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
   const [calendarMonth,    setCalendarMonth]    = useState(currentMonth);
   const [calendarAccounts,   setCalendarAccounts]   = useState(null);
-  const [calendarSplitView, setCalendarSplitView] = useState("full"); // "full" | "split" — v2
+  const [calendarSplitView, setCalendarSplitView] = useState("full");
   const [editingCalAccts,  setEditingCalAccts]  = useState(false);
   const [search,        setSearch]        = useState("");
   const txnSearchInputRef = useRef(null);
@@ -2597,7 +2597,7 @@ function AppInner({ isDemo = false }) {
   /* ── Load + Save (via hook) ── */
   const { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce,
           resetAnalyticsLoad } = isDemo ? { initialized:true, scheduleSave:()=>{}, loadPortfolioOnce:()=>{}, loadAiOnce:()=>{}, loadAnalyticsOnce:()=>{}, resetAnalyticsLoad:()=>{} } : useAppData({
-    accounts, categories, transactions, plaidItems, rules, calendarAccounts,
+    accounts, categories, transactions, plaidItems, rules, calendarAccounts, calendarSplitView,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
     setCalendarAccounts, setCalendarSplitView, setAccess, setLoading, applyRules,
     onData: (data, txnTotal) => {
@@ -5665,22 +5665,18 @@ function AppInner({ isDemo = false }) {
     const acctTotal   = acctEntries.reduce((a,e)=>a+e.total,0);
     const acctLabel   = isPastCalMonth?`Charged in ${monthLabel(calendarMonth)}`:isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
 
-    // Split by half-month for split view
-    const byAccountFirst  = {};
-    const byAccountSecond = {};
+    const byAccountFirst = {}, byAccountSecond = {};
     shownIds.forEach(id=>{ const a=acctMap[id]; if(a){ byAccountFirst[id]={id,name:a.name,total:0,count:0}; byAccountSecond[id]={id,name:a.name,total:0,count:0}; } });
     relevantTxns.forEach(t=>{
-      if (!t.accountId||!byAccountFirst[t.accountId]) return;
-      if (t.amount>=0) return;
-      const day = parseInt((t.date||"").split("-")[2]||"0");
-      const bucket = day<=15 ? byAccountFirst : byAccountSecond;
-      bucket[t.accountId].total += Math.abs(t.amount);
-      bucket[t.accountId].count += 1;
+      if (!t.accountId||!byAccountFirst[t.accountId]||t.amount>=0) return;
+      const day=parseInt((t.date||"").split("-")[2]||"0");
+      const bucket=day<=15?byAccountFirst:byAccountSecond;
+      bucket[t.accountId].total+=Math.abs(t.amount); bucket[t.accountId].count+=1;
     });
-    const firstEntries  = Object.values(byAccountFirst).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
-    const secondEntries = Object.values(byAccountSecond).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
-    const firstTotal    = firstEntries.reduce((a,e)=>a+e.total,0);
-    const secondTotal   = secondEntries.reduce((a,e)=>a+e.total,0);
+    const firstEntries=Object.values(byAccountFirst).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
+    const secondEntries=Object.values(byAccountSecond).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
+    const firstTotal=firstEntries.reduce((a,e)=>a+e.total,0);
+    const secondTotal=secondEntries.reduce((a,e)=>a+e.total,0);
 
     const selectedDayTxns = calendarDay?.day && calendarTxnsByDay[calendarDay.day]
       ? calendarTxnsByDay[calendarDay.day]
@@ -5894,52 +5890,37 @@ function AppInner({ isDemo = false }) {
 
         {acctEntries.length > 0 && (
           <div style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
-            {/* Header row with label, total, and view dropdown */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)" }}>
                 {acctLabel}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--red)" }}>
-                  {fmt(acctTotal)}
-                </span>
-                <select
-                  value={calendarSplitView}
-                  onChange={e => setCalendarSplitView(e.target.value)}
-                  style={{ ...S.input, fontSize: 10, padding: "2px 6px", height: 22, width: "auto", cursor: "pointer" }}
-                >
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--red)" }}>{fmt(acctTotal)}</span>
+                <select value={calendarSplitView} onChange={e => setCalendarSplitView(e.target.value)}
+                  style={{ ...S.input, fontSize: 10, padding: "2px 6px", height: 22, width: "auto", cursor: "pointer" }}>
                   <option value="full">Full</option>
                   <option value="split">Split</option>
                 </select>
               </div>
             </div>
-
             {calendarSplitView === "full" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {acctEntries.slice(0, 3).map((acct) => (
-                  <button
-                    key={acct.id}
-                    type="button"
-                    onClick={() => setCalendarAcctPopup(acct)}
-                    style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-                  >
+                  <button key={acct.id} type="button" onClick={() => setCalendarAcctPopup(acct)}
+                    style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                       <div style={{ fontSize: 11, color: "var(--t3)" }}>{acct.count} charges</div>
                     </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", flexShrink: 0 }}>
-                      {fmt(acct.total)}
-                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", flexShrink: 0 }}>{fmt(acct.total)}</div>
                   </button>
                 ))}
               </div>
             ) : (
-              /* Split view: first half then second half */
               <div>
-                {/* First half: 1–15 */}
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>1st – 15th</div>
+                    <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>1st - 15th</div>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--red)" }}>{fmt(firstTotal)}</div>
                   </div>
                   {firstEntries.length > 0 ? (
@@ -5958,12 +5939,10 @@ function AppInner({ isDemo = false }) {
                     <div style={{ fontSize: 12, color: "var(--t3)", padding: "6px 0" }}>No charges</div>
                   )}
                 </div>
-                {/* Divider */}
                 <div style={{ height: 1, background: "var(--border)", margin: "10px 0" }}/>
-                {/* Second half: 16–end */}
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>16th – End</div>
+                    <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>16th - End</div>
                     <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: "var(--red)" }}>{fmt(secondTotal)}</div>
                   </div>
                   {secondEntries.length > 0 ? (
@@ -7716,4 +7695,3 @@ function AppInner({ isDemo = false }) {
     </div>
   );
 }
-

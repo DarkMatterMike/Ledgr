@@ -2617,16 +2617,26 @@ function AppInner({ isDemo = false }) {
       // Clean up orphaned Plaid accounts — accounts whose item no longer exists
       if (data.accounts && data.plaidItems !== undefined) {
         const activeItemIds = new Set((data.plaidItems || []).map(i => i.item_id));
-        const orphanItemIds = [...new Set(
-          (data.accounts || [])
-            .filter(a => a.plaidItemId && !activeItemIds.has(a.plaidItemId))
-            .map(a => a.plaidItemId)
-        )];
-        if (orphanItemIds.length > 0) {
-          console.log("Cleaning up orphaned Plaid accounts for items:", orphanItemIds);
-          orphanItemIds.forEach(id => api.deleteAccountsByItem(id).catch(() => {}));
-          // Remove from local state immediately
-          setAccounts(prev => prev.filter(a => !a.plaidItemId || activeItemIds.has(a.plaidItemId)));
+        const hasNoItems = activeItemIds.size === 0;
+        const orphans = (data.accounts || []).filter(a =>
+          // Has a plaidId (is a Plaid account, not manual)
+          a.plaidId &&
+          // AND either has no active item, or item is explicitly gone
+          (!a.plaidItemId || !activeItemIds.has(a.plaidItemId) || hasNoItems)
+        );
+        if (orphans.length > 0) {
+          console.log("Cleaning up orphaned Plaid accounts:", orphans.map(a => a.name));
+          // Clean from DB — group by plaidItemId if available, else delete individually
+          const itemIds = [...new Set(orphans.map(a => a.plaidItemId).filter(Boolean))];
+          const orphanIds = orphans.map(a => a.id);
+          itemIds.forEach(id => api.deleteAccountsByItem(id).catch(() => {}));
+          // For accounts with no plaidItemId, delete individually
+          orphans.filter(a => !a.plaidItemId).forEach(a =>
+            api.deleteAccount(a.id).catch(() => {})
+          );
+          // Remove from local state
+          const orphanIdSet = new Set(orphanIds);
+          setAccounts(prev => prev.filter(a => !orphanIdSet.has(a.id)));
         }
       }
 
@@ -3335,14 +3345,16 @@ function AppInner({ isDemo = false }) {
           }));
         const updated = [...manual, ...plaidUpdated];
         // No saveData call needed — applySyncResultsToDB already wrote to the accounts table
-        // Detect and clean up orphaned item IDs from DB
+        // Detect and clean up orphaned Plaid accounts from DB
         const activeItemIds = new Set(plaidItems.map(i => i.item_id));
-        const orphanItemIds = [...new Set(
-          prev.filter(a => a.plaidItemId && !activeItemIds.has(a.plaidItemId))
-              .map(a => a.plaidItemId)
-        )];
-        if (orphanItemIds.length > 0) {
-          orphanItemIds.forEach(id => api.deleteAccountsByItem(id).catch(() => {}));
+        const hasNoItems = activeItemIds.size === 0;
+        const orphans = prev.filter(a =>
+          a.plaidId && (!a.plaidItemId || !activeItemIds.has(a.plaidItemId) || hasNoItems)
+        );
+        if (orphans.length > 0) {
+          const itemIds = [...new Set(orphans.map(a => a.plaidItemId).filter(Boolean))];
+          itemIds.forEach(id => api.deleteAccountsByItem(id).catch(() => {}));
+          orphans.filter(a => !a.plaidItemId).forEach(a => api.deleteAccount(a.id).catch(() => {}));
         }
         return updated;
       });

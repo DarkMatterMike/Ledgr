@@ -397,11 +397,15 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
   }, [open]);
 
   function handleOpen() {
+    if (open) { setOpen(false); return; }
     if (ref.current) {
       const r = ref.current.getBoundingClientRect();
-      setDropPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 180) });
+      const width = Math.max(r.width, 180);
+      // Flip left if would overflow right edge
+      const left = r.left + width > window.innerWidth ? Math.max(0, r.right - width) : r.left;
+      setDropPos({ top: r.bottom + 6, left, width });
     }
-    setOpen(p => !p);
+    setOpen(true);
   }
 
   const isBlock = style.width === "100%" || style.flex;
@@ -423,7 +427,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
         <span style={{overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{selected?.label}</span>
         <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
       </button>
-      {open && (
+      {open && dropPos.top > 0 && (
         <>
           <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={() => setOpen(false)} />
           <div style={{

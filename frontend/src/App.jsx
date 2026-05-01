@@ -399,12 +399,12 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
   }
 
   // Portal content — renders directly on document.body, escaping any scroll/overflow container
-  const portal = open ? createPortal(
+  const portal = (open && typeof document !== "undefined") ? createPortal(
     <>
-      <div style={{ position:"fixed", inset:0, zIndex:9998 }} onClick={() => setOpen(false)} />
+      <div style={{ position:"fixed", inset:0, zIndex:400 }} onClick={() => setOpen(false)} />
       <div style={{
         position:"fixed", top: pos.top, left: pos.left, minWidth: pos.width,
-        zIndex:9999, background:"var(--card)", border:"1px solid var(--border2)",
+        zIndex:401, background:"var(--card)", border:"1px solid var(--border2)",
         borderRadius:12, boxShadow:"0 8px 32px #000c", maxHeight:320, overflowY:"auto",
       }}>
         {options.map((o, i) => (
@@ -428,23 +428,21 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
   ) : null;
 
   return (
-    <>
+    <div style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
+      <button ref={btnRef} type="button" onClick={openMenu} style={{
+        display:"flex", alignItems:"center", justifyContent:"space-between", gap:6,
+        width: isBlock ? "100%" : "auto",
+        padding: compact ? "5px 10px" : "8px 14px",
+        background:"var(--surface)", border:"1px solid var(--border2)",
+        borderRadius:20, cursor:"pointer",
+        fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
+        whiteSpace:"nowrap", boxSizing:"border-box",
+      }}>
+        <span style={{ overflow:"hidden", textOverflow:"ellipsis", minWidth:0 }}>{selected?.label}</span>
+        <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
+      </button>
       {portal}
-      <div style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
-        <button ref={btnRef} type="button" onClick={openMenu} style={{
-          display:"flex", alignItems:"center", justifyContent:"space-between", gap:6,
-          width: isBlock ? "100%" : "auto",
-          padding: compact ? "5px 10px" : "8px 14px",
-          background:"var(--surface)", border:"1px solid var(--border2)",
-          borderRadius:20, cursor:"pointer",
-          fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
-          whiteSpace:"nowrap", boxSizing:"border-box",
-        }}>
-          <span style={{ overflow:"hidden", textOverflow:"ellipsis", minWidth:0 }}>{selected?.label}</span>
-          <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
-        </button>
-      </div>
-    </>
+    </div>
   );
 }
 

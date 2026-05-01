@@ -3344,9 +3344,7 @@ function AppInner({ isDemo = false }) {
             mask: pa.mask,
           }));
         const updated = [...manual, ...plaidUpdated];
-        // No saveData call needed — applySyncResultsToDB already wrote to the accounts table
         // Detect and clean up orphaned Plaid accounts from DB
-        const activeItemIds = new Set(plaidItems.map(i => i.item_id));
         const hasNoItems = activeItemIds.size === 0;
         const orphans = prev.filter(a =>
           a.plaidId && (!a.plaidItemId || !activeItemIds.has(a.plaidItemId) || hasNoItems)

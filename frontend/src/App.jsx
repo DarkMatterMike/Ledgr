@@ -1,7 +1,7 @@
 /**
  * src/App.jsx — Ledgr personal finance app
  */
-import { useState, useEffect, useCallback, useMemo, useRef, Fragment, createPortal } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 import { debounce } from "./api.js";
@@ -380,81 +380,25 @@ function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMo
 /* ─── Sub-components ─────────────────────────────────────────────── */
 /* ─── CustomSelect — matches the spending pace dropdown style ──────── */
 function CustomSelect({ value, onChange, options, style = {}, compact = false }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top:0, left:0, width:180 });
-  const btnRef = useRef(null);
-  const dropRef = useRef(null);
-  const selected = options.find(o => String(o.value) === String(value)) || options[0];
   const isBlock = style.width === "100%" || style.flex;
-
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e) {
-      if (btnRef.current?.contains(e.target)) return; // button handles its own toggle
-      if (dropRef.current?.contains(e.target)) return; // inside dropdown, let click fire
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-    };
-  }, [open]);
-
-  function openMenu(e) {
-    e.stopPropagation();
-    if (!btnRef.current) return;
-    const r = btnRef.current.getBoundingClientRect();
-    const w = Math.max(r.width, 180);
-    const left = (r.left + w > window.innerWidth - 8) ? Math.max(8, r.right - w) : r.left;
-    const spaceBelow = window.innerHeight - r.bottom;
-    const top = spaceBelow < 200 ? Math.max(8, r.top - 326) : r.bottom + 6;
-    setPos({ top, left, width: w });
-    setOpen(o => !o);
-  }
-
-  const portal = open ? createPortal(
-    <div ref={dropRef} style={{
-      position:"fixed", top: pos.top, left: pos.left, minWidth: pos.width,
-      zIndex:401, background:"var(--card)", border:"1px solid var(--border2)",
-      borderRadius:12, boxShadow:"0 8px 32px #000c", maxHeight:320, overflowY:"auto",
-    }}>
-      {options.map((o, i) => (
-        <button key={String(o.value)} type="button"
-          onClick={() => { onChange(o.value); setOpen(false); }}
-          style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            width:"100%", padding:"11px 16px", background:"none", border:"none",
-            borderBottom: i < options.length-1 ? "1px solid var(--border)" : "none",
-            cursor:"pointer", fontSize:13, textAlign:"left",
-            color: String(o.value) === String(value) ? "var(--cyan)" : "var(--t1)",
-            fontWeight: String(o.value) === String(value) ? 700 : 400,
-          }}>
-          <span>{o.label}</span>
-          {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14 }}>✓</span>}
-        </button>
-      ))}
-    </div>,
-    document.body
-  ) : null;
-
   return (
-    <div style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
-      <button ref={btnRef} type="button" onClick={openMenu} style={{
-        display:"flex", alignItems:"center", justifyContent:"space-between", gap:6,
-        width: isBlock ? "100%" : "auto",
-        padding: compact ? "5px 10px" : "8px 14px",
+    <select
+      value={String(value)}
+      onChange={e => onChange(e.target.value)}
+      style={{
         background:"var(--surface)", border:"1px solid var(--border2)",
-        borderRadius:20, cursor:"pointer",
+        borderRadius:20, cursor:"pointer", outline:"none",
+        padding: compact ? "5px 10px" : "8px 14px",
         fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
-        whiteSpace:"nowrap", boxSizing:"border-box",
+        width: isBlock ? "100%" : "auto",
+        appearance:"none", WebkitAppearance:"none",
+        backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E")`,
+        backgroundRepeat:"no-repeat", backgroundPosition:"right 10px center",
+        paddingRight:28, boxSizing:"border-box",
+        ...style,
       }}>
-        <span style={{ overflow:"hidden", textOverflow:"ellipsis", minWidth:0 }}>{selected?.label}</span>
-        <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
-      </button>
-      {portal}
-    </div>
+      {options.map(o => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}
+    </select>
   );
 }
 

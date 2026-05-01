@@ -23,12 +23,14 @@ export function useAppData({
   plaidItems,
   rules,
   calendarAccounts,
+  calendarSplitView,
   setAccounts,
   setCategories,
   setTransactions,
   setPlaidItems,
   setRules,
   setCalendarAccounts,
+  setCalendarSplitView,
   setAccess,
   setLoading,
   applyRules,
@@ -114,6 +116,7 @@ export function useAppData({
         setPlaidItems(coreData.plaidItems          || []);
         setRules(loadedRules);
         setCalendarAccounts(coreData.calendarAccounts || null);
+        if (coreData.calendarSplitView) setCalendarSplitView(coreData.calendarSplitView);
         if (coreData.access) setAccess(coreData.access);
         if (onData) onData(coreData, txnPage.total || 0);
       } catch (e) {
@@ -192,6 +195,10 @@ export function useAppData({
   useEffect(() => {
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts, scheduleSave]);
+
+  useEffect(() => {
+    if (calendarSplitView) scheduleSave({ calendarSplitView });
+  }, [calendarSplitView, scheduleSave]);
 
   return { initialized, scheduleSave, loadPortfolioOnce, loadAiOnce, loadAnalyticsOnce,
     // Call this to force analytics to reload all transactions on next navigation

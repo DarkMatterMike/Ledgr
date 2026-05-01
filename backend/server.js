@@ -575,7 +575,7 @@ app.get("/api/billing/status", (req, res) => {
 app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
-    const [accts, ruleRows, categories, plaidItems, calendarAccounts,
+    const [accts, ruleRows, categories, plaidItems, calendarAccounts, calendarSplitView,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
            aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData] = await Promise.all([
       getAccounts(uid),
@@ -583,6 +583,7 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "categories"),
       getData(uid, "plaidItems"),
       getData(uid, "calendarAccounts"),
+      getData(uid, "calendarSplitView"),
       getData(uid, "aiCatExamples"),
       getData(uid, "userProfile"),
       getData(uid, "dismissedPairs"),
@@ -609,7 +610,8 @@ app.get("/api/data", async (req, res) => {
       categories:       categories       || [],
       plaidItems:       plaidItems       || [],
       reauthItemIds,
-      calendarAccounts: calendarAccounts || null,
+      calendarAccounts:   calendarAccounts || null,
+      calendarSplitView: calendarSplitView || "full",
       aiCatExamples:    aiCatExamples    || [],
       userProfile:      userProfile      || null,
       dismissedPairs:   dismissedPairs   || [],
@@ -813,7 +815,7 @@ app.get("/api/data/summary", async (req, res) => {
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
     const uid = req.user.id;
-    const { categories, plaidItems, dani, theme, calendarAccounts,
+    const { categories, plaidItems, dani, theme, calendarAccounts, calendarSplitView,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals } = req.body;
@@ -824,6 +826,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
     if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
+    if (calendarSplitView)                  ops.push(setData(uid, "calendarSplitView", calendarSplitView));
     if (Array.isArray(investmentAccounts)) ops.push(setData(uid, "investmentAccounts", investmentAccounts));
     if (Array.isArray(holdings))           ops.push(setData(uid, "holdings",           holdings));
     if (Array.isArray(netWorthSnapshots))  ops.push(setData(uid, "netWorthSnapshots",  netWorthSnapshots));

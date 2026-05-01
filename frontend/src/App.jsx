@@ -1,7 +1,7 @@
 /**
  * src/App.jsx — Ledgr personal finance app
  */
-import { useState, useEffect, useCallback, useMemo, useRef, Fragment} from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment, createPortal } from 'react';
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 import { debounce } from "./api.js";
@@ -398,11 +398,38 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
     setOpen(o => !o);
   }
 
-  function pick(v) { onChange(v); setOpen(false); }
+  // Portal content — renders directly on document.body, escaping any scroll/overflow container
+  const portal = open ? createPortal(
+    <>
+      <div style={{ position:"fixed", inset:0, zIndex:9998 }} onClick={() => setOpen(false)} />
+      <div style={{
+        position:"fixed", top: pos.top, left: pos.left, minWidth: pos.width,
+        zIndex:9999, background:"var(--card)", border:"1px solid var(--border2)",
+        borderRadius:12, boxShadow:"0 8px 32px #000c", maxHeight:320, overflowY:"auto",
+      }}>
+        {options.map((o, i) => (
+          <button key={String(o.value)} type="button"
+            onClick={e => { e.stopPropagation(); onChange(o.value); setOpen(false); }}
+            style={{
+              display:"flex", alignItems:"center", justifyContent:"space-between",
+              width:"100%", padding:"11px 16px", background:"none", border:"none",
+              borderBottom: i < options.length-1 ? "1px solid var(--border)" : "none",
+              cursor:"pointer", fontSize:13, textAlign:"left",
+              color: String(o.value) === String(value) ? "var(--cyan)" : "var(--t1)",
+              fontWeight: String(o.value) === String(value) ? 700 : 400,
+            }}>
+            <span>{o.label}</span>
+            {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14 }}>✓</span>}
+          </button>
+        ))}
+      </div>
+    </>,
+    document.body
+  ) : null;
 
   return (
     <>
-      {open && <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={() => setOpen(false)} />}
+      {portal}
       <div style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
         <button ref={btnRef} type="button" onClick={openMenu} style={{
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:6,
@@ -416,28 +443,6 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
           <span style={{ overflow:"hidden", textOverflow:"ellipsis", minWidth:0 }}>{selected?.label}</span>
           <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
         </button>
-        {open && (
-          <div style={{
-            position:"fixed", top: pos.top, left: pos.left, minWidth: pos.width,
-            zIndex:300, background:"var(--card)", border:"1px solid var(--border2)",
-            borderRadius:12, boxShadow:"0 8px 32px #000a", maxHeight:320, overflowY:"auto",
-          }}>
-            {options.map((o, i) => (
-              <button key={String(o.value)} type="button" onClick={e => { e.stopPropagation(); pick(o.value); }}
-                style={{
-                  display:"flex", alignItems:"center", justifyContent:"space-between",
-                  width:"100%", padding:"11px 16px", background:"none", border:"none",
-                  borderBottom: i < options.length-1 ? "1px solid var(--border)" : "none",
-                  cursor:"pointer", fontSize:13, textAlign:"left",
-                  color: String(o.value) === String(value) ? "var(--cyan)" : "var(--t1)",
-                  fontWeight: String(o.value) === String(value) ? 700 : 400,
-                }}>
-                <span>{o.label}</span>
-                {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14 }}>✓</span>}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </>
   );

@@ -6588,92 +6588,90 @@ function AppInner({ isDemo = false }) {
                 padding: 16,
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  marginBottom: 14,
-                }}
-              >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "1.2px",
-                      color: "var(--t3)",
-                      fontFamily: "var(--font-disp)",
-                      marginBottom: 6,
-                    }}
-                  >
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)", marginBottom: 6 }}>
                     {acctLabel}
                   </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 24,
-                      fontWeight: 800,
-                      color: "var(--red)",
-                    }}
-                  >
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 800, color: "var(--red)" }}>
                     {fmt(acctTotal)}
                   </div>
                 </div>
-
-                <button onClick={openAddTxn} style={S.btn("ghost", true)}>
-                  Add
-                </button>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {acctEntries.slice(0, 4).map((acct) => (
-                  <div
-                    key={acct.id}
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius)",
-                      padding: "12px 12px",
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 8,
-                    }}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <select
+                    value={calendarSplitView}
+                    onChange={e => setCalendarSplitView(e.target.value)}
+                    style={{ ...S.input, fontSize: 11, padding: "3px 8px", height: 26, width: "auto", cursor: "pointer" }}
                   >
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: "var(--t1)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {acct.name}
-                      </div>
-                      <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>
-                        {acct.count} charge{acct.count !== 1 ? "s" : ""}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 18,
-                        fontWeight: 800,
-                        color: "var(--red)",
-                        alignSelf: "center",
-                      }}
-                    >
-                      {fmt(acct.total)}
-                    </div>
-                  </div>
-                ))}
+                    <option value="full">Full</option>
+                    <option value="split">Split</option>
+                  </select>
+                  <button onClick={openAddTxn} style={S.btn("ghost", true)}>Add</button>
+                </div>
               </div>
+
+              {calendarSplitView === "full" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {acctEntries.slice(0, 4).map((acct) => (
+                    <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
+                        <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
+                      </div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 800, color: "var(--red)", alignSelf: "center" }}>{fmt(acct.total)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div>
+                  {/* First half: 1–15 */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>1st – 15th</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>{fmt(firstTotal)}</div>
+                    </div>
+                    {firstEntries.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {firstEntries.map(acct => (
+                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
+                              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
+                            </div>
+                            <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: "var(--red)", alignSelf: "center" }}>{fmt(acct.total)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: "var(--t3)", padding: "4px 0" }}>No charges</div>
+                    )}
+                  </div>
+                  {/* Divider */}
+                  <div style={{ height: 1, background: "var(--border)", margin: "12px 0" }}/>
+                  {/* Second half: 16–end */}
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>16th – End</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>{fmt(secondTotal)}</div>
+                    </div>
+                    {secondEntries.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {secondEntries.map(acct => (
+                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
+                              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
+                            </div>
+                            <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: "var(--red)", alignSelf: "center" }}>{fmt(acct.total)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: "var(--t3)", padding: "4px 0" }}>No charges</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div

@@ -2617,12 +2617,8 @@ function AppInner({ isDemo = false }) {
       // Clean up orphaned Plaid accounts — accounts whose item no longer exists
       if (data.accounts && data.plaidItems !== undefined) {
         const activeItemIds = new Set((data.plaidItems || []).map(i => i.item_id));
-        const hasNoItems = activeItemIds.size === 0;
         const orphans = (data.accounts || []).filter(a =>
-          // Has a plaidId (is a Plaid account, not manual)
-          a.plaidId &&
-          // AND either has no active item, or item is explicitly gone
-          (!a.plaidItemId || !activeItemIds.has(a.plaidItemId) || hasNoItems)
+          a.plaidId && a.plaidItemId && !activeItemIds.has(a.plaidItemId)
         );
         if (orphans.length > 0) {
           console.log("Cleaning up orphaned Plaid accounts:", orphans.map(a => a.name));
@@ -3345,9 +3341,10 @@ function AppInner({ isDemo = false }) {
           }));
         const updated = [...manual, ...plaidUpdated];
         // Detect and clean up orphaned Plaid accounts from DB
-        const hasNoItems = activeItemIds.size === 0;
+        // Only remove accounts whose plaidItemId explicitly doesn't match an active item
+        // Don't use hasNoItems — plaidItems state may be stale during handlePlaidSuccess
         const orphans = prev.filter(a =>
-          a.plaidId && (!a.plaidItemId || !activeItemIds.has(a.plaidItemId) || hasNoItems)
+          a.plaidId && a.plaidItemId && !activeItemIds.has(a.plaidItemId)
         );
         if (orphans.length > 0) {
           const itemIds = [...new Set(orphans.map(a => a.plaidItemId).filter(Boolean))];

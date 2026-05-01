@@ -5262,20 +5262,20 @@ function AppInner({ isDemo = false }) {
                               const valLabel = over ? `-${fmt(Math.abs(remaining))} over` : complete ? "✴ done" : zero ? "fully spent" : `${fmt(remaining)} left`;
                               return (
                                 <Fragment key={cat.id}>
-                                  <div style={{gridColumn:"1/-1",height:8}}/>
-                                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, display: "inline-block", justifySelf: "center" }} />
+                                  <div style={{gridColumn:"1/-1",height:8,cursor:"pointer"}} onClick={()=>setBudgetDrillCat(cat)}/>
+                                  <span onClick={()=>setBudgetDrillCat(cat)} style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, display: "inline-block", justifySelf: "center", cursor:"pointer" }} />
                                   {editingCatNameId === cat.id ? (
                                     <div onClick={(e) => e.stopPropagation()}>
                                       <input autoFocus style={{ ...S.input, fontSize: 13, padding: "2px 6px", width: "100%" }} value={editingCatName} onChange={(e) => setEditingCatName(e.target.value)} onBlur={() => saveCatName(cat.id)} onKeyDown={(e) => { if (e.key === "Enter") saveCatName(cat.id); if (e.key === "Escape") setEditingCatNameId(null); }} />
                                     </div>
                                   ) : (
-                                    <span onClick={(e) => { e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Click to rename" style={{ fontSize: 13, fontWeight: 500, color: complete ? "var(--t3)" : "var(--t1)", whiteSpace: "nowrap", cursor: "text", opacity: complete ? 0.6 : 1 }}>{cat.name}</span>
+                                    <span onClick={()=>setBudgetDrillCat(cat)} style={{ fontSize: 13, fontWeight: 500, color: complete ? "var(--t3)" : "var(--t1)", whiteSpace: "nowrap", cursor: "pointer", opacity: complete ? 0.6 : 1 }}>{cat.name}</span>
                                   )}
                                   <div onClick={() => setBudgetDrillCat(cat)} style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden", cursor: "pointer", minWidth: 0 }}>
                                     <div style={{ height: "100%", borderRadius: 99, background: barC, width: `${displayPct}%` }} className="ledgr-bar" title={`Spent ${fmt(spent)} of ${fmt(cat.limit)}`} />
                                   </div>
-                                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", whiteSpace:"nowrap", textAlign:"right", justifySelf:"end" }}>{fmt(spent)}</span>
-                                  <span style={{ color:"var(--t3)", fontSize:11, textAlign:"center", opacity:0.5 }}>/</span>
+                                  <span onClick={()=>setBudgetDrillCat(cat)} style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", whiteSpace:"nowrap", textAlign:"right", justifySelf:"end", cursor:"pointer" }}>{fmt(spent)}</span>
+                                  <span onClick={()=>setBudgetDrillCat(cat)} style={{ color:"var(--t3)", fontSize:11, textAlign:"center", opacity:0.5, cursor:"pointer" }}>/</span>
                                   <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t3)", whiteSpace:"nowrap", justifySelf:"start" }}>
                                     {editingLimitId === cat.id ? (
                                       <input type="number" autoFocus onClick={(e)=>e.stopPropagation()} style={{ background:"none", border:"none", borderBottom:"1px solid var(--cyan)", fontSize:11, color:"var(--t1)", outline:"none", width:60, fontFamily:"var(--font-mono)" }} value={editingLimitVal} onChange={(e)=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={(e)=>{ if(e.key==="Enter")saveLimit(cat.id); if(e.key==="Escape")setEditingLimitId(null); }} />
@@ -5283,7 +5283,7 @@ function AppInner({ isDemo = false }) {
                                       <span onClick={(e)=>startEditLimit(cat,e)} style={{ cursor:"text", textDecoration:"underline dotted", textUnderlineOffset:2 }}>{fmt(cat.limit)}</span>
                                     )}
                                   </span>
-                                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: valColor, whiteSpace: "nowrap", textAlign: "right", justifySelf: "end", minWidth: 90 }}>{valLabel}</span>
+                                  <span onClick={()=>setBudgetDrillCat(cat)} style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: valColor, whiteSpace: "nowrap", textAlign: "right", justifySelf: "end", minWidth: 90, cursor:"pointer" }}>{valLabel}</span>
                                   <div style={{ display: "flex", alignItems: "center", gap: 2 }} onClick={(e) => e.stopPropagation()}>
                                     <div style={{ position: "relative" }}>
                                       <button onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "4px 4px", lineHeight: 1, borderRadius: "var(--radius)" }}>⋯</button>
@@ -5299,7 +5299,7 @@ function AppInner({ isDemo = false }) {
                                       )}
                                     </div>
                                   </div>
-                                  <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5}}/>
+                                  <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5,cursor:"pointer"}} onClick={()=>setBudgetDrillCat(cat)}/>
                                 </Fragment>
                               );
                             })}

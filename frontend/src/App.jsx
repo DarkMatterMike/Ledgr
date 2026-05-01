@@ -381,29 +381,45 @@ function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMo
 /* ─── CustomSelect — matches the spending pace dropdown style ──────── */
 function CustomSelect({ value, onChange, options, style = {}, compact = false }) {
   const [open, setOpen] = useState(false);
-  const [dropPos, setDropPos] = useState({ top:0, left:0, width:0 });
+  const [dropPos, setDropPos] = useState({ top:0, left:0, width:180 });
   const ref = useRef(null);
+  const btnRef = useRef(null);
   const selected = options.find(o => String(o.value) === String(value)) || options[0];
 
   useEffect(() => {
     if (!open) return;
-    const close = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("touchstart", close);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("touchstart", close);
-    };
+    // Use setTimeout to skip the current event cycle so the opening click
+    // doesn't immediately trigger the close listener
+    const id = setTimeout(() => {
+      const close = e => {
+        if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      };
+      document.addEventListener("click", close);
+      document.addEventListener("touchstart", close);
+      return () => {
+        document.removeEventListener("click", close);
+        document.removeEventListener("touchstart", close);
+      };
+    }, 0);
+    return () => clearTimeout(id);
   }, [open]);
 
-  function handleOpen() {
+  function handleOpen(e) {
+    e.stopPropagation();
     if (open) { setOpen(false); return; }
-    if (ref.current) {
-      const r = ref.current.getBoundingClientRect();
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
       const width = Math.max(r.width, 180);
       // Flip left if would overflow right edge
-      const left = r.left + width > window.innerWidth ? Math.max(0, r.right - width) : r.left;
-      setDropPos({ top: r.bottom + 6, left, width });
+      const left = r.left + width > window.innerWidth - 8
+        ? Math.max(8, r.right - width)
+        : r.left;
+      // Flip up if insufficient space below (max dropdown ~320px)
+      const spaceBelow = window.innerHeight - r.bottom;
+      const top = spaceBelow < 200
+        ? Math.max(8, r.top - 326)
+        : r.bottom + 6;
+      setDropPos({ top, left, width });
     }
     setOpen(true);
   }
@@ -413,6 +429,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
   return (
     <div ref={ref} style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
       <button
+        ref={btnRef}
         type="button"
         onClick={handleOpen}
         style={{
@@ -427,9 +444,9 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
         <span style={{overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{selected?.label}</span>
         <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
       </button>
-      {open && dropPos.top > 0 && (
+      {open && (
         <>
-          <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={() => setOpen(false)} />
+          <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={e=>{e.stopPropagation();setOpen(false);}} />
           <div style={{
             position:"fixed",
             top: dropPos.top, left: dropPos.left,
@@ -441,7 +458,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
           }}>
             {options.map((o, i) => (
               <button key={String(o.value)} type="button"
-                onClick={() => { onChange(o.value); setOpen(false); }}
+                onClick={e=>{e.stopPropagation(); onChange(o.value); setOpen(false);}}
                 style={{
                   display:"flex", alignItems:"center", justifyContent:"space-between",
                   width:"100%", padding:"11px 16px", background:"none", border:"none",

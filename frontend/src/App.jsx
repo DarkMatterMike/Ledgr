@@ -378,6 +378,84 @@ function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
 
 /* ─── Sub-components ─────────────────────────────────────────────── */
+/* ─── CustomSelect — matches the spending pace dropdown style ──────── */
+function CustomSelect({ value, onChange, options, style = {}, compact = false }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selected = options.find(o => String(o.value) === String(value)) || options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const close = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("touchstart", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("touchstart", close);
+    };
+  }, [open]);
+
+  // Detect if dropdown would overflow right edge and flip to right-aligned
+  const dropStyle = {
+    position:"absolute", top:"calc(100% + 6px)", zIndex:300,
+    background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
+    boxShadow:"0 8px 24px #0008",
+    minWidth: compact ? 140 : 180,
+    maxHeight: 320, overflowY:"auto",
+    left: 0,
+  };
+
+  // Container takes full width if style has width/flex, else inline
+  const isBlock = style.width === "100%" || style.flex;
+  const containerStyle = {
+    position:"relative",
+    display: isBlock ? "block" : "inline-block",
+    ...style,
+  };
+
+  return (
+    <div ref={ref} style={containerStyle}>
+      <button
+        type="button"
+        onClick={() => setOpen(p => !p)}
+        style={{
+          display:"flex", alignItems:"center", justifyContent:"space-between", gap:6,
+          width: isBlock ? "100%" : "auto",
+          padding: compact ? "5px 10px" : "8px 14px",
+          background:"var(--surface)", border:"1px solid var(--border2)",
+          borderRadius:20, cursor:"pointer",
+          fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
+          whiteSpace:"nowrap", boxSizing:"border-box",
+        }}>
+        <span style={{overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{selected?.label}</span>
+        <span style={{ fontSize:10, color:"var(--t3)", lineHeight:1, flexShrink:0 }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={() => setOpen(false)} />
+          <div style={dropStyle}>
+            {options.map((o, i) => (
+              <button key={String(o.value)} type="button"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                style={{
+                  display:"flex", alignItems:"center", justifyContent:"space-between",
+                  width:"100%", padding:"11px 16px", background:"none", border:"none",
+                  borderBottom: i < options.length - 1 ? "1px solid var(--border)" : "none",
+                  cursor:"pointer", fontSize:13, textAlign:"left",
+                  color: String(o.value) === String(value) ? "var(--cyan)" : "var(--t1)",
+                  fontWeight: String(o.value) === String(value) ? 700 : 400,
+                }}>
+                <span>{o.label}</span>
+                {String(o.value) === String(value) && <span style={{ color:"var(--cyan)", fontSize:14, flexShrink:0 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function CategoryBadge({ cat }) {
   if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
   return <span style={S.badge(cat.color)}><span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>{cat.name}</span>;
@@ -1242,31 +1320,14 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
             {/* Left: dropdowns */}
             <div style={{display:"flex", flexDirection:"column", gap:8, flex:1}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
-                  value={typeVal} onChange={e=>updateTxnType(t.id,e.target.value)}>
-                  <option value="expense">Expense</option>
-                  <option value="income">Income</option>
-                  <option value="refund">Refund</option>
-                  <option value="reimbursement">Reimbursement</option>
-                  <option value="transfer">Transfer</option>
-                </select>
+                <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)} options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{width:"100%"}} compact/>
                 {noCategory ? (
                   <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
                 ) : (
-                  <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
-                    value={t.categoryId||""}
-                    onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
-                    <option value="">— Category —</option>
-                    {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                    <option value="__new__">+ New…</option>
-                  </select>
+                  <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }} options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}} compact/>
                 )}
               </div>
-              <select style={{...S.select,width:"100%",padding:"7px 8px",fontSize:12}}
-                value={t.accountId||""} onChange={e=>updateTxnAcct(t.id,e.target.value)}>
-                <option value="">— Account —</option>
-                {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
+              <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)} options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}} compact/>
             </div>
 
             {/* Right: notes textarea */}
@@ -4695,15 +4756,8 @@ function AppInner({ isDemo = false }) {
           </div>
           {/* Row 2: Dropdowns + Select All — side by side on both mobile and desktop */}
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
-              <option value="all">All Categories</option>
-              {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-              <option value="">Uncategorized</option>
-            </select>
-            <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
-              <option value="all">All Accounts</option>
-              {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)} options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:0}} compact/>
+            <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)} options={[{value:"all",label:"All Accounts"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:0}} compact/>
             <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}}
               onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
               {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
@@ -5342,16 +5396,7 @@ function AppInner({ isDemo = false }) {
                                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{t.date}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acctMap[t.accountId]?.name || 'No account'}</div>
                                 <div style={{ marginTop: 8 }}>
-                                  <select
-                                    style={{ ...S.select, width: "100%", padding: "7px 10px", fontSize: 12 }}
-                                    value={t.categoryId || ""}
-                                    onChange={(e) => updateTxnCat(t.id, e.target.value)}
-                                  >
-                                    <option value="">— Uncategorized —</option>
-                                    {categories.map((c) => (
-                                      <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                  </select>
+                                  <CustomSelect value={t.categoryId||""} onChange={v=>updateTxnCat(t.id,v)} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}} compact/>
                                 </div>
                               </div>
                               <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: t.amount < 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap" }}>{t.amount < 0 ? "-" : "+"}{fmt(Math.abs(t.amount))}</div>
@@ -5932,10 +5977,7 @@ function AppInner({ isDemo = false }) {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: "var(--red)" }}>{fmt(acctTotal)}</span>
-                <select value={calendarSplitView} onChange={e => setCalendarSplitView(e.target.value)} style={{ ...S.input, fontSize: 11, padding: "3px 8px", height: 26, width: "auto", cursor: "pointer" }}>
-                  <option value="full">Full</option>
-                  <option value="split">Split</option>
-                </select>
+                <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} compact/>
               </div>
             </div>
             {calendarSplitView === "full" ? (
@@ -6627,10 +6669,7 @@ function AppInner({ isDemo = false }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <select value={calendarSplitView} onChange={e => setCalendarSplitView(e.target.value)} style={{ ...S.input, fontSize: 11, padding: "3px 8px", height: 26, width: "auto", cursor: "pointer" }}>
-                  <option value="full">Full</option>
-                  <option value="split">Split</option>
-                </select>
+                  <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} compact/>
                   <button onClick={openAddTxn} style={S.btn("ghost", true)}>Add</button>
                 </div>
               </div>
@@ -6999,12 +7038,7 @@ function AppInner({ isDemo = false }) {
         </div>
         <div style={S.field}>
           <label style={S.label}>Frequency</label>
-          <select style={{...S.input,padding:"9px 12px"}} value={editTarget.recurringFreq||"monthly"} onChange={e=>setEditTarget(p=>({...p,recurringFreq:e.target.value}))}>
-            <option value="weekly">Weekly</option>
-            <option value="biweekly">Bi-weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="annual">Annual</option>
-          </select>
+          <CustomSelect value={editTarget.recurringFreq||"monthly"} onChange={v=>setEditTarget(p=>({...p,recurringFreq:v}))} options={[{value:"weekly",label:"Weekly"},{value:"biweekly",label:"Bi-weekly"},{value:"monthly",label:"Monthly"},{value:"annual",label:"Annual"}]} style={{width:"100%"}}/>
         </div>
         {(editTarget.recurringFreq==="monthly"||!editTarget.recurringFreq)&&(
           <div style={S.field}>
@@ -7020,10 +7054,7 @@ function AppInner({ isDemo = false }) {
         </div>
         <div style={S.field}>
           <label style={S.label}>Category</label>
-          <select style={{...S.input,padding:"9px 12px"}} value={editTarget.categoryId||""} onChange={e=>setEditTarget(p=>({...p,categoryId:e.target.value||null}))}>
-            <option value="">— None —</option>
-            {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <CustomSelect value={editTarget.categoryId||""} onChange={v=>setEditTarget(p=>({...p,categoryId:v||null}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
         </div>
       </div>
     </Modal>
@@ -7046,29 +7077,17 @@ function AppInner({ isDemo = false }) {
         </div>
         <div style={S.field}>
           <label style={S.label}>Match Type</label>
-          <select style={{...S.input,padding:"9px 12px"}} value={ruleForm.matchType} onChange={e=>setRuleForm(p=>({...p,matchType:e.target.value}))}>
-            <option value="contains">Contains</option>
-            <option value="starts">Starts with</option>
-            <option value="exact">Exact match</option>
-          </select>
+          <CustomSelect value={ruleForm.matchType} onChange={v=>setRuleForm(p=>({...p,matchType:v}))} options={[{value:"contains",label:"Contains"},{value:"starts",label:"Starts with"},{value:"exact",label:"Exact match"}]} style={{width:"100%"}}/>
         </div>
         {ruleForm.typeOverride || (editTarget?.typeOverride && !editTarget?.categoryId) ? (
           <div style={S.field}>
             <label style={S.label}>Assign Type</label>
-            <select style={{...S.input,padding:"9px 12px"}} value={ruleForm.typeOverride} onChange={e=>setRuleForm(p=>({...p,typeOverride:e.target.value,categoryId:""}))}>
-              <option value="">— Select —</option>
-              <option value="transfer">Transfer</option>
-              <option value="income">Income</option>
-              <option value="reimbursement">Reimbursement</option>
-            </select>
+            <CustomSelect value={ruleForm.typeOverride} onChange={v=>setRuleForm(p=>({...p,typeOverride:v,categoryId:""}))} options={[{value:"",label:"— Select —"},{value:"transfer",label:"Transfer"},{value:"income",label:"Income"},{value:"reimbursement",label:"Reimbursement"}]} style={{width:"100%"}}/>
           </div>
         ) : (
           <div style={S.field}>
             <label style={S.label}>Assign Category</label>
-            <select style={{...S.input,padding:"9px 12px"}} value={ruleForm.categoryId} onChange={e=>setRuleForm(p=>({...p,categoryId:e.target.value,typeOverride:""}))}>
-              <option value="">— Select —</option>
-              {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <CustomSelect value={ruleForm.categoryId} onChange={v=>setRuleForm(p=>({...p,categoryId:v,typeOverride:""}))} options={[{value:"",label:"— Select —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
           </div>
         )}
       </div>
@@ -7099,9 +7118,7 @@ function AppInner({ isDemo = false }) {
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
         <div style={S.field}><label style={S.label}>Type</label>
-          <select style={{...S.input,padding:"9px 12px"}} value={acctForm.type} onChange={e=>setAcctForm(p=>({...p,type:e.target.value}))}>
-            {["Checking","Savings","Credit","Investment"].map(t=><option key={t}>{t}</option>)}
-          </select>
+          <CustomSelect value={acctForm.type} onChange={v=>setAcctForm(p=>({...p,type:v}))} options={["Checking","Savings","Credit","Investment"].map(t=>({value:t,label:t}))} style={{width:"100%"}}/>
         </div>
         <div style={S.field}><label style={S.label}>Balance ($)</label><input style={S.input} type="number" placeholder="0.00" value={acctForm.balance} onChange={e=>setAcctForm(p=>({...p,balance:e.target.value}))}/></div>
       </div>
@@ -7115,23 +7132,17 @@ function AppInner({ isDemo = false }) {
         <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}><label style={S.label}>Type</label>
-            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.sign} onChange={e=>setTxnForm(p=>({...p,sign:e.target.value}))}>
-              <option value="-1">Expense (⟵)</option><option value="1">Income (+)</option>
-            </select>
+            <CustomSelect value={txnForm.sign} onChange={v=>setTxnForm(p=>({...p,sign:v}))} options={[{value:"-1",label:"Expense"},{value:"1",label:"Income"}]} style={{width:"100%"}}/>
           </div>
           <div style={S.field}><label style={S.label}>Amount ($)</label><input style={S.input} type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/></div>
         </div>
         <div style={S.field}><label style={S.label}>Date</label><input style={S.input} type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}><label style={S.label}>Category</label>
-            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
-              <option value="">None</option>{[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <CustomSelect value={txnForm.categoryId} onChange={v=>setTxnForm(p=>({...p,categoryId:v}))} options={[{value:"",label:"None"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
           </div>
           <div style={S.field}><label style={S.label}>Account</label>
-            <select style={{...S.input,padding:"9px 12px"}} value={txnForm.accountId} onChange={e=>setTxnForm(p=>({...p,accountId:e.target.value}))}>
-              <option value="">None</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <CustomSelect value={txnForm.accountId} onChange={v=>setTxnForm(p=>({...p,accountId:v}))} options={[{value:"",label:"None"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}}/>
           </div>
         </div>
       </div>
@@ -7653,24 +7664,9 @@ function AppInner({ isDemo = false }) {
             {selectedTxns.size} selected
           </span>
           {/* Category */}
-          <select style={{...S.select,padding:"6px 8px",fontSize:12,flex:1,minWidth:130}}
-            defaultValue=""
-            onChange={e=>{ if(e.target.value) bulkSetCategory(e.target.value); e.target.value=""; }}>
-            <option value="" disabled>Set category…</option>
-            {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-            <option value="__clear__">Clear category</option>
-          </select>
+          <CustomSelect value="" onChange={v=>{ if(v) bulkSetCategory(v); }} options={[{value:"",label:"Set category…"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:130}} compact/>
           {/* Type */}
-          <select style={{...S.select,padding:"6px 8px",fontSize:12,flex:1,minWidth:120}}
-            defaultValue=""
-            onChange={e=>{ if(e.target.value) bulkSetType(e.target.value); e.target.value=""; }}>
-            <option value="" disabled>Set type…</option>
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-            <option value="transfer">Transfer</option>
-            <option value="reimbursement">Reimbursement</option>
-            <option value="refund">Refund</option>
-          </select>
+          <CustomSelect value="" onChange={v=>{ if(v) bulkSetType(v); }} options={[{value:"",label:"Set type…"},{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{flex:1,minWidth:120}} compact/>
           <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>bulkMarkReviewed(true)}>✴ Reviewed</button>
           <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
           <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✕</button>

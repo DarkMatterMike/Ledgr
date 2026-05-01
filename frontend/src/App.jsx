@@ -975,7 +975,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
     <>
       <div style={{padding:"12px 14px 10px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontFamily:"var(--font-script)",fontSize:22,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">™</span>
+          <span style={{fontFamily:"var(--font-script)",fontSize:22,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
           <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
             ledgr<span style={{color:"var(--cyan)"}}>.</span>
           </div>
@@ -1023,7 +1023,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
                 color:view==="admin"?"var(--cyan)":"var(--t2)",
                 width:"100%",textAlign:"left",transition:"all 0.15s",
               }}>
-              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>🎯</span>
+              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>◎</span>
               <span>Admin</span>
               {view==="admin"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
             </button>
@@ -1033,7 +1033,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
       <div style={{padding:"8px 8px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:6}}>
         <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
           onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
-          {syncing?"│ Syncing…":"│ Sync All"}
+          {syncing?"↻ Syncing…":"↻ Sync All"}
         </button>
         <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
           onClick={()=>setSupportOpen(true)}>
@@ -1507,7 +1507,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               <div style={{ marginTop:4, display:"inline-flex", alignItems:"center", gap:5,
                 background:"#00d4ff22", border:"1px solid #00d4ff44",
                 borderRadius:99, padding:"2px 10px", fontSize:10, fontWeight:700, color:"var(--cyan)", letterSpacing:"0.5px" }}>
-                ⬢ OWNER
+                ◈ OWNER
               </div>
             )}
           </div>
@@ -2414,7 +2414,7 @@ function InstallPrompt() {
           fontSize:28, textAlign:"center", marginBottom:6,
           color:"var(--cyan)", fontFamily:"var(--font-disp)", fontWeight:800,
         }}>
-          ™
+          ℓ
         </div>
         <div style={{
           fontSize:18, fontWeight:700, textAlign:"center",
@@ -4174,8 +4174,8 @@ function AppInner({ isDemo = false }) {
           <div style={{...S.card,gridColumn:"1 / 3",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
             {/* Arrows + month label */}
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>╣</button>
-              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>║</button>
+              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>‹</button>
+              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>›</button>
               <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:16,color:"var(--t1)",marginLeft:10,whiteSpace:"nowrap"}}>
                 {monthLabel(selectedMonth)}
                 {isCurrentMonth&&<span style={{marginLeft:8,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",fontWeight:400}}>current</span>}
@@ -4197,8 +4197,8 @@ function AppInner({ isDemo = false }) {
       {isMobile && (
         <div style={{...S.card,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>╣</button>
-            <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>║</button>
+            <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>‹</button>
+            <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>›</button>
             <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",marginLeft:6}}>
               {monthLabel(selectedMonth)}
               {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
@@ -4540,7 +4540,7 @@ function AppInner({ isDemo = false }) {
               )}
               <button onClick={()=>{ setFilterReview(p=>!p); setSearch(""); setFilterCat("all"); }}
                 style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
-                {filterReview?"✸ Clear":"Review ║"}
+                {filterReview?"✸ Clear":"Review ›"}
               </button>
             </div>
           </div>
@@ -4559,7 +4559,7 @@ function AppInner({ isDemo = false }) {
                 setShowReconcile(p=>!p);
               }}
                 style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
-                {showReconcile?"✸ Close":"Review ║"}
+                {showReconcile?"✸ Close":"Review ›"}
               </button>
             </div>
             {showReconcile&&(
@@ -4637,7 +4637,7 @@ function AppInner({ isDemo = false }) {
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
           <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
           <button style={S.btn("ghost",true)} onClick={scanForDuplicates}>Scan Duplicates</button>
-          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"│ Syncing…":"│ Sync"}</button>}
+          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"↻ Syncing…":"↻ Sync"}</button>}
           {aiChat.hasApiKey&&(
             <button style={S.btn("ghost",true)} disabled={autoCatRunning}
               onClick={async()=>{
@@ -5383,7 +5383,7 @@ function AppInner({ isDemo = false }) {
                   const spent=spentByAcct[acct.id]||0;
                   const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
                   const daily=today.getDate()>0?spent/today.getDate():0;
-                  const typeIcon=acct.type==="Credit"?"→":acct.type==="Savings"?"🏦":"🏦";
+                  const typeIcon=acct.type==="Credit"?"💳":acct.type==="Savings"?"🏦":"🏧";
                   return (
                     <div style={{padding:"11px 14px",borderTop:"1px solid var(--border)"}}>
                       <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:3}}>
@@ -5477,7 +5477,7 @@ function AppInner({ isDemo = false }) {
                             </>
                           ) : (
                             <>
-                              <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>doSync(item.item_id)} disabled={syncing}>{syncing?"…":"│ Sync"}</button>
+                              <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>doSync(item.item_id)} disabled={syncing}>{syncing?"…":"↻ Sync"}</button>
                               <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Disconnect</button>
                             </>
                           )}
@@ -5736,8 +5736,7 @@ function AppInner({ isDemo = false }) {
               fontSize: 16,
               lineHeight: "1",
             }}
-          >
-            ╣
+          >‹
           </button>
 
           <div style={{ fontFamily: "var(--font-disp)", fontSize: 17, fontWeight: 700 }}>
@@ -5756,8 +5755,7 @@ function AppInner({ isDemo = false }) {
               fontSize: 16,
               lineHeight: "1",
             }}
-          >
-            ║
+          >›
           </button>
         </div>
 
@@ -6224,8 +6222,7 @@ function AppInner({ isDemo = false }) {
                     justifyContent: "center",
                     justifySelf: "start",
                   }}
-                >
-                  ╣
+                >‹
                 </button>
 
                 <div style={{ textAlign: "center" }}>
@@ -6252,8 +6249,7 @@ function AppInner({ isDemo = false }) {
                     justifyContent: "center",
                     justifySelf: "end",
                   }}
-                >
-                  ║
+                >›
                 </button>
               </div>
 
@@ -7271,7 +7267,7 @@ function AppInner({ isDemo = false }) {
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
-      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">™</div>
+      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">ℓ</div>
       <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>
@@ -7328,7 +7324,7 @@ function AppInner({ isDemo = false }) {
         justifyContent:"space-between", gap:10,
       }}>
         <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color: trialDaysLeft <= 1 ? "var(--red)" : "var(--amber)"}}>
-          <span style={{fontSize:14}}>{trialDaysLeft <= 1 ? "⬡⚠" : "│"}</span>
+          <span style={{fontSize:14}}>{trialDaysLeft <= 1 ? "⬡⚠" : "·"}</span>
           <span style={{fontWeight:600}}>
             {trialDaysLeft === 0
               ? "Your trial expires today"
@@ -7363,7 +7359,7 @@ function AppInner({ isDemo = false }) {
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
-            <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">™</span>
+            <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
             <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
@@ -7405,7 +7401,7 @@ function AppInner({ isDemo = false }) {
                           {visibleNotifs.map((n,i) => (
                             <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
                               <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"📋":n.type==="reauth"?"🏦":"›"}
+                                {n.type==="review"?"◎":n.type==="reauth"?"🏦":"›"}
                               </div>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
@@ -7507,7 +7503,7 @@ function AppInner({ isDemo = false }) {
                           {visibleNotifs.map((n,i) => (
                             <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
                               <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"📋":n.type==="reauth"?"🏦":"›"}
+                                {n.type==="review"?"◎":n.type==="reauth"?"🏦":"›"}
                               </div>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>

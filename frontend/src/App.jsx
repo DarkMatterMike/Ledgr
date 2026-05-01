@@ -1190,7 +1190,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
         </span>
         <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
           <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
-            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>»</button>
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
           {ellipsisId===t.id&&(
             <>
               <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
@@ -5021,7 +5021,7 @@ function AppInner({ isDemo = false }) {
                                       style={{ color:"var(--t3)", fontSize:10, cursor:"pointer", padding:"4px 2px" }}>▤</span>
                                   )}
                                   <div style={{ position:"relative" }}>
-                                    <button onClick={(e)=>{ e.stopPropagation(); setBudgetKebabId(p=>p===cat.id?null:cat.id); }} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16, padding:"4px 4px", lineHeight:1, borderRadius:"var(--radius)" }}>»</button>
+                                    <button onClick={(e)=>{ e.stopPropagation(); setBudgetKebabId(p=>p===cat.id?null:cat.id); }} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16, padding:"4px 4px", lineHeight:1, borderRadius:"var(--radius)" }}>⋯</button>
                                     {budgetKebabId===cat.id && (
                                       <>
                                         <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
@@ -5249,7 +5249,7 @@ function AppInner({ isDemo = false }) {
                                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700, color: valColor, whiteSpace: "nowrap", textAlign: "right", justifySelf: "end", minWidth: 90 }}>{valLabel}</span>
                                   <div style={{ display: "flex", alignItems: "center", gap: 2 }} onClick={(e) => e.stopPropagation()}>
                                     <div style={{ position: "relative" }}>
-                                      <button onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "4px 4px", lineHeight: 1, borderRadius: "var(--radius)" }}>»</button>
+                                      <button onClick={(e) => { e.stopPropagation(); setBudgetKebabId(p => p === cat.id ? null : cat.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "4px 4px", lineHeight: 1, borderRadius: "var(--radius)" }}>⋯</button>
                                       {budgetKebabId === cat.id && (
                                         <>
                                           <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
@@ -5383,12 +5383,11 @@ function AppInner({ isDemo = false }) {
                   const spent=spentByAcct[acct.id]||0;
                   const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
                   const daily=today.getDate()>0?spent/today.getDate():0;
-                  const typeIcon=acct.type==="Credit"?"◈":acct.type==="Savings"?"◉":"▣";
-                  return (
+                                    return (
                     <div style={{padding:"11px 14px",borderTop:"1px solid var(--border)"}}>
                       <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:3}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{typeIcon} {acct.name}</div>
+                          <div style={{fontSize:13,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>

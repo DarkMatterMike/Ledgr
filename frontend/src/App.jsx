@@ -1257,7 +1257,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
                     value={t.categoryId||""}
                     onChange={e=>{ if(e.target.value==="__new__"){openAddCat();}else{updateTxnCat(t.id,e.target.value);} }}>
                     <option value="">— Category —</option>
-                    {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                    {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                     <option value="__new__">+ New…</option>
                   </select>
                 )}
@@ -4697,7 +4697,7 @@ function AppInner({ isDemo = false }) {
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
               <option value="all">All Categories</option>
-              {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
               <option value="">Uncategorized</option>
             </select>
             <select style={{...S.select,padding:"7px 8px",fontSize:12,flex:1,minWidth:0}} value={filterAcct} onChange={e=>setFilterAcct(e.target.value)}>
@@ -5003,13 +5003,13 @@ function AppInner({ isDemo = false }) {
                             const valLabel = over ? `-${fmt(Math.abs(remaining))} over` : complete ? "✴ done" : zero ? "fully spent" : `${fmt(remaining)} left`;
                             return (
                               <Fragment key={cat.id}>
-                                {/* tappable spacer row — mobile taps here expand */}
-                                <div style={{gridColumn:"1/-1", height:8, cursor: isMobile ? "pointer" : "default"}}
-                                  onClick={isMobile ? ()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); } : undefined}/>
+                                {/* full-width clickable spacer — entire row is tappable */}
+                                <div style={{gridColumn:"1/-1", height:8, cursor:"pointer"}}
+                                  onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}/>
                                 {/* dot */}
                                 <span
-                                  onClick={isMobile ? ()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); } : undefined}
-                                  style={{ width:8, height:8, borderRadius:"50%", background:cat.color, display:"inline-block", justifySelf:"center", cursor: isMobile ? "pointer" : "default" }} />
+                                  onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}
+                                  style={{ width:8, height:8, borderRadius:"50%", background:cat.color, display:"inline-block", justifySelf:"center", cursor:"pointer" }} />
                                 {/* name — mobile: tap row to expand, no inline rename */}
                                 {editingCatNameId === cat.id ? (
                                   <div onClick={(e) => e.stopPropagation()} style={{minWidth:0}}>
@@ -5020,8 +5020,8 @@ function AppInner({ isDemo = false }) {
                                     onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}
                                     style={{ fontSize:13, fontWeight:500, color:complete?"var(--t3)":"var(--t1)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", cursor:"pointer", opacity:complete?0.6:1 }}>{cat.name}</span>
                                 ) : (
-                                  <span onClick={(e)=>{ e.stopPropagation(); setEditingCatNameId(cat.id); setEditingCatName(cat.name); }} title="Tap to rename"
-                                    style={{ fontSize:13, fontWeight:500, color:complete?"var(--t3)":"var(--t1)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", cursor:"text", opacity:complete?0.6:1 }}>{cat.name}</span>
+                                  <span onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}
+                                    style={{ fontSize:13, fontWeight:500, color:complete?"var(--t3)":"var(--t1)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", cursor:"pointer", opacity:complete?0.6:1 }}>{cat.name}</span>
                                 )}
                                 {/* bar — desktop only */}
                                 {!isMobile && (
@@ -5047,8 +5047,8 @@ function AppInner({ isDemo = false }) {
                                 )}
                                 {/* remaining badge */}
                                 <span
-                                  onClick={isMobile ? ()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); } : undefined}
-                                  style={{ fontFamily:"var(--font-mono)", fontSize:11, fontWeight:700, color:valColor, whiteSpace:"nowrap", textAlign:"right", justifySelf:"end", minWidth: isMobile ? 0 : 90, cursor: isMobile ? "pointer" : "default" }}>{valLabel}</span>
+                                  onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}
+                                  style={{ fontFamily:"var(--font-mono)", fontSize:11, fontWeight:700, color:valColor, whiteSpace:"nowrap", textAlign:"right", justifySelf:"end", minWidth: isMobile ? 0 : 90, cursor:"pointer" }}>{valLabel}</span>
                                 {/* chevron (desktop only) + kebab */}
                                 <div style={{ display:"flex", alignItems:"center", gap:2 }} onClick={(e)=>e.stopPropagation()}>
                                   {!isMobile && (
@@ -5079,8 +5079,9 @@ function AppInner({ isDemo = false }) {
                                     </div>
                                   </div>
                                 )}
-                                {/* separator */}
-                                <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5}}/>
+                                {/* separator — also clickable to expand */}
+                                <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5,cursor:"pointer"}}
+                                  onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}/>
                                 {budgetExpandedCatId === cat.id && (
                                   <div className="ledgr-expand" style={{ gridColumn: "1 / -1", margin: "0 -2px", padding: "10px 14px", background: "var(--bg)", borderRadius: "var(--radius)", borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
 
@@ -7021,7 +7022,7 @@ function AppInner({ isDemo = false }) {
           <label style={S.label}>Category</label>
           <select style={{...S.input,padding:"9px 12px"}} value={editTarget.categoryId||""} onChange={e=>setEditTarget(p=>({...p,categoryId:e.target.value||null}))}>
             <option value="">— None —</option>
-            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
       </div>
@@ -7066,7 +7067,7 @@ function AppInner({ isDemo = false }) {
             <label style={S.label}>Assign Category</label>
             <select style={{...S.input,padding:"9px 12px"}} value={ruleForm.categoryId} onChange={e=>setRuleForm(p=>({...p,categoryId:e.target.value,typeOverride:""}))}>
               <option value="">— Select —</option>
-              {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
         )}
@@ -7124,7 +7125,7 @@ function AppInner({ isDemo = false }) {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}><label style={S.label}>Category</label>
             <select style={{...S.input,padding:"9px 12px"}} value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
-              <option value="">None</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="">None</option>{[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div style={S.field}><label style={S.label}>Account</label>
@@ -7656,7 +7657,7 @@ function AppInner({ isDemo = false }) {
             defaultValue=""
             onChange={e=>{ if(e.target.value) bulkSetCategory(e.target.value); e.target.value=""; }}>
             <option value="" disabled>Set category…</option>
-            {categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+            {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
             <option value="__clear__">Clear category</option>
           </select>
           {/* Type */}

@@ -381,6 +381,7 @@ function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMo
 /* ─── CustomSelect — matches the spending pace dropdown style ──────── */
 function CustomSelect({ value, onChange, options, style = {}, compact = false }) {
   const [open, setOpen] = useState(false);
+  const [dropPos, setDropPos] = useState({ top:0, left:0, width:0 });
   const ref = useRef(null);
   const selected = options.find(o => String(o.value) === String(value)) || options[0];
 
@@ -395,29 +396,21 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
     };
   }, [open]);
 
-  // Detect if dropdown would overflow right edge and flip to right-aligned
-  const dropStyle = {
-    position:"absolute", top:"calc(100% + 6px)", zIndex:300,
-    background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
-    boxShadow:"0 8px 24px #0008",
-    minWidth: compact ? 140 : 180,
-    maxHeight: 320, overflowY:"auto",
-    left: 0,
-  };
+  function handleOpen() {
+    if (ref.current) {
+      const r = ref.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 180) });
+    }
+    setOpen(p => !p);
+  }
 
-  // Container takes full width if style has width/flex, else inline
   const isBlock = style.width === "100%" || style.flex;
-  const containerStyle = {
-    position:"relative",
-    display: isBlock ? "block" : "inline-block",
-    ...style,
-  };
 
   return (
-    <div ref={ref} style={containerStyle}>
+    <div ref={ref} style={{ position:"relative", display: isBlock ? "block" : "inline-block", ...style }}>
       <button
         type="button"
-        onClick={() => setOpen(p => !p)}
+        onClick={handleOpen}
         style={{
           display:"flex", alignItems:"center", justifyContent:"space-between", gap:6,
           width: isBlock ? "100%" : "auto",
@@ -433,7 +426,15 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
       {open && (
         <>
           <div style={{ position:"fixed", inset:0, zIndex:299 }} onClick={() => setOpen(false)} />
-          <div style={dropStyle}>
+          <div style={{
+            position:"fixed",
+            top: dropPos.top, left: dropPos.left,
+            minWidth: dropPos.width,
+            zIndex:300,
+            background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
+            boxShadow:"0 8px 24px #0008",
+            maxHeight:320, overflowY:"auto",
+          }}>
             {options.map((o, i) => (
               <button key={String(o.value)} type="button"
                 onClick={() => { onChange(o.value); setOpen(false); }}

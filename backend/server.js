@@ -589,7 +589,6 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "dismissedPairs"),
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
-      getData(uid, "dashboardCardOrder"),
       getData(uid, "aiApiKey"),
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
@@ -819,29 +818,12 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const { categories, plaidItems, dani, theme, calendarAccounts, calendarSplitView,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
-            aiConversations, aiCurrentConvId, goals, customAccountNames, dashboardCardOrder } = req.body;
+            aiConversations, aiCurrentConvId, goals } = req.body;
     const ops = [];
     // accounts → POST/PATCH/DELETE /api/accounts/*
     // rules    → POST/PATCH/DELETE /api/rules/*
     // transactions → PATCH/DELETE /api/transactions/*
-    if (categories !== undefined) {
-      // Guard: never overwrite existing categories with an empty array
-      // An empty save is almost always a bug (corrupted render, bad state init)
-      // If the user intentionally deletes all categories, the array will go []
-      // only after they've explicitly deleted each one — which goes through
-      // individual setCategories calls, not a bulk empty save.
-      if (Array.isArray(categories) && categories.length === 0) {
-        const existing = await getData(uid, "categories");
-        if (Array.isArray(existing) && existing.length > 0) {
-          console.warn(`Blocked empty categories save for user ${uid} — existing has ${existing.length} categories`);
-          // Don't push to ops — skip this save
-        } else {
-          ops.push(setData(uid, "categories", categories));
-        }
-      } else {
-        ops.push(setData(uid, "categories", categories));
-      }
-    }
+    if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
     if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
     if (calendarSplitView)                  ops.push(setData(uid, "calendarSplitView", calendarSplitView));
@@ -860,7 +842,6 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     if (Array.isArray(goals))              ops.push(setData(uid, "goals",             goals));
-    if (Array.isArray(dashboardCardOrder))  ops.push(setData(uid, "dashboardCardOrder", dashboardCardOrder));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -1072,14 +1053,58 @@ app.post("/api/plaid/webhook", express.json(), async (req, res) => {
   }
 });
 
+// Re-link orphaned transactions to new accounts after reconnect
+// Matches by mask (last 4 digits) so transactions survive disconnect/reconnect cycles
+async function relinkTransactionsToNewAccounts(userId, itemId) {
+  try {
+    const { rows: newAccounts } = await pool.query(
+      `SELECT id, mask FROM accounts WHERE user_id = $1 AND plaid_item_id = $2 AND mask IS NOT NULL`,
+      [userId, itemId]
+    );
+    let relinked = 0;
+    for (const acct of newAccounts) {
+      // Find any transactions linked to a different account with the same mask
+      const { rowCount } = await pool.query(`
+        UPDATE transactions t
+        SET account_id    = $1,
+            plaid_item_id = $2
+        FROM accounts a
+        WHERE t.account_id   = a.id
+          AND t.user_id      = $3
+          AND a.mask         = $4
+          AND a.user_id      = $3
+          AND a.id          != $1`,
+        [acct.id, itemId, userId, acct.mask]
+      );
+      relinked += rowCount || 0;
+    }
+    if (relinked > 0) console.log(`Re-linked ${relinked} transactions for item ${itemId}`);
+    return relinked;
+  } catch (e) {
+    console.warn("Transaction re-link failed:", e.message);
+    return 0;
+  }
+}
+
 app.post("/api/plaid/exchange_public_token", async (req, res) => {
   const { public_token, institution_name } = req.body;
   if (!public_token) return res.status(400).json({ error: "public_token required" });
   try {
     const { data } = await plaidClient.itemPublicTokenExchange({ public_token });
     await saveItem(req.user.id, data.item_id, { access_token: data.access_token, institution: institution_name || "Unknown Bank", created_at: Date.now() });
-    // Clear needs_reauth flag — this item is now healthy
     await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [data.item_id]);
+
+    // Sync immediately so accounts exist before we try to re-link
+    try {
+      const result = await syncItemTransactions(req.user.id, data.item_id);
+      await applySyncResultsToDB(req.user.id, result.added, result.modified, result.removed);
+      // Now re-link any orphaned transactions to the newly created accounts
+      await relinkTransactionsToNewAccounts(req.user.id, data.item_id);
+    } catch (syncErr) {
+      console.warn("Post-connect sync failed:", syncErr.message);
+      // Non-fatal — transactions will sync on next manual sync
+    }
+
     res.json({ item_id: data.item_id, institution: institution_name });
   } catch (err) {
     console.error("exchange_public_token error:", err.response?.data || err.message);

@@ -269,6 +269,24 @@ button {
       to   { opacity: 1; transform: scaleX(1); }
     }
 
+    /* ── Bell ring animation ── */
+    @keyframes ledgr-bell-ring {
+      0%   { transform: rotate(0deg); }
+      10%  { transform: rotate(14deg); }
+      20%  { transform: rotate(-12deg); }
+      30%  { transform: rotate(10deg); }
+      40%  { transform: rotate(-8deg); }
+      50%  { transform: rotate(5deg); }
+      60%  { transform: rotate(-3deg); }
+      70%  { transform: rotate(0deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .ledgr-bell-ring {
+      animation: ledgr-bell-ring 2.4s ease-in-out infinite;
+      transform-origin: top center;
+      display: inline-flex;
+    }
+
     /* ── Goal / budget score rings ── */
     @keyframes ledgr-ring-fill {
       from { stroke-dashoffset: 200; }
@@ -4214,7 +4232,7 @@ function AppInner({ isDemo = false }) {
       {/* Month bar — spans first 2 columns only */}
       {!isMobile && (
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
-          <div style={{...S.card,gridColumn:"1 / 3",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
+          <div style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
             {/* Arrows + month label */}
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>‹</button>
@@ -4234,6 +4252,7 @@ function AppInner({ isDemo = false }) {
               <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</div></div>
             </div>
           </div>
+
         </div>
       )}
       {/* Mobile month bar */}
@@ -4558,36 +4577,7 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
-        {/* Review banner */}
-        {toReview>0&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-            background:"var(--cyan-dim)",borderLeft:"3px solid var(--cyan)",
-            borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
-            <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-              <span style={{color:"var(--cyan)",fontWeight:700}}>{toReview}</span> transactions need review
-            </span>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {filterReview && (
-                <button onClick={()=>{
-                  setTransactions(p => {
-                    const toMark = p.filter(t => needsReview(t));
-                    if (toMark.length > 0) api.bulkUpdateTransactions(toMark.map(t => t.id), { reviewed: true }).catch(console.error);
-                    return p.map(t => needsReview(t) ? {...t, reviewed:true} : t);
-                  });
-                  setFilterReview(false);
-                  showToast("All transactions marked as reviewed");
-                }}
-                  style={{background:"none",color:"var(--cyan)",border:"1px solid var(--cyan)",borderRadius:"var(--radius)",cursor:"pointer",fontSize:12,fontWeight:600,padding:"3px 10px"}}>
-                  ✴ Mark All Reviewed
-                </button>
-              )}
-              <button onClick={()=>{ setFilterReview(p=>!p); setSearch(""); setFilterCat("all"); }}
-                style={{background:filterReview?"var(--cyan)":"none",color:filterReview?"#000":"var(--cyan)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:filterReview?"3px 10px":"0"}}>
-                {filterReview?"✕ Clear":"Review ›"}
-              </button>
-            </div>
-          </div>
-        )}
+
 
         {/* Pending reconciliation banner */}
         {(activeDuplicatePairs.length>0)&&(
@@ -7358,10 +7348,12 @@ function AppInner({ isDemo = false }) {
                 <button
                   onClick={()=>setNotifOpen(p=>!p)}
                   style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
+                  <span className={notifCount > 0 ? "ledgr-bell-ring" : ""} style={{display:"inline-flex"}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={notifCount > 0 ? "var(--cyan)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                  </span>
                   {notifCount > 0 && (
                     <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
                       {notifCount}
@@ -7460,10 +7452,12 @@ function AppInner({ isDemo = false }) {
                 <button
                   onClick={()=>setNotifOpen(p=>!p)}
                   style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
+                  <span className={notifCount > 0 ? "ledgr-bell-ring" : ""} style={{display:"inline-flex"}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={notifCount > 0 ? "var(--cyan)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                  </span>
                   {notifCount > 0 && (
                     <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
                       {notifCount}

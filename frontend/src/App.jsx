@@ -341,7 +341,7 @@ button {
 /* ─── Styles ─────────────────────────────────────────────────────── */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"12px 16px" },
+  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 12px" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
@@ -366,7 +366,7 @@ const S = {
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 14px", fontSize:12, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
   monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"7px 12px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
-  sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 },
+  sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
   td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
@@ -503,7 +503,7 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
         onTouchStart={handleTouchStart}
         title="Drag to reorder"
         style={{
-          position: 'absolute', top: 10, left: 12, zIndex: 10,
+          position: 'absolute', top: 8, left: 10, zIndex: 10,
           cursor: 'grab', color: 'var(--t3)', fontSize: 16, lineHeight: 1,
           userSelect: 'none', touchAction: 'none', padding: '6px',
         }}
@@ -2281,7 +2281,7 @@ function AdminPanel() {
 
       {/* Users list */}
       <div style={{...S.card,padding:0,overflow:"hidden"}}>
-        <div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)"}}>
+        <div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
               Users ({search ? `${filteredUsers.length} of ${users.length}` : users.length})
@@ -4116,8 +4116,8 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div style={{ ...S.card, padding: 18, height: "100%", boxSizing: "border-box" }}>
-      <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 26 }}>
+    <div style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
+      <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
 
@@ -4201,7 +4201,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const CashFlowCard = (
-    <div style={{ ...S.card, padding: 18 }}>
+    <div style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Cash Flow</div>
       </div>
@@ -4272,7 +4272,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const OverspendingHighlightsCard = (
-    <div style={{ ...S.card, padding: 18 }}>
+    <div style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
         <div style={S.cardTitle}>Overspending Highlights</div>
       </div>
@@ -4399,7 +4399,7 @@ function AppInner({ isDemo = false }) {
       ),
       budget: (
         <div style={{...S.card, height:"100%", boxSizing:"border-box"}}>
-          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:26}}>
+          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
           </div>
@@ -4430,7 +4430,7 @@ function AppInner({ isDemo = false }) {
       ),
       action: (
         <div style={S.card}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:26}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:22}}>
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
               <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
@@ -4461,7 +4461,7 @@ function AppInner({ isDemo = false }) {
       ),
       goals: goals.length === 0 ? null : (
         <div style={S.card}>
-          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:26}}>
+          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
             <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
           </div>
@@ -4500,7 +4500,7 @@ function AppInner({ isDemo = false }) {
       ),
       upcoming: upcoming.length === 0 ? null : (
         <div style={S.card}>
-          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:26}}>
+          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
           </div>
@@ -5358,7 +5358,7 @@ function AppInner({ isDemo = false }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
-                <div style={{ ...S.card, padding: 18 }}>
+                <div style={{ ...S.card }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                     <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
                   </div>
@@ -7693,7 +7693,7 @@ function AppInner({ isDemo = false }) {
       {undoAction&&(
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:500,
           background:"var(--card)",border:"1px solid var(--border2)",borderRadius:12,
-          padding:"12px 16px",boxShadow:"0 8px 32px #00000080",
+          padding:"10px 12px",boxShadow:"0 8px 32px #00000080",
           display:"flex",alignItems:"center",gap:10,maxWidth:380,width:"90vw"}}>
           <span style={{fontSize:13,color:"var(--t1)",flex:1}}>{undoAction.label}</span>
           <button onClick={()=>{ undoAction.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}

@@ -282,6 +282,10 @@ button {
     }
 
     /* ── Bell ring animation ── */
+    /* ── Drag handle — shows on card hover ── */
+    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.5 !important; }
+    [data-card-id]:hover .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
+
     @keyframes ledgr-bell-ring {
       0%   { transform: rotate(0deg); }
       10%  { transform: rotate(14deg); }
@@ -433,8 +437,25 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
 }
 
 /* ─── DragCard — drag-to-reorder wrapper with handle ──────────────── */
-function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDragging, isOver, style = {} }) {
-  const ref = useRef(null);
+function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDragging, isOver }) {
+  // Touch drag
+  function handleTouchStart(e) {
+    e.preventDefault(); // prevent scroll while dragging
+    onDragStart(id);
+    const onMove = (te) => {
+      const t = te.touches[0];
+      const els = document.elementsFromPoint(t.clientX, t.clientY);
+      const target = els.find(el => el.dataset.cardId && el.dataset.cardId !== id);
+      if (target) onDragEnter(target.dataset.cardId);
+    };
+    const onEnd = () => {
+      onDragEnd();
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+  }
 
   // Mouse drag
   function handleMouseDown(e) {
@@ -454,56 +475,30 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
     window.addEventListener('mouseup', onUp);
   }
 
-  // Touch drag
-  function handleTouchStart(e) {
-    const touch = e.touches[0];
-    onDragStart(id);
-    const onMove = (te) => {
-      const t = te.touches[0];
-      const els = document.elementsFromPoint(t.clientX, t.clientY);
-      const target = els.find(el => el.dataset.cardId && el.dataset.cardId !== id);
-      if (target) onDragEnter(target.dataset.cardId);
-    };
-    const onEnd = () => {
-      onDragEnd();
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend', onEnd);
-    };
-    window.addEventListener('touchmove', onMove, { passive: true });
-    window.addEventListener('touchend', onEnd);
-  }
-
   return (
     <div
-      ref={ref}
       data-card-id={id}
       style={{
         position: 'relative',
-        opacity: isDragging ? 0.4 : 1,
-        outline: isOver ? '2px solid var(--cyan)' : 'none',
-        outlineOffset: 2,
+        opacity: isDragging ? 0.35 : 1,
+        boxShadow: isOver ? '0 0 0 2px var(--cyan)' : 'none',
         borderRadius: 'var(--radius-lg)',
-        transition: 'opacity 0.15s, outline 0.1s',
-        ...style,
+        transition: 'opacity 0.15s, box-shadow 0.1s',
       }}
     >
-      {/* Drag handle */}
+      {/* Drag handle — bottom-left, clear of title text */}
       <div
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         title="Drag to reorder"
         style={{
-          position: 'absolute', top: 10, right: 10, zIndex: 10,
-          width: 24, height: 24,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'grab', borderRadius: 4,
-          color: 'var(--t3)', fontSize: 12, lineHeight: 1,
-          opacity: 0.4,
-          transition: 'opacity 0.15s, color 0.15s',
-          userSelect: 'none',
+          position: 'absolute', bottom: 10, right: 12, zIndex: 10,
+          cursor: 'grab', color: 'var(--t3)', fontSize: 14, lineHeight: 1,
+          opacity: 0, transition: 'opacity 0.15s',
+          userSelect: 'none', touchAction: 'none',
+          padding: '4px',
         }}
-        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--t1)'; }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = '0.4'; e.currentTarget.style.color = 'var(--t3)'; }}
+        className="ledgr-drag-handle"
       >
         ⠿
       </div>
@@ -512,33 +507,45 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
   );
 }
 
-/* ─── useDashboardOrder — manages card order with server persistence ─ */
+/* ─── useDashboardOrder — live reorder preview during drag ─────────── */
 function useDashboardOrder(defaultOrder, scheduleSaveRef) {
-  const [order, setOrder] = useState(defaultOrder);
-  const [dragging, setDragging] = useState(null);
-  const [over, setOver]     = useState(null);
+  const [savedOrder, setSavedOrder] = useState(defaultOrder);
+  const [liveOrder,  setLiveOrder]  = useState(defaultOrder);
+  const [dragging,   setDragging]   = useState(null);
 
-  function onDragStart(id) { setDragging(id); }
-  function onDragEnter(id) { if (id !== dragging) setOver(id); }
-  function onDragEnd() {
-    if (dragging && over && dragging !== over) {
-      setOrder(prev => {
-        const next = [...prev];
-        const from = next.indexOf(dragging);
-        const to   = next.indexOf(over);
-        if (from !== -1 && to !== -1) {
-          next.splice(from, 1);
-          next.splice(to, 0, dragging);
-        }
-        scheduleSaveRef?.current?.({ dashboardCardOrder: next });
-        return next;
-      });
-    }
-    setDragging(null);
-    setOver(null);
+  // Keep in sync when defaultOrder loads from server
+  useEffect(() => {
+    setSavedOrder(defaultOrder);
+    setLiveOrder(defaultOrder);
+  }, [defaultOrder.join(',')]);
+
+  function reorder(arr, fromId, toId) {
+    const next = [...arr];
+    const from = next.indexOf(fromId);
+    const to   = next.indexOf(toId);
+    if (from === -1 || to === -1) return arr;
+    next.splice(from, 1);
+    next.splice(to, 0, fromId);
+    return next;
   }
 
-  return { order, dragging, over, onDragStart, onDragEnter, onDragEnd };
+  function onDragStart(id) { setDragging(id); }
+
+  function onDragEnter(id) {
+    if (!dragging || id === dragging) return;
+    // Update live order immediately for visual preview
+    setLiveOrder(prev => reorder(prev, dragging, id));
+  }
+
+  function onDragEnd() {
+    if (dragging) {
+      setSavedOrder(liveOrder);
+      scheduleSaveRef?.current?.({ dashboardCardOrder: liveOrder });
+    }
+    setDragging(null);
+  }
+
+  return { order: liveOrder, dragging, onDragStart, onDragEnter, onDragEnd };
 }
 
 
@@ -4352,7 +4359,7 @@ function AppInner({ isDemo = false }) {
   const onboardingProgress = onboardingSteps.filter(s => s.done).length;
 
   /* ── useDashboardOrder hook ── */
-  const { order: dashOrder, dragging: dashDragging, over: dashOver,
+  const { order: dashOrder, dragging: dashDragging,
           onDragStart: dashDragStart, onDragEnter: dashDragEnter, onDragEnd: dashDragEnd,
   } = useDashboardOrder(dashboardCardOrder, scheduleSaveRef);
 
@@ -4558,7 +4565,7 @@ function AppInner({ isDemo = false }) {
             .map(id => (
               <DragCard key={id} id={id}
                 onDragStart={dashDragStart} onDragEnter={dashDragEnter} onDragEnd={dashDragEnd}
-                isDragging={dashDragging===id} isOver={dashOver===id}>
+                isDragging={dashDragging===id} isOver={false}>
                 {dashCardDefs[id]}
               </DragCard>
             ))
@@ -4572,7 +4579,7 @@ function AppInner({ isDemo = false }) {
             .map(id => (
               <DragCard key={id} id={id}
                 onDragStart={dashDragStart} onDragEnter={dashDragEnter} onDragEnd={dashDragEnd}
-                isDragging={dashDragging===id} isOver={dashOver===id}>
+                isDragging={dashDragging===id} isOver={false}>
                 {dashCardDefs[id]}
               </DragCard>
             ))

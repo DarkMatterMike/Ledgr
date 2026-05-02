@@ -2175,11 +2175,13 @@ function applyTheme(theme) {
     ["--t1", theme.t1], ["--t2", theme.t2], ["--t3", theme.t3],
   ];
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
+  // Always-opaque versions for elements that must not be transparent (e.g. nav drawer)
+  root.style.setProperty("--surface-solid", theme.surface || "#0c1220");
+  root.style.setProperty("--bg-solid",      theme.bg      || "#06090f");
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
   if (theme.bgImage) {
-    // Image mode — make bg/surface/card semi-transparent so image shows through
     const bg = theme.bg || "#06090f";
-    root.style.setProperty("--bg",      bg + "cc"); // ~80% opacity
+    root.style.setProperty("--bg",      bg + "cc");
     root.style.setProperty("--surface", (theme.surface || "#0c1220") + "dd");
     root.style.setProperty("--card",    (theme.card    || "#101826") + "ee");
     document.body.style.backgroundImage = "";
@@ -7476,16 +7478,13 @@ function AppInner({ isDemo = false }) {
           {/* Overlay drawer */}
           <div style={{
             position:"fixed",top:0,left:0,bottom:0,width:240,
-            background:"var(--surface)",
+            background:"var(--surface-solid, #0c1220)",
             borderRight:"1px solid var(--border)",
             display:"flex",flexDirection:"column",
             transform:drawerOpen?"translateX(0)":"translateX(-100%)",
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
             zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
-            isolation:"isolate",
           }}>
-            {/* Solid base to ensure full opacity even when theme has bgImage alpha */}
-            <div style={{position:"absolute",inset:0,background:"#06090f",zIndex:-1}}/>
 
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </div>

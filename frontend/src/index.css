@@ -6,6 +6,8 @@ html, body, #root { height: 100%; background: #06090f; }
 :root {
   --bg:        #06090f;
   --surface:   #0c1220;
+  --surface-solid: #0c1220;
+  --bg-solid:  #06090f;
   --card:      #101826;
   --border:    #1a2640;
   --border2:   #243452;

@@ -3417,6 +3417,7 @@ function AppInner({ isDemo = false }) {
 
   /* ── Plaid ── */
   const doSync = useCallback(async (itemId) => {
+    if (syncing) return; // prevent concurrent syncs causing duplicate accounts
     setSyncing(true);
     try {
       const {added,modified,removed} = await api.syncTransactions(itemId);
@@ -3487,14 +3488,15 @@ function AppInner({ isDemo = false }) {
       setAccounts(prev => {
         const manual = prev.filter(a => !a.plaidId);
         const byPlaidId = Object.fromEntries(prev.filter(a => a.plaidId).map(a => [a.plaidId, a]));
-        // Use item IDs from the fresh API response, not stale plaidItems state
+        // Use item IDs from both stale state and fresh API response to handle new connections
         const activeItemIds = new Set([
           ...plaidItems.map(i => i.item_id),
           ...plaidAccts.map(pa => pa.item_id),
         ]);
-        const seen = new Set();
+        // Build merged Plaid accounts - deduplicated by plaid account_id
+        const seenPlaidIds = new Set();
         const plaidUpdated = plaidAccts
-          .filter(pa => { const dup = seen.has(pa.account_id); seen.add(pa.account_id); return !dup; })
+          .filter(pa => { const dup = seenPlaidIds.has(pa.account_id); seenPlaidIds.add(pa.account_id); return !dup; })
           .map(pa => ({
             ...(byPlaidId[pa.account_id] || { id: "a" + pa.account_id }),
             plaidId: pa.account_id,
@@ -3506,15 +3508,20 @@ function AppInner({ isDemo = false }) {
             institution: pa.institution,
             mask: pa.mask,
           }));
-        const updated = [...manual, ...plaidUpdated];
-        // Only clean up accounts whose item is not in either plaidItems state OR fresh API response
+        // Also include any existing Plaid accounts not returned by this sync
+        // (e.g. accounts from other institutions not included in this sync call)
+        const returnedPlaidIds = new Set(plaidAccts.map(pa => pa.account_id));
+        const existingOtherPlaid = prev.filter(a =>
+          a.plaidId && !returnedPlaidIds.has(a.plaidId) && activeItemIds.has(a.plaidItemId)
+        );
+        const updated = [...manual, ...existingOtherPlaid, ...plaidUpdated];
+        // Clean up genuine orphans (item deleted/disconnected)
         const orphans = prev.filter(a =>
           a.plaidId && a.plaidItemId && !activeItemIds.has(a.plaidItemId)
         );
         if (orphans.length > 0) {
           const itemIds = [...new Set(orphans.map(a => a.plaidItemId).filter(Boolean))];
           itemIds.forEach(id => api.deleteAccountsByItem(id).catch(() => {}));
-          orphans.filter(a => !a.plaidItemId).forEach(a => api.deleteAccount(a.id).catch(() => {}));
         }
         return updated;
       });

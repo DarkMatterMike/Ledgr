@@ -7476,12 +7476,17 @@ function AppInner({ isDemo = false }) {
           {/* Overlay drawer */}
           <div style={{
             position:"fixed",top:0,left:0,bottom:0,width:240,
-            background:"var(--bg)",borderRight:"1px solid var(--border)",
+            background:"var(--surface)",
+            borderRight:"1px solid var(--border)",
             display:"flex",flexDirection:"column",
             transform:drawerOpen?"translateX(0)":"translateX(-100%)",
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
             zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
+            isolation:"isolate",
           }}>
+            {/* Solid base to ensure full opacity even when theme has bgImage alpha */}
+            <div style={{position:"absolute",inset:0,background:"#06090f",zIndex:-1}}/>
+
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </div>
           {/* Content */}

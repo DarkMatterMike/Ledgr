@@ -83,12 +83,24 @@ button {
 
     /* ── Cards — pronounced staggered rise ── */
     @keyframes ledgr-card-up {
-      from { opacity: 0; }
-      to   { opacity: 1; }
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
     .ledgr-card-anim {
-      animation: ledgr-card-up 0.35s ease-out both;
+      animation: ledgr-card-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
+    /* Auto-animate every direct card child when a view loads */
+    .ledgr-view-enter .ledgr-auto-card {
+      animation: ledgr-card-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(1)  { animation-delay: 0ms;   }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(2)  { animation-delay: 60ms;  }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(3)  { animation-delay: 120ms; }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(4)  { animation-delay: 180ms; }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(5)  { animation-delay: 240ms; }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(6)  { animation-delay: 300ms; }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(7)  { animation-delay: 340ms; }
+    .ledgr-view-enter .ledgr-auto-card:nth-child(n+8){ animation-delay: 380ms; }
     .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms;   }
     .ledgr-card-anim:nth-child(2)  { animation-delay: 70ms;  }
     .ledgr-card-anim:nth-child(3)  { animation-delay: 140ms; }
@@ -419,6 +431,116 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
     </select>
   );
 }
+
+/* ─── DragCard — drag-to-reorder wrapper with handle ──────────────── */
+function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDragging, isOver, style = {} }) {
+  const ref = useRef(null);
+
+  // Mouse drag
+  function handleMouseDown(e) {
+    e.preventDefault();
+    onDragStart(id);
+    const onMove = (me) => {
+      const els = document.elementsFromPoint(me.clientX, me.clientY);
+      const target = els.find(el => el.dataset.cardId && el.dataset.cardId !== id);
+      if (target) onDragEnter(target.dataset.cardId);
+    };
+    const onUp = () => {
+      onDragEnd();
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  // Touch drag
+  function handleTouchStart(e) {
+    const touch = e.touches[0];
+    onDragStart(id);
+    const onMove = (te) => {
+      const t = te.touches[0];
+      const els = document.elementsFromPoint(t.clientX, t.clientY);
+      const target = els.find(el => el.dataset.cardId && el.dataset.cardId !== id);
+      if (target) onDragEnter(target.dataset.cardId);
+    };
+    const onEnd = () => {
+      onDragEnd();
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onEnd);
+  }
+
+  return (
+    <div
+      ref={ref}
+      data-card-id={id}
+      style={{
+        position: 'relative',
+        opacity: isDragging ? 0.4 : 1,
+        outline: isOver ? '2px solid var(--cyan)' : 'none',
+        outlineOffset: 2,
+        borderRadius: 'var(--radius-lg)',
+        transition: 'opacity 0.15s, outline 0.1s',
+        ...style,
+      }}
+    >
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        title="Drag to reorder"
+        style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 10,
+          width: 24, height: 24,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'grab', borderRadius: 4,
+          color: 'var(--t3)', fontSize: 12, lineHeight: 1,
+          opacity: 0.4,
+          transition: 'opacity 0.15s, color 0.15s',
+          userSelect: 'none',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--t1)'; }}
+        onMouseLeave={e => { e.currentTarget.style.opacity = '0.4'; e.currentTarget.style.color = 'var(--t3)'; }}
+      >
+        ⠿
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ─── useDashboardOrder — manages card order with server persistence ─ */
+function useDashboardOrder(defaultOrder, scheduleSaveRef) {
+  const [order, setOrder] = useState(defaultOrder);
+  const [dragging, setDragging] = useState(null);
+  const [over, setOver]     = useState(null);
+
+  function onDragStart(id) { setDragging(id); }
+  function onDragEnter(id) { if (id !== dragging) setOver(id); }
+  function onDragEnd() {
+    if (dragging && over && dragging !== over) {
+      setOrder(prev => {
+        const next = [...prev];
+        const from = next.indexOf(dragging);
+        const to   = next.indexOf(over);
+        if (from !== -1 && to !== -1) {
+          next.splice(from, 1);
+          next.splice(to, 0, dragging);
+        }
+        scheduleSaveRef?.current?.({ dashboardCardOrder: next });
+        return next;
+      });
+    }
+    setDragging(null);
+    setOver(null);
+  }
+
+  return { order, dragging, over, onDragStart, onDragEnter, onDragEnd };
+}
+
 
 function CategoryBadge({ cat }) {
   if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
@@ -2605,7 +2727,8 @@ function AppInner({ isDemo = false }) {
   const [insightsTodos, setInsightsTodos] = useState([]);
   const [theme,         setTheme]         = useState({});
   const [daniData,      setDaniData]      = useState({ tab1:{ selectedAccountId:null, wishlist:[] }, tab2:{ selectedAccountId:null, wishlist:[] } });
-  const [goals, setGoals] = useState([]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
+  const [goals, setGoals] = useState([]);
+  const [dashboardCardOrder, setDashboardCardOrder] = useState(["spending","budget","action","goals","upcoming"]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* ── Demo mode: inject fake data once on mount ── */
   useEffect(() => {
@@ -2629,7 +2752,8 @@ function AppInner({ isDemo = false }) {
       aiChat.loadFromData(data);
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
       if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
-      if (data.goals)          setGoals(data.goals);
+      if (data.goals)              setGoals(data.goals);
+      if (Array.isArray(data.dashboardCardOrder)) setDashboardCardOrder(data.dashboardCardOrder);
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
@@ -4227,13 +4351,167 @@ function AppInner({ isDemo = false }) {
   const onboardingComplete = onboardingSteps.every(s => s.done);
   const onboardingProgress = onboardingSteps.filter(s => s.done).length;
 
+  /* ── useDashboardOrder hook ── */
+  const { order: dashOrder, dragging: dashDragging, over: dashOver,
+          onDragStart: dashDragStart, onDragEnter: dashDragEnter, onDragEnd: dashDragEnd,
+  } = useDashboardOrder(dashboardCardOrder, scheduleSaveRef);
+
+  // dashOrder from useDashboardOrder is the source of truth for rendering
+
+  /* ── Dashboard card definitions ── */
+  const dashCardDefs = useMemo(() => {
+    const now = Date.now();
+    const atRisk = goals.filter(g => {
+      const pct = g.targetAmount > 0 ? (g.savedAmount||0)/g.targetAmount : 0;
+      const dl = g.deadline ? new Date(g.deadline).getTime() : null;
+      const dl_days = dl ? Math.ceil((dl-now)/86400000) : null;
+      return pct < 0.9 && (dl_days === null || dl_days < 90);
+    });
+    const todayD = today.getDate();
+    const upcoming = recurringTxns
+      .filter(t => (t.recurringDay||0) > todayD)
+      .sort((a,b) => (parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0))
+      .slice(0,5);
+
+    return {
+      spending: (
+        <div style={{height:"100%", boxSizing:"border-box"}}>
+          {SpendingBreakdownCard}
+        </div>
+      ),
+      budget: (
+        <div style={{...S.card, height:"100%", boxSizing:"border-box"}}>
+          <div style={{...S.sectionHdr,marginBottom:8}}>
+            <div style={S.cardTitle}>Budget Progress</div>
+            <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
+          </div>
+          {categories.length===0
+            ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+            : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
+                {sortedCategories.slice(0,isMobile?6:10).map(cat=>{
+                  const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
+                  const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
+                  const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
+                  const barC=over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color;
+                  const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
+                  const valLabel=complete?"✴":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
+                  return (
+                    <Fragment key={cat.id}>
+                      <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
+                      <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
+                      <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
+                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
+                      </div>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
+                    </Fragment>
+                  );
+                })}
+              </div>
+          }
+        </div>
+      ),
+      action: (
+        <div style={S.card}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <div style={S.cardTitle}>Action Items</div>
+            {insightsTodos.length > 0 && (
+              <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
+                style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>Clear all</button>
+            )}
+          </div>
+          {insightsTodos.length === 0 ? (
+            <div style={{fontSize:12,color:"var(--t3)",textAlign:"center",padding:"20px 0",lineHeight:1.6}}>
+              Go to <strong style={{color:"var(--t1)"}}>Analytics ← Insights</strong>, generate AI analysis, then tap <span style={{color:"var(--cyan)"}}>+ Add to To-Do</span>.
+            </div>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {insightsTodos.map(todo => (
+                <div key={todo.id} style={{display:"flex",alignItems:"flex-start",gap:8}}>
+                  <button
+                    onClick={()=>{ const next=insightsTodos.filter(t=>t.id!==todo.id); setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
+                    style={{width:16,height:16,borderRadius:3,border:"1.5px solid var(--border2)",background:"none",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background="var(--cyan)";e.currentTarget.style.borderColor="var(--cyan)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.borderColor="var(--border2)";}}>
+                    <span style={{fontSize:9,color:"var(--cyan)",lineHeight:1}}>✴</span>
+                  </button>
+                  <span style={{fontSize:12,color:"var(--t2)",lineHeight:1.5,flex:1}}>{todo.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ),
+      goals: goals.length === 0 ? null : (
+        <div style={S.card}>
+          <div style={{...S.sectionHdr,marginBottom:8}}>
+            <div style={S.cardTitle}>Goals</div>
+            <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
+          </div>
+          {atRisk.length === 0 ? (
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:"var(--green-dim)",border:"1px solid var(--green)44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{fontSize:10,color:"var(--green)"}}>✴</span>
+              </div>
+              <div style={{fontSize:12,color:"var(--t2)"}}>All goals on track</div>
+            </div>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {atRisk.slice(0,3).map(g => {
+                const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
+                const deadline = g.deadline ? new Date(g.deadline) : null;
+                const dl_days = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
+                return (
+                  <div key={g.id}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
+                      <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
+                    </div>
+                    <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
+                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                      <span>{fmt(g.savedAmount||0)} saved</span>
+                      <span>{dl_days!=null?`${dl_days}d left`:fmt(g.targetAmount)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ),
+      upcoming: upcoming.length === 0 ? null : (
+        <div style={S.card}>
+          <div style={{...S.sectionHdr,marginBottom:8}}>
+            <div style={S.cardTitle}>Upcoming</div>
+            <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:0}}>
+            {upcoming.map((t,i) => (
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                  <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
+                </div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:t.amount>=0?"var(--green)":"var(--red)",flexShrink:0}}>{t.amount>=0?"+":""}{fmt(t.amount)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+    };
+  }, [goals, today, recurringTxns, categories, sortedCategories, spentByCat, selectedMonth,
+      insightsTodos, isMobile, catMap, fmt, SpendingBreakdownCard]);
+
   const Dashboard = (
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {/* Month bar — spans first 2 columns only */}
+      {/* Month bar */}
       {!isMobile && (
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
           <div style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
-            {/* Arrows + month label */}
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>‹</button>
               <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>›</button>
@@ -4242,9 +4520,7 @@ function AppInner({ isDemo = false }) {
                 {isCurrentMonth&&<span style={{marginLeft:8,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",fontWeight:400}}>current</span>}
               </span>
             </div>
-            {/* Vertical divider */}
             <div style={{width:1,alignSelf:"stretch",background:"var(--border2)",margin:"0 20px",flexShrink:0}}/>
-            {/* Stats stacked */}
             <div style={{display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
               {isCurrentMonth&&<div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Days left</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{daysLeft()}</div></div>}
               <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div></div>
@@ -4252,10 +4528,8 @@ function AppInner({ isDemo = false }) {
               <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</div></div>
             </div>
           </div>
-
         </div>
       )}
-      {/* Mobile month bar */}
       {isMobile && (
         <div style={{...S.card,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
@@ -4275,277 +4549,41 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
 
+      {/* Draggable cards */}
       {isMobile ? (
-        /* Mobile: single column */
+        /* Mobile: single flex column, all 5 slots */
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {SpendingBreakdownCard}
-          <div style={S.card}>
-            <div style={{...S.sectionHdr,marginBottom:8}}>
-              <div style={S.cardTitle}>Budget Progress</div>
-              <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
-            </div>
-            {categories.length===0
-              ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-              : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
-                  {sortedCategories.slice(0,6).map(cat=>{
-                    const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                    const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                    const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                    const barC=over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color;
-                    const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
-                    const valLabel=complete?"✴":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
-                    return (
-                      <Fragment key={cat.id}>
-                        <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
-                        <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
-                        <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
-                          <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
-                        </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
-                      </Fragment>
-                    );
-                  })}
-                </div>
-            }
-          </div>
-
-          {/* Goals */}
-          {goals.length > 0 && (()=>{
-            const now = Date.now();
-            const atRisk = goals.filter(g => {
-              const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
-              const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
-              const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
-              return pct < 0.9 && (daysLeft === null || daysLeft < 90);
-            });
-            return (
-              <div style={S.card}>
-                <div style={{...S.sectionHdr,marginBottom:8}}>
-                  <div style={S.cardTitle}>Goals</div>
-                  <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
-                </div>
-                {atRisk.length === 0 ? (
-                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
-                    <div style={{width:22,height:22,borderRadius:"50%",background:"var(--green-dim)",border:"1px solid var(--green)44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <span style={{fontSize:10,color:"var(--green)"}}>✴</span>
-                    </div>
-                    <div style={{fontSize:12,color:"var(--t2)"}}>All goals on track</div>
-                  </div>
-                ) : (
-                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                    {atRisk.slice(0,3).map(g => {
-                      const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
-                      const deadline = g.deadline ? new Date(g.deadline) : null;
-                      const daysLeft = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
-                      return (
-                        <div key={g.id}>
-                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                            <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
-                            <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
-                          </div>
-                          <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
-                            <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
-                          </div>
-                          <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                            <span>{fmt(g.savedAmount||0)} saved</span>
-                            <span>{daysLeft!=null?`${daysLeft}d left`:fmt(g.targetAmount)}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-          {/* Upcoming recurring */}
-          {(()=>{
-            const todayD = today.getDate();
-            const upcoming = recurringTxns
-              .filter(t => (t.recurringDay||0) > todayD)
-              .sort((a,b) => (a.recurringDay||0) - (b.recurringDay||0))
-              .slice(0,5);
-            if (!upcoming.length) return null;
-            return (
-              <div style={S.card}>
-                <div style={{...S.sectionHdr,marginBottom:8}}>
-                  <div style={S.cardTitle}>Upcoming</div>
-                  <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                  {upcoming.map((t,i) => (
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
-                      <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
-                      </div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                        <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
-                      </div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:t.amount>=0?"var(--green)":"var(--red)",flexShrink:0}}>{t.amount>=0?"+":""}{fmt(t.amount)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
+          {dashOrder
+            .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
+            .map(id => (
+              <DragCard key={id} id={id}
+                onDragStart={dashDragStart} onDragEnter={dashDragEnter} onDragEnd={dashDragEnd}
+                isDragging={dashDragging===id} isOver={dashOver===id}>
+                {dashCardDefs[id]}
+              </DragCard>
+            ))
+          }
         </div>
       ) : (
-        /* Desktop layout */
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {/* Top row: Spending Breakdown | Budget Progress | Action Items */}
-          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"stretch"}}>
-            {SpendingBreakdownCard}
-
-            <div style={{...S.card, height:"100%", boxSizing:"border-box"}} className="ledgr-card-anim">
-              <div style={{...S.sectionHdr,marginBottom:8}}>
-                <div style={S.cardTitle}>Budget Progress</div>
-                <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
-              </div>
-              {categories.length===0
-                ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-                : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
-                    {sortedCategories.slice(0,10).map(cat=>{
-                      const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
-                      const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
-                      const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
-                      const barC=over?"var(--red)":warn?"var(--amber)":(remaining===0||complete)?"var(--t3)":cat.color;
-                      const valColor=(complete||remaining===0)?"var(--t3)":over?"var(--red)":"var(--green)";
-                      const valLabel=complete?"✴":over?`-${fmt(Math.abs(remaining))}`:remaining===0?"Full":fmt(remaining);
-                      return (
-                        <Fragment key={cat.id}>
-                          <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
-                          <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
-                          <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
-                            <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
-                          </div>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
-                        </Fragment>
-                      );
-                    })}
-                  </div>
-              }
-            </div>
-
-            <div style={{position:"sticky",top:16}}>
-              <div style={S.card}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                  <div style={S.cardTitle}>Action Items</div>
-                  {insightsTodos.length > 0 && (
-                    <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
-                      style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>Clear all</button>
-                  )}
-                </div>
-                {insightsTodos.length === 0 ? (
-                  <div style={{fontSize:12,color:"var(--t3)",textAlign:"center",padding:"20px 0",lineHeight:1.6}}>
-                    Go to <strong style={{color:"var(--t1)"}}>Analytics ← Insights</strong>, generate AI analysis, then tap <span style={{color:"var(--cyan)"}}>+ Add to To-Do</span>.
-                  </div>
-                ) : (
-                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                    {insightsTodos.map(todo => (
-                      <div key={todo.id} style={{display:"flex",alignItems:"flex-start",gap:8}}>
-                        <button
-                          onClick={()=>{ const next=insightsTodos.filter(t=>t.id!==todo.id); setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
-                          style={{width:16,height:16,borderRadius:3,border:"1.5px solid var(--border2)",background:"none",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}
-                          onMouseEnter={e=>{e.currentTarget.style.background="var(--cyan)";e.currentTarget.style.borderColor="var(--cyan)";}}
-                          onMouseLeave={e=>{e.currentTarget.style.background="none";e.currentTarget.style.borderColor="var(--border2)";}}>
-                          <span style={{fontSize:9,color:"var(--cyan)",lineHeight:1}}>✴</span>
-                        </button>
-                        <span style={{fontSize:12,color:"var(--t2)",lineHeight:1.5,flex:1}}>{todo.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom row: Goals + Upcoming */}
-          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
-            {goals.length > 0 && (()=>{
-              const now = Date.now();
-              const atRisk = goals.filter(g => {
-                const pct = g.targetAmount > 0 ? (g.savedAmount||0) / g.targetAmount : 0;
-                const deadline = g.deadline ? new Date(g.deadline).getTime() : null;
-                const daysLeft = deadline ? Math.ceil((deadline - now) / 86400000) : null;
-                return pct < 0.9 && (daysLeft === null || daysLeft < 90);
-              });
-              return (
-                <div style={S.card}>
-                  <div style={{...S.sectionHdr,marginBottom:8}}>
-                    <div style={S.cardTitle}>Goals</div>
-                    <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
-                  </div>
-                  {atRisk.length === 0 ? (
-                    <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
-                      <div style={{width:22,height:22,borderRadius:"50%",background:"var(--green-dim)",border:"1px solid var(--green)44",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        <span style={{fontSize:10,color:"var(--green)"}}>✴</span>
-                      </div>
-                      <div style={{fontSize:12,color:"var(--t2)"}}>All goals on track</div>
-                    </div>
-                  ) : (
-                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {atRisk.slice(0,3).map(g => {
-                        const pct = g.targetAmount > 0 ? Math.min(Math.round((g.savedAmount||0)/g.targetAmount*100),100) : 0;
-                        const deadline = g.deadline ? new Date(g.deadline) : null;
-                        const daysLeft = deadline ? Math.ceil((deadline.getTime()-now)/86400000) : null;
-                        return (
-                          <div key={g.id}>
-                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                              <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{g.title}</span>
-                              <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
-                            </div>
-                            <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
-                              <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
-                            </div>
-                            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
-                              <span>{fmt(g.savedAmount||0)} saved</span>
-                              <span>{daysLeft!=null?`${daysLeft}d left`:fmt(g.targetAmount)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-            {(()=>{
-              const todayD = today.getDate();
-              const upcoming = recurringTxns
-                .filter(t => (t.recurringDay||0) > todayD)
-                .sort((a,b) => (a.recurringDay||0) - (b.recurringDay||0))
-                .slice(0,5);
-              if (!upcoming.length) return null;
-              return (
-                <div style={S.card}>
-                  <div style={{...S.sectionHdr,marginBottom:8}}>
-                    <div style={S.cardTitle}>Upcoming</div>
-                    <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                    {upcoming.map((t,i) => (
-                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
-                        <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
-                        </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                          <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
-                        </div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:t.amount>=0?"var(--green)":"var(--red)",flexShrink:0}}>{t.amount>=0?"+":""}{fmt(t.amount)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
+        /* Desktop: CSS grid, 3 cols, cards flow naturally */
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
+          {dashOrder
+            .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
+            .map(id => (
+              <DragCard key={id} id={id}
+                onDragStart={dashDragStart} onDragEnter={dashDragEnter} onDragEnd={dashDragEnd}
+                isDragging={dashDragging===id} isOver={dashOver===id}>
+                {dashCardDefs[id]}
+              </DragCard>
+            ))
+          }
         </div>
       )}
+
       {DrillDownModal}
     </div>
   );
+
 
   /* ── Transactions ── */
   const Transactions = (()=>{
@@ -7414,7 +7452,7 @@ function AppInner({ isDemo = false }) {
           {/* Backdrop */}
           {drawerOpen&&(
             <div onClick={()=>setDrawerOpen(false)}
-              style={{position:"fixed",inset:0,background:"#00000055",zIndex:40}}/>
+              style={{position:"fixed",inset:0,background:"#00000044",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",zIndex:40,transition:"opacity 0.22s ease"}}/>
           )}
           {/* Overlay drawer */}
           <div style={{

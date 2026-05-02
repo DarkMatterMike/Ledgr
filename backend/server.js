@@ -589,6 +589,7 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "dismissedPairs"),
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
+      getData(uid, "dashboardCardOrder"),
       getData(uid, "aiApiKey"),
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
@@ -859,6 +860,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     if (Array.isArray(goals))              ops.push(setData(uid, "goals",             goals));
+    if (Array.isArray(dashboardCardOrder))  ops.push(setData(uid, "dashboardCardOrder", dashboardCardOrder));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }

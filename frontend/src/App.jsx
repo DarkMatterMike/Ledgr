@@ -3485,19 +3485,17 @@ function AppInner({ isDemo = false }) {
         });
       }
       setAccounts(prev => {
-        // Keep manually-added accounts (no plaidId) as-is
         const manual = prev.filter(a => !a.plaidId);
-        // Build a map of existing Plaid accounts by plaidId to preserve custom names
         const byPlaidId = Object.fromEntries(prev.filter(a => a.plaidId).map(a => [a.plaidId, a]));
-        // Active item IDs from the current plaidItems state
-        const activeItemIds = new Set(plaidItems.map(i => i.item_id));
-        // Merge: update balances for existing, add new ones, deduplicate by plaidId
+        // Use item IDs from the fresh API response, not stale plaidItems state
+        const activeItemIds = new Set([
+          ...plaidItems.map(i => i.item_id),
+          ...plaidAccts.map(pa => pa.item_id),
+        ]);
         const seen = new Set();
         const plaidUpdated = plaidAccts
           .filter(pa => { const dup = seen.has(pa.account_id); seen.add(pa.account_id); return !dup; })
-          .filter(pa => activeItemIds.has(pa.item_id)) // only keep accounts from active items
           .map(pa => ({
-            // Preserve existing record (custom name, id) or create fresh
             ...(byPlaidId[pa.account_id] || { id: "a" + pa.account_id }),
             plaidId: pa.account_id,
             plaidItemId: pa.item_id,
@@ -3509,9 +3507,7 @@ function AppInner({ isDemo = false }) {
             mask: pa.mask,
           }));
         const updated = [...manual, ...plaidUpdated];
-        // Detect and clean up orphaned Plaid accounts from DB
-        // Only remove accounts whose plaidItemId explicitly doesn't match an active item
-        // Don't use hasNoItems — plaidItems state may be stale during handlePlaidSuccess
+        // Only clean up accounts whose item is not in either plaidItems state OR fresh API response
         const orphans = prev.filter(a =>
           a.plaidId && a.plaidItemId && !activeItemIds.has(a.plaidItemId)
         );

@@ -504,8 +504,8 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
         title="Drag to reorder"
         style={{
           position: 'absolute', top: 8, left: 10, zIndex: 10,
-          cursor: 'grab', color: 'var(--t3)', fontSize: 16, lineHeight: 1,
-          userSelect: 'none', touchAction: 'none', padding: '6px',
+          cursor: 'grab', color: 'var(--t3)', fontSize: 12, lineHeight: 1,
+          userSelect: 'none', touchAction: 'none', padding: '2px',
         }}
         className="ledgr-drag-handle"
       >
@@ -7469,13 +7469,14 @@ function AppInner({ isDemo = false }) {
         <div style={{flex:1,position:"relative",overflow:"visible"}}>
           {/* Backdrop */}
           {drawerOpen&&(
-            <div onClick={()=>setDrawerOpen(false)}
-              style={{position:"fixed",inset:0,background:"#00000044",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",zIndex:40,transition:"opacity 0.22s ease"}}/>
+            <div style={{position:"fixed",inset:0,zIndex:40}} onClick={()=>setDrawerOpen(false)}>
+              <div style={{position:"absolute",top:0,left:240,right:0,bottom:0,background:"#00000044",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",pointerEvents:"none"}}/>
+            </div>
           )}
           {/* Overlay drawer */}
           <div style={{
             position:"fixed",top:0,left:0,bottom:0,width:240,
-            background:"var(--surface)",borderRight:"1px solid var(--border)",
+            background:"var(--bg)",borderRight:"1px solid var(--border)",
             display:"flex",flexDirection:"column",
             transform:drawerOpen?"translateX(0)":"translateX(-100%)",
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
@@ -7572,7 +7573,7 @@ function AppInner({ isDemo = false }) {
         {/* Desktop body */}
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
-          <aside style={{width:220,flexShrink:0,background:"var(--surface)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
+          <aside style={{width:220,flexShrink:0,background:"var(--bg)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
           {/* Content */}

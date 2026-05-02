@@ -438,16 +438,30 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
 }
 
 /* ─── DragCard — drag-to-reorder wrapper with handle ──────────────── */
-function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDragging, isOver }) {
-  // Touch drag
+function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDragging }) {
+
+  function findCardAt(x, y, selfId) {
+    // Find which [data-card-id] element contains this point, excluding self
+    const cards = document.querySelectorAll('[data-card-id]');
+    for (const card of cards) {
+      if (card.dataset.cardId === selfId) continue;
+      const r = card.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        return card.dataset.cardId;
+      }
+    }
+    return null;
+  }
+
   function handleTouchStart(e) {
-    e.preventDefault(); // prevent scroll while dragging
+    e.preventDefault();
+    e.stopPropagation();
     onDragStart(id);
     const onMove = (te) => {
+      te.preventDefault();
       const t = te.touches[0];
-      const els = document.elementsFromPoint(t.clientX, t.clientY);
-      const target = els.find(el => el.dataset.cardId && el.dataset.cardId !== id);
-      if (target) onDragEnter(target.dataset.cardId);
+      const target = findCardAt(t.clientX, t.clientY, id);
+      if (target) onDragEnter(target);
     };
     const onEnd = () => {
       onDragEnd();
@@ -455,17 +469,15 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
       window.removeEventListener('touchend', onEnd);
     };
     window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchend', onEnd, { passive: false });
   }
 
-  // Mouse drag
   function handleMouseDown(e) {
     e.preventDefault();
     onDragStart(id);
     const onMove = (me) => {
-      const els = document.elementsFromPoint(me.clientX, me.clientY);
-      const target = els.find(el => el.dataset.cardId && el.dataset.cardId !== id);
-      if (target) onDragEnter(target.dataset.cardId);
+      const target = findCardAt(me.clientX, me.clientY, id);
+      if (target) onDragEnter(target);
     };
     const onUp = () => {
       onDragEnd();
@@ -482,21 +494,18 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
       style={{
         position: 'relative',
         opacity: isDragging ? 0.35 : 1,
-        boxShadow: isOver ? '0 0 0 2px var(--cyan)' : 'none',
         borderRadius: 'var(--radius-lg)',
-        transition: 'opacity 0.15s, box-shadow 0.1s',
+        transition: 'opacity 0.15s',
       }}
     >
-      {/* Drag handle — bottom-left, clear of title text */}
       <div
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         title="Drag to reorder"
         style={{
           position: 'absolute', bottom: 10, right: 12, zIndex: 10,
-          cursor: 'grab', color: 'var(--t3)', fontSize: 14, lineHeight: 1,
-          userSelect: 'none', touchAction: 'none',
-          padding: '4px',
+          cursor: 'grab', color: 'var(--t3)', fontSize: 16, lineHeight: 1,
+          userSelect: 'none', touchAction: 'none', padding: '6px',
         }}
         className="ledgr-drag-handle"
       >
@@ -509,13 +518,11 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
 
 /* ─── useDashboardOrder — live reorder preview during drag ─────────── */
 function useDashboardOrder(defaultOrder, scheduleSaveRef) {
-  const [savedOrder, setSavedOrder] = useState(defaultOrder);
-  const [liveOrder,  setLiveOrder]  = useState(defaultOrder);
-  const [dragging,   setDragging]   = useState(null);
+  const [liveOrder, setLiveOrder] = useState(defaultOrder);
+  const [dragging,  setDragging]  = useState(null);
+  const draggingRef = useRef(null); // ref so onDragEnter closure is never stale
 
-  // Keep in sync when defaultOrder loads from server
   useEffect(() => {
-    setSavedOrder(defaultOrder);
     setLiveOrder(defaultOrder);
   }, [defaultOrder.join(',')]);
 
@@ -529,19 +536,23 @@ function useDashboardOrder(defaultOrder, scheduleSaveRef) {
     return next;
   }
 
-  function onDragStart(id) { setDragging(id); }
+  function onDragStart(id) {
+    draggingRef.current = id;
+    setDragging(id);
+  }
 
   function onDragEnter(id) {
-    if (!dragging || id === dragging) return;
-    // Update live order immediately for visual preview
-    setLiveOrder(prev => reorder(prev, dragging, id));
+    const current = draggingRef.current;
+    if (!current || id === current) return;
+    setLiveOrder(prev => reorder(prev, current, id));
   }
 
   function onDragEnd() {
-    if (dragging) {
-      setSavedOrder(liveOrder);
-      scheduleSaveRef?.current?.({ dashboardCardOrder: liveOrder });
-    }
+    setLiveOrder(prev => {
+      scheduleSaveRef?.current?.({ dashboardCardOrder: prev });
+      return prev;
+    });
+    draggingRef.current = null;
     setDragging(null);
   }
 
@@ -4511,7 +4522,7 @@ function AppInner({ isDemo = false }) {
       ),
     };
   }, [goals, today, recurringTxns, categories, sortedCategories, spentByCat, selectedMonth,
-      insightsTodos, isMobile, catMap, fmt, SpendingBreakdownCard]);
+      insightsTodos, isMobile, catMap]);
 
   const Dashboard = (
     <div style={{display:"flex",flexDirection:"column",gap:10}}>

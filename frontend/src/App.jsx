@@ -503,7 +503,7 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
         onTouchStart={handleTouchStart}
         title="Drag to reorder"
         style={{
-          position: 'absolute', bottom: 10, right: 12, zIndex: 10,
+          position: 'absolute', top: 10, left: 12, zIndex: 10,
           cursor: 'grab', color: 'var(--t3)', fontSize: 16, lineHeight: 1,
           userSelect: 'none', touchAction: 'none', padding: '6px',
         }}
@@ -4117,7 +4117,7 @@ function AppInner({ isDemo = false }) {
 
   const SpendingBreakdownCard = (
     <div style={{ ...S.card, padding: 18, height: "100%", boxSizing: "border-box" }}>
-      <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
+      <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 26 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
 
@@ -4399,7 +4399,7 @@ function AppInner({ isDemo = false }) {
       ),
       budget: (
         <div style={{...S.card, height:"100%", boxSizing:"border-box"}}>
-          <div style={{...S.sectionHdr,marginBottom:8}}>
+          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:26}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
           </div>
@@ -4430,7 +4430,7 @@ function AppInner({ isDemo = false }) {
       ),
       action: (
         <div style={S.card}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:26}}>
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
               <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
@@ -4461,7 +4461,7 @@ function AppInner({ isDemo = false }) {
       ),
       goals: goals.length === 0 ? null : (
         <div style={S.card}>
-          <div style={{...S.sectionHdr,marginBottom:8}}>
+          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:26}}>
             <div style={S.cardTitle}>Goals</div>
             <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
           </div>
@@ -4500,7 +4500,7 @@ function AppInner({ isDemo = false }) {
       ),
       upcoming: upcoming.length === 0 ? null : (
         <div style={S.card}>
-          <div style={{...S.sectionHdr,marginBottom:8}}>
+          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:26}}>
             <div style={S.cardTitle}>Upcoming</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
           </div>

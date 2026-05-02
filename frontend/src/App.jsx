@@ -282,9 +282,10 @@ button {
     }
 
     /* ── Bell ring animation ── */
-    /* ── Drag handle — shows on card hover ── */
-    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.5 !important; }
-    [data-card-id]:hover .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
+    /* ── Drag handle — always subtly visible, brighter on hover ── */
+    .ledgr-drag-handle { opacity: 0.25; transition: opacity 0.15s, color 0.15s; }
+    .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
+    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.6; }
 
     @keyframes ledgr-bell-ring {
       0%   { transform: rotate(0deg); }
@@ -494,7 +495,6 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
         style={{
           position: 'absolute', bottom: 10, right: 12, zIndex: 10,
           cursor: 'grab', color: 'var(--t3)', fontSize: 14, lineHeight: 1,
-          opacity: 0, transition: 'opacity 0.15s',
           userSelect: 'none', touchAction: 'none',
           padding: '4px',
         }}

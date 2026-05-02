@@ -190,13 +190,20 @@ export function useAppData({
   // accounts     → POST/PATCH/DELETE /api/accounts/*
   // rules        → POST/PATCH/DELETE /api/rules/*
   // transactions → PATCH/DELETE /api/transactions/*
-  useEffect(() => { scheduleSave({ categories });   }, [categories,   scheduleSave]);
-  useEffect(() => { scheduleSave({ plaidItems });   }, [plaidItems,    scheduleSave]);
   useEffect(() => {
+    if (!initialized.current) return;
+    scheduleSave({ categories });
+  }, [categories, scheduleSave]);
+  useEffect(() => {
+    if (!initialized.current) return;
+    scheduleSave({ plaidItems });
+  }, [plaidItems, scheduleSave]);
+  useEffect(() => {
+    if (!initialized.current) return;
     if (Array.isArray(calendarAccounts)) scheduleSave({ calendarAccounts });
   }, [calendarAccounts, scheduleSave]);
-
   useEffect(() => {
+    if (!initialized.current) return;
     if (calendarSplitView) scheduleSave({ calendarSplitView });
   }, [calendarSplitView, scheduleSave]);
 

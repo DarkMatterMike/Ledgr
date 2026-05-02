@@ -819,7 +819,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const { categories, plaidItems, dani, theme, calendarAccounts, calendarSplitView,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
-            aiConversations, aiCurrentConvId, goals } = req.body;
+            aiConversations, aiCurrentConvId, goals, customAccountNames, dashboardCardOrder } = req.body;
     const ops = [];
     // accounts → POST/PATCH/DELETE /api/accounts/*
     // rules    → POST/PATCH/DELETE /api/rules/*

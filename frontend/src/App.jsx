@@ -2007,7 +2007,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   <button
                     onClick={() => document.getElementById("ledgr-bg-upload").click()}
                     style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:8, borderColor:"var(--border2)"}}>
-                    <span>\U0001F5BC</span>
+                    <span>🖼</span>
                     <span>{current.bgImage ? "Change image" : "Choose image"}</span>
                   </button>
                   {/* Preview + remove */}

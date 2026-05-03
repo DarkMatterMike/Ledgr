@@ -1110,6 +1110,16 @@ export default function App() {
   useEffect(() => {
     fetch((import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app") + "/api/health").catch(() => {});
   }, []);
+
+  // Load active status message on login
+  useEffect(() => {
+    if (isDemo) return;
+    api.getActiveMessage().then(d => {
+      if (!d?.message) return;
+      const dismissed = JSON.parse(localStorage.getItem("ledgr_dismissed_msgs") || "[]");
+      if (!dismissed.includes(d.message.id)) setStatusMessage(d.message);
+    }).catch(() => {});
+  }, []);
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());
 
@@ -2198,6 +2208,7 @@ try { const t = localStorage.getItem("ledgr_theme"); if (t) applyTheme(JSON.pars
 
 function AdminPanel() {
   const isMobile = useIsMobile();
+  const [adminTab,     setAdminTab]     = useState("users");
   const [users,    setUsers]    = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
@@ -2208,6 +2219,29 @@ function AdminPanel() {
   const [search,   setSearch]   = useState("");
   const [page,     setPage]     = useState(1);
   const PAGE_SIZE = 25;
+  const [messages,   setMessages]   = useState([]);
+  const [msgText,    setMsgText]    = useState("");
+  const [msgSending, setMsgSending] = useState(false);
+  const [msgLoading, setMsgLoading] = useState(false);
+
+  async function loadMessages() {
+    setMsgLoading(true);
+    try { const d = await api.getStatusMessages(); setMessages(d.messages || []); }
+    catch(e) { console.warn("Failed to load messages:", e.message); }
+    finally { setMsgLoading(false); }
+  }
+  async function sendMessage() {
+    if (!msgText.trim()) return;
+    setMsgSending(true);
+    try { await api.sendStatusMessage(msgText.trim()); setMsgText(""); await loadMessages(); }
+    catch(e) { alert("Failed to send: " + e.message); }
+    finally { setMsgSending(false); }
+  }
+  async function deleteMessage(id) {
+    try { await api.deleteStatusMessage(id); setMessages(p => p.filter(m => m.id !== id)); }
+    catch(e) { alert("Failed to delete: " + e.message); }
+  }
+  useEffect(() => { if (adminTab === "messages") loadMessages(); }, [adminTab]);
 
   async function loadUsers() {
     setLoading(true); setError("");
@@ -2264,7 +2298,65 @@ function AdminPanel() {
         Admin Panel
       </div>
 
-      {/* Stats ÔÇö 2x2 on mobile, 4 columns on desktop */}
+      {/* Tab switcher */}
+      <div style={{display:"flex",gap:0,marginBottom:20,background:"var(--surface)",borderRadius:"var(--radius)",padding:3,width:"fit-content"}}>
+        {[["users","Users"],["messages","Messages"]].map(([id,label]) => (
+          <button key={id} onClick={()=>setAdminTab(id)}
+            style={{background:adminTab===id?"var(--card)":"none",border:"none",color:adminTab===id?"var(--t1)":"var(--t3)",padding:"6px 16px",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,transition:"all 0.15s"}}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Messages Tab */}
+      {adminTab === "messages" && (
+        <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:640}}>
+          <div style={{...S.card,padding:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:8}}>Send Status Message</div>
+            <div style={{fontSize:11,color:"var(--t3)",marginBottom:12,lineHeight:1.5}}>
+              Appears as a modal to all users on next login. Expires after 24 hours. Users can dismiss with "Don't show again".
+            </div>
+            <textarea value={msgText} onChange={e=>setMsgText(e.target.value)}
+              placeholder="e.g. We're performing scheduled maintenance tonight from 11pm-1am EST..."
+              style={{...S.input,minHeight:100,resize:"vertical",fontFamily:"inherit",lineHeight:1.6,fontSize:13,marginBottom:12}}/>
+            <button style={S.btn("primary",true)} onClick={sendMessage} disabled={msgSending||!msgText.trim()}>
+              {msgSending?"Sending...":"Send Message"}
+            </button>
+          </div>
+          <div style={{...S.card,padding:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:12}}>Message History</div>
+            {msgLoading ? (
+              <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",padding:"20px 0"}}>Loading...</div>
+            ) : messages.length === 0 ? (
+              <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",padding:"20px 0"}}>No messages sent yet</div>
+            ) : (
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {messages.map(m => {
+                  const expired = Date.now() - m.created_at > 24*60*60*1000;
+                  return (
+                    <div key={m.id} style={{padding:"12px 14px",background:"var(--surface)",borderRadius:"var(--radius)",border:`1px solid ${expired?"var(--border)":"rgba(0,212,255,0.3)"}`,opacity:expired?0.5:1}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,marginBottom:6}}>
+                        <div style={{fontSize:11,color:expired?"var(--t3)":"var(--cyan)",fontWeight:600}}>
+                          {expired?"EXPIRED":"ACTIVE"} · {new Date(m.created_at).toLocaleString()}
+                        </div>
+                        <button onClick={()=>deleteMessage(m.id)}
+                          style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"0 2px",lineHeight:1,flexShrink:0}}>x</button>
+                      </div>
+                      <div style={{fontSize:13,color:"var(--t1)",lineHeight:1.6}}>{m.text}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Users Tab */}
+      {adminTab === "users" && (
+      <div>
+
+      {/* Stats -- 2x2 on mobile, 4 columns on desktop */}
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:10,marginBottom:24}}>
         {[
           { label:"Total Users", value:stats.total,                  color:"var(--t1)"    },
@@ -2513,6 +2605,8 @@ function AdminPanel() {
           </div>
         </div>
       )}
+      </div>
+      )}
     </div>
   );
 }
@@ -2673,7 +2767,7 @@ function AppInner({ isDemo = false }) {
   const [budgetDrillCat, setBudgetDrillCat] = useState(null);
   const [calendarDay,      setCalendarDay]      = useState(null);
   const [calendarAcctPopup,setCalendarAcctPopup]= useState(null);
-  const [selectedMonth,    setSelectedMonth]    = useState(currentMonth);
+  const [selectedMonth,    setSelectedMonth]    = useState(() => localStorage.getItem("ledgr_month") || currentMonth);
   const [calendarMonth,    setCalendarMonth]    = useState(currentMonth);
   const [calendarAccounts,   setCalendarAccounts]   = useState(null);
   const [calendarSplitView, setCalendarSplitView] = useState("full");
@@ -2742,6 +2836,8 @@ function AppInner({ isDemo = false }) {
   /* ÔöÇÔöÇ Analytics AI insights ÔÇö persisted across tab/view switches ÔöÇÔöÇ */
   const [analyticsInsights, setAnalyticsInsights] = useState(null);
   const [analyticsTab, setAnalyticsTab] = useState("overview");
+  const [statusMessage,   setStatusMessage]   = useState(null);
+  const [statusDismissed, setStatusDismissed] = useState(false);
 
   /* ÔöÇÔöÇ Insights to-do list ÔöÇÔöÇ */
   const [insightsTodos, setInsightsTodos] = useState([]);
@@ -3197,13 +3293,15 @@ function AppInner({ isDemo = false }) {
   function prevMonth() {
     const [y,m]=selectedMonth.split("-").map(Number);
     const d=new Date(y,m-2,1);
-    setSelectedMonth(`${d.getFullYear()}-${pad(d.getMonth()+1)}`);
+    const month=`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    setSelectedMonth(month);
+    localStorage.setItem("ledgr_month", month);
   }
   function nextMonth() {
     const [y,m]=selectedMonth.split("-").map(Number);
     const d=new Date(y,m,1);
     const next=`${d.getFullYear()}-${pad(d.getMonth()+1)}`;
-    if(next<=currentMonth) setSelectedMonth(next);
+    if(next<=currentMonth) { setSelectedMonth(next); localStorage.setItem("ledgr_month", next); }
   }
   function prevCalMonth() {
     const [y,m]=calendarMonth.split("-").map(Number);
@@ -7353,6 +7451,45 @@ function AppInner({ isDemo = false }) {
       </div>
     )}
     <InstallPrompt />
+
+    {/* Beta banner */}
+    <div style={{flexShrink:0,background:"rgba(167,139,250,0.08)",borderBottom:"1px solid rgba(167,139,250,0.2)",padding:"5px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:11,color:"var(--t2)"}}>
+      <span style={{color:"var(--purple)",fontWeight:700,flexShrink:0}}>Beta</span>
+      This app is in beta. You may experience issues. Please report bugs via the
+      <button onClick={()=>navigate("settings")} style={{background:"none",border:"none",color:"var(--purple)",cursor:"pointer",fontSize:11,fontWeight:600,padding:"0 3px",textDecoration:"underline"}}>Support</button>
+      button.
+    </div>
+
+    {/* Status message modal */}
+    {statusMessage && !statusDismissed && (
+      <div style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}
+        onClick={e=>{ if(e.target===e.currentTarget) setStatusDismissed(true); }}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",width:"100%",maxWidth:480,padding:28,boxShadow:"0 24px 64px #00000080"}} className="ledgr-modal-anim">
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <span style={{fontSize:20}}>📢</span>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,color:"var(--t1)"}}>Status Update</div>
+            <div style={{marginLeft:"auto",fontSize:10,color:"var(--t3)"}}>{new Date(statusMessage.created_at).toLocaleString()}</div>
+          </div>
+          <div style={{fontSize:14,color:"var(--t2)",lineHeight:1.7,marginBottom:24,padding:"14px 16px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:"3px solid var(--cyan)"}}>
+            {statusMessage.text}
+          </div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"var(--t2)"}}>
+              <input type="checkbox" onChange={e=>{
+                if(e.target.checked){
+                  const dismissed = JSON.parse(localStorage.getItem("ledgr_dismissed_msgs")||"[]");
+                  dismissed.push(statusMessage.id);
+                  localStorage.setItem("ledgr_dismissed_msgs", JSON.stringify(dismissed));
+                }
+              }}/>
+              Don't show again
+            </label>
+            <button style={S.btn("primary",true)} onClick={()=>setStatusDismissed(true)}>Got it</button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* Trial countdown banner */}
     {trialDaysLeft !== null && (
       <div style={{

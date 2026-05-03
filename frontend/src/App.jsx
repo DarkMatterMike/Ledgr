@@ -96,7 +96,7 @@ function useIsMobile() {
 
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
-      background: linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%) !important;
+      background: linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%) !important;
       border: none !important;
       border-radius: 12px !important;
       position: relative;
@@ -180,9 +180,9 @@ function useIsMobile() {
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
-    .ledgr-drag-handle { opacity: 0.2; transition: opacity 0.15s, color 0.15s; }
+    .ledgr-drag-handle { color: var(--t3); opacity: 1; transition: opacity 0.15s, color 0.15s; }
     .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
-    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.5; }
+    [data-card-id]:hover .ledgr-drag-handle { opacity: 1; }
 
     .ledgr-chevron { display: inline-block; transition: transform 0.2s; font-size: 10px; }
     .ledgr-chevron-open { transform: rotate(180deg); }
@@ -206,11 +206,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -230,7 +230,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },

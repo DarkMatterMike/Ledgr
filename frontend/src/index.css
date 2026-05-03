@@ -4,13 +4,13 @@
 html, body, #root { height: 100%; }
 
 body {
-  /* Warm dark gradient — deep brown bleeds from corners into near-black center */
+  /* Warm amber bleeds from corners into near-black center — ~50 step spread */
   background:
-    radial-gradient(ellipse 70% 50% at 100% 0%,   #2e1a08 0%, transparent 55%),
-    radial-gradient(ellipse 55% 45% at 0%   100%,  #1e1005 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 100% 0%,   #46220b 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 0%   100%,  #2e1508 0%, transparent 50%),
     #0f0e0d;
   background-attachment: scroll;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 :root {
@@ -18,8 +18,8 @@ body {
   --surface:       #1a1612;
   --surface-solid: #1a1612;
   --bg-solid:      #0f0e0d;
-  --card:          #181410;
-  --card-hi:       #2e2720;
+  --card:          #16130f;
+  --card-hi:       #2b251d;
   --border:        transparent;
   --border2:       rgba(255,255,255,0.06);
   --cyan:          #c9956a;

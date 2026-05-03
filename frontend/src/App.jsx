@@ -64,24 +64,25 @@ function useIsMobile() {
     .obsidian-nav-item {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 20px; font-size: 13px; font-weight: 400;
-      color: var(--t2);
+      color: rgba(232,221,208,0.35);
       cursor: pointer; transition: all 0.15s;
       background: transparent; border: none;
       border-right: 2px solid transparent;
       width: 100%; text-align: left;
       font-family: var(--font-body);
       box-sizing: border-box;
+      border-radius: 0;
     }
     .obsidian-nav-item:hover {
-      color: var(--t1);
+      color: rgba(232,221,208,0.6);
       background: rgba(255,255,255,0.03);
     }
     .obsidian-nav-item.active {
-      color: var(--t1);
-      background: rgba(var(--accent-rgb, 201,149,106), 0.1);
-      border-right: none;
+      color: #e8ddd0;
+      background: rgba(201,149,106,0.08);
+      border-right: 2px solid #c9956a;
       font-weight: 500;
-      border-radius: 8px;
+      border-radius: 0;
     }
     .obsidian-nav-dot {
       width: 5px; height: 5px; border-radius: 50%;
@@ -89,9 +90,9 @@ function useIsMobile() {
       transition: all 0.15s;
     }
     .obsidian-nav-item.active .obsidian-nav-dot {
-      background: var(--cyan);
+      background: #c9956a;
       opacity: 1;
-      box-shadow: 0 0 6px var(--cyan);
+      box-shadow: 0 0 6px #c9956a;
     }
 
     /* ── Cards: solid warm surface, clean border ── */

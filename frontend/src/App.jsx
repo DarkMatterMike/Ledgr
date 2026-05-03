@@ -1,4 +1,4 @@
-﻿﻿/**
+/**
  * src/App.jsx ÔÇö Ledgr personal finance app
  */
 import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';

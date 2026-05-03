@@ -97,7 +97,7 @@ function useIsMobile() {
 
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
-      background: linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%) !important;
+      background: linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%) !important;
       border: none !important;
       border-radius: 12px !important;
       position: relative;
@@ -197,16 +197,16 @@ function useIsMobile() {
     /* Transaction list gradient fade */
     .ledgr-txn-gradient {
       background: linear-gradient(135deg,
-        var(--card-hi, #231f1a) 0%,
-        var(--card, #181511) 100%
+        var(--card, #181511) 0%,
+        var(--card-hi, #1e1b17) 100%
       );
       border-radius: 12px;
     }
     /* Budget list gradient */
     .ledgr-budget-gradient {
       background: linear-gradient(135deg,
-        var(--card-hi, #231f1a) 0%,
-        var(--card, #181511) 100%
+        var(--card, #181511) 0%,
+        var(--card-hi, #1e1b17) 100%
       );
       border-radius: 12px;
     }
@@ -244,11 +244,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -268,7 +268,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
@@ -1796,8 +1796,6 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             { key:"bg",      label:"Background" },
             { key:"surface", label:"Surface" },
             { key:"card",    label:"Card" },
-            { key:"border",  label:"Border" },
-            { key:"border2", label:"Border 2" },
             { key:"accent",  label:"Accent" },
             { key:"t1",      label:"Text primary" },
             { key:"t2",      label:"Text secondary" },
@@ -1805,10 +1803,23 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           ];
           const defaults = PRESETS[0];
           const current = { ...defaults, fontDisp:"'Syne', sans-serif", ...(theme||{}) };
+          const gradSteps = current.gradSteps ?? 6;
 
           function patch(k, v) {
             const next = { ...current, [k]: v };
             onSaveTheme(next);
+          }
+
+          function patchGradSteps(steps) {
+            // Derive card-hi from card + steps
+            const hex2rgb = h => { const v=h.replace('#',''); return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16)]; };
+            const rgb2hex = ([r,g,b]) => '#'+[r,g,b].map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,'0')).join('');
+            const base = current.card || '#181511';
+            const [r,g,b] = hex2rgb(base);
+            const hi = rgb2hex([r+steps, g+steps, b+steps]);
+            const root = document.documentElement;
+            root.style.setProperty('--card-hi', hi);
+            patch('gradSteps', steps);
           }
 
           function applyPreset(preset) {
@@ -1958,6 +1969,20 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 </div>
               </div>
 
+              {/* Card gradient intensity */}
+              <div>
+                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:10}}>Card Gradient</div>
+                <div style={{display:"flex",alignItems:"center",gap:14}}>
+                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>None</span>
+                  <input type="range" min={0} max={30} step={1} value={gradSteps}
+                    onChange={e=>patchGradSteps(Number(e.target.value))}
+                    style={{flex:1,accentColor:"var(--cyan)",cursor:"pointer"}}/>
+                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>Strong</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)",width:20,textAlign:"right",flexShrink:0}}>{gradSteps}</span>
+                </div>
+                <div style={{marginTop:8,height:24,borderRadius:"var(--radius)",background:`linear-gradient(135deg, var(--card) 0%, var(--card-hi) 100%)`,opacity:0.8}}/>
+              </div>
+
               {/* Reset */}
               <div style={{display:"flex",justifyContent:"flex-end"}}>
                 <button onClick={reset} style={{...S.btn("ghost",true),color:"var(--t3)"}}>
@@ -2086,7 +2111,8 @@ function applyTheme(theme) {
 
   // Derive card-hi: ~20 steps lighter than card base
   if (theme.card) {
-    const cardHi = shift(theme.card, 20);
+    const steps = theme.gradSteps ?? 6;
+    const cardHi = shift(theme.card, steps);
     root.style.setProperty("--card-hi", cardHi);
     root.style.setProperty("--card-glass", theme.card);
   }
@@ -4833,7 +4859,7 @@ function AppInner({ isDemo = false }) {
         {filteredTxns.length===0 ? (
           <div style={{textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</div>
         ) : (
-          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
+          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
             {dates.map((date,di)=>{
               const txns    = grouped[date];
               const dayTotal = txns.reduce((a,t)=>a+t.amount,0);
@@ -5066,7 +5092,7 @@ function AppInner({ isDemo = false }) {
                 const ex = cx + r * Math.cos(a);
                 const ey = cy + r * Math.sin(a);
                 return (
-                  <div style={{ background:"linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                  <div style={{ background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                     <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                     <div style={{ display:"flex", justifyContent:"center" }}>
                       <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5099,7 +5125,7 @@ function AppInner({ isDemo = false }) {
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
-                      <div key={section.key} style={{ background: "linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", borderRadius: "var(--radius)" }}>
+                      <div key={section.key} style={{ background: "linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius: "var(--radius)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
@@ -5326,7 +5352,7 @@ function AppInner({ isDemo = false }) {
                   const ex = cx + r * Math.cos(a);
                   const ey = cy + r * Math.sin(a);
                   return (
-                    <div style={{ background:"linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                    <div style={{ background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                       <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                       <div style={{ display:"flex", justifyContent:"center" }}>
                         <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5359,7 +5385,7 @@ function AppInner({ isDemo = false }) {
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
-                        <div key={section.key} style={{ background: "linear-gradient(135deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", borderRadius: "var(--radius)" }}>
+                        <div key={section.key} style={{ background: "linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius: "var(--radius)" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "transparent", borderBottom: "none", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>

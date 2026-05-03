@@ -203,6 +203,18 @@ async function initDB() {
     );
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_rules_user ON rules(user_id)`);
+
+  // System messages — shown to all users on login
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS system_messages (
+      id         SERIAL PRIMARY KEY,
+      text       TEXT        NOT NULL,
+      active     BOOLEAN     NOT NULL DEFAULT true,
+      created_by UUID        REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
+    );
+  `);
   console.log("  =>  Database ready");
 }
 
@@ -945,6 +957,40 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
   return { added: newTxns.length, modified: modified.length, removed: removed.length, newTxns };
 }
 
+/* ── System messages ──────────────────────────────────────────────── */
+async function createSystemMessage(text, createdBy) {
+  const res = await pool.query(
+    `INSERT INTO system_messages (text, created_by)
+     VALUES ($1, $2) RETURNING *`,
+    [text, createdBy]
+  );
+  return res.rows[0];
+}
+
+async function getSystemMessages() {
+  const res = await pool.query(
+    `SELECT * FROM system_messages ORDER BY created_at DESC LIMIT 50`
+  );
+  return res.rows;
+}
+
+async function getActiveSystemMessage() {
+  const res = await pool.query(
+    `SELECT * FROM system_messages
+     WHERE active = true AND expires_at > NOW()
+     ORDER BY created_at DESC LIMIT 1`
+  );
+  return res.rows[0] || null;
+}
+
+async function deleteSystemMessage(id) {
+  await pool.query(`DELETE FROM system_messages WHERE id = $1`, [id]);
+}
+
+async function deactivateSystemMessage(id) {
+  await pool.query(`UPDATE system_messages SET active = false WHERE id = $1`, [id]);
+}
+
 /* ── Exports ──────────────────────────────────────────────────────── */
 module.exports = {
   pool,
@@ -996,5 +1042,11 @@ module.exports = {
   plaidClient,
   PLAID_ENV,
   syncItemTransactions,
+  // System messages
+  createSystemMessage,
+  getSystemMessages,
+  getActiveSystemMessage,
+  deleteSystemMessage,
+  deactivateSystemMessage,
   applySyncResultsToDB,
 };

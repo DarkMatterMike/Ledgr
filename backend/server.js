@@ -456,6 +456,14 @@ app.post("/api/auth/reset-password", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+/* ── System messages (public — no auth required) ─────────────────── */
+app.get("/api/status-messages/active", async (_req, res) => {
+  try {
+    const msg = await db.getActiveSystemMessage();
+    res.json({ message: msg || null });
+  } catch(e) { handleError(res, e, "Failed to get active message"); }
+});
+
 /* ── All routes below require auth ───────────────────────────────── */
 app.use(requireAuth);
 
@@ -478,8 +486,42 @@ app.use((req, res, next) => {
   next();
 });
 
+/* ── System messages (owner only) ────────────────────────────────── */
+app.get("/api/status-messages", async (req, res) => {
+  if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
+  try {
+    const messages = await db.getSystemMessages();
+    res.json({ messages });
+  } catch(e) { handleError(res, e, "Failed to get messages"); }
+});
+
+app.post("/api/status-messages", async (req, res) => {
+  if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: "text required" });
+  try {
+    const msg = await db.createSystemMessage(text.trim(), req.user.id);
+    res.json({ message: msg });
+  } catch(e) { handleError(res, e, "Failed to create message"); }
+});
+
+app.delete("/api/status-messages/:id", async (req, res) => {
+  if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
+  try {
+    await db.deleteSystemMessage(parseInt(req.params.id));
+    res.json({ ok: true });
+  } catch(e) { handleError(res, e, "Failed to delete message"); }
+});
+
+app.patch("/api/status-messages/:id/deactivate", async (req, res) => {
+  if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
+  try {
+    await db.deactivateSystemMessage(parseInt(req.params.id));
+    res.json({ ok: true });
+  } catch(e) { handleError(res, e, "Failed to deactivate message"); }
+});
+
 app.get("/api/auth/me", (req, res) => {
-  const { id, email, name, role, subscription_status, trial_ends_at, stripe_price_id } = req.user;
   const access    = getAccessLevel(req.user);
   const isPremium = role === "owner" || (stripe_price_id && stripe_price_id === STRIPE_PREMIUM_PRICE_ID);
   res.json({ id, email, name, role, subscription_status, trial_ends_at, stripe_price_id, access, isPremium });

@@ -97,7 +97,7 @@ function useIsMobile() {
 
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
-      background: linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%) !important;
+      background: linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%) !important;
       border: none !important;
       border-radius: 12px !important;
       position: relative;
@@ -207,11 +207,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -231,7 +231,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #2b251d) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
@@ -2014,52 +2014,64 @@ function applyTheme(theme) {
   if (!theme) return;
   const root = document.documentElement;
 
+  // Helper: parse "#rrggbb" → [r, g, b]
+  const hex2rgb = h => {
+    const v = h.replace('#','');
+    return [parseInt(v.slice(0,2),16), parseInt(v.slice(2,4),16), parseInt(v.slice(4,6),16)];
+  };
+  // Helper: [r,g,b] → "#rrggbb"
+  const rgb2hex = ([r,g,b]) =>
+    '#'+[r,g,b].map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,'0')).join('');
+  // Helper: bump each channel by delta (positive = lighter)
+  const shift = (hex, d) => rgb2hex(hex2rgb(hex).map(n => n + d));
+  // Helper: mix two hex colors (t=0 → a, t=1 → b)
+  const mix = (a, b, t) => {
+    const [ar,ag,ab] = hex2rgb(a), [br,bg,bb] = hex2rgb(b);
+    return rgb2hex([ar+(br-ar)*t, ag+(bg-ag)*t, ab+(bb-ab)*t]);
+  };
+
   // Core palette
   const vars = [
-    ["--bg",      theme.bg],
-    ["--surface", theme.surface],
-    ["--card",    theme.card],
-    ["--card-hi", theme.cardHi || null],
-    ["--border",  "transparent"],
-    ["--border2", "rgba(255,255,255,0.06)"],
-    ["--cyan",    theme.accent],
-    ["--cyan-dim",theme.accent ? theme.accent + "20" : null],
-    ["--amber",   theme.accent],
+    ["--bg",       theme.bg],
+    ["--surface",  theme.surface],
+    ["--card",     theme.card],
+    ["--border",   "transparent"],
+    ["--border2",  "rgba(255,255,255,0.06)"],
+    ["--cyan",     theme.accent],
+    ["--cyan-dim", theme.accent ? theme.accent + "20" : null],
+    ["--amber",    theme.accent],
     ["--amber-dim",theme.accent ? theme.accent + "18" : null],
-    ["--t1",      theme.t1],
-    ["--t2",      theme.t2],
-    ["--t3",      theme.t3],
+    ["--t1",       theme.t1],
+    ["--t2",       theme.t2],
+    ["--t3",       theme.t3],
   ];
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
 
-  // card-glass always matches --card (solid, not transparent)
-  root.style.setProperty("--card-glass",  theme.card || "#1e1a16");
-  root.style.setProperty("--card-border", "transparent");
-  // card-hi: slightly lighter than card for gradient texture
+  // Derive card-hi: ~20 steps lighter than card base
   if (theme.card) {
-    // Bump each hex channel up slightly for the highlight stop
-    const cardHi = theme.cardHi || theme.card.replace(/^#/, '').replace(/../g, h =>
-      Math.min(255, parseInt(h,16)+8).toString(16).padStart(2,'0').replace(/^#/,'')
-    );
-    root.style.setProperty("--card-hi", '#' + cardHi.replace('#',''));
+    const cardHi = shift(theme.card, 20);
+    root.style.setProperty("--card-hi", cardHi);
+    root.style.setProperty("--card-glass", theme.card);
   }
-
-  // surface-solid and bg-solid for elements that must be opaque
+  root.style.setProperty("--card-border", "transparent");
   root.style.setProperty("--surface-solid", theme.surface || "#161412");
   root.style.setProperty("--bg-solid",      theme.bg      || "#0f0e0d");
 
   // Font
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
 
-  // Gradient vars derived from accent for topbar line and subtle accents
+  // Accent gradient vars
   if (theme.accent) {
     root.style.setProperty("--grad-a", theme.accent);
     root.style.setProperty("--grad-b", theme.t1 || "#e8ddd0");
     root.style.setProperty("--grad-c", theme.accent);
     root.style.setProperty("--glow-color", theme.accent + "18");
+    root.style.setProperty("--accent-rgb",
+      hex2rgb(theme.accent).join(','));
   }
 
-  // bgImage support
+  // Body background: radial gradient derived from theme
+  // Bleed color = mix of surface and accent, ~40 steps above bg
   if (theme.bgImage) {
     const bg = theme.bg || "#0f0e0d";
     root.style.setProperty("--bg",      bg + "cc");
@@ -2069,13 +2081,15 @@ function applyTheme(theme) {
     document.documentElement.classList.add("ledgr-has-bgimage");
   } else {
     document.body.style.backgroundImage = "";
-    if (theme.bg) {
-      const bg = theme.bg;
-      const sf = theme.surface || bg;
+    if (theme.bg && theme.surface) {
+      // Bleed = mix of surface and accent at 30%, then push up ~20 steps
+      const bleedBase = theme.accent ? mix(theme.surface, theme.accent, 0.3) : theme.surface;
+      const bleed1 = shift(bleedBase, 20);  // top-right corner
+      const bleed2 = shift(bleedBase, 10);  // bottom-left corner (slightly dimmer)
       document.body.style.background = [
-        `radial-gradient(ellipse 80% 60% at 100% 0%, ${sf} 0%, transparent 55%)`,
-        `radial-gradient(ellipse 60% 50% at 0% 100%, ${sf} 0%, transparent 50%)`,
-        bg
+        `radial-gradient(ellipse 70% 50% at 100% 0%,   ${bleed1} 0%, transparent 55%)`,
+        `radial-gradient(ellipse 55% 45% at 0%   100%, ${bleed2} 0%, transparent 50%)`,
+        theme.bg,
       ].join(', ');
     }
     document.documentElement.classList.remove("ledgr-has-bgimage");
@@ -2610,6 +2624,8 @@ function AppInner({ isDemo = false }) {
   const [drawerOpen,    setDrawerOpen]    = useState(false);
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [dismissedNotifs, setDismissedNotifs] = useState(new Set()); // Set of notif ids dismissed this session
+  const [systemMsg,     setSystemMsg]     = useState(null);  // active system message from server
+  const [systemMsgOpen, setSystemMsgOpen] = useState(false); // modal open
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
   const [transactions,  setTransactions]  = useState([]);
@@ -2814,7 +2830,24 @@ function AppInner({ isDemo = false }) {
   scheduleSaveRef.current = scheduleSave;
   rulesRef.current        = rules;
 
-  /* -- Poll for new transactions every 30 minutes -- */
+  /* -- Fetch active system message on mount -- */
+  useEffect(() => {
+    if (isDemo) return;
+    const DISMISS_KEY = "ledgr_dismissed_msgs";
+    api.getActiveMessage()
+      .then(data => {
+        const msg = data?.message;
+        if (!msg) return;
+        // Check if user already dismissed this message id
+        try {
+          const dismissed = JSON.parse(localStorage.getItem(DISMISS_KEY) || "[]");
+          if (dismissed.includes(msg.id)) return;
+        } catch {}
+        setSystemMsg(msg);
+        setSystemMsgOpen(true);
+      })
+      .catch(() => {}); // silently fail — non-critical
+  }, []);
   const knownTxnIds = useRef(null);
   useEffect(() => {
     if (!initialized.current) return;
@@ -7327,6 +7360,38 @@ function AppInner({ isDemo = false }) {
       </div>
     )}
     <InstallPrompt />
+
+    {/* System message modal */}
+    {systemMsgOpen && systemMsg && (
+      <div className="ledgr-overlay-anim" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(6px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div className="ledgr-modal-anim obsidian-card" style={{...S.modal,maxWidth:460,width:"100%",display:"flex",flexDirection:"column",gap:16}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:20}}>📢</span>
+              <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t1)"}}>Message from Ledgr</div>
+            </div>
+            <button onClick={()=>setSystemMsgOpen(false)}
+              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:18,lineHeight:1,padding:"2px 4px",flexShrink:0}}>✕</button>
+          </div>
+          <div style={{fontSize:14,color:"var(--t2)",lineHeight:1.7,padding:"4px 0"}}>
+            {systemMsg.text}
+          </div>
+          <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:4}}>
+            <button style={S.btn("ghost",true)} onClick={()=>{
+              // Remember dismissal so it doesn't show again
+              try {
+                const key = "ledgr_dismissed_msgs";
+                const dismissed = JSON.parse(localStorage.getItem(key)||"[]");
+                dismissed.push(systemMsg.id);
+                localStorage.setItem(key, JSON.stringify(dismissed));
+              } catch {}
+              setSystemMsgOpen(false);
+            }}>Don't show again</button>
+            <button style={S.btn("primary",true)} onClick={()=>setSystemMsgOpen(false)}>Got it</button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Beta banner */}
     <div style={{flexShrink:0,background:"rgba(255,255,255,0.03)",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"5px 16px",textAlign:"center",fontSize:11,color:"var(--t3)"}}>

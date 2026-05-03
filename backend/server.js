@@ -291,6 +291,55 @@ function requireOwner(req, res, next) {
    PUBLIC ROUTES
 ═══════════════════════════════════════════════════════════════════ */
 
+/* ── Status Messages ───────────────────────────────────────────── */
+
+// Public — get active message (not expired, within 24h)
+app.get("/api/messages/active", requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, text, created_at FROM status_messages
+       WHERE created_at > $1
+       ORDER BY created_at DESC LIMIT 1`,
+      [Date.now() - 24 * 60 * 60 * 1000]
+    );
+    res.json({ message: rows[0] || null });
+  } catch (err) { serverError(res, err); }
+});
+
+// Admin — get all messages
+app.get("/api/admin/messages", requireAuth, async (req, res) => {
+  if (req.user.role !== "owner") return res.status(403).json({ error: "Forbidden" });
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, text, created_at, created_by FROM status_messages ORDER BY created_at DESC LIMIT 50`
+    );
+    res.json({ messages: rows });
+  } catch (err) { serverError(res, err); }
+});
+
+// Admin — create message
+app.post("/api/admin/messages", requireAuth, async (req, res) => {
+  if (req.user.role !== "owner") return res.status(403).json({ error: "Forbidden" });
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: "text required" });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO status_messages (text, created_by, created_at) VALUES ($1, $2, $3) RETURNING id, text, created_at`,
+      [text.trim(), req.user.id, Date.now()]
+    );
+    res.json({ message: rows[0] });
+  } catch (err) { serverError(res, err); }
+});
+
+// Admin — delete message
+app.delete("/api/admin/messages/:id", requireAuth, async (req, res) => {
+  if (req.user.role !== "owner") return res.status(403).json({ error: "Forbidden" });
+  try {
+    await pool.query("DELETE FROM status_messages WHERE id = $1", [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
 app.get("/api/health", (_req, res) => res.json({ ok: true, env: PLAID_ENV, auth: !!JWT_SECRET }));
 
 // Owner-only health check that shows per-user transaction counts and flags large users
@@ -1091,6 +1140,25 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
   if (!public_token) return res.status(400).json({ error: "public_token required" });
   try {
     const { data } = await plaidClient.itemPublicTokenExchange({ public_token });
+
+    // Remove any existing items for the same institution before saving the new one
+    // This prevents duplicate items accumulating on reconnect
+    const existingItems = await getItemsForUser(req.user.id);
+    const duplicates = existingItems.filter(
+      i => i.institution?.toLowerCase() === (institution_name || "").toLowerCase()
+        && i.item_id !== data.item_id
+    );
+    for (const dup of duplicates) {
+      try { await plaidClient.itemRemove({ access_token: dup.access_token }); } catch {}
+      await pool.query("DELETE FROM plaid_items WHERE item_id = $1", [dup.item_id]);
+      // Also remove orphaned accounts from old item
+      await pool.query(
+        "DELETE FROM accounts WHERE user_id = $1 AND plaid_item_id = $2",
+        [req.user.id, dup.item_id]
+      );
+      console.log(`Removed duplicate item ${dup.item_id} for ${institution_name}`);
+    }
+
     await saveItem(req.user.id, data.item_id, { access_token: data.access_token, institution: institution_name || "Unknown Bank", created_at: Date.now() });
     await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [data.item_id]);
 
@@ -1098,11 +1166,10 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
     try {
       const result = await syncItemTransactions(req.user.id, data.item_id);
       await applySyncResultsToDB(req.user.id, result.added, result.modified, result.removed);
-      // Now re-link any orphaned transactions to the newly created accounts
+      // Re-link any orphaned transactions to the newly created accounts
       await relinkTransactionsToNewAccounts(req.user.id, data.item_id);
     } catch (syncErr) {
       console.warn("Post-connect sync failed:", syncErr.message);
-      // Non-fatal — transactions will sync on next manual sync
     }
 
     res.json({ item_id: data.item_id, institution: institution_name });

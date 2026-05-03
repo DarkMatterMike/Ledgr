@@ -1063,12 +1063,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   return (
     <>
       <div style={{padding:"20px 20px 28px",flexShrink:0}}>
-        <div style={{
-          fontFamily:"'Syne', sans-serif",fontSize:22,fontWeight:800,lineHeight:1,
-          color:"var(--t1)",letterSpacing:"-0.5px",
-        }} className="ledgr-logo-pulse">
-          ℓ<span style={{color:"var(--cyan)"}}>.</span>ledgr
-        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span><div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div></div>
       </div>
       <nav style={{flex:1,display:"flex",flexDirection:"column",overflowY:"auto"}}>
         {NAV.map(n=>(
@@ -7652,8 +7647,12 @@ function AppInner({ isDemo = false }) {
       <>
         {/* Desktop top bar */}
         <div className="obsidian-topbar" style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"none"}}>
-          <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t3)",letterSpacing:"-0.2px"}}>
-            {NAV.find(n=>n.id===view)?.label}
+          <div style={{display:"flex",alignItems:"center",gap:20}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span><div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div></div>
+            <div style={{width:1,height:16,background:"rgba(255,255,255,0.1)"}}/>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:600,color:"var(--t3)",letterSpacing:"-0.1px"}}>
+              {NAV.find(n=>n.id===view)?.label}
+            </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>↻ Syncing…</span>}

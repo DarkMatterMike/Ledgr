@@ -8,7 +8,8 @@ body {
     radial-gradient(ellipse 80% 60% at 100% 0%, #1e1208 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 0% 100%, #160e06 0%, transparent 50%),
     #0f0e0d;
-  background-attachment: fixed;
+  /* scroll not fixed — works on mobile */
+  background-attachment: scroll;
 }
 
 :root {
@@ -17,6 +18,7 @@ body {
   --surface-solid: #1a1612;
   --bg-solid:      #0f0e0d;
   --card:          #1e1a16;
+  --card-hi:       #241f1a;
   --border:        transparent;
   --border2:       rgba(255,255,255,0.06);
   --cyan:          #c9956a;

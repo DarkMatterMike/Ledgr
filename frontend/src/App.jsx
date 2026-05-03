@@ -96,7 +96,7 @@ function useIsMobile() {
 
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
-      background: var(--card) !important;
+      background: linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%) !important;
       border: none !important;
       border-radius: 12px !important;
       position: relative;
@@ -206,11 +206,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"var(--card)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -219,7 +219,7 @@ const S = {
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" };
     if (variant==="amber")   return { ...base, background:"var(--amber-dim)", color:"var(--amber)", borderColor:"rgba(201,149,106,0.3)" };
-    return { ...base, background:"transparent", color:"var(--t2)", borderColor:"transparent" };
+    return { ...base, background:"var(--surface)", color:"var(--t2)" };
   },
   input:        { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
   select:       { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
@@ -230,7 +230,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"var(--surface)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
@@ -2018,6 +2018,7 @@ function applyTheme(theme) {
     ["--bg",      theme.bg],
     ["--surface", theme.surface],
     ["--card",    theme.card],
+    ["--card-hi", theme.cardHi || null],
     ["--border",  "transparent"],
     ["--border2", "rgba(255,255,255,0.06)"],
     ["--cyan",    theme.accent],
@@ -2031,8 +2032,16 @@ function applyTheme(theme) {
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
 
   // card-glass always matches --card (solid, not transparent)
-  root.style.setProperty("--card-glass",  theme.card || "#161412");
-  root.style.setProperty("--card-border", "rgba(255,255,255,0.07)");
+  root.style.setProperty("--card-glass",  theme.card || "#1e1a16");
+  root.style.setProperty("--card-border", "transparent");
+  // card-hi: slightly lighter than card for gradient texture
+  if (theme.card) {
+    // Bump each hex channel up slightly for the highlight stop
+    const cardHi = theme.cardHi || theme.card.replace(/^#/, '').replace(/../g, h =>
+      Math.min(255, parseInt(h,16)+8).toString(16).padStart(2,'0').replace(/^#/,'')
+    );
+    root.style.setProperty("--card-hi", '#' + cardHi.replace('#',''));
+  }
 
   // surface-solid and bg-solid for elements that must be opaque
   root.style.setProperty("--surface-solid", theme.surface || "#161412");

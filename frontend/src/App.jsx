@@ -97,7 +97,7 @@ function useIsMobile() {
 
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
-      background: linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%) !important;
+      background: linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%) !important;
       border: none !important;
       border-radius: 12px !important;
       position: relative;
@@ -196,7 +196,7 @@ function useIsMobile() {
 
     /* Transaction list gradient fade */
     .ledgr-txn-gradient {
-      background: linear-gradient(135deg,
+      background: linear-gradient(var(--grad-angle, 315deg),
         var(--card, #181511) 0%,
         var(--card-hi, #1e1b17) 100%
       );
@@ -204,7 +204,7 @@ function useIsMobile() {
     }
     /* Budget list gradient */
     .ledgr-budget-gradient {
-      background: linear-gradient(135deg,
+      background: linear-gradient(var(--grad-angle, 315deg),
         var(--card, #181511) 0%,
         var(--card-hi, #1e1b17) 100%
       );
@@ -244,11 +244,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -268,7 +268,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
@@ -1772,17 +1772,26 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       <SettingsSection title="Appearance">
         {(()=>{
           const PRESETS = [
-            { name:"Obsidian",    bg:"#0f0e0d", surface:"#161412", card:"#161412", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
-            { name:"Midnight",    bg:"#09090f", surface:"#111120", card:"#18181e", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)", t3:"rgba(232,232,255,0.3)" },
-            { name:"Ledgr Dark",  bg:"#060a0f", surface:"#0d1520", card:"#111a28", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)", t3:"rgba(218,234,248,0.3)" },
-            { name:"Deep Green",  bg:"#050f08", surface:"#0a1c0e", card:"#0e2414", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#4ade80", t1:"#d4f0df", t2:"rgba(212,240,223,0.5)", t3:"rgba(212,240,223,0.3)" },
-            { name:"Ember",       bg:"#100600", surface:"#1c0e00", card:"#241400", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#fb923c", t1:"#f5e4d0", t2:"rgba(245,228,208,0.5)", t3:"rgba(245,228,208,0.3)" },
-            { name:"Rose",        bg:"#0f0608", surface:"#1c0c12", card:"#241018", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#f472b6", t1:"#f5d8e8", t2:"rgba(245,216,232,0.5)", t3:"rgba(245,216,232,0.3)" },
-            { name:"Slate",       bg:"#080c10", surface:"#101820", card:"#16222c", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#60a5fa", t1:"#dce8f8", t2:"rgba(220,232,248,0.5)", t3:"rgba(220,232,248,0.3)" },
-            { name:"Ocean",       bg:"#020c14", surface:"#041a2a", card:"#062238", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#38bdf8", t1:"#d8f0ff", t2:"rgba(216,240,255,0.5)", t3:"rgba(216,240,255,0.3)" },
-            { name:"Crimson",     bg:"#0f0206", surface:"#1a060c", card:"#220a12", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#f87171", t1:"#fde8e8", t2:"rgba(253,232,232,0.5)", t3:"rgba(253,232,232,0.3)" },
-            { name:"Dusk",        bg:"#090610", surface:"#100e1c", card:"#161428", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#f59e0b", t1:"#f0e8ff", t2:"rgba(240,232,255,0.5)", t3:"rgba(240,232,255,0.3)" },
-            { name:"Arctic",      bg:"#06101a", surface:"#0e1e2e", card:"#142640", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#67e8f9", t1:"#e0f8ff", t2:"rgba(224,248,255,0.5)", t3:"rgba(224,248,255,0.3)" },
+            { name:"Obsidian",    bg:"#0f0e0d", surface:"#161412", card:"#161412", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
+            { name:"Midnight",    bg:"#09090f", surface:"#111120", card:"#18181e", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)",  t3:"rgba(232,232,255,0.3)" },
+            { name:"Ledgr Dark",  bg:"#060a0f", surface:"#0d1520", card:"#111a28", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)",  t3:"rgba(218,234,248,0.3)" },
+            { name:"Deep Green",  bg:"#050f08", surface:"#0a1c0e", card:"#0e2414", accent:"#4ade80", t1:"#d4f0df", t2:"rgba(212,240,223,0.5)",  t3:"rgba(212,240,223,0.3)" },
+            { name:"Ember",       bg:"#100600", surface:"#1c0e00", card:"#241400", accent:"#fb923c", t1:"#f5e4d0", t2:"rgba(245,228,208,0.5)",  t3:"rgba(245,228,208,0.3)" },
+            { name:"Rose",        bg:"#0f0608", surface:"#1c0c12", card:"#241018", accent:"#f472b6", t1:"#f5d8e8", t2:"rgba(245,216,232,0.5)",  t3:"rgba(245,216,232,0.3)" },
+            { name:"Slate",       bg:"#080c10", surface:"#101820", card:"#16222c", accent:"#60a5fa", t1:"#dce8f8", t2:"rgba(220,232,248,0.5)",  t3:"rgba(220,232,248,0.3)" },
+            { name:"Ocean",       bg:"#020c14", surface:"#041a2a", card:"#062238", accent:"#38bdf8", t1:"#d8f0ff", t2:"rgba(216,240,255,0.5)",  t3:"rgba(216,240,255,0.3)" },
+            { name:"Crimson",     bg:"#0f0206", surface:"#1a060c", card:"#220a12", accent:"#f87171", t1:"#fde8e8", t2:"rgba(253,232,232,0.5)",  t3:"rgba(253,232,232,0.3)" },
+            { name:"Dusk",        bg:"#090610", surface:"#100e1c", card:"#161428", accent:"#f59e0b", t1:"#f0e8ff", t2:"rgba(240,232,255,0.5)",  t3:"rgba(240,232,255,0.3)" },
+            { name:"Arctic",      bg:"#06101a", surface:"#0e1e2e", card:"#142640", accent:"#67e8f9", t1:"#e0f8ff", t2:"rgba(224,248,255,0.5)",  t3:"rgba(224,248,255,0.3)" },
+            { name:"Graphite",    bg:"#0a0a0a", surface:"#141414", card:"#1c1c1c", accent:"#e2e8f0", t1:"#f1f5f9", t2:"rgba(241,245,249,0.5)",  t3:"rgba(241,245,249,0.28)" },
+            { name:"Copper",      bg:"#0c0806", surface:"#1a1008", card:"#221608", accent:"#d97706", t1:"#fef3c7", t2:"rgba(254,243,199,0.5)",  t3:"rgba(254,243,199,0.3)" },
+            { name:"Forest",      bg:"#050a06", surface:"#0a1a0c", card:"#0d2410", accent:"#86efac", t1:"#dcfce7", t2:"rgba(220,252,231,0.5)",  t3:"rgba(220,252,231,0.3)" },
+            { name:"Violet",      bg:"#08060f", surface:"#120e20", card:"#1a1430", accent:"#c084fc", t1:"#f3e8ff", t2:"rgba(243,232,255,0.5)",  t3:"rgba(243,232,255,0.3)" },
+            { name:"Gold",        bg:"#0e0b00", surface:"#1c1600", card:"#261e00", accent:"#fbbf24", t1:"#fffbeb", t2:"rgba(255,251,235,0.5)",  t3:"rgba(255,251,235,0.28)" },
+            { name:"Steel",       bg:"#070a0e", surface:"#0f151e", card:"#16202e", accent:"#94a3b8", t1:"#e2e8f0", t2:"rgba(226,232,240,0.5)",  t3:"rgba(226,232,240,0.28)" },
+            { name:"Teal",        bg:"#040e0e", surface:"#081c1c", card:"#0c2626", accent:"#2dd4bf", t1:"#ccfbf1", t2:"rgba(204,251,241,0.5)",  t3:"rgba(204,251,241,0.3)" },
+            { name:"Sakura",      bg:"#100810", surface:"#1e0e1e", card:"#2a1228", accent:"#fb7185", t1:"#ffe4e6", t2:"rgba(255,228,230,0.5)",  t3:"rgba(255,228,230,0.3)" },
+            { name:"Noir",        bg:"#050505", surface:"#0f0f0f", card:"#181818", accent:"#facc15", t1:"#fafafa", t2:"rgba(250,250,250,0.45)", t3:"rgba(250,250,250,0.25)" },
           ];
           const FONTS = [
             { label:"Syne (default)",      value:"'Syne', sans-serif" },
@@ -1804,6 +1813,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           const defaults = PRESETS[0];
           const current = { ...defaults, fontDisp:"'Syne', sans-serif", ...(theme||{}) };
           const gradSteps = current.gradSteps ?? 6;
+          const gradAngle = current.gradAngle ?? 315;
 
           function patch(k, v) {
             const next = { ...current, [k]: v };
@@ -1811,15 +1821,18 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           }
 
           function patchGradSteps(steps) {
-            // Derive card-hi from card + steps
             const hex2rgb = h => { const v=h.replace('#',''); return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16)]; };
             const rgb2hex = ([r,g,b]) => '#'+[r,g,b].map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,'0')).join('');
             const base = current.card || '#181511';
             const [r,g,b] = hex2rgb(base);
             const hi = rgb2hex([r+steps, g+steps, b+steps]);
-            const root = document.documentElement;
-            root.style.setProperty('--card-hi', hi);
+            document.documentElement.style.setProperty('--card-hi', hi);
             patch('gradSteps', steps);
+          }
+
+          function patchGradAngle(angle) {
+            document.documentElement.style.setProperty('--grad-angle', angle + 'deg');
+            patch('gradAngle', angle);
           }
 
           function applyPreset(preset) {
@@ -1972,7 +1985,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               {/* Card gradient intensity */}
               <div>
                 <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:10}}>Card Gradient</div>
-                <div style={{display:"flex",alignItems:"center",gap:14}}>
+                <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
                   <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>None</span>
                   <input type="range" min={0} max={30} step={1} value={gradSteps}
                     onChange={e=>patchGradSteps(Number(e.target.value))}
@@ -1980,7 +1993,15 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>Strong</span>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)",width:20,textAlign:"right",flexShrink:0}}>{gradSteps}</span>
                 </div>
-                <div style={{marginTop:8,height:24,borderRadius:"var(--radius)",background:`linear-gradient(135deg, var(--card) 0%, var(--card-hi) 100%)`,opacity:0.8}}/>
+                <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
+                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0,width:28}}>0°</span>
+                  <input type="range" min={0} max={360} step={15} value={gradAngle}
+                    onChange={e=>patchGradAngle(Number(e.target.value))}
+                    style={{flex:1,accentColor:"var(--cyan)",cursor:"pointer"}}/>
+                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>360°</span>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)",width:32,textAlign:"right",flexShrink:0}}>{gradAngle}°</span>
+                </div>
+                <div style={{height:24,borderRadius:"var(--radius)",background:`linear-gradient(${gradAngle}deg, var(--card) 0%, var(--card-hi) 100%)`,opacity:0.8}}/>
               </div>
 
               {/* Reset */}
@@ -2109,13 +2130,15 @@ function applyTheme(theme) {
   ];
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
 
-  // Derive card-hi: ~20 steps lighter than card base
+  // Derive card-hi: steps lighter than card base
   if (theme.card) {
     const steps = theme.gradSteps ?? 6;
     const cardHi = shift(theme.card, steps);
     root.style.setProperty("--card-hi", cardHi);
     root.style.setProperty("--card-glass", theme.card);
   }
+  // Gradient angle
+  root.style.setProperty("--grad-angle", (theme.gradAngle ?? 315) + "deg");
   root.style.setProperty("--card-border", "transparent");
   root.style.setProperty("--surface-solid", theme.surface || "#161412");
   root.style.setProperty("--bg-solid",      theme.bg      || "#0f0e0d");
@@ -4859,7 +4882,7 @@ function AppInner({ isDemo = false }) {
         {filteredTxns.length===0 ? (
           <div style={{textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</div>
         ) : (
-          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
+          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
             {dates.map((date,di)=>{
               const txns    = grouped[date];
               const dayTotal = txns.reduce((a,t)=>a+t.amount,0);
@@ -5092,7 +5115,7 @@ function AppInner({ isDemo = false }) {
                 const ex = cx + r * Math.cos(a);
                 const ey = cy + r * Math.sin(a);
                 return (
-                  <div style={{ background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                  <div style={{ background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                     <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                     <div style={{ display:"flex", justifyContent:"center" }}>
                       <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5125,7 +5148,7 @@ function AppInner({ isDemo = false }) {
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
-                      <div key={section.key} style={{ background: "linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius: "var(--radius)" }}>
+                      <div key={section.key} style={{ background: "linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius: "var(--radius)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
@@ -5352,7 +5375,7 @@ function AppInner({ isDemo = false }) {
                   const ex = cx + r * Math.cos(a);
                   const ey = cy + r * Math.sin(a);
                   return (
-                    <div style={{ background:"linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                    <div style={{ background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                       <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                       <div style={{ display:"flex", justifyContent:"center" }}>
                         <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5385,7 +5408,7 @@ function AppInner({ isDemo = false }) {
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
-                        <div key={section.key} style={{ background: "linear-gradient(135deg, var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius: "var(--radius)" }}>
+                        <div key={section.key} style={{ background: "linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius: "var(--radius)" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "transparent", borderBottom: "none", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>

@@ -11,11 +11,11 @@ const fmtP = n => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
 const fmtK = n => Math.abs(n) >= 1000 ? (n < 0 ? "-" : "") + "$" + (Math.abs(n) / 1000).toFixed(1) + "k" : fmt(n);
 
 const S = {
-  card:   { background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"var(--radius-lg)", padding:16 },
+  card:   { background:"var(--card)", borderRadius:"var(--radius-lg)", padding:16 },
   label:  { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4, display:"block" },
-  input:  { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)",
+  input:  { background:"var(--surface)", borderRadius:"var(--radius)",
             padding:"9px 12px", fontSize:14, color:"var(--t1)", outline:"none", width:"100%", WebkitAppearance:"none" },
-  select: { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)",
+  select: { background:"var(--surface)", borderRadius:"var(--radius)",
             padding:"10px 12px", fontSize:14, color:"var(--t1)", outline:"none", width:"100%", WebkitAppearance:"none" },
   btn: (v="ghost", sm=false) => {
     const base = { display:"inline-flex", alignItems:"center", justifyContent:"center", gap:6,
@@ -108,7 +108,7 @@ function AccountModal({ initial, onSave, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(4px)",
                   zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-      <div className="obsidian-card" style={{ background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"16px 16px 0 0",
+      <div className="obsidian-card" style={{ background:"var(--card)", borderRadius:"16px 16px 0 0",
                     padding:"24px 20px 36px", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto" }}>
         <div style={{ width:36, height:4, background:"var(--border2)", borderRadius:2, margin:"0 auto 20px" }} />
         <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:800, marginBottom:20 }}>
@@ -154,7 +154,7 @@ function HoldingModal({ accounts, initial, onSave, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(4px)",
                   zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-      <div className="obsidian-card" style={{ background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"16px 16px 0 0",
+      <div className="obsidian-card" style={{ background:"var(--card)", borderRadius:"16px 16px 0 0",
                     padding:"24px 20px 36px", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto" }}>
         <div style={{ width:36, height:4, background:"var(--border2)", borderRadius:2, margin:"0 auto 20px" }} />
         <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:800, marginBottom:20 }}>

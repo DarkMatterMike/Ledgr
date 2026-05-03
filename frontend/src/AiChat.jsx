@@ -22,11 +22,11 @@ const S = {
     return { ...base, background: "transparent", color: "var(--t2)", borderColor: "var(--border2)" };
   },
   input: {
-    background: "var(--surface)", border: "1px solid var(--border2)", borderRadius: "var(--radius)",
+    background: "var(--surface)", borderRadius: "var(--radius)",
     padding: "7px 10px", fontSize: 12, color: "var(--t1)", outline: "none", width: "100%",
   },
   card: {
-    background:"var(--card)", border: "1px solid rgba(255,255,255,0.07)",
+    background:"var(--card)",
     borderRadius: "var(--radius)", padding: "10px 14px",
   },
 };
@@ -345,7 +345,7 @@ export default function AiChat({
                   </div>
                 ))}
               </div>
-              <div style={{ background:"var(--card)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "var(--radius)", padding: "12px 14px", fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
+              <div style={{ background:"var(--card)", borderRadius: "var(--radius)", padding: "12px 14px", fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
                 <span style={{ color: "var(--t2)", fontWeight: 600 }}>What does it cost?</span>{" "}
                 Anthropic offers $5 in free credits when you sign up — enough for thousands of questions. Your key is encrypted on our servers.
               </div>
@@ -427,7 +427,7 @@ export default function AiChat({
             {ChatPanel}
           </div>
           {/* Right: conversation history */}
-          <div style={{ width: 280, flexShrink: 0, background:"var(--card)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ width: 280, flexShrink: 0, background:"var(--card)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {HistoryPanel}
           </div>
         </div>

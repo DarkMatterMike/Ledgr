@@ -17,7 +17,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /* ── Shared components ────────────────────────────────────────────── */
 function Card({ children, style }) {
-  return <div className="obsidian-card" style={{ background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"var(--radius)", padding:"10px 14px", ...style }}>{children}</div>;
+  return <div className="obsidian-card" style={{ background:"var(--card)", borderRadius:"var(--radius)", padding:"10px 14px", ...style }}>{children}</div>;
 }
 function SectionHead({ title, sub }) {
   return (
@@ -29,7 +29,7 @@ function SectionHead({ title, sub }) {
 }
 function StatCard({ label, value, sub, subColor, accent }) {
   return (
-    <div style={{ background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"var(--radius)", padding:"14px 16px", borderTop:`3px solid ${accent||"var(--border)"}` }}>
+    <div style={{ background:"var(--card)", borderRadius:"var(--radius)", padding:"14px 16px", borderTop:`3px solid ${accent||"var(--border)"}` }}>
       <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{label}</div>
       <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{value}</div>
       {sub && <div style={{ fontSize:11, color:subColor||"var(--t3)" }}>{sub}</div>}
@@ -252,7 +252,7 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
           <button
             onClick={() => setPickerOpen(p => !p)}
             style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px",
-              background:"var(--surface)", border:"1px solid var(--border2)",
+              background:"var(--surface)",
               borderRadius:20, cursor:"pointer", fontSize:12, color:"var(--t1)", fontWeight:500 }}>
             {selectedLabel}
             <span style={{ fontSize:10, color:"var(--t3)" }}>▾</span>
@@ -261,7 +261,7 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
             <>
               <div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={() => setPickerOpen(false)} />
               <div className="obsidian-card" style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
-                background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
+                background:"var(--card)", borderRadius:12,
                 boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
                 {PACE_RANGES.map(r => (
                   <button key={r.key}
@@ -900,7 +900,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {overCats.slice(0, 5).map(row => (
-              <div key={row.cat.id} style={{ background:"var(--surface)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"var(--radius)", padding:"10px 12px" }}>
+              <div key={row.cat.id} style={{ background:"var(--surface)", borderRadius:"var(--radius)", padding:"10px 12px" }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, marginBottom:4 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
                     <span style={{ width:8, height:8, borderRadius:"50%", background:row.cat.color, flexShrink:0 }} />
@@ -1402,7 +1402,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   placeholder='e.g. "My rent of $2,100 is not a subscription" · "Income is $6,500/mo after tax"'
                   rows={2}
                   style={{
-                    width:"100%", background:"var(--surface)", border:"1px solid var(--border2)",
+                    width:"100%", background:"var(--surface)",
                     borderRadius:"var(--radius)", padding:"8px 10px", fontSize:12,
                     color:"var(--t1)", resize:"vertical", fontFamily:"var(--font-body)",
                     lineHeight:1.5, outline:"none", boxSizing:"border-box",
@@ -1462,7 +1462,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                           <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", marginBottom:2 }}>{ins.title}</div>
                           <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>{ins.body}</div>
                           {ins.suggestion && (
-                            <div className="obsidian-card" style={{ marginTop:8, background:"var(--card)", borderRadius:"var(--radius)", padding:"8px 10px", border:"1px solid rgba(255,255,255,0.07)" }}>
+                            <div className="obsidian-card" style={{ marginTop:8, background:"var(--card)", borderRadius:"var(--radius)", padding:"8px 10px" }}>
                               <div style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
                                 <span style={{ fontSize:11, color:"var(--cyan)", flexShrink:0, marginTop:1 }}>↗</span>
                                 <div style={{ fontSize:11, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{ins.suggestion}</div>
@@ -1585,7 +1585,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                           cursor:"pointer", whiteSpace:"nowrap" }}>✓ Confirm</button>
                       <button onClick={() => setDismissedRecurring(p => new Set([...p, r.name]))}
                         style={{ padding:"4px 8px", borderRadius:"var(--radius)", fontSize:11,
-                          background:"none", color:"var(--t3)", border:"1px solid var(--border2)",
+                          background:"none", color:"var(--t3)",
                           cursor:"pointer", lineHeight:1 }}>✕</button>
                     </div>
                   </div>
@@ -1782,7 +1782,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                       </div>
                     </div>
                     <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                      <button onClick={()=>setGoalForm({...g})} style={{ padding:"5px 10px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:11, cursor:"pointer" }}>Edit</button>
+                      <button onClick={()=>setGoalForm({...g})} style={{ padding:"5px 10px", borderRadius:"var(--radius)", background:"none", color:"var(--t2)", fontSize:11, cursor:"pointer" }}>Edit</button>
                       <button onClick={()=>onDeleteGoal(g.id)} style={{ padding:"5px 8px", borderRadius:"var(--radius)", border:"none", background:"none", color:"var(--t3)", fontSize:14, cursor:"pointer" }}>✕</button>
                     </div>
                   </div>
@@ -1825,20 +1825,20 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <div style={{ display:"flex", flexDirection:"column", gap:10, minWidth:0, width:"100%" }}>
                   <div style={{ minWidth:0 }}>
                     <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Title</div>
-                    <input style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-body)", outline:"none", display:"block" }}
+                    <input style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-body)", outline:"none", display:"block" }}
                       placeholder="e.g. Emergency fund, Vacation, New car" value={goalForm.title||""} onChange={e=>setGoalForm(f=>({...f,title:e.target.value}))} />
                   </div>
 
                   <div style={{ display:"grid", gridTemplateColumns:isMobile?"minmax(0,1fr)":"minmax(0,1fr) minmax(0,1fr)", gap:10 }}>
                     <div style={{ minWidth:0 }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Target amount</div>
-                      <input type="number" min="0" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none", display:"block" }}
+                      <input type="number" min="0" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", fontFamily:"var(--font-mono)", outline:"none", display:"block" }}
                         placeholder="0" value={goalForm.targetAmount||""}
                         onChange={e=>setGoalForm(f=>({...f, targetAmount:parseFloat(e.target.value)||0, periodAmount:"" }))} />
                     </div>
                     <div style={{ minWidth:0 }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Period</div>
-                      <select style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", display:"block" }}
+                      <select style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", borderRadius:"var(--radius)", padding:"8px 10px", fontSize:13, color:"var(--t1)", boxSizing:"border-box", display:"block" }}
                         value={goalForm.period||"month"}
                         onChange={e=>setGoalForm(f=>({...f, period:e.target.value, periodAmount:"" }))}>
                         <option value="week">Weekly</option>
@@ -1853,13 +1853,13 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:10 }}>
                     <div style={{ minWidth:0, overflow:"hidden" }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Start date</div>
-                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"6px 8px", fontSize:11, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block", WebkitAppearance:"none", appearance:"none", overflow:"hidden" }}
+                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", borderRadius:"var(--radius)", padding:"6px 8px", fontSize:11, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block", WebkitAppearance:"none", appearance:"none", overflow:"hidden" }}
                         value={goalForm.startDate||""}
                         onChange={e=>setGoalForm(f=>({...f, startDate:e.target.value, periodAmount:"" }))} />
                     </div>
                     <div style={{ minWidth:0, overflow:"hidden" }}>
                       <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Deadline (optional)</div>
-                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"6px 8px", fontSize:11, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block", WebkitAppearance:"none", appearance:"none", overflow:"hidden" }}
+                      <input type="date" style={{ width:"100%", maxWidth:"100%", minWidth:0, background:"var(--surface)", borderRadius:"var(--radius)", padding:"6px 8px", fontSize:11, color:"var(--t1)", boxSizing:"border-box", outline:"none", display:"block", WebkitAppearance:"none", appearance:"none", overflow:"hidden" }}
                         value={goalForm.deadline||""}
                         onChange={e=>setGoalForm(f=>({...f, deadline:e.target.value, periodAmount:"" }))} />
                     </div>
@@ -1925,7 +1925,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   })()}
 
                   <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:4, flexWrap:"wrap" }}>
-                    <button onClick={()=>setGoalForm(null)} style={{ padding:"8px 14px", borderRadius:"var(--radius)", border:"1px solid var(--border2)", background:"none", color:"var(--t2)", fontSize:13, cursor:"pointer", flex:isMobile?"1":"none" }}>Cancel</button>
+                    <button onClick={()=>setGoalForm(null)} style={{ padding:"8px 14px", borderRadius:"var(--radius)", background:"none", color:"var(--t2)", fontSize:13, cursor:"pointer", flex:isMobile?"1":"none" }}>Cancel</button>
                     <button disabled={!goalForm.title?.trim()||!goalForm.targetAmount}
                       onClick={()=>{
                         // Resolve periodAmount using same backwards enumeration

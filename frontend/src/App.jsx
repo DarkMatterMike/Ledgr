@@ -58,7 +58,6 @@ function useIsMobile() {
     /* ── Sidebar ── */
     .obsidian-nav {
       background: var(--surface);
-      border-right: 1px solid rgba(255,255,255,0.06);
     }
 
     /* ── Nav items ── */
@@ -79,9 +78,10 @@ function useIsMobile() {
     }
     .obsidian-nav-item.active {
       color: var(--t1);
-      background: rgba(var(--accent-rgb, 201,149,106), 0.08);
-      border-right-color: var(--cyan);
+      background: rgba(var(--accent-rgb, 201,149,106), 0.1);
+      border-right: none;
       font-weight: 500;
+      border-radius: 8px;
     }
     .obsidian-nav-dot {
       width: 5px; height: 5px; border-radius: 50%;
@@ -97,7 +97,7 @@ function useIsMobile() {
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
       background: var(--card) !important;
-      border: 1px solid rgba(255,255,255,0.07) !important;
+      border: none !important;
       border-radius: 12px !important;
       position: relative;
     }
@@ -106,13 +106,6 @@ function useIsMobile() {
     /* ── Topbar accent line ── */
     .obsidian-topbar {
       position: relative;
-      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-    }
-    .obsidian-topbar::after {
-      content: ''; position: absolute;
-      bottom: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-      opacity: 0.3;
     }
 
     /* ─── ANIMATIONS ─────────────────────────────── */
@@ -197,8 +190,8 @@ function useIsMobile() {
     @keyframes ledgr-expand { from { opacity:0; max-height:0; } to { opacity:1; max-height:600px; } }
     .ledgr-expand { animation: ledgr-expand 0.22s ease both; overflow: hidden; }
 
-    .ledgr-card-hover { transition: transform 0.2s ease, border-color 0.2s ease; cursor: pointer; }
-    .ledgr-card-hover:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.15) !important; }
+    .ledgr-card-hover { transition: transform 0.2s ease; cursor: pointer; }
+    .ledgr-card-hover:hover { transform: translateY(-2px); }
 
     .ledgr-content::-webkit-scrollbar { width: 3px; }
     .ledgr-content::-webkit-scrollbar-track { background: transparent; }
@@ -213,11 +206,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"var(--card)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"var(--card)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -226,22 +219,22 @@ const S = {
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" };
     if (variant==="amber")   return { ...base, background:"var(--amber-dim)", color:"var(--amber)", borderColor:"rgba(201,149,106,0.3)" };
-    return { ...base, background:"transparent", color:"var(--t2)", borderColor:"var(--border2)" };
+    return { ...base, background:"transparent", color:"var(--t2)", borderColor:"transparent" };
   },
-  input:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
-  select:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
+  input:        { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
+  select:       { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
   field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
   overlay:      { position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(6px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
-  modal:        { background:"var(--surface)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
+  modal:        { background:"var(--surface)", borderRadius:14, padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"var(--surface)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
+  monthBar:     { background:"var(--surface)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
-  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid rgba(255,255,255,0.07)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
-  td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", borderBottom:"1px solid rgba(255,255,255,0.05)", verticalAlign:"middle" },
+  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
+  td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:8, flexWrap:"wrap", marginBottom:10, alignItems:"center" },
 };
 
@@ -293,7 +286,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
       value={String(value)}
       onChange={e => onChange(e.target.value)}
       style={{
-        background:"var(--surface)", border:"1px solid var(--border2)",
+        background:"var(--surface)", border:"none",
         borderRadius:20, cursor:"pointer", outline:"none",
         padding: compact ? "5px 10px" : "8px 14px",
         fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
@@ -674,7 +667,6 @@ function SecurityBadges({ compact = false }) {
     <div style={{
       width: 360, maxWidth: "92vw",
       background: "var(--card)",
-      border: "1px solid var(--border2)",
       borderRadius: "var(--radius-lg)",
       overflow: "hidden",
     }}>
@@ -836,7 +828,7 @@ function AuthGate({ onAuth }) {
       </div>
 
       <div className={shake?"shake":""} style={{
-        background:"var(--card)", border:"1px solid var(--border2)",
+        background:"var(--card)", border:"none",
         borderRadius:"var(--radius-lg)", padding:"32px 28px",
         width:360, maxWidth:"92vw",
         boxShadow:"0 8px 40px #00000060",
@@ -1079,7 +1071,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         {supportOpen && (
           <div style={{position:"fixed",inset:0,background:"#0009",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
             onClick={e=>{ if(e.target===e.currentTarget) setSupportOpen(false); }}>
-            <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",padding:20,width:"100%",maxWidth:400,display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",padding:20,width:"100%",maxWidth:400,display:"flex",flexDirection:"column",gap:12}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div style={{fontSize:14,fontWeight:700,color:"var(--t1)"}}>Contact Support</div>
                 <button onClick={()=>setSupportOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:18,lineHeight:1,padding:"0 2px"}}>✕</button>
@@ -1230,7 +1222,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
             <>
               <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
               <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
-                border:"1px solid var(--border2)",borderRadius:"var(--radius)",
+                border:"none",borderRadius:"var(--radius)",
                 boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
               <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
@@ -1352,7 +1344,7 @@ function Paywall({ onUpgrade }) {
       </div>
 
       <div style={{
-        background:"var(--card)", border:"1px solid var(--border2)",
+        background:"var(--card)", border:"none",
         borderRadius:"var(--radius-lg)", padding:"28px 32px",
         width:"100%", maxWidth:320, marginBottom:24,
         boxShadow:"0 4px 24px #00000040",
@@ -1726,7 +1718,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 { label:"Net worth target", value: userProfile?.targets?.netWorthTarget ? `$${(userProfile.targets.netWorthTarget).toLocaleString()}` : "Not set" },
                 { label:"Retirement target", value: userProfile?.targets?.retirementTargetAmount ? `$${(userProfile.targets.retirementTargetAmount).toLocaleString()}` : "Not set" },
               ].map(({ label, value }) => (
-                <div key={label} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"10px 12px" }}>
+                <div key={label} style={{ background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"10px 12px" }}>
                   <div style={{ fontSize:11, color:"var(--t3)", marginBottom:3 }}>{label}</div>
                   <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", fontFamily:"var(--font-mono)" }}>{value}</div>
                 </div>
@@ -1860,7 +1852,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   {/* Preview + remove */}
                   {current.bgImage && (
                     <>
-                      <div style={{width:60,height:36,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border2)",flexShrink:0}}>
+                      <div style={{width:60,height:36,borderRadius:"var(--radius)",overflow:"hidden",border:"none",flexShrink:0}}>
                         <img src={current.bgImage} alt="bg preview" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                       </div>
                       <button
@@ -1902,7 +1894,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     );
                   })}
                 </div>
-                <div style={{marginTop:8,padding:"8px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"1px solid var(--border)"}}>
+                <div style={{marginTop:8,padding:"8px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"none"}}>
                   <span style={{fontFamily:current.fontDisp||"'Syne', sans-serif",fontSize:18,fontWeight:700,color:"var(--t1)"}}>Dashboard</span>
                   <span style={{fontSize:11,color:"var(--t3)",marginLeft:12}}>preview</span>
                 </div>
@@ -1915,7 +1907,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   {VARS.map(({key,label})=>(
                     <div key={key} style={{display:"flex",flexDirection:"column",gap:4}}>
                       <div style={{fontSize:10,color:"var(--t2)",fontFamily:"var(--font-body)",letterSpacing:"0.3px"}}>{label}</div>
-                      <div style={{display:"flex",alignItems:"stretch",height:30,background:"var(--surface)",border:"1px solid var(--border2)",borderRadius:"var(--radius)",overflow:"hidden"}}>
+                      <div style={{display:"flex",alignItems:"stretch",height:30,background:"var(--surface)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
                         <input type="color" value={current[key]||defaults[key]}
                           onChange={e=>patch(key,e.target.value)}
                           style={{width:30,height:"100%",border:"none",borderRight:"1px solid var(--border2)",cursor:"pointer",padding:0,background:"none",flexShrink:0,display:"block"}}/>
@@ -1968,7 +1960,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               style={{ fontSize:13, color:"var(--t2)", textDecoration:"none",
                 display:"flex", alignItems:"center", justifyContent:"space-between",
                 padding:"10px 12px", background:"var(--surface)", cursor:"pointer",
-                borderRadius:"var(--radius)", border:"1px solid var(--border)",
+                borderRadius:"var(--radius)", border:"none",
                 width:"100%", textAlign:"left" }}>
               {label} <span style={{ color:"var(--t3)" }}>←</span>
             </button>
@@ -2026,8 +2018,8 @@ function applyTheme(theme) {
     ["--bg",      theme.bg],
     ["--surface", theme.surface],
     ["--card",    theme.card],
-    ["--border",  theme.border  || "rgba(255,255,255,0.07)"],
-    ["--border2", theme.border2 || "rgba(255,255,255,0.1)"],
+    ["--border",  "transparent"],
+    ["--border2", "rgba(255,255,255,0.06)"],
     ["--cyan",    theme.accent],
     ["--cyan-dim",theme.accent ? theme.accent + "20" : null],
     ["--amber",   theme.accent],
@@ -2067,7 +2059,15 @@ function applyTheme(theme) {
     document.documentElement.classList.add("ledgr-has-bgimage");
   } else {
     document.body.style.backgroundImage = "";
-    if (theme.bg) document.body.style.background = theme.bg;
+    if (theme.bg) {
+      const bg = theme.bg;
+      const sf = theme.surface || bg;
+      document.body.style.background = [
+        `radial-gradient(ellipse 80% 60% at 100% 0%, ${sf} 0%, transparent 55%)`,
+        `radial-gradient(ellipse 60% 50% at 0% 100%, ${sf} 0%, transparent 50%)`,
+        bg
+      ].join(', ');
+    }
     document.documentElement.classList.remove("ledgr-has-bgimage");
   }
 }
@@ -2534,7 +2534,7 @@ function InstallPrompt() {
       padding:16,
     }}>
       <div className="ledgr-slide-up" style={{
-        background:"var(--card)", border:"1px solid var(--border2)",
+        background:"var(--card)", border:"none",
         borderRadius:"var(--radius-lg)", padding:"24px 22px",
         width:"100%", maxWidth:440, maxHeight:"85vh", overflowY:"auto",
       }}>
@@ -3931,7 +3931,7 @@ function AppInner({ isDemo = false }) {
             {label:"Remaining",value:fmt(drillCat.limit-(spentByCat[drillCat.id]||0)),color:(spentByCat[drillCat.id]||0)<=drillCat.limit?"var(--green)":"var(--red)"},
             {label:"Transactions",value:catTxns.length,color:"var(--t1)"},
           ].map(s=>(
-            <div key={s.label} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
+            <div key={s.label} style={{background:"var(--surface)",border:"none",borderRadius:"var(--radius)",padding:"10px 12px"}}>
               <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>{s.label}</div>
               <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:600,color:s.color}}>{s.value}</div>
             </div>
@@ -4048,7 +4048,6 @@ function AppInner({ isDemo = false }) {
     <div
       style={{
         background: "var(--card)",
-        border: "1px solid var(--border)",
         borderRadius: "var(--radius-lg)",
         padding: "16px 18px",
       }}
@@ -4262,7 +4261,7 @@ function AppInner({ isDemo = false }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {budgetAnalytics.topOverspent.map((cat) => (
-            <div key={cat.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px" }}>
+            <div key={cat.id} style={{ background: "var(--surface)", borderRadius: "var(--radius)", padding: "12px 12px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
@@ -4487,7 +4486,7 @@ function AppInner({ isDemo = false }) {
           <div style={{display:"flex",flexDirection:"column",gap:0}}>
             {upcoming.map((t,i) => (
               <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
-                <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"1px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
@@ -4511,8 +4510,8 @@ function AppInner({ isDemo = false }) {
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
           <div className="obsidian-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-              <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
-              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
+              <button onClick={prevMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
+              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
               <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:16,color:"var(--t1)",marginLeft:10,whiteSpace:"nowrap"}}>
                 {monthLabel(selectedMonth)}
                 {isCurrentMonth&&<span style={{marginLeft:8,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",fontWeight:400}}>current</span>}
@@ -4531,8 +4530,8 @@ function AppInner({ isDemo = false }) {
       {isMobile && (
         <div className="obsidian-card" style={{...S.card,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
-            <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
+            <button onClick={prevMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
+            <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
             <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",marginLeft:6}}>
               {monthLabel(selectedMonth)}
               {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
@@ -4639,7 +4638,7 @@ function AppInner({ isDemo = false }) {
                   const removeCandidate = (p && po) ? pickRemove(p, po) : p;
                   const removeLabel = removeCandidate?.pending ? "pending" : isPreauth(removeCandidate) ? "preauth" : "earlier";
                   return (
-                    <div key={p.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
+                    <div key={p.id} style={{background:"var(--card)",border:"none",borderRadius:"var(--radius)",padding:"12px 14px"}}>
                       {/* Pending row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                         <div style={{flex:1,minWidth:0}}>
@@ -4741,7 +4740,7 @@ function AppInner({ isDemo = false }) {
         {filteredTxns.length===0 ? (
           <div style={{textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</div>
         ) : (
-          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:"var(--radius)",overflow:"hidden"}}>
+          <div style={{background:"var(--card)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
             {dates.map((date,di)=>{
               const txns    = grouped[date];
               const dayTotal = txns.reduce((a,t)=>a+t.amount,0);
@@ -4974,7 +4973,7 @@ function AppInner({ isDemo = false }) {
                 const ex = cx + r * Math.cos(a);
                 const ey = cy + r * Math.sin(a);
                 return (
-                  <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                  <div style={{ background:"var(--card)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                     <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                     <div style={{ display:"flex", justifyContent:"center" }}>
                       <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5007,7 +5006,7 @@ function AppInner({ isDemo = false }) {
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
-                      <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+                      <div key={section.key} style={{ background: "var(--card)", borderRadius: "var(--radius)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
@@ -5087,7 +5086,7 @@ function AppInner({ isDemo = false }) {
                                     {budgetKebabId===cat.id && (
                                       <>
                                         <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
-                                        <div style={{ position:"absolute", right:0, top:"100%", zIndex:40, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", boxShadow:"0 4px 16px #00000055", minWidth:160, overflow:"hidden" }}>
+                                        <div style={{ position:"absolute", right:0, top:"100%", zIndex:40, background:"var(--card)", border:"none", borderRadius:"var(--radius)", boxShadow:"0 4px 16px #00000055", minWidth:160, overflow:"hidden" }}>
                                           <button onClick={()=>{ toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display:"block", width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:"var(--t1)", borderBottom:"1px solid var(--border)" }}>{complete?"✓ Unmark Complete":"✓ Mark Complete"}</button>
                                           <button onClick={(e)=>{ e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display:"block", width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:"var(--t1)", borderBottom:"1px solid var(--border)" }}>Edit Category</button>
                                           <button onClick={(e)=>{ e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display:"block", width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:"var(--red)" }}>Delete</button>
@@ -5112,7 +5111,7 @@ function AppInner({ isDemo = false }) {
                                   <div className="ledgr-expand" style={{ gridColumn: "1 / -1", margin: "0 -2px", padding: "10px 14px", background: "var(--bg)", borderRadius: "var(--radius)", borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
 
                                     {/* Summary header — spent / limit */}
-                                    <div style={{ marginBottom: 12, padding: "10px 12px", background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
+                                    <div style={{ marginBottom: 12, padding: "10px 12px", background: "var(--surface)", borderRadius: "var(--radius)" }}>
                                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                                         <span style={{ fontSize: 12, color: "var(--t3)" }}>
                                           {complete && <span style={{ color:"var(--t3)", fontWeight:600, marginRight:4 }}>✓ Complete ·</span>}
@@ -5136,7 +5135,7 @@ function AppInner({ isDemo = false }) {
                                     ) : (
                                       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
                                         {monthTxns.filter(t => t.categoryId === cat.id && t.amount < 0).sort((a,b)=>b.date.localeCompare(a.date)).map((t) => (
-                                          <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
+                                          <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, alignItems: "center", background: "var(--surface)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
                                             <div style={{ minWidth: 0 }}>
                                               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                               <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 1 }}>{t.date}</div>
@@ -5179,7 +5178,7 @@ function AppInner({ isDemo = false }) {
                                               <div style={{ fontSize: 12, color: "var(--t3)" }}>No matching transactions found.</div>
                                             )}
                                             {candidates.map(t => (
-                                              <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
+                                              <div key={t.id} style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, alignItems: "center", background: "var(--surface)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
                                                 <div style={{ minWidth: 0 }}>
                                                   <div style={{ fontSize: 12, fontWeight: 500, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                                   <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 1 }}>
@@ -5234,7 +5233,7 @@ function AppInner({ isDemo = false }) {
                   const ex = cx + r * Math.cos(a);
                   const ey = cy + r * Math.sin(a);
                   return (
-                    <div style={{ background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                    <div style={{ background:"var(--card)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                       <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                       <div style={{ display:"flex", justifyContent:"center" }}>
                         <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5267,7 +5266,7 @@ function AppInner({ isDemo = false }) {
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
-                        <div key={section.key} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+                        <div key={section.key} style={{ background: "var(--card)", borderRadius: "var(--radius)" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
@@ -5316,7 +5315,7 @@ function AppInner({ isDemo = false }) {
                                       {budgetKebabId === cat.id && (
                                         <>
                                           <div style={{position:"fixed",inset:0,zIndex:39}} onClick={()=>setBudgetKebabId(null)}/>
-                                          <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", border: "1px solid var(--border2)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
+                                          <div style={{ position: "absolute", right: 0, top: "100%", zIndex: 40, background: "var(--card)", borderRadius: "var(--radius)", boxShadow: "0 4px 16px #00000055", minWidth: 160, overflow: "hidden" }}>
                                             <button onClick={() => { toggleCatComplete(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>{complete ? "✓ Unmark Complete" : "✓ Mark Complete"}</button>
                                             <button onClick={(e) => { e.stopPropagation(); openEditCat(cat); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--t1)", borderBottom: "1px solid var(--border)" }}>Edit Category</button>
                                             <button onClick={(e) => { e.stopPropagation(); deleteCat(cat.id); setBudgetKebabId(null); }} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--red)" }}>Delete</button>
@@ -5362,7 +5361,7 @@ function AppInner({ isDemo = false }) {
                       ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "70vh", overflowY: "auto", paddingRight: 2 }}>
                           {budgetCatTxns.map((t) => (
-                            <div key={t.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "start" }}>
+                            <div key={t.id} style={{ background: "var(--surface)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "start" }}>
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name || t.merchant}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{t.date}</div>
@@ -5378,7 +5377,7 @@ function AppInner({ isDemo = false }) {
                       )}
                     </>
                   ) : (
-                    <div style={{border:"1px dashed var(--border2)",borderRadius:"var(--radius)",padding:24,color:"var(--t3)",textAlign:"center",fontSize:13}}>Click a budget category to view its transactions here.</div>
+                    <div style={{borderRadius:"var(--radius)",padding:24,color:"var(--t3)",textAlign:"center",fontSize:13}}>Click a budget category to view its transactions here.</div>
                   )}
                 </div>
               </div>
@@ -5445,7 +5444,7 @@ function AppInner({ isDemo = false }) {
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 7px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 7px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
                           <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
@@ -5584,7 +5583,7 @@ function AppInner({ isDemo = false }) {
         <div style={{
           display:"flex", alignItems:"center", gap:8,
           padding:"7px 12px",
-          background:"var(--card)", border:"1px solid var(--border)",
+          background:"var(--card)", border:"none",
           borderRadius:"var(--radius)",
           borderLeft:`2px solid ${rule.enabled ? (rule.typeOverride ? "var(--amber)" : cat?.color || "var(--cyan)") : "var(--border2)"}`,
           opacity: rule.enabled ? 1 : 0.45,
@@ -5600,8 +5599,8 @@ function AppInner({ isDemo = false }) {
           {/* AI badge */}
           {isAi && <span style={{fontSize:9,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"1px 5px",borderRadius:4,flexShrink:0}}>AI</span>}
           {/* Actions */}
-          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-          <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+          <button style={{background:"none",border:"none",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
+          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
           <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
         </div>
       );
@@ -5781,7 +5780,6 @@ function AppInner({ isDemo = false }) {
             onClick={prevCalMonth}
             style={{
               background: "none",
-              border: "1px solid var(--border2)",
               borderRadius: "var(--radius)",
               color: "var(--t2)",
               cursor: "pointer",
@@ -5800,7 +5798,6 @@ function AppInner({ isDemo = false }) {
             onClick={nextCalMonth}
             style={{
               background: "none",
-              border: "1px solid var(--border2)",
               borderRadius: "var(--radius)",
               color: "var(--t2)",
               cursor: "pointer",
@@ -5956,7 +5953,7 @@ function AppInner({ isDemo = false }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {acctEntries.slice(0, 3).map((acct) => (
                   <button key={acct.id} type="button" onClick={() => setCalendarAcctPopup(acct)}
-                    style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                    style={{ background: "var(--surface)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                       <div style={{ fontSize: 11, color: "var(--t3)" }}>{acct.count} charges</div>
@@ -5976,7 +5973,7 @@ function AppInner({ isDemo = false }) {
                 {firstEntries.length > 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {firstEntries.map(acct => (
-                      <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                      <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                           <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
@@ -5999,7 +5996,7 @@ function AppInner({ isDemo = false }) {
                 {secondEntries.length > 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {secondEntries.map(acct => (
-                      <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                      <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                           <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
@@ -6042,7 +6039,6 @@ function AppInner({ isDemo = false }) {
                     }}
                     style={{
                       background: "var(--surface)",
-                      border: "1px solid var(--border)",
                       borderRadius: "var(--radius)",
                       padding: "10px 12px",
                       display: "grid",
@@ -6154,7 +6150,6 @@ function AppInner({ isDemo = false }) {
                           width: 28,
                           height: 28,
                           borderRadius: 8,
-                          border: "1px solid var(--border2)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -6246,7 +6241,6 @@ function AppInner({ isDemo = false }) {
             <div
               style={{
                 background: "var(--card)",
-                border: "1px solid var(--border)",
                 borderRadius: "var(--radius-lg)",
                 overflow: "hidden",
                 minWidth: 0,
@@ -6554,7 +6548,6 @@ function AppInner({ isDemo = false }) {
                               height: 30,
                               borderRadius: 8,
                               background: "var(--surface)",
-                              border: "1px solid var(--border2)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -6626,7 +6619,6 @@ function AppInner({ isDemo = false }) {
             <div
               style={{
                 background: "var(--card)",
-                border: "1px solid var(--border)",
                 borderRadius: "var(--radius-lg)",
                 padding: 16,
               }}
@@ -6649,7 +6641,7 @@ function AppInner({ isDemo = false }) {
               {calendarSplitView === "full" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {acctEntries.slice(0, 4).map((acct) => (
-                    <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                    <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                         <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
@@ -6670,7 +6662,7 @@ function AppInner({ isDemo = false }) {
                     {firstEntries.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {firstEntries.map(acct => (
-                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
                             <div style={{ minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                               <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
@@ -6692,7 +6684,7 @@ function AppInner({ isDemo = false }) {
                     {secondEntries.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {secondEntries.map(acct => (
-                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
                             <div style={{ minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                               <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
@@ -6712,7 +6704,6 @@ function AppInner({ isDemo = false }) {
             <div
               style={{
                 background: "var(--card)",
-                border: "1px solid var(--border)",
                 borderRadius: "var(--radius-lg)",
                 padding: 16,
                 minHeight: 420,
@@ -6851,7 +6842,6 @@ function AppInner({ isDemo = false }) {
                             } : undefined}
                             style={{
                               background: "rgba(255,255,255,0.02)",
-                              border: "1px solid var(--border)",
                               borderRadius: "var(--radius)",
                               padding: "12px 12px",
                               display: "grid",
@@ -6925,7 +6915,6 @@ function AppInner({ isDemo = false }) {
               ) : (
                 <div
                   style={{
-                    border: "1px dashed var(--border2)",
                     borderRadius: "var(--radius)",
                     padding: 24,
                     color: "var(--t3)",
@@ -6963,7 +6952,7 @@ function AppInner({ isDemo = false }) {
                   const freq=t.recurringFreq||"monthly";
                   const freqLabel=freq==="biweekly"?"Bi-weekly":freq==="weekly"?"Weekly":freq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
                   return (
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat?.color||"var(--cyan)"}`}}>
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",background:"var(--surface)",border:"none",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat?.color||"var(--cyan)"}`}}>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                         <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{freqLabel}{cat&&<span style={{color:cat.color}}> · {cat.name}</span>}</div>
@@ -7001,7 +6990,7 @@ function AppInner({ isDemo = false }) {
         }}>Save</button>
       </>}>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        <div style={{padding:"10px 14px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:"var(--radius)",fontSize:12,color:"var(--t3)"}}>
+        <div style={{padding:"10px 14px",background:"var(--surface)",border:"none",borderRadius:"var(--radius)",fontSize:12,color:"var(--t3)"}}>
           Original: <span style={{color:"var(--t1)",fontWeight:500}}>{editTarget.merchant}</span>
         </div>
         <div style={S.field}>
@@ -7408,7 +7397,7 @@ function AppInner({ isDemo = false }) {
                 {notifOpen && (
                   <>
                     <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
-                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
+                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
                       <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                         <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
                         {visibleNotifs.length > 0 && (
@@ -7513,7 +7502,7 @@ function AppInner({ isDemo = false }) {
                 {notifOpen && (
                   <>
                     <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
-                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
+                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
                       <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                         <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
                         {visibleNotifs.length > 0 && (
@@ -7588,14 +7577,14 @@ function AppInner({ isDemo = false }) {
       {catSuggestions && (
         <div style={{position:"fixed",inset:0,background:"#0009",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
           onClick={e=>{ if(e.target===e.currentTarget) setCatSuggestions(null); }}>
-          <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",width:"100%",maxWidth:580,maxHeight:"85vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",width:"100%",maxWidth:580,maxHeight:"85vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style={{padding:"20px 20px 14px",borderBottom:"1px solid var(--border)"}}>
               <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:4}}>✦ Suggested Categories</div>
               <div style={{fontSize:12,color:"var(--t3)"}}>AI analyzed your transactions and suggested these categories. Set a monthly budget limit for each, then confirm to create them.</div>
             </div>
             <div style={{overflowY:"auto",padding:"14px 20px",flex:1,display:"flex",flexDirection:"column",gap:8}}>
               {catSuggestions.map((s, i) => (
-                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"1px solid var(--border)",borderLeft:`3px solid ${s.color||"var(--cyan)"}`}}>
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"none",borderLeft:`3px solid ${s.color||"var(--cyan)"}`}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:600,color:"var(--t1)"}}>{s.name}</div>
                     <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{(s.transactions||[]).length} transaction{(s.transactions||[]).length!==1?"s":""}</div>
@@ -7647,7 +7636,7 @@ function AppInner({ isDemo = false }) {
 
       {selectedTxns.size > 0 && (
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:210,
-          background:"var(--card)",border:"1px solid var(--border2)",borderRadius:12,
+          background:"var(--card)",border:"none",borderRadius:12,
           padding:"12px 18px",boxShadow:"0 8px 32px #00000090",
           display:"flex",alignItems:"center",gap:10,maxWidth:640,width:"92vw",flexWrap:"wrap"}}>
           <span style={{fontSize:13,fontWeight:700,color:"var(--cyan)",marginRight:4,flexShrink:0}}>
@@ -7686,7 +7675,7 @@ function AppInner({ isDemo = false }) {
 
       {undoAction&&(
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:500,
-          background:"var(--card)",border:"1px solid var(--border2)",borderRadius:12,
+          background:"var(--card)",border:"none",borderRadius:12,
           padding:"10px 12px",boxShadow:"0 8px 32px #00000080",
           display:"flex",alignItems:"center",gap:10,maxWidth:380,width:"90vw"}}>
           <span style={{fontSize:13,color:"var(--t1)",flex:1}}>{undoAction.label}</span>

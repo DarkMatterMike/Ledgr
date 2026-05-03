@@ -1,19 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body, #root { height: 100%; background: #0f0e0d; }
+html, body, #root { height: 100%; }
+
+body {
+  background:
+    radial-gradient(ellipse 80% 60% at 100% 0%, #1e1208 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, #160e06 0%, transparent 50%),
+    #0f0e0d;
+  background-attachment: fixed;
+}
 
 :root {
-  /* Obsidian defaults — warm near-black palette */
   --bg:            #0f0e0d;
-  --surface:       #161412;
-  --surface-solid: #161412;
+  --surface:       #1a1612;
+  --surface-solid: #1a1612;
   --bg-solid:      #0f0e0d;
-  --card:          #161412;
-  --card-glass:    #161412;
-  --card-border:   rgba(255,255,255,0.07);
-  --border:        rgba(255,255,255,0.07);
-  --border2:       rgba(255,255,255,0.1);
+  --card:          #1e1a16;
+  --border:        transparent;
+  --border2:       rgba(255,255,255,0.06);
   --cyan:          #c9956a;
   --cyan-dim:      rgba(201,149,106,0.12);
   --green:         #6db88a;
@@ -35,7 +40,7 @@ html, body, #root { height: 100%; background: #0f0e0d; }
   --grad-a:        #c9956a;
   --grad-b:        #e8ddd0;
   --grad-c:        #6db88a;
-  --glow-color:    rgba(201,149,106,0.1);
+  --glow-color:    rgba(201,149,106,0.08);
   --accent-rgb:    201,149,106;
 }
 
@@ -44,7 +49,7 @@ input, select, textarea, button { font-family: var(--font-body); }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 4px; }
 
 @media (max-width: 768px) {
   input, textarea, select { font-size: 16px !important; }

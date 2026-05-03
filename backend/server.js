@@ -461,7 +461,7 @@ app.get("/api/status-messages/active", async (_req, res) => {
   try {
     const msg = await db.getActiveSystemMessage();
     res.json({ message: msg || null });
-  } catch(e) { handleError(res, e, "Failed to get active message"); }
+  } catch(e) { serverError(res, e, "Failed to get active message"); }
 });
 
 /* ── All routes below require auth ───────────────────────────────── */
@@ -492,7 +492,7 @@ app.get("/api/status-messages", async (req, res) => {
   try {
     const messages = await db.getSystemMessages();
     res.json({ messages });
-  } catch(e) { handleError(res, e, "Failed to get messages"); }
+  } catch(e) { serverError(res, e, "Failed to get messages"); }
 });
 
 app.post("/api/status-messages", async (req, res) => {
@@ -502,7 +502,7 @@ app.post("/api/status-messages", async (req, res) => {
   try {
     const msg = await db.createSystemMessage(text.trim(), req.user.id);
     res.json({ message: msg });
-  } catch(e) { handleError(res, e, "Failed to create message"); }
+  } catch(e) { serverError(res, e, "Failed to create message"); }
 });
 
 app.delete("/api/status-messages/:id", async (req, res) => {
@@ -510,7 +510,7 @@ app.delete("/api/status-messages/:id", async (req, res) => {
   try {
     await db.deleteSystemMessage(parseInt(req.params.id));
     res.json({ ok: true });
-  } catch(e) { handleError(res, e, "Failed to delete message"); }
+  } catch(e) { serverError(res, e, "Failed to delete message"); }
 });
 
 app.patch("/api/status-messages/:id/deactivate", async (req, res) => {
@@ -518,7 +518,7 @@ app.patch("/api/status-messages/:id/deactivate", async (req, res) => {
   try {
     await db.deactivateSystemMessage(parseInt(req.params.id));
     res.json({ ok: true });
-  } catch(e) { handleError(res, e, "Failed to deactivate message"); }
+  } catch(e) { serverError(res, e, "Failed to deactivate message"); }
 });
 
 app.get("/api/auth/me", (req, res) => {

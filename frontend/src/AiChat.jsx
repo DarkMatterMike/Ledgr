@@ -26,7 +26,7 @@ const S = {
     padding: "7px 10px", fontSize: 12, color: "var(--t1)", outline: "none", width: "100%",
   },
   card: {
-    background: "var(--card)", border: "1px solid var(--border)",
+    background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
     borderRadius: "var(--radius)", padding: "10px 14px",
   },
 };
@@ -54,7 +54,7 @@ function ApiKeySection({ hasApiKey, keyChecked, onSave, isMobile }) {
 
   if (!keyChecked) return null;
   return (
-    <div style={{ ...S.card, marginBottom: 12 }}>
+    <div className="aurora-card" style={{ ...S.card, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: editing ? 12 : 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: hasApiKey ? "var(--green)" : "var(--t3)" }} />
@@ -293,7 +293,7 @@ export default function AiChat({
       <ApiKeySection hasApiKey={hasApiKey} keyChecked={keyChecked} onSave={saveApiKey} isMobile={isMobile} />
 
       {/* Chat area */}
-      <div style={{ ...S.card, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }}>
+      <div className="aurora-card" style={{ ...S.card, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }}>
         {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
           {isEmpty && hasApiKey && (
@@ -345,7 +345,7 @@ export default function AiChat({
                   </div>
                 ))}
               </div>
-              <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 14px", fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
+              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "var(--radius)", padding: "12px 14px", fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
                 <span style={{ color: "var(--t2)", fontWeight: 600 }}>What does it cost?</span>{" "}
                 Anthropic offers $5 in free credits when you sign up — enough for thousands of questions. Your key is encrypted on our servers.
               </div>
@@ -409,7 +409,7 @@ export default function AiChat({
           {showHistory && (
             <div style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 200, display: "flex" }}
               onClick={e => { if (e.target === e.currentTarget) setShowHistory(false); }}>
-              <div style={{ width: "80%", maxWidth: 300, background: "var(--card)", height: "100%", padding: "10px 14px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+              <div style={{ width: "80%", maxWidth: 300, background: "rgba(255,255,255,0.03)", height: "100%", padding: "10px 14px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <span style={{ fontWeight: 700, color: "var(--t1)" }}>Conversations</span>
                   <button style={{ ...S.btn("ghost", true), padding: "4px 8px" }} onClick={() => setShowHistory(false)}>✕</button>
@@ -427,7 +427,7 @@ export default function AiChat({
             {ChatPanel}
           </div>
           {/* Right: conversation history */}
-          <div style={{ width: 280, flexShrink: 0, background: "var(--card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ width: 280, flexShrink: 0, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {HistoryPanel}
           </div>
         </div>

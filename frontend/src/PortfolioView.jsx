@@ -11,7 +11,7 @@ const fmtP = n => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
 const fmtK = n => Math.abs(n) >= 1000 ? (n < 0 ? "-" : "") + "$" + (Math.abs(n) / 1000).toFixed(1) + "k" : fmt(n);
 
 const S = {
-  card:   { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:16 },
+  card:   { background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"var(--radius-lg)", padding:16 },
   label:  { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4, display:"block" },
   input:  { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)",
             padding:"9px 12px", fontSize:14, color:"var(--t1)", outline:"none", width:"100%", WebkitAppearance:"none" },
@@ -108,7 +108,7 @@ function AccountModal({ initial, onSave, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(4px)",
                   zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-      <div style={{ background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"16px 16px 0 0",
+      <div className="aurora-card" style={{ background:"rgba(255,255,255,0.03)", border:"1px solid var(--border2)", borderRadius:"16px 16px 0 0",
                     padding:"24px 20px 36px", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto" }}>
         <div style={{ width:36, height:4, background:"var(--border2)", borderRadius:2, margin:"0 auto 20px" }} />
         <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:800, marginBottom:20 }}>
@@ -154,7 +154,7 @@ function HoldingModal({ accounts, initial, onSave, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(4px)",
                   zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-      <div style={{ background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"16px 16px 0 0",
+      <div className="aurora-card" style={{ background:"rgba(255,255,255,0.03)", border:"1px solid var(--border2)", borderRadius:"16px 16px 0 0",
                     padding:"24px 20px 36px", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto" }}>
         <div style={{ width:36, height:4, background:"var(--border2)", borderRadius:2, margin:"0 auto 20px" }} />
         <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:800, marginBottom:20 }}>
@@ -231,7 +231,7 @@ export default function PortfolioView({
   );
 
   const StatCard = ({ label, value, sub, color }) => (
-    <div style={{ ...S.card, padding:"12px 14px" }}>
+    <div className="aurora-card" style={{ ...S.card, padding:"12px 14px" }}>
       <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4 }}>{label}</div>
       <div style={{ fontFamily:"var(--font-mono)", fontSize:isMobile?15:18, fontWeight:700, color:color||"var(--t1)" }}>{value}</div>
       {sub && <div style={{ fontSize:11, color:color||"var(--t2)", marginTop:2 }}>{sub}</div>}
@@ -250,12 +250,12 @@ export default function PortfolioView({
       </div>
 
       {!hasAccounts ? (
-        <div style={S.card}>
+        <div className="aurora-card" style={S.card}>
           <EmptyState icon="📈" title="No investment accounts yet" body="Add your first account manually or sync from Plaid." />
         </div>
       ) : (
         <>
-          <div style={S.card}>
+          <div className="aurora-card" style={S.card}>
             <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>Allocation by Type</div>
             <div style={{ display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
               <DonutChart size={isMobile?110:130}
@@ -273,14 +273,14 @@ export default function PortfolioView({
           </div>
 
           {netWorthSnapshots.length >= 2 && (
-            <div style={S.card}>
+            <div className="aurora-card" style={S.card}>
               <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4 }}>Portfolio Over Time</div>
               <BarChart data={netWorthSnapshots.map(s => ({ label:s.date.slice(5), value:s.value }))} height={100} />
             </div>
           )}
 
           {hasHoldings && (
-            <div style={S.card}>
+            <div className="aurora-card" style={S.card}>
               <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>Top Holdings</div>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {metrics.holdingMetrics.slice(0,5).map(h => (
@@ -331,7 +331,7 @@ export default function PortfolioView({
       </div>
 
       {!hasAccounts ? (
-        <div style={S.card}><EmptyState icon="🏦" title="No accounts yet" body="Add accounts manually or sync from Plaid." /></div>
+        <div className="aurora-card" style={S.card}><EmptyState icon="🏦" title="No accounts yet" body="Add accounts manually or sync from Plaid." /></div>
       ) : investmentAccounts.map(acct => {
         const acctHoldings = holdings.filter(h => h.accountId === acct.id);
         const isExpanded   = expandAcct === acct.id;
@@ -396,13 +396,13 @@ export default function PortfolioView({
         {hasAccounts && <button style={S.btn("primary",true)} onClick={() => setHoldModal("add")}>+ Add Holding</button>}
       </div>
       {!hasAccounts ? (
-        <div style={S.card}><EmptyState icon="📊" title="Add an account first" body="Holdings are linked to investment accounts." /></div>
+        <div className="aurora-card" style={S.card}><EmptyState icon="📊" title="Add an account first" body="Holdings are linked to investment accounts." /></div>
       ) : !hasHoldings ? (
-        <div style={S.card}><EmptyState icon="📊" title="No holdings yet" body="Add individual positions to track performance." /></div>
+        <div className="aurora-card" style={S.card}><EmptyState icon="📊" title="No holdings yet" body="Add individual positions to track performance." /></div>
       ) : isMobile ? (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {metrics.holdingMetrics.map(h => (
-            <div key={h.id} style={S.card}>
+            <div key={h.id} className="aurora-card" style={S.card}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                 <div>
                   <div style={{ fontSize:13, fontWeight:700, color:"var(--cyan)", fontFamily:"var(--font-mono)" }}>{h.ticker}</div>
@@ -429,7 +429,7 @@ export default function PortfolioView({
           ))}
         </div>
       ) : (
-        <div style={{ ...S.card, padding:0, overflow:"hidden" }}>
+        <div className="aurora-card" style={{ ...S.card, padding:0, overflow:"hidden" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead>
               <tr>
@@ -472,7 +472,7 @@ export default function PortfolioView({
   const PerformanceTab = (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
       {!hasAccounts ? (
-        <div style={S.card}><EmptyState icon="📈" title="No data yet" body="Add accounts and holdings to see performance metrics." /></div>
+        <div className="aurora-card" style={S.card}><EmptyState icon="📈" title="No data yet" body="Add accounts and holdings to see performance metrics." /></div>
       ) : (
         <>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -488,7 +488,7 @@ export default function PortfolioView({
             <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:10 }}>
               {[{label:"Best Performer",h:bestHolding,color:"var(--green)"},{label:"Worst Performer",h:worstHolding,color:"var(--red)"}]
                 .map(({ label, h, color }) => h && (
-                  <div key={label} style={S.card}>
+                  <div key={label} className="aurora-card" style={S.card}>
                     <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:10 }}>{label}</div>
                     <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                       <div style={{ width:38, height:38, borderRadius:"var(--radius)", background:"var(--surface)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"var(--cyan)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{h.ticker.slice(0,4)}</div>
@@ -503,7 +503,7 @@ export default function PortfolioView({
           )}
 
           {hasHoldings && (
-            <div style={S.card}>
+            <div className="aurora-card" style={S.card}>
               <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>All Positions</div>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {metrics.holdingMetrics.map(h => (

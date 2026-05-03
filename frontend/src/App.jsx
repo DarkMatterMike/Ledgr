@@ -96,7 +96,7 @@ function useIsMobile() {
 
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
-      background: linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%) !important;
+      background: linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%) !important;
       border: none !important;
       border-radius: 12px !important;
       position: relative;
@@ -206,11 +206,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -230,7 +230,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #221e19) 0%, var(--card, #1e1a16) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #2e2720) 0%, var(--card, #181410) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
@@ -1057,12 +1057,12 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
           </div>
         )}
       </nav>
-      <div style={{padding:"8px 8px",borderTop:"1px solid var(--border)",flexShrink:0,display:"flex",flexDirection:"column",gap:6}}>
-        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+      <div style={{padding:"8px 8px",flexShrink:0,display:"flex",flexDirection:"column",gap:6}}>
+        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12,background:"var(--card)",color:"var(--t2)"}}
           onClick={()=>{ doSync(); onNav(view); }} disabled={syncing}>
           {syncing?"↻ Syncing…":"↻ Sync All"}
         </button>
-        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12}}
+        <button style={{...S.btn("ghost"),width:"100%",justifyContent:"center",fontSize:12,background:"var(--card)",color:"var(--t2)"}}
           onClick={()=>setSupportOpen(true)}>
           💬 Support
         </button>

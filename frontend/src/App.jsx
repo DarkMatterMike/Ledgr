@@ -116,10 +116,38 @@ button {
       cursor: pointer;
     }
     .ledgr-card-hover:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 32px rgba(0,212,255,0.08), 0 2px 8px rgba(0,0,0,0.3);
-      border-color: rgba(0,212,255,0.2) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px var(--glow-color), 0 2px 8px rgba(0,0,0,0.3);
+      border-color: var(--grad-b) !important;
     }
+
+    /* -- Aurora gradient border on cards -- */
+    .ledgr-aurora-card {
+      position: relative;
+    }
+    .ledgr-aurora-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-lg);
+      padding: 1px;
+      background: linear-gradient(135deg, var(--grad-a), var(--grad-b), var(--grad-c));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0.25;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .ledgr-aurora-card:hover::before { opacity: 0.5; }
+
+    /* -- Aurora stat glow accent -- */
+    .ledgr-stat-accent {
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--glow-color);
+    }
+    .ledgr-stat-accent-green { color: var(--green); }
+    .ledgr-stat-accent-red   { color: var(--red);   }
 
     /* -- Stat number count-up shimmer -- */
     @keyframes ledgr-stat-in {
@@ -341,14 +369,14 @@ button {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 12px" },
+  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 12px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 14px" },
-  statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:4 },
-  statValue:    { fontFamily:"var(--font-mono)", fontSize:20, fontWeight:600 },
-  statSub:      { fontSize:11, color:"var(--t2)", marginTop:2 },
+  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"12px 14px", position:"relative", overflow:"hidden" },
+  statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
+  statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
+  statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
   btn: (variant="ghost", sm=false) => {
     const base = { display:"inline-flex", alignItems:"center", gap:5, padding:sm?"3px 8px":"5px 11px", borderRadius:"var(--radius)", fontSize:12, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none", lineHeight:"1.4", whiteSpace:"nowrap" };
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
@@ -360,12 +388,12 @@ const S = {
   select:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
   field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
-  overlay:      { position:"fixed", inset:0, background:"#00000088", backdropFilter:"blur(4px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
+  overlay:      { position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(8px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
   modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"9px 14px", fontSize:12, color:"var(--t1)", boxShadow:"0 8px 32px #00000060" },
-  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"7px 12px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:"10px 16px", fontSize:12, color:"var(--t1)", boxShadow:"0 8px 40px #00000080", backdropFilter:"blur(12px)" },
+  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
@@ -509,7 +537,7 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
         }}
         className="ledgr-drag-handle"
       >
-        ✓
+        ⠿
       </div>
       {children}
     </div>
@@ -823,7 +851,7 @@ function SecurityBadges({ compact = false }) {
         </div>
       </div>
 
-      {/* 2×2 grid with divider lines */}
+      {/* 2✕2 grid with divider lines */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr" }}>
         {items.map((item, i) => (
           <div key={i} style={{
@@ -1092,7 +1120,7 @@ function AuthGate({ onAuth }) {
                 {legalModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </div>
               <button onClick={()=>setLegalModal(null)}
-                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>×</button>
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>✕</button>
             </div>
             <div style={{overflowY:"auto",flex:1,fontSize:13,color:"var(--t2)",lineHeight:1.7}}>
               {legalModal === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
@@ -1160,29 +1188,36 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   }
   return (
     <>
-      <div style={{padding:"12px 14px 10px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontFamily:"var(--font-script)",fontSize:22,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
-          <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
-            ledgr<span style={{color:"var(--cyan)"}}>.</span>
+      <div style={{padding:"16px 16px 12px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{
+            fontFamily:"var(--font-script)",fontSize:24,fontWeight:700,lineHeight:1,marginTop:2,
+            background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",
+            WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
+          }} className="ledgr-logo-pulse">ℓ</span>
+          <div style={{fontFamily:"'Syne', sans-serif",fontSize:15,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
+            ledgr<span style={{
+              background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",
+              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
+            }}>.</span>
           </div>
         </div>
-        <div style={{fontSize:10,color:"var(--t3)",marginTop:3,paddingLeft:1}}>personal finance</div>
+        <div style={{fontSize:10,color:"var(--t3)",marginTop:4,paddingLeft:1,letterSpacing:"0.5px"}}>personal finance</div>
       </div>
-      <nav style={{flex:1,padding:"8px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
+      <nav style={{flex:1,padding:"10px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}
             style={{
-              display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
+              display:"flex",alignItems:"center",gap:10,padding:"8px 10px",
               borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
-              border:`1px solid ${view===n.id?"#00d4ff33":"transparent"}`,
+              border:`1px solid ${view===n.id?"var(--grad-a)33":"transparent"}`,
               background:view===n.id?"var(--cyan-dim)":"transparent",
               color:view===n.id?"var(--cyan)":"var(--t2)",
               width:"100%",textAlign:"left",transition:"all 0.15s",
             }}>
-            <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+            <span style={{fontSize:14,width:18,textAlign:"center",flexShrink:0}}>{n.icon}</span>
             <span>{n.label}</span>
-            {view===n.id&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
+            {view===n.id&&<span style={{marginLeft:"auto",width:5,height:5,borderRadius:"50%",background:"var(--cyan)",display:"inline-block",boxShadow:"0 0 6px var(--cyan)"}}/>}
           </button>
         ))}
         {/* Owner-only nav items */}
@@ -1234,7 +1269,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
             <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",padding:20,width:"100%",maxWidth:400,display:"flex",flexDirection:"column",gap:12}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div style={{fontSize:14,fontWeight:700,color:"var(--t1)"}}>Contact Support</div>
-                <button onClick={()=>setSupportOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:18,lineHeight:1,padding:"0 2px"}}>×</button>
+                <button onClick={()=>setSupportOpen(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:18,lineHeight:1,padding:"0 2px"}}>✕</button>
               </div>
               <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.5}}>
                 Send a message and we'll get back to you via email.
@@ -1420,7 +1455,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
                 value={editingName} onChange={e=>setEditingName(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
               <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
-              <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>×</button>
+              <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
             </div>
           )}
 
@@ -1833,7 +1868,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     value={a.value || ""} onChange={e => setProfileForm(p => {
                       const assets = [...p.manualAssets]; assets[i] = { ...assets[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualAssets: assets };
                     })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>×</button>
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>✕</button>
                 </div>
               ))}
               <button style={{ ...S.btn("ghost",true), width:"100%" }}
@@ -1855,7 +1890,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     value={l.value || ""} onChange={e => setProfileForm(p => {
                       const liabs = [...p.manualLiabilities]; liabs[i] = { ...liabs[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualLiabilities: liabs };
                     })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>×</button>
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>✕</button>
                 </div>
               ))}
               <button style={{ ...S.btn("ghost",true), width:"100%" }}
@@ -1894,6 +1929,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       <SettingsSection title="Appearance">
         {(()=>{
           const PRESETS = [
+            { name:"Aurora",      bg:"#07091a", surface:"#0d1130", card:"#111628", border:"#1c2545", border2:"#263060", accent:"#a78bfa", t1:"#e8eaff", t2:"#7a8fa8", t3:"#3d5070" },
             { name:"Ledgr Dark",  bg:"#06090f", surface:"#0c1220", card:"#101826", border:"#1a2640", border2:"#243452", accent:"#00d4ff", t1:"#e2eaf8", t2:"#7a8fa8", t3:"#3d5070" },
             { name:"Midnight",    bg:"#0a0a0f", surface:"#111120", card:"#181828", border:"#232340", border2:"#2d2d55", accent:"#a78bfa", t1:"#e8e8ff", t2:"#8080b0", t3:"#404070" },
             { name:"Deep Green",  bg:"#020d08", surface:"#071a10", card:"#0c2018", border:"#123022", border2:"#1a4030", accent:"#00e676", t1:"#d8f5e4", t2:"#60a878", t3:"#2a6040" },
@@ -2151,7 +2187,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               {legalDoc === "privacy" ? "Privacy Policy" : "Terms of Service"}
             </div>
             <button onClick={() => setLegalDoc(null)}
-              style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:20, lineHeight:1 }}>×</button>
+              style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:20, lineHeight:1 }}>✕</button>
           </div>
           <div style={{ overflowY:"auto", flex:1, fontSize:13, color:"var(--t2)", lineHeight:1.7 }}>
             {legalDoc === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
@@ -2176,19 +2212,49 @@ function applyTheme(theme) {
   const vars = [
     ["--bg", theme.bg], ["--surface", theme.surface], ["--card", theme.card],
     ["--border", theme.border], ["--border2", theme.border2],
-    ["--cyan", theme.accent], ["--cyan-dim", theme.accent ? theme.accent + "22" : null],
+    ["--cyan", theme.accent], ["--cyan-dim", theme.accent ? theme.accent + "18" : null],
     ["--t1", theme.t1], ["--t2", theme.t2], ["--t3", theme.t3],
   ];
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
-  // Always-opaque versions for elements that must not be transparent (e.g. nav drawer)
-  root.style.setProperty("--surface-solid", theme.surface || "#0c1220");
-  root.style.setProperty("--bg-solid",      theme.bg      || "#06090f");
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
+
+  // Aurora gradient system — derive a 3-stop gradient from the accent color
+  // grad-a = accent (warm/purple end), grad-b = accent, grad-c = complementary cool
+  if (theme.accent) {
+    const a = theme.accent;
+    // Complementary colours for the gradient based on accent hue
+    // We store preset-specific pairs, falling back to cyan/green
+    const gradMap = {
+      "#00d4ff": ["#a78bfa", "#00d4ff", "#00e676"],  // Ledgr Dark
+      "#a78bfa": ["#a78bfa", "#818cf8", "#60a5fa"],  // Midnight
+      "#00e676": ["#00e676", "#22d3ee", "#a78bfa"],  // Deep Green
+      "#fbbf24": ["#fbbf24", "#f97316", "#f87171"],  // Ember
+      "#f472b6": ["#f472b6", "#a78bfa", "#818cf8"],  // Rose
+      "#60a5fa": ["#60a5fa", "#38bdf8", "#34d399"],  // Slate
+      "#e2e8f0": ["#e2e8f0", "#94a3b8", "#64748b"],  // Obsidian
+      "#38bdf8": ["#38bdf8", "#60a5fa", "#34d399"],  // Ocean
+      "#f87171": ["#f87171", "#fb923c", "#fbbf24"],  // Crimson
+      "#39ff14": ["#39ff14", "#00d4ff", "#a78bfa"],  // Neon
+      "#f59e0b": ["#f59e0b", "#f97316", "#a78bfa"],  // Dusk
+      "#67e8f9": ["#67e8f9", "#38bdf8", "#a78bfa"],  // Arctic
+    };
+    const [ga, gb, gc] = gradMap[a] || [a, "#00d4ff", "#00e676"];
+    root.style.setProperty("--grad-a", ga);
+    root.style.setProperty("--grad-b", gb);
+    root.style.setProperty("--grad-c", gc);
+    // Glow uses grad-a at low opacity
+    root.style.setProperty("--glow-color", ga + "18");
+  }
+
+  // Always-opaque versions for solid backgrounds (nav drawer etc.)
+  root.style.setProperty("--surface-solid", theme.surface || "#0d1130");
+  root.style.setProperty("--bg-solid",      theme.bg      || "#07091a");
+
   if (theme.bgImage) {
-    const bg = theme.bg || "#06090f";
+    const bg = theme.bg || "#07091a";
     root.style.setProperty("--bg",      bg + "cc");
-    root.style.setProperty("--surface", (theme.surface || "#0c1220") + "dd");
-    root.style.setProperty("--card",    (theme.card    || "#101826") + "ee");
+    root.style.setProperty("--surface", (theme.surface || "#0d1130") + "dd");
+    root.style.setProperty("--card",    (theme.card    || "#111628") + "ee");
     document.body.style.backgroundImage = "";
     document.body.style.background = "transparent";
     document.documentElement.classList.add("ledgr-has-bgimage");
@@ -2405,7 +2471,7 @@ function AdminPanel() {
                     <div style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:2}}>{user.id.slice(0,8)}…</div>
                   </div>
                   {!editing && user.role !== "owner" && (
-                    <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>×</button>
+                    <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✕</button>
                   )}
                 </div>
 
@@ -2551,7 +2617,7 @@ function AdminPanel() {
                             setEditForm({ subscription_status: user.subscription_status, role: user.role });
                           }}>Edit</button>
                           {user.role !== "owner" && (
-                            <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>×</button>
+                            <button style={S.btn("danger",true)} onClick={() => setConfirm(user.id)}>✕</button>
                           )}
                         </div>
                       )}
@@ -4049,7 +4115,7 @@ function AppInner({ isDemo = false }) {
             <span style={{width:11,height:11,borderRadius:"50%",background:drillCat.color,display:"inline-block",flexShrink:0}}/>
             <div style={{fontSize:17,fontWeight:700,color:"var(--t1)"}}>{drillCat.name}</div>
           </div>
-          <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>×</button>
+          <button onClick={()=>setDrillCat(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12,flexShrink:0}}>
           {[
@@ -4755,7 +4821,7 @@ function AppInner({ isDemo = false }) {
                 setShowReconcile(p=>!p);
               }}
                 style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
-                {showReconcile?"× Close":"Review ›"}
+                {showReconcile?"✕ Close":"Review ›"}
               </button>
             </div>
             {showReconcile&&(
@@ -4859,7 +4925,7 @@ function AppInner({ isDemo = false }) {
             <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)} options={[{value:"all",label:"All Accounts"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:0}} compact/>
             <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}}
               onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
-              {selectedTxns.size > 0 ? `× ${selectedTxns.size}` : "Select All"}
+              {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
             </button>
           </div>
         </div>
@@ -5070,7 +5136,7 @@ function AppInner({ isDemo = false }) {
                       </button>
                       <button style={{ ...S.btn("ghost", true), fontSize:12 }}
                         onClick={() => setLimitSuggestions(p => p.filter(x => x.categoryId !== s.categoryId))}>
-                        ×
+                        ✕
                       </button>
                     </div>
                   </div>
@@ -5207,7 +5273,7 @@ function AppInner({ isDemo = false }) {
                                   {!isMobile && (
                                     <span onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}
                                       className={`ledgr-chevron${budgetExpandedCatId===cat.id?" ledgr-chevron-open":""}`}
-                                      style={{ color:"var(--t3)", fontSize:10, cursor:"pointer", padding:"4px 2px" }}>□</span>
+                                      style={{ color:"var(--t3)", fontSize:10, cursor:"pointer", padding:"4px 2px" }}>▼</span>
                                   )}
                                   <div style={{ position:"relative" }}>
                                     <button onClick={(e)=>{ e.stopPropagation(); setBudgetKebabId(p=>p===cat.id?null:cat.id); }} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16, padding:"4px 4px", lineHeight:1, borderRadius:"var(--radius)" }}>⋯</button>
@@ -5272,7 +5338,7 @@ function AppInner({ isDemo = false }) {
                                             <button
                                               title="Remove from this category"
                                               onClick={() => { updateTxnCat(t.id, ""); showToast("Removed from " + cat.name); }}
-                                              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>×</button>
+                                              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 16, padding: "2px 4px", lineHeight: 1 }}>✕</button>
                                           </div>
                                         ))}
                                       </div>
@@ -5573,7 +5639,7 @@ function AppInner({ isDemo = false }) {
                         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
                           <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 7px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>×</button>
+                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
                       <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
@@ -5729,7 +5795,7 @@ function AppInner({ isDemo = false }) {
           {/* Actions */}
           <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
           <button style={{background:"none",border:"1px solid var(--border2)",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>×</button>
+          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
         </div>
       );
     }
@@ -7082,7 +7148,7 @@ function AppInner({ isDemo = false }) {
                   <div style={S.modalTitle}>{calendarAcctPopup.name}</div>
                   <div style={{fontSize:12,color:"var(--t3)",marginTop:-14}}>{calendarAcctPopup.count} charge{calendarAcctPopup.count!==1?"s":""} · {fmt(calendarAcctPopup.total)} total</div>
                 </div>
-                <button onClick={()=>setCalendarAcctPopup(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>×</button>
+                <button onClick={()=>setCalendarAcctPopup(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {[...calendarAcctPopup.txns].sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
@@ -7569,7 +7635,7 @@ function AppInner({ isDemo = false }) {
                               </div>
                               <button
                                 onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
-                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
                             </div>
                           ))}
                         </div>
@@ -7676,7 +7742,7 @@ function AppInner({ isDemo = false }) {
                               </div>
                               <button
                                 onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
-                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>×</button>
+                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
                             </div>
                           ))}
                         </div>
@@ -7691,12 +7757,20 @@ function AppInner({ isDemo = false }) {
         {/* Desktop body */}
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
-          <aside style={{width:220,flexShrink:0,background:"var(--bg)",borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
+          <aside style={{
+            width:220,flexShrink:0,
+            background:"var(--surface-solid)",
+            borderRight:"1px solid var(--border)",
+            display:"flex",flexDirection:"column",
+            backdropFilter:"blur(20px)",
+          }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
-          {/* Content */}
-          <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">
-            <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
+          {/* Content with Aurora glow blobs */}
+          <div ref={contentRef} style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content">
+            <div className="ledgr-glow-a" style={{zIndex:0,pointerEvents:"none"}}/>
+            <div className="ledgr-glow-b" style={{zIndex:0,pointerEvents:"none"}}/>
+            <div key={view} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
           </div>
         </div>
       </>
@@ -7755,7 +7829,7 @@ function AppInner({ isDemo = false }) {
             <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; ← <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>
           </div>
           <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
-          <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>×</button>
+          <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
         </div>
       )}
 
@@ -7766,7 +7840,7 @@ function AppInner({ isDemo = false }) {
             <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
           </div>
           <button style={{...S.btn("primary",true),background:"var(--amber)",borderColor:"var(--amber)"}} onClick={confirmTypeRule}>Save Rule</button>
-          <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>×</button>
+          <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>✕</button>
         </div>
       )}
 
@@ -7784,7 +7858,7 @@ function AppInner({ isDemo = false }) {
           <CustomSelect value="" onChange={v=>{ if(v) bulkSetType(v); }} options={[{value:"",label:"Set type…"},{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{flex:1,minWidth:120}} compact/>
           <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
           <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
-          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>×</button>
+          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✕</button>
         </div>
       )}
 
@@ -7805,7 +7879,7 @@ function AppInner({ isDemo = false }) {
             <div style={{fontSize:12,opacity:0.7}}>Tap to view</div>
           </div>
           <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}}
-            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000"}}>×</button>
+            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000"}}>✕</button>
         </div>
       )}
 
@@ -7820,7 +7894,7 @@ function AppInner({ isDemo = false }) {
             Undo
           </button>
           <button onClick={()=>setUndoAction(null)}
-            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px"}}>×</button>
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px"}}>✕</button>
         </div>
       )}
 

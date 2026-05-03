@@ -1114,15 +1114,7 @@ export default function App() {
     fetch((import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app") + "/api/health").catch(() => {});
   }, []);
 
-  // Load active status message on login
-  useEffect(() => {
-    if (isDemo) return;
-    api.getActiveMessage().then(d => {
-      if (!d?.message) return;
-      const dismissed = JSON.parse(localStorage.getItem("ledgr_dismissed_msgs") || "[]");
-      if (!dismissed.includes(d.message.id)) setStatusMessage(d.message);
-    }).catch(() => {});
-  }, []);
+
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());
 
@@ -2839,8 +2831,7 @@ function AppInner({ isDemo = false }) {
   /* -- Analytics AI insights — persisted across tab/view switches -- */
   const [analyticsInsights, setAnalyticsInsights] = useState(null);
   const [analyticsTab, setAnalyticsTab] = useState("overview");
-  const [statusMessage,   setStatusMessage]   = useState(null);
-  const [statusDismissed, setStatusDismissed] = useState(false);
+
 
   /* -- Insights to-do list -- */
   const [insightsTodos, setInsightsTodos] = useState([]);
@@ -7472,36 +7463,6 @@ function AppInner({ isDemo = false }) {
       <button onClick={()=>navigate("settings")} style={{background:"none",border:"none",color:"var(--purple)",cursor:"pointer",fontSize:11,fontWeight:600,padding:"0 3px",textDecoration:"underline"}}>Support</button>
       button.
     </div>
-
-    {/* Status message modal */}
-    {statusMessage && !statusDismissed && (
-      <div style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}
-        onClick={e=>{ if(e.target===e.currentTarget) setStatusDismissed(true); }}>
-        <div style={{background:"var(--card)",border:"1px solid var(--border2)",borderRadius:"var(--radius-lg)",width:"100%",maxWidth:480,padding:28,boxShadow:"0 24px 64px #00000080"}} className="ledgr-modal-anim">
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-            <span style={{fontSize:20}}>📢</span>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:17,fontWeight:800,color:"var(--t1)"}}>Status Update</div>
-            <div style={{marginLeft:"auto",fontSize:10,color:"var(--t3)"}}>{new Date(statusMessage.created_at).toLocaleString()}</div>
-          </div>
-          <div style={{fontSize:14,color:"var(--t2)",lineHeight:1.7,marginBottom:24,padding:"14px 16px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:"3px solid var(--cyan)"}}>
-            {statusMessage.text}
-          </div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"var(--t2)"}}>
-              <input type="checkbox" onChange={e=>{
-                if(e.target.checked){
-                  const dismissed = JSON.parse(localStorage.getItem("ledgr_dismissed_msgs")||"[]");
-                  dismissed.push(statusMessage.id);
-                  localStorage.setItem("ledgr_dismissed_msgs", JSON.stringify(dismissed));
-                }
-              }}/>
-              Don't show again
-            </label>
-            <button style={S.btn("primary",true)} onClick={()=>setStatusDismissed(true)}>Got it</button>
-          </div>
-        </div>
-      </div>
-    )}
 
     {/* Trial countdown banner */}
     {trialDaysLeft !== null && (

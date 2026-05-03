@@ -289,5 +289,7 @@ export function deleteStatusMessage(id) {
 }
 
 export function getActiveMessage() {
-  return request("/api/status-messages/active");
+  return fetch(`${BASE}/api/status-messages/active`)
+    .then(r => r.ok ? r.json() : null)
+    .catch(() => null);
 }

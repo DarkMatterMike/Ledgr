@@ -79,8 +79,8 @@ function useIsMobile() {
     }
     .obsidian-nav-item.active {
       color: #e8ddd0;
-      background: rgba(201,149,106,0.08);
-      border-right: 2px solid #c9956a;
+      background: var(--cyan-dim);
+      border-right: 2px solid var(--cyan);
       font-weight: 500;
       border-radius: 0;
     }
@@ -90,9 +90,9 @@ function useIsMobile() {
       transition: all 0.15s;
     }
     .obsidian-nav-item.active .obsidian-nav-dot {
-      background: #c9956a;
+      background: var(--cyan);
       opacity: 1;
-      box-shadow: 0 0 6px #c9956a;
+      box-shadow: 0 0 6px var(--cyan);
     }
 
     /* ── Cards: solid warm surface, clean border ── */

@@ -55,7 +55,7 @@ cron.schedule("0 * * * *", async () => {
       await emailTrialExpiring(u.email, 1).catch(() => {});
       // Mark as sent so we never send it again
       await pool.query(
-        "UPDATE users SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"trial_expiry_email_sent": true}'::jsonb WHERE id = $1",
+        `UPDATE users SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"trial_expiry_email_sent": true}'::jsonb WHERE id = $1`,
         [u.id]
       );
       console.log(`[worker] Sent trial expiring email to ${u.email}`);

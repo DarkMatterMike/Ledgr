@@ -486,6 +486,26 @@ app.use((req, res, next) => {
   next();
 });
 
+/* ── One-time migration: create system_messages table ────────────── */
+app.post("/api/admin/migrate-system-messages", async (req, res) => {
+  if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS system_messages (
+        id         SERIAL PRIMARY KEY,
+        text       TEXT        NOT NULL,
+        active     BOOLEAN     NOT NULL DEFAULT true,
+        created_by UUID        REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
+      );
+    `);
+    res.json({ ok: true, message: "system_messages table ready" });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /* ── System messages (owner only) ────────────────────────────────── */
 app.get("/api/status-messages", async (req, res) => {
   if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
@@ -502,7 +522,10 @@ app.post("/api/status-messages", async (req, res) => {
   try {
     const msg = await db.createSystemMessage(text.trim(), req.user.id);
     res.json({ message: msg });
-  } catch(e) { serverError(res, e, "Failed to create message"); }
+  } catch(e) {
+    console.error("[system-messages POST]", e.message);
+    res.status(500).json({ error: e.message }); // expose real error temporarily
+  }
 });
 
 app.delete("/api/status-messages/:id", async (req, res) => {

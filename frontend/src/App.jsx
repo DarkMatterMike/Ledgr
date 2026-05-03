@@ -2115,6 +2115,7 @@ function AdminPanel() {
   const [msgText,    setMsgText]    = useState("");
   const [msgSending, setMsgSending] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
+  const [msgError,   setMsgError]   = useState("");
 
   async function loadMessages() {
     setMsgLoading(true);
@@ -2125,9 +2126,16 @@ function AdminPanel() {
   async function sendMessage() {
     if (!msgText.trim()) return;
     setMsgSending(true);
-    try { await api.sendStatusMessage(msgText.trim()); setMsgText(""); await loadMessages(); }
-    catch(e) { alert("Failed to send: " + e.message); }
-    finally { setMsgSending(false); }
+    setMsgError("");
+    try {
+      await api.sendStatusMessage(msgText.trim());
+      setMsgText("");
+      await loadMessages();
+    } catch(e) {
+      setMsgError(e.message || "Failed to send message");
+    } finally {
+      setMsgSending(false);
+    }
   }
   async function deleteMessage(id) {
     try { await api.deleteStatusMessage(id); setMessages(p => p.filter(m => m.id !== id)); }
@@ -2208,9 +2216,14 @@ function AdminPanel() {
             <div style={{fontSize:11,color:"var(--t3)",marginBottom:12,lineHeight:1.5}}>
               Appears as a modal to all users on next login. Expires after 24 hours. Users can dismiss with "Don't show again".
             </div>
-            <textarea value={msgText} onChange={e=>setMsgText(e.target.value)}
+            <textarea value={msgText} onChange={e=>{ setMsgText(e.target.value); setMsgError(""); }}
               placeholder="e.g. We're performing scheduled maintenance tonight from 11pm-1am EST..."
-              style={{...S.input,minHeight:100,resize:"vertical",fontFamily:"inherit",lineHeight:1.6,fontSize:13,marginBottom:12}}/>
+              style={{...S.input,minHeight:100,resize:"vertical",fontFamily:"inherit",lineHeight:1.6,fontSize:13,marginBottom:8}}/>
+            {msgError && (
+              <div style={{fontSize:12,color:"var(--red)",marginBottom:8,padding:"6px 10px",background:"var(--red-dim)",borderRadius:"var(--radius)"}}>
+                ✗ {msgError}
+              </div>
+            )}
             <button style={S.btn("primary",true)} onClick={sendMessage} disabled={msgSending||!msgText.trim()}>
               {msgSending?"Sending...":"Send Message"}
             </button>

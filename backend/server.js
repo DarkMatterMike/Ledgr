@@ -577,7 +577,7 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [accts, ruleRows, categories, plaidItems, calendarAccounts, calendarSplitView,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
-           aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData] = await Promise.all([
+           dashboardCardOrder, aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData] = await Promise.all([
       getAccounts(uid),
       getRules(uid),
       getData(uid, "categories"),
@@ -618,6 +618,7 @@ app.get("/api/data", async (req, res) => {
       dismissedPairs:   dismissedPairs   || [],
       scanMemory:       scanMemory       || null,
       goals:            goals            || [],
+      dashboardCardOrder: dashboardCardOrder || null,
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],
       dani:             daniData          || null,

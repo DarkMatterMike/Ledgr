@@ -7330,11 +7330,11 @@ function AppInner({ isDemo = false }) {
     <InstallPrompt />
 
     {/* Beta banner */}
-    <div style={{flexShrink:0,background:"rgba(167,139,250,0.08)",borderBottom:"1px solid rgba(167,139,250,0.2)",padding:"5px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:11,color:"var(--t2)"}}>
-      <span style={{color:"var(--purple)",fontWeight:700,flexShrink:0}}>Beta</span>
-      This app is in beta. You may experience issues. Please report bugs via the
-      <button onClick={()=>navigate("settings")} style={{background:"none",border:"none",color:"var(--purple)",cursor:"pointer",fontSize:11,fontWeight:600,padding:"0 3px",textDecoration:"underline"}}>Support</button>
-      button.
+    <div style={{flexShrink:0,background:"rgba(255,255,255,0.03)",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"5px 16px",textAlign:"center",fontSize:11,color:"var(--t3)"}}>
+      <span style={{color:"var(--cyan)",fontWeight:700,fontSize:9,letterSpacing:"1px",textTransform:"uppercase",marginRight:6}}>Beta</span>
+      You may experience issues — report bugs via the{" "}
+      <button onClick={()=>navigate("settings")} style={{background:"none",border:"none",color:"var(--cyan)",cursor:"pointer",fontSize:11,fontWeight:600,padding:0,textDecoration:"underline",opacity:0.7}}>Support</button>
+      {" "}button.
     </div>
 
     {/* Trial countdown banner */}

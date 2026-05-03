@@ -287,3 +287,7 @@ export function sendStatusMessage(text) {
 export function deleteStatusMessage(id) {
   return request(`/api/status-messages/${id}`, { method: "DELETE" });
 }
+
+export function getActiveMessage() {
+  return request("/api/status-messages/active");
+}

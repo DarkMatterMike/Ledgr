@@ -165,6 +165,7 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS metadata JSONB`);
   await pool.query(`CREATE TABLE IF NOT EXISTS status_messages (
     id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     text        TEXT NOT NULL,

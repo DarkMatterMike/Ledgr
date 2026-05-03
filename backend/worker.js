@@ -43,14 +43,21 @@ cron.schedule("0 * * * *", async () => {
       console.log(`[worker] Trial expired: ${u.email}`);
     }
 
-    // Send "trial ending tomorrow" emails (trial ends in 20-28 hours)
+    // Send "trial ending tomorrow" emails — only once per user
+    // Uses a DB flag so exactly one email is sent regardless of how many times the cron runs
     const expiringSoon = await pool.query(`
       SELECT id, email, trial_ends_at FROM users
       WHERE subscription_status = 'trialing'
         AND trial_ends_at BETWEEN $1 AND $2
+        AND (metadata->>'trial_expiry_email_sent') IS NULL
     `, [now + 20 * 60 * 60 * 1000, now + 28 * 60 * 60 * 1000]);
     for (const u of expiringSoon.rows) {
       await emailTrialExpiring(u.email, 1).catch(() => {});
+      // Mark as sent so we never send it again
+      await pool.query(
+        "UPDATE users SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"trial_expiry_email_sent": true}'::jsonb WHERE id = $1",
+        [u.id]
+      );
       console.log(`[worker] Sent trial expiring email to ${u.email}`);
     }
 

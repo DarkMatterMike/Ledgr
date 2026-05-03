@@ -33,390 +33,227 @@ function useIsMobile() {
   s.id = "ledgr-css";
   s.textContent = `
     * { box-sizing: border-box; }
-button {
-  background: transparent;
-  border: none;
-  outline: none;
-  box-shadow: none;
-  -webkit-appearance: none;
-  appearance: none;
-  -webkit-tap-highlight-color: transparent;
-}
-    .ledgr-content   { padding: 20px; }
-    .ledgr-stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-    .ledgr-dash-cards { display: flex; flex-direction: column; gap: 10px; }
-    .ledgr-acct-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .ledgr-budget-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
-    .ledgr-cal-cell  { min-height: 80px; padding: 8px; }
-
-    /* -- Animations --------------------------------------------- */
-
-    /* Sidebar logo — pulsing cyan glow */
-    @keyframes ledgr-pulse-glow {
-      0%, 100% { text-shadow: 0 0 8px #00d4ff44, 0 0 24px #00d4ff22; opacity: 1; }
-      50%       { text-shadow: 0 0 24px #00d4ffcc, 0 0 48px #00d4ff66, 0 0 72px #00d4ff33; opacity: 0.85; }
+    button {
+      background: transparent; border: none; outline: none;
+      box-shadow: none; -webkit-appearance: none; appearance: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    .ledgr-logo-pulse { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
-    /* Loading screen — bounce */
-    @keyframes ledgr-bounce {
-      0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.33,0,0.66,0); }
-      50%       { transform: translateY(-22px); animation-timing-function: cubic-bezier(0.33,1,0.66,1); }
+    /* ── Layout helpers ── */
+    .ledgr-content       { padding: 20px; }
+    .ledgr-stat-grid     { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .ledgr-dash-cards    { display: flex; flex-direction: column; gap: 10px; }
+    .ledgr-acct-grid     { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ledgr-budget-grid   { display: grid; grid-template-columns: 1fr; gap: 0; }
+    .ledgr-cal-cell      { min-height: 80px; padding: 8px; }
+    .ledgr-monthbar-meta { display: flex; align-items: center; gap: 16px; }
+
+    @media (max-width: 768px) {
+      .ledgr-content { padding: 12px !important; }
+      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; justify-content: center !important; }
     }
-    .ledgr-logo-bounce { animation: ledgr-bounce 0.9s infinite; text-shadow: 0 0 24px #00d4ffcc, 0 0 48px #00d4ff66; }
 
-    /* Loading text — subtle fade in/out */
-    @keyframes ledgr-breathe {
-      0%, 100% { opacity: 0.4; }
-      50%       { opacity: 0.9; }
+    /* ── Aurora: glass nav ── */
+    .ledgr-aurora-nav {
+      background: rgba(255,255,255,0.025) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border-right: 1px solid rgba(255,255,255,0.05) !important;
     }
-    .ledgr-loading-text { animation: ledgr-breathe 2s ease-in-out infinite; }
 
-    /* -- View transitions — slide + fade -- */
-    @keyframes ledgr-view-slide-in {
-      from { opacity: 0; transform: translateY(14px); }
+    /* ── Aurora: nav items — dot only, no icons ── */
+    .ledgr-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; font-size: 13px; font-weight: 400;
+      color: rgba(255,255,255,0.4); cursor: pointer;
+      transition: all 0.2s; background: transparent; border: none;
+      width: 100%; text-align: left;
+      border-right: 2px solid transparent;
+      font-family: var(--font-body);
+      box-sizing: border-box;
+    }
+    .ledgr-nav-item:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
+    .ledgr-nav-item.active {
+      color: #fff; background: color-mix(in srgb, var(--grad-a) 12%, transparent);
+      border-right: 2px solid var(--grad-a, #a78bfa); font-weight: 500;
+    }
+    .ledgr-nav-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; opacity: 0.5; flex-shrink: 0; transition: all 0.2s;
+    }
+    .ledgr-nav-item.active .ledgr-nav-dot {
+      background: var(--grad-a, #a78bfa); opacity: 1;
+      box-shadow: 0 0 8px var(--grad-a, #a78bfa);
+    }
+
+    /* ── Aurora: card glass surface + gradient border ── */
+    .ledgr-card {
+      background: rgba(255,255,255,0.03) !important;
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-radius: 14px !important;
+      position: relative; overflow: hidden;
+      box-shadow: none !important;
+    }
+    .ledgr-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 14px;
+      padding: 1px;
+      background: linear-gradient(135deg, var(--grad-a, #a78bfa) 0%, var(--grad-b, #60a5fa) 50%, transparent 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events: none; opacity: 0.45; transition: opacity 0.2s;
+    }
+    .ledgr-card:hover::before { opacity: 0.7; }
+
+    /* ── Aurora: topbar gradient line ── */
+    .ledgr-topbar { position: relative; }
+    .ledgr-topbar::after {
+      content: ''; position: absolute;
+      bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--grad-a, #a78bfa), var(--grad-b, #60a5fa), transparent);
+      opacity: 0.5;
+    }
+
+    /* ── Aurora: ambient glow blobs ── */
+    .ledgr-glow-a {
+      position: absolute; width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, var(--glow-color, rgba(167,139,250,0.08)) 0%, transparent 70%);
+      pointer-events: none; top: -150px; right: -150px; z-index: 0;
+    }
+    .ledgr-glow-b {
+      position: absolute; width: 350px; height: 350px; border-radius: 50%;
+      background: radial-gradient(circle, color-mix(in srgb, var(--grad-c, #34d399) 8%, transparent) 0%, transparent 70%);
+      pointer-events: none; bottom: 50px; left: 50px; z-index: 0;
+    }
+
+    /* ── Animations ── */
+    @keyframes ledgr-view-in {
+      from { opacity: 0; transform: translateY(6px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .ledgr-view-enter {
-      animation: ledgr-view-slide-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
+    .ledgr-view-enter { animation: ledgr-view-in 0.3s cubic-bezier(0.22,1,0.36,1) both; }
 
-    /* -- Cards — pronounced staggered rise -- */
     @keyframes ledgr-card-up {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .ledgr-card-anim {
-      animation: ledgr-card-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    /* Auto-animate every direct card child when a view loads */
-    .ledgr-view-enter .ledgr-auto-card {
-      animation: ledgr-card-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(1)  { animation-delay: 0ms;   }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(2)  { animation-delay: 60ms;  }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(3)  { animation-delay: 120ms; }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(4)  { animation-delay: 180ms; }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(5)  { animation-delay: 240ms; }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(6)  { animation-delay: 300ms; }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(7)  { animation-delay: 340ms; }
-    .ledgr-view-enter .ledgr-auto-card:nth-child(n+8){ animation-delay: 380ms; }
+    .ledgr-card-anim { animation: ledgr-card-up 0.4s cubic-bezier(0.22,1,0.36,1) both; }
     .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms;   }
-    .ledgr-card-anim:nth-child(2)  { animation-delay: 70ms;  }
-    .ledgr-card-anim:nth-child(3)  { animation-delay: 140ms; }
-    .ledgr-card-anim:nth-child(4)  { animation-delay: 210ms; }
-    .ledgr-card-anim:nth-child(5)  { animation-delay: 280ms; }
-    .ledgr-card-anim:nth-child(6)  { animation-delay: 350ms; }
-    .ledgr-card-anim:nth-child(7)  { animation-delay: 400ms; }
-    .ledgr-card-anim:nth-child(n+8){ animation-delay: 440ms; }
+    .ledgr-card-anim:nth-child(2)  { animation-delay: 60ms;  }
+    .ledgr-card-anim:nth-child(3)  { animation-delay: 120ms; }
+    .ledgr-card-anim:nth-child(4)  { animation-delay: 180ms; }
+    .ledgr-card-anim:nth-child(5)  { animation-delay: 240ms; }
+    .ledgr-card-anim:nth-child(n+6){ animation-delay: 300ms; }
 
-    /* -- Card hover lift -- */
-    .ledgr-card-hover {
-      transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease, border-color 0.2s ease;
-      cursor: pointer;
-    }
-    .ledgr-card-hover:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px var(--glow-color), 0 2px 8px rgba(0,0,0,0.3);
-      border-color: var(--grad-b) !important;
-    }
-
-    /* -- Aurora gradient border — global card glow -- */
-    .ledgr-content > .ledgr-view-enter div[style*="border-radius"] {
-      transition: box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-    /* Explicit aurora card class for gradient border via ::before */
-    .ledgr-aurora-card {
-      position: relative;
-      isolation: isolate;
-    }
-    .ledgr-aurora-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: var(--radius-lg);
-      padding: 1px;
-      background: linear-gradient(135deg, var(--grad-a), var(--grad-b), var(--grad-c));
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      opacity: 0.3;
-      pointer-events: none;
-      transition: opacity 0.2s;
-      z-index: 0;
-    }
-    .ledgr-aurora-card:hover::before { opacity: 0.55; }
-
-    /* -- Aurora stat glow accent -- */
-    .ledgr-stat-accent {
-      color: var(--cyan);
-      text-shadow: 0 0 20px var(--glow-color);
-    }
-    .ledgr-stat-accent-green { color: var(--green); text-shadow: 0 0 16px rgba(0,230,118,0.3); }
-    .ledgr-stat-accent-red   { color: var(--red);   text-shadow: 0 0 16px rgba(255,77,109,0.3); }
-
-    /* -- Aurora header bar -- */
-    .ledgr-aurora-header {
-      background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
-      border-bottom: 1px solid var(--border);
-      position: relative;
-    }
-    .ledgr-aurora-header::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--grad-a), var(--grad-b), transparent);
-      opacity: 0.4;
-    }
-
-    /* -- Topbar gradient line -- */
-    .ledgr-topbar {
-      border-bottom: 1px solid var(--border);
-      position: relative;
-    }
-    .ledgr-topbar::after {
-      content: '';
-      position: absolute;
-      bottom: -1px; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent 0%, var(--grad-a) 30%, var(--grad-b) 60%, transparent 100%);
-      opacity: 0.5;
-    }
-
-    /* -- Stat number glow -- */
-    .ledgr-num-glow {
-      background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* -- Stat number count-up shimmer -- */
-    @keyframes ledgr-stat-in {
-      from { opacity: 0; transform: scale(0.88) translateY(6px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .ledgr-stat-val {
-      animation: ledgr-stat-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .ledgr-stat-val:nth-child(1) { animation-delay: 80ms;  }
-    .ledgr-stat-val:nth-child(2) { animation-delay: 160ms; }
-    .ledgr-stat-val:nth-child(3) { animation-delay: 240ms; }
-    .ledgr-stat-val:nth-child(4) { animation-delay: 320ms; }
-
-    /* -- Progress bars — animate width from 0 on mount -- */
     @keyframes ledgr-bar-fill {
       from { transform: scaleX(0); }
       to   { transform: scaleX(1); }
     }
-    .ledgr-bar {
-      transform-origin: left center;
-      animation: ledgr-bar-fill 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .ledgr-bar:nth-child(1)  { animation-delay: 60ms;  }
+    .ledgr-bar { transform-origin: left center; animation: ledgr-bar-fill 1.1s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-bar:nth-child(1)  { animation-delay: 60ms; }
     .ledgr-bar:nth-child(2)  { animation-delay: 160ms; }
     .ledgr-bar:nth-child(3)  { animation-delay: 260ms; }
     .ledgr-bar:nth-child(4)  { animation-delay: 360ms; }
     .ledgr-bar:nth-child(5)  { animation-delay: 460ms; }
     .ledgr-bar:nth-child(n+6){ animation-delay: 560ms; }
 
-    /* -- Donut segments — fade + scale in per segment -- */
     @keyframes ledgr-donut-seg-in {
       from { opacity: 0; transform: scale(0.92); }
       to   { opacity: 1; transform: scale(1); }
     }
-    .ledgr-donut-seg {
-      transform-origin: center;
-      transform-box: fill-box;
-      animation: ledgr-donut-seg-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .ledgr-donut-seg:nth-child(1) { animation-delay: 80ms;  }
+    .ledgr-donut-seg { transform-origin: center; transform-box: fill-box; animation: ledgr-donut-seg-in 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-donut-seg:nth-child(1) { animation-delay: 80ms; }
     .ledgr-donut-seg:nth-child(2) { animation-delay: 180ms; }
     .ledgr-donut-seg:nth-child(3) { animation-delay: 280ms; }
-    .ledgr-donut-seg:nth-child(4) { animation-delay: 380ms; }
-    .ledgr-donut-seg:nth-child(5) { animation-delay: 460ms; }
+    .ledgr-donut-seg:nth-child(4) { animation-delay: 360ms; }
+    .ledgr-donut-seg:nth-child(5) { animation-delay: 440ms; }
 
-    /* -- SVG line path draw-in -- */
-    @keyframes ledgr-path-draw {
-      from { stroke-dashoffset: var(--path-len, 2000); opacity: 0; }
-      10%  { opacity: 1; }
-      to   { stroke-dashoffset: 0; opacity: 1; }
-    }
-    .ledgr-path-draw {
-      stroke-dasharray: var(--path-len, 2000);
-      animation: ledgr-path-draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
-    }
-    .ledgr-area-fade {
-      animation: ledgr-fade-in 0.8s ease-out 0.4s both;
-    }
+    @keyframes ledgr-ring-fill { from { stroke-dashoffset: 200; } }
+    .ledgr-ring-fill { animation: ledgr-ring-fill 1.2s cubic-bezier(0.22,1,0.36,1) both; }
 
-    /* -- Notification / banner slide-in from left -- */
-    @keyframes ledgr-slide-from-left {
-      from { opacity: 0; transform: translateX(-16px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-    .ledgr-notif-enter {
-      animation: ledgr-slide-from-left 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .ledgr-notif-enter:nth-child(1) { animation-delay: 0ms;   }
-    .ledgr-notif-enter:nth-child(2) { animation-delay: 80ms;  }
-    .ledgr-notif-enter:nth-child(3) { animation-delay: 160ms; }
-
-    /* -- Transaction rows — stagger fade in -- */
-    @keyframes ledgr-row-in {
-      from { opacity: 0; transform: translateX(-8px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-    .ledgr-txn-row {
-      animation: ledgr-row-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .ledgr-txn-row:nth-child(1)   { animation-delay: 0ms;   }
-    .ledgr-txn-row:nth-child(2)   { animation-delay: 30ms;  }
-    .ledgr-txn-row:nth-child(3)   { animation-delay: 60ms;  }
-    .ledgr-txn-row:nth-child(4)   { animation-delay: 90ms;  }
-    .ledgr-txn-row:nth-child(5)   { animation-delay: 120ms; }
-    .ledgr-txn-row:nth-child(6)   { animation-delay: 150ms; }
-    .ledgr-txn-row:nth-child(7)   { animation-delay: 180ms; }
-    .ledgr-txn-row:nth-child(8)   { animation-delay: 210ms; }
-    .ledgr-txn-row:nth-child(n+9) { animation-delay: 240ms; }
-
-    /* -- Tab pill slide -- */
-    @keyframes ledgr-tab-in {
-      from { opacity: 0; transform: scale(0.9); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    .ledgr-tab-active { animation: ledgr-tab-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-    /* -- Generic fade-in (reused) -- */
-    @keyframes ledgr-fade-in {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-
-    /* Modal — scale + fade in */
-    @keyframes ledgr-modal-in {
-      from { opacity: 0; transform: scale(0.94) translateY(12px); }
+    @keyframes ledgr-stat-in {
+      from { opacity: 0; transform: scale(0.88) translateY(6px); }
       to   { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .ledgr-modal-anim { animation: ledgr-modal-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-    /* Overlay — fade in */
-    @keyframes ledgr-overlay-in {
-      from { opacity: 0; }
-      to   { opacity: 1; }
-    }
-    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.2s ease-out both; }
-
-    /* Toast — slide up from bottom */
-    @keyframes ledgr-toast-in {
-      from { opacity: 0; transform: translateY(16px) scale(0.96); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .ledgr-toast-anim { animation: ledgr-toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-    /* Shake */
-    @keyframes shake {
-      0%,100%{transform:translateX(0)}
-      20%{transform:translateX(-8px)}
-      40%{transform:translateX(8px)}
-      60%{transform:translateX(-6px)}
-      80%{transform:translateX(4px)}
-    }
-    .shake { animation: shake 0.5s ease; }
-
-    /* Chevron */
-    .ledgr-chevron { transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); display: inline-block; }
-    .ledgr-chevron-open { transform: rotate(180deg); }
-
-    /* Expand panel */
-    @keyframes ledgr-expand {
-      from { opacity: 0; max-height: 0; transform: translateY(-4px); }
-      to   { opacity: 1; max-height: 900px; transform: translateY(0); }
-    }
-    .ledgr-expand {
-      animation: ledgr-expand 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-      overflow: hidden;
-    }
-
-    /* Install prompt */
-    @keyframes ledgr-slide-up {
-      from { transform: translateY(100%); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-    .ledgr-slide-up { animation: ledgr-slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-    /* Nav active */
-    @keyframes ledgr-nav-active {
-      from { opacity: 0; transform: scaleX(0); }
-      to   { opacity: 1; transform: scaleX(1); }
-    }
-
-    /* -- Bell ring animation -- */
-    /* -- Drag handle — always subtly visible, brighter on hover -- */
-    .ledgr-drag-handle { opacity: 0.25; transition: opacity 0.15s, color 0.15s; }
-    .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
-    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.6; }
+    .ledgr-stat-val { animation: ledgr-stat-in 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-stat-val:nth-child(1) { animation-delay: 80ms; }
+    .ledgr-stat-val:nth-child(2) { animation-delay: 160ms; }
+    .ledgr-stat-val:nth-child(3) { animation-delay: 240ms; }
+    .ledgr-stat-val:nth-child(4) { animation-delay: 320ms; }
 
     @keyframes ledgr-bell-ring {
-      0%   { transform: rotate(0deg); }
+      0%,70%,100% { transform: rotate(0deg); }
       10%  { transform: rotate(14deg); }
       20%  { transform: rotate(-12deg); }
       30%  { transform: rotate(10deg); }
       40%  { transform: rotate(-8deg); }
       50%  { transform: rotate(5deg); }
       60%  { transform: rotate(-3deg); }
-      70%  { transform: rotate(0deg); }
-      100% { transform: rotate(0deg); }
     }
-    .ledgr-bell-ring {
-      animation: ledgr-bell-ring 2.4s ease-in-out infinite;
-      transform-origin: top center;
-      display: inline-flex;
-    }
+    .ledgr-bell-ring { animation: ledgr-bell-ring 2.4s ease-in-out infinite; transform-origin: top center; display: inline-flex; }
 
-    /* -- Goal / budget score rings -- */
-    @keyframes ledgr-ring-fill {
-      from { stroke-dashoffset: 200; }
+    @keyframes ledgr-notif-enter {
+      from { opacity: 0; transform: translateX(8px); }
+      to   { opacity: 1; transform: translateX(0); }
     }
-    .ledgr-ring-fill {
-      animation: ledgr-ring-fill 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
-    }
+    .ledgr-notif-enter { animation: ledgr-notif-enter 0.25s ease both; }
 
-    /* -- Budget arc gauge — stroke draws in from zero -- */
-    @keyframes ledgr-arc-draw {
-      from { stroke-dashoffset: attr(stroke-dasharray); opacity: 0.3; }
-      to   { stroke-dashoffset: 0; opacity: 1; }
-    }
-    .ledgr-arc-fill {
-      animation: ledgr-arc-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
-    }
+    @keyframes ledgr-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.18s ease both; }
 
-    @media (max-width: 767px) {
-      .ledgr-content   { padding: 16px !important; }
-      .ledgr-stat-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-      .ledgr-txn-actions { flex-wrap: wrap !important; gap: 6px !important; }
-      .ledgr-acct-grid  { grid-template-columns: 1fr !important; }
-      .ledgr-monthbar   { flex-direction: column !important; gap: 10px !important; align-items: center !important; }
-      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; justify-content: center !important; }
-      .ledgr-cal-cell  { min-height: 54px !important; padding: 4px !important; }
+    @keyframes ledgr-modal-in {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
     }
-    @media (min-width: 768px) {
-      .ledgr-dash-cards { flex-direction: row !important; align-items: flex-start; }
-      .ledgr-dash-cards > * { flex: 1; min-width: 0; }
+    .ledgr-modal-anim { animation: ledgr-modal-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+
+    @keyframes ledgr-logo-pulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.7; }
     }
+    .ledgr-logo-pulse { animation: ledgr-logo-pulse 3s ease-in-out infinite; }
+
+    @keyframes ledgr-pulse-glow {
+      0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan) 0%, transparent); }
+      50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 15%, transparent); }
+    }
+    .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
+
+    /* Drag handle */
+    .ledgr-drag-handle { opacity: 0.25; transition: opacity 0.15s, color 0.15s; }
+    .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
+    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.6; }
+
+    /* Chevron */
+    .ledgr-chevron { display: inline-block; transition: transform 0.2s; font-size: 10px; }
+    .ledgr-chevron-open { transform: rotate(180deg); }
+
+    /* Expand panel */
+    @keyframes ledgr-expand {
+      from { opacity: 0; max-height: 0; }
+      to   { opacity: 1; max-height: 600px; }
+    }
+    .ledgr-expand { animation: ledgr-expand 0.22s ease both; overflow: hidden; }
+
+    /* Card hover */
+    .ledgr-card-hover { transition: transform 0.2s ease, border-color 0.2s ease; cursor: pointer; }
+    .ledgr-card-hover:hover { transform: translateY(-2px); }
+
+    /* Scrollbar */
+    .ledgr-content::-webkit-scrollbar { width: 3px; }
+    .ledgr-content::-webkit-scrollbar-track { background: transparent; }
+    .ledgr-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
   `;
   document.head.appendChild(s);
 })();
 
+
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 12px", position:"relative", boxShadow:"0 0 0 1px var(--border), 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)" },
+  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:"10px 12px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"12px 14px", position:"relative", overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)" },
+  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -432,11 +269,11 @@ const S = {
   field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
   overlay:      { position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(8px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
-  modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
+  modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:14, padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:"var(--radius-lg)", padding:"10px 16px", fontSize:12, color:"var(--t1)", boxShadow:"0 8px 40px #00000080", backdropFilter:"blur(12px)" },
-  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:14, padding:"10px 16px", fontSize:12, color:"var(--t1)", backdropFilter:"blur(12px)" },
+  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
@@ -1247,50 +1084,27 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         </div>
         <div style={{fontSize:10,color:"var(--t3)",marginTop:4,paddingLeft:1,letterSpacing:"0.5px"}}>personal finance</div>
       </div>
-      <nav style={{flex:1,padding:"10px 10px",display:"flex",flexDirection:"column",gap:2,overflowY:"auto"}}>
+      <nav style={{flex:1,padding:"8px 0",display:"flex",flexDirection:"column",overflowY:"auto"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}
-            style={{
-              display:"flex",alignItems:"center",gap:10,padding:"8px 10px",
-              borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
-              border:`1px solid ${view===n.id?"var(--grad-a)33":"transparent"}`,
-              background:view===n.id?"var(--cyan-dim)":"transparent",
-              color:view===n.id?"var(--cyan)":"var(--t2)",
-              width:"100%",textAlign:"left",transition:"all 0.15s",
-            }}>
-            <span style={{fontSize:14,width:18,textAlign:"center",flexShrink:0}}>{n.icon}</span>
+            className={`ledgr-nav-item${view===n.id?" active":""}`}>
+            <div className="ledgr-nav-dot"/>
             <span>{n.label}</span>
-            {view===n.id&&<span style={{marginLeft:"auto",width:5,height:5,borderRadius:"50%",background:"var(--cyan)",display:"inline-block",boxShadow:"0 0 6px var(--cyan)"}}/>}
           </button>
         ))}
         {/* Owner-only nav items */}
         {currentUser?.role === "owner" && (
-          <div style={{ marginTop:8, borderTop:"1px solid var(--border)", paddingTop:8, display:"flex", flexDirection:"column", gap:2 }}>
+          <div style={{marginTop:8,borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:8,display:"flex",flexDirection:"column"}}>
             <button onClick={()=>onNav("dani")}
-              style={{
-                display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
-                borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
-                border:`1px solid ${view==="dani"?"#f9a8d433":"transparent"}`,
-                background:view==="dani"?"#f9a8d411":"transparent",
-                color:view==="dani"?"#f9a8d4":"var(--t2)",
-                width:"100%",textAlign:"left",transition:"all 0.15s",
-              }}>
-              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>⚙</span>
+              className={`ledgr-nav-item${view==="dani"?" active":""}`}
+              style={view==="dani"?{borderRightColor:"#f9a8d4",background:"rgba(249,168,212,0.1)",color:"#f9a8d4"}:{}}>
+              <div className="ledgr-nav-dot" style={view==="dani"?{background:"#f9a8d4",opacity:1,boxShadow:"0 0 8px #f9a8d4"}:{}}/>
               <span>Dani</span>
-              {view==="dani"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"#f9a8d4",display:"inline-block"}}/>}
             </button>
             <button onClick={()=>onNav("admin")}
-              style={{
-                display:"flex",alignItems:"center",gap:10,padding:"7px 10px",
-                borderRadius:"var(--radius)",fontSize:13,fontWeight:500,cursor:"pointer",
-                border:`1px solid ${view==="admin"?"#00d4ff33":"transparent"}`,
-                background:view==="admin"?"var(--cyan-dim)":"transparent",
-                color:view==="admin"?"var(--cyan)":"var(--t2)",
-                width:"100%",textAlign:"left",transition:"all 0.15s",
-              }}>
-              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>◎</span>
+              className={`ledgr-nav-item${view==="admin"?" active":""}`}>
+              <div className="ledgr-nav-dot"/>
               <span>Admin</span>
-              {view==="admin"&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--cyan)",display:"inline-block"}}/>}
             </button>
           </div>
         )}
@@ -1627,7 +1441,7 @@ function Paywall({ onUpgrade }) {
 
 function SettingsSection({ title, children }) {
   return (
-    <div className="ledgr-aurora-card" style={{ ...S.card, marginBottom:16 }}>
+    <div className="ledgr-card" style={{ ...S.card, marginBottom:16 }}>
       <div style={S.cardTitle}>{title}</div>
       {children}
     </div>
@@ -2415,7 +2229,7 @@ function AdminPanel() {
       {/* Messages Tab */}
       {adminTab === "messages" && (
         <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:640}}>
-          <div className="ledgr-aurora-card" style={{...S.card,padding:20}}>
+          <div className="ledgr-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:8}}>Send Status Message</div>
             <div style={{fontSize:11,color:"var(--t3)",marginBottom:12,lineHeight:1.5}}>
               Appears as a modal to all users on next login. Expires after 24 hours. Users can dismiss with "Don't show again".
@@ -2427,7 +2241,7 @@ function AdminPanel() {
               {msgSending?"Sending...":"Send Message"}
             </button>
           </div>
-          <div className="ledgr-aurora-card" style={{...S.card,padding:20}}>
+          <div className="ledgr-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:12}}>Message History</div>
             {msgLoading ? (
               <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",padding:"20px 0"}}>Loading...</div>
@@ -2478,7 +2292,7 @@ function AdminPanel() {
       {error && <div style={{color:"var(--red)",fontSize:13,marginBottom:16,padding:"10px 14px",background:"#ff4d6d11",borderRadius:"var(--radius)",border:"1px solid #ff4d6d33"}}>{error}</div>}
 
       {/* Users list */}
-      <div className="ledgr-aurora-card" style={{...S.card,padding:0,overflow:"hidden"}}>
+      <div className="ledgr-card" style={{...S.card,padding:0,overflow:"hidden"}}>
         <div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
@@ -4332,7 +4146,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div className="ledgr-aurora-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
+    <div className="ledgr-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -4417,7 +4231,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const CashFlowCard = (
-    <div className="ledgr-aurora-card" style={{ ...S.card }}>
+    <div className="ledgr-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Cash Flow</div>
       </div>
@@ -4488,7 +4302,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const OverspendingHighlightsCard = (
-    <div className="ledgr-aurora-card" style={{ ...S.card }}>
+    <div className="ledgr-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
         <div style={S.cardTitle}>Overspending Highlights</div>
       </div>
@@ -4614,7 +4428,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       budget: (
-        <div className="ledgr-aurora-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
+        <div className="ledgr-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
@@ -4645,7 +4459,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       action: (
-        <div style={S.card} className="ledgr-aurora-card">
+        <div className="ledgr-card" style={S.card}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:22}}>
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
@@ -4676,7 +4490,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       goals: goals.length === 0 ? null : (
-        <div style={S.card} className="ledgr-aurora-card">
+        <div className="ledgr-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
             <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
@@ -4715,7 +4529,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       upcoming: upcoming.length === 0 ? null : (
-        <div style={S.card} className="ledgr-aurora-card">
+        <div className="ledgr-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
@@ -4745,7 +4559,7 @@ function AppInner({ isDemo = false }) {
       {/* Month bar */}
       {!isMobile && (
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
-          <div className="ledgr-aurora-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
+          <div className="ledgr-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
               <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -4765,7 +4579,7 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
       {isMobile && (
-        <div className="ledgr-aurora-card" style={{...S.card,padding:"10px 14px"}}>
+        <div className="ledgr-card" style={{...S.card,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
             <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
             <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -5191,7 +5005,7 @@ function AppInner({ isDemo = false }) {
       )}
 
       {categories.length === 0 ? (
-        <div className="ledgr-aurora-card" style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
+        <div className="ledgr-card" style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
       ) : (
         <>
           {isMobile ? (
@@ -5574,7 +5388,7 @@ function AppInner({ isDemo = false }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
-                <div className="ledgr-aurora-card" style={{ ...S.card }}>
+                <div className="ledgr-card" style={{ ...S.card }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                     <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
                   </div>
@@ -5645,7 +5459,7 @@ function AppInner({ isDemo = false }) {
       left={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {accounts.length===0
-            ? <div className="ledgr-aurora-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+            ? <div className="ledgr-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
             : (()=>{
                 // Group by Plaid connection (plaidItemId) so separate logins to the
                 // same bank appear as separate groups. Manual accounts go under "Manual".
@@ -5737,8 +5551,8 @@ function AppInner({ isDemo = false }) {
       right={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {plaidItems.length>0&&(
-            <div className="ledgr-aurora-card" style={{...S.card,padding:"10px 14px"}}>
-              <div className="ledgr-aurora-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
+            <div className="ledgr-card" style={{...S.card,padding:"10px 14px"}}>
+              <div className="ledgr-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {plaidItems.map(item=>{
                   const isStale = staleItemIds.has(item.item_id);
@@ -5892,13 +5706,13 @@ function AppInner({ isDemo = false }) {
             )}
 
             {rules.length === 0 ? (
-              <div className="ledgr-aurora-card" style={{...S.card,textAlign:"center",padding:48}}>
+              <div className="ledgr-card" style={{...S.card,textAlign:"center",padding:48}}>
                 <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
                 <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
                 <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="ledgr-aurora-card" style={{...S.card,textAlign:"center",padding:32}}>
+              <div className="ledgr-card" style={{...S.card,textAlign:"center",padding:32}}>
                 <div style={{fontSize:13,color:"var(--t3)"}}>No rules match "{ruleSearch}"</div>
               </div>
             ) : (
@@ -6048,7 +5862,7 @@ function AppInner({ isDemo = false }) {
           </button>
         </div>
 
-        <div className="ledgr-aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
+        <div className="ledgr-card" style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
           <div
             style={{
               display: "grid",
@@ -6178,7 +5992,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {acctEntries.length > 0 && (
-          <div className="ledgr-aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="ledgr-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)" }}>
                 {acctLabel}
@@ -6254,7 +6068,7 @@ function AppInner({ isDemo = false }) {
         )}
 
         {calendarDay?.day && selectedDayTxns.length > 0 && (
-          <div className="ledgr-aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="ledgr-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>
                 {selectedDayDateLabel}
@@ -6333,7 +6147,7 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
-        <div className="ledgr-aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+        <div className="ledgr-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
           <div
             style={{
               padding: "12px 16px",
@@ -6731,7 +6545,7 @@ function AppInner({ isDemo = false }) {
 
             {/* Recurring list card now matches calendar width */}
             {recurringTxns.length > 0 && (
-              <div className="ledgr-aurora-card" style={{ ...S.card, minWidth: 0 }}>
+              <div className="ledgr-card" style={{ ...S.card, minWidth: 0 }}>
                 <div style={S.cardTitle}>All Recurring Transactions</div>
 
                 {[...recurringTxns]
@@ -7699,10 +7513,8 @@ function AppInner({ isDemo = false }) {
             </div>
           )}
           {/* Overlay drawer */}
-          <div style={{
+          <div className="ledgr-aurora-nav" style={{
             position:"fixed",top:0,left:0,bottom:0,width:240,
-            background:"var(--surface-solid, #0c1220)",
-            borderRight:"1px solid var(--border)",
             display:"flex",flexDirection:"column",
             transform:drawerOpen?"translateX(0)":"translateX(-100%)",
             transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
@@ -7800,14 +7612,11 @@ function AppInner({ isDemo = false }) {
         {/* Desktop body */}
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
-          <aside style={{
+          <aside className="ledgr-aurora-nav" style={{
             width:220,flexShrink:0,
             background:"rgba(13,17,48,0.85)",
-            borderRight:"1px solid var(--border2)",
+            borderRight:"none",
             display:"flex",flexDirection:"column",
-            backdropFilter:"blur(24px)",
-            WebkitBackdropFilter:"blur(24px)",
-            boxShadow:"4px 0 32px rgba(0,0,0,0.4), inset -1px 0 0 rgba(167,139,250,0.1)",
           }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>

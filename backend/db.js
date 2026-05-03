@@ -165,13 +165,6 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS metadata JSONB`);
-  await pool.query(`CREATE TABLE IF NOT EXISTS status_messages (
-    id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    text        TEXT NOT NULL,
-    created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT,
-    created_by  TEXT
-  )`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_start TEXT`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS mask TEXT`);
   // ── Accounts table (replaces the JSON blob in app_data) ───────────
@@ -251,6 +244,16 @@ async function getData(userId, key) {
 }
 
 async function setData(userId, key, value) {
+  // For critical keys, save a timestamped backup before overwriting
+  const criticalKeys = new Set(["categories", "goals", "rules"]);
+  if (criticalKeys.has(key) && Array.isArray(value) && value.length > 0) {
+    const backupKey = `${key}_backup`;
+    await pool.query(
+      `INSERT INTO app_data (user_id, key, value) VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value`,
+      [userId, backupKey, JSON.stringify({ data: value, savedAt: Date.now() })]
+    );
+  }
   await pool.query(
     `INSERT INTO app_data (user_id, key, value) VALUES ($1, $2, $3)
      ON CONFLICT (user_id, key) DO UPDATE SET value = EXCLUDED.value`,
@@ -313,31 +316,6 @@ async function upsertAccount(userId, a) {
 // This preserves any custom name the user has given to a Plaid account.
 async function upsertAccountFromPlaid(userId, plaidId, plaidItemId, plaidName, balance, available, institution, type, mask) {
   const accountId = "a" + plaidId;
-
-  // Check if an account with the same mask+type already exists for this user
-  // (handles Plaid reassigning account IDs on reconnect)
-  if (mask) {
-    const existing = await pool.query(
-      `SELECT id FROM accounts WHERE user_id = $1 AND mask = $2 AND type = $3 AND is_manual = false LIMIT 1`,
-      [userId, mask, type ?? null]
-    );
-    if (existing.rows.length > 0 && existing.rows[0].id !== accountId) {
-      // Update the existing account with the new plaid IDs and balance
-      await pool.query(`
-        UPDATE accounts SET
-          plaid_id      = $1,
-          plaid_item_id = $2,
-          balance       = $3,
-          available     = $4,
-          institution   = $5,
-          updated_at    = $6
-        WHERE id = $7 AND user_id = $8`,
-        [plaidId, plaidItemId, balance ?? 0, available ?? null, institution ?? null, Date.now(), existing.rows[0].id, userId]
-      );
-      return; // skip insert
-    }
-  }
-
   await pool.query(`
     INSERT INTO accounts (id, user_id, plaid_id, plaid_item_id, name, balance, available, type, institution, mask, is_manual, updated_at)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,false,$11)

@@ -291,55 +291,6 @@ function requireOwner(req, res, next) {
    PUBLIC ROUTES
 ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Status Messages ───────────────────────────────────────────── */
-
-// Public — get active message (not expired, within 24h)
-app.get("/api/messages/active", requireAuth, async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, text, created_at FROM status_messages
-       WHERE created_at > $1
-       ORDER BY created_at DESC LIMIT 1`,
-      [Date.now() - 24 * 60 * 60 * 1000]
-    );
-    res.json({ message: rows[0] || null });
-  } catch (err) { serverError(res, err); }
-});
-
-// Admin — get all messages
-app.get("/api/admin/messages", requireAuth, async (req, res) => {
-  if (req.user.role !== "owner") return res.status(403).json({ error: "Forbidden" });
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, text, created_at, created_by FROM status_messages ORDER BY created_at DESC LIMIT 50`
-    );
-    res.json({ messages: rows });
-  } catch (err) { serverError(res, err); }
-});
-
-// Admin — create message
-app.post("/api/admin/messages", requireAuth, async (req, res) => {
-  if (req.user.role !== "owner") return res.status(403).json({ error: "Forbidden" });
-  const { text } = req.body;
-  if (!text?.trim()) return res.status(400).json({ error: "text required" });
-  try {
-    const { rows } = await pool.query(
-      `INSERT INTO status_messages (text, created_by, created_at) VALUES ($1, $2, $3) RETURNING id, text, created_at`,
-      [text.trim(), req.user.id, Date.now()]
-    );
-    res.json({ message: rows[0] });
-  } catch (err) { serverError(res, err); }
-});
-
-// Admin — delete message
-app.delete("/api/admin/messages/:id", requireAuth, async (req, res) => {
-  if (req.user.role !== "owner") return res.status(403).json({ error: "Forbidden" });
-  try {
-    await pool.query("DELETE FROM status_messages WHERE id = $1", [req.params.id]);
-    res.json({ ok: true });
-  } catch (err) { serverError(res, err); }
-});
-
 app.get("/api/health", (_req, res) => res.json({ ok: true, env: PLAID_ENV, auth: !!JWT_SECRET }));
 
 // Owner-only health check that shows per-user transaction counts and flags large users
@@ -638,6 +589,7 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "dismissedPairs"),
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
+      getData(uid, "dashboardCardOrder"),
       getData(uid, "aiApiKey"),
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
@@ -867,12 +819,39 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const { categories, plaidItems, dani, theme, calendarAccounts, calendarSplitView,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
-            aiConversations, aiCurrentConvId, goals } = req.body;
+            aiConversations, aiCurrentConvId, goals, customAccountNames, dashboardCardOrder } = req.body;
     const ops = [];
     // accounts → POST/PATCH/DELETE /api/accounts/*
     // rules    → POST/PATCH/DELETE /api/rules/*
     // transactions → PATCH/DELETE /api/transactions/*
-    if (categories         !== undefined) ops.push(setData(uid, "categories",         categories));
+    if (categories !== undefined) {
+      // Guard: never overwrite existing categories with an empty array.
+      // Also block suspiciously small saves (1-2 items) when user has many more.
+      if (Array.isArray(categories) && categories.length === 0) {
+        const existing = await getData(uid, "categories");
+        if (Array.isArray(existing) && existing.length > 0) {
+          console.warn(`BLOCKED empty categories save for user ${uid} — DB has ${existing.length}`);
+          // Skip — do not push to ops
+        } else {
+          ops.push(setData(uid, "categories", categories));
+        }
+      } else {
+        ops.push(setData(uid, "categories", categories));
+      }
+    }
+    if (goals !== undefined) {
+      // Same guard for goals
+      if (Array.isArray(goals) && goals.length === 0) {
+        const existing = await getData(uid, "goals");
+        if (Array.isArray(existing) && existing.length > 0) {
+          console.warn(`BLOCKED empty goals save for user ${uid} — DB has ${existing.length}`);
+        } else {
+          ops.push(setData(uid, "goals", goals));
+        }
+      } else if (goals !== undefined) {
+        ops.push(setData(uid, "goals", goals));
+      }
+    }
     if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
     if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
     if (calendarSplitView)                  ops.push(setData(uid, "calendarSplitView", calendarSplitView));
@@ -890,7 +869,8 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (scanMemory !== undefined)          ops.push(setData(uid, "scanMemory",         scanMemory));
     if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
-    if (Array.isArray(goals))              ops.push(setData(uid, "goals",             goals));
+    // goals handled by guard above
+    if (Array.isArray(dashboardCardOrder))  ops.push(setData(uid, "dashboardCardOrder", dashboardCardOrder));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -1102,76 +1082,14 @@ app.post("/api/plaid/webhook", express.json(), async (req, res) => {
   }
 });
 
-// Re-link orphaned transactions to new accounts after reconnect
-// Matches by mask (last 4 digits) so transactions survive disconnect/reconnect cycles
-async function relinkTransactionsToNewAccounts(userId, itemId) {
-  try {
-    const { rows: newAccounts } = await pool.query(
-      `SELECT id, mask FROM accounts WHERE user_id = $1 AND plaid_item_id = $2 AND mask IS NOT NULL`,
-      [userId, itemId]
-    );
-    let relinked = 0;
-    for (const acct of newAccounts) {
-      // Find any transactions linked to a different account with the same mask
-      const { rowCount } = await pool.query(`
-        UPDATE transactions t
-        SET account_id    = $1,
-            plaid_item_id = $2
-        FROM accounts a
-        WHERE t.account_id   = a.id
-          AND t.user_id      = $3
-          AND a.mask         = $4
-          AND a.user_id      = $3
-          AND a.id          != $1`,
-        [acct.id, itemId, userId, acct.mask]
-      );
-      relinked += rowCount || 0;
-    }
-    if (relinked > 0) console.log(`Re-linked ${relinked} transactions for item ${itemId}`);
-    return relinked;
-  } catch (e) {
-    console.warn("Transaction re-link failed:", e.message);
-    return 0;
-  }
-}
-
 app.post("/api/plaid/exchange_public_token", async (req, res) => {
   const { public_token, institution_name } = req.body;
   if (!public_token) return res.status(400).json({ error: "public_token required" });
   try {
     const { data } = await plaidClient.itemPublicTokenExchange({ public_token });
-
-    // Remove any existing items for the same institution before saving the new one
-    // This prevents duplicate items accumulating on reconnect
-    const existingItems = await getItemsForUser(req.user.id);
-    const duplicates = existingItems.filter(
-      i => i.institution?.toLowerCase() === (institution_name || "").toLowerCase()
-        && i.item_id !== data.item_id
-    );
-    for (const dup of duplicates) {
-      try { await plaidClient.itemRemove({ access_token: dup.access_token }); } catch {}
-      await pool.query("DELETE FROM plaid_items WHERE item_id = $1", [dup.item_id]);
-      // Also remove orphaned accounts from old item
-      await pool.query(
-        "DELETE FROM accounts WHERE user_id = $1 AND plaid_item_id = $2",
-        [req.user.id, dup.item_id]
-      );
-      console.log(`Removed duplicate item ${dup.item_id} for ${institution_name}`);
-    }
-
     await saveItem(req.user.id, data.item_id, { access_token: data.access_token, institution: institution_name || "Unknown Bank", created_at: Date.now() });
+    // Clear needs_reauth flag — this item is now healthy
     await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [data.item_id]);
-
-    // Sync immediately so accounts exist before we try to re-link
-    try {
-      const result = await syncItemTransactions(req.user.id, data.item_id);
-      await applySyncResultsToDB(req.user.id, result.added, result.modified, result.removed);
-      // Re-link any orphaned transactions to the newly created accounts
-      await relinkTransactionsToNewAccounts(req.user.id, data.item_id);
-    } catch (syncErr) {
-      console.warn("Post-connect sync failed:", syncErr.message);
-    }
-
     res.json({ item_id: data.item_id, institution: institution_name });
   } catch (err) {
     console.error("exchange_public_token error:", err.response?.data || err.message);

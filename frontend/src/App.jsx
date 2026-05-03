@@ -1221,7 +1221,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   const acct       = acctMap[t.accountId];
 
   return (
-    <div style={{borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+    <div style={{borderBottom:"1px solid rgba(0,0,0,0.3)"}}>
       <div
         onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
         style={{padding:"7px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
@@ -5066,7 +5066,7 @@ function AppInner({ isDemo = false }) {
                 const ex = cx + r * Math.cos(a);
                 const ey = cy + r * Math.sin(a);
                 return (
-                  <div style={{ background:"var(--card)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                  <div style={{ background:"linear-gradient(180deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                     <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                     <div style={{ display:"flex", justifyContent:"center" }}>
                       <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5198,7 +5198,7 @@ function AppInner({ isDemo = false }) {
                                   </div>
                                 )}
                                 {/* separator — also clickable to expand */}
-                                <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5,cursor:"pointer"}}
+                                <div style={{gridColumn:"1/-1",height:1,background:"rgba(0,0,0,0.25)",cursor:"pointer"}}
                                   onClick={()=>{ setBudgetExpandedCatId(p=>p===cat.id?null:cat.id); setBudgetTxnSearch(""); }}/>
                                 {budgetExpandedCatId === cat.id && (
                                   <div className="ledgr-expand" style={{ gridColumn: "1 / -1", margin: "0 -2px", padding: "10px 14px", background: "var(--bg)", borderRadius: "var(--radius)", borderTop: "1px solid var(--border)" }} onClick={(e) => e.stopPropagation()}>
@@ -5326,7 +5326,7 @@ function AppInner({ isDemo = false }) {
                   const ex = cx + r * Math.cos(a);
                   const ey = cy + r * Math.sin(a);
                   return (
-                    <div style={{ background:"var(--card)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
+                    <div style={{ background:"linear-gradient(180deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", border:"none", borderRadius:"var(--radius-lg)", padding:"16px 16px 14px", marginBottom:16 }}>
                       <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", fontFamily:"var(--font-disp)", textAlign:"center", marginBottom:12 }}>Budget Progress</div>
                       <div style={{ display:"flex", justifyContent:"center" }}>
                         <svg width="200" height="83" viewBox="20 14 160 83" style={{ display:"block" }}>
@@ -5359,8 +5359,8 @@ function AppInner({ isDemo = false }) {
                   return (
                     <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
                       {sections.map((section) => (
-                        <div key={section.key} style={{ background: "var(--card)", borderRadius: "var(--radius)" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
+                        <div key={section.key} style={{ background: "linear-gradient(180deg, var(--card-hi, #231f1a) 0%, var(--card, #181511) 100%)", borderRadius: "var(--radius)" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "transparent", borderBottom: "none", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
                           </div>
@@ -5417,7 +5417,7 @@ function AppInner({ isDemo = false }) {
                                       )}
                                     </div>
                                   </div>
-                                  <div style={{gridColumn:"1/-1",height:1,background:"var(--border)",opacity:0.5,cursor:"pointer"}} onClick={()=>setBudgetDrillCat(cat)}/>
+                                  <div style={{gridColumn:"1/-1",height:1,background:"rgba(0,0,0,0.25)",cursor:"pointer"}} onClick={()=>setBudgetDrillCat(cat)}/>
                                 </Fragment>
                               );
                             })}

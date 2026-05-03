@@ -59,6 +59,11 @@ const {
   PLAID_ENV,
   syncItemTransactions,
   applySyncResultsToDB,
+  createSystemMessage,
+  getSystemMessages,
+  getActiveSystemMessage,
+  deleteSystemMessage,
+  deactivateSystemMessage,
 } = require("./db");
 
 /* ── Config ──────────────────────────────────────────────────────── */
@@ -459,7 +464,7 @@ app.post("/api/auth/reset-password", async (req, res) => {
 /* ── System messages (public — no auth required) ─────────────────── */
 app.get("/api/status-messages/active", async (_req, res) => {
   try {
-    const msg = await db.getActiveSystemMessage();
+    const msg = await getActiveSystemMessage();
     res.json({ message: msg || null });
   } catch(e) { serverError(res, e, "Failed to get active message"); }
 });
@@ -510,7 +515,7 @@ app.post("/api/admin/migrate-system-messages", async (req, res) => {
 app.get("/api/status-messages", async (req, res) => {
   if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
   try {
-    const messages = await db.getSystemMessages();
+    const messages = await getSystemMessages();
     res.json({ messages });
   } catch(e) { serverError(res, e, "Failed to get messages"); }
 });
@@ -520,7 +525,7 @@ app.post("/api/status-messages", async (req, res) => {
   const { text } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: "text required" });
   try {
-    const msg = await db.createSystemMessage(text.trim(), req.user.id);
+    const msg = await createSystemMessage(text.trim(), req.user.id);
     res.json({ message: msg });
   } catch(e) {
     console.error("[system-messages POST]", e.message);
@@ -531,7 +536,7 @@ app.post("/api/status-messages", async (req, res) => {
 app.delete("/api/status-messages/:id", async (req, res) => {
   if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
   try {
-    await db.deleteSystemMessage(parseInt(req.params.id));
+    await deleteSystemMessage(parseInt(req.params.id));
     res.json({ ok: true });
   } catch(e) { serverError(res, e, "Failed to delete message"); }
 });
@@ -539,12 +544,13 @@ app.delete("/api/status-messages/:id", async (req, res) => {
 app.patch("/api/status-messages/:id/deactivate", async (req, res) => {
   if (req.user?.role !== "owner") return res.status(403).json({ error: "Owner only" });
   try {
-    await db.deactivateSystemMessage(parseInt(req.params.id));
+    await deactivateSystemMessage(parseInt(req.params.id));
     res.json({ ok: true });
   } catch(e) { serverError(res, e, "Failed to deactivate message"); }
 });
 
 app.get("/api/auth/me", (req, res) => {
+  const { id, email, name, role, subscription_status, trial_ends_at, stripe_price_id } = req.user;
   const access    = getAccessLevel(req.user);
   const isPremium = role === "owner" || (stripe_price_id && stripe_price_id === STRIPE_PREMIUM_PRICE_ID);
   res.json({ id, email, name, role, subscription_status, trial_ends_at, stripe_price_id, access, isPremium });

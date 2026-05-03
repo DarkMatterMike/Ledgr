@@ -97,7 +97,7 @@ function useIsMobile() {
 
     /* ── Cards: solid warm surface, clean border ── */
     .obsidian-card {
-      background: linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%) !important;
+      background: linear-gradient(145deg, var(--card-hi, #28231b) 0%, var(--card, #1a1711) 100%) !important;
       border: none !important;
       border-radius: 12px !important;
       position: relative;
@@ -194,6 +194,43 @@ function useIsMobile() {
     .ledgr-card-hover { transition: transform 0.2s ease; cursor: pointer; }
     .ledgr-card-hover:hover { transform: translateY(-2px); }
 
+    /* Transaction list gradient fade */
+    .ledgr-txn-gradient {
+      background: linear-gradient(180deg,
+        var(--card-hi, #28231b) 0%,
+        var(--card, #1a1711) 100%
+      );
+      border-radius: 12px;
+    }
+    /* Budget list gradient */
+    .ledgr-budget-gradient {
+      background: linear-gradient(180deg,
+        var(--card-hi, #28231b) 0%,
+        var(--card, #1a1711) 100%
+      );
+      border-radius: 12px;
+    }
+    /* Loading bar animation */
+    @keyframes ledgr-loading-bar {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(200%); }
+    }
+    .ledgr-loading-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      overflow: hidden;
+      border-radius: 0 0 4px 4px;
+    }
+    .ledgr-loading-bar::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--cyan, #c9956a), transparent);
+      animation: ledgr-loading-bar 1.6s ease-in-out infinite;
+    }
     .ledgr-content::-webkit-scrollbar { width: 3px; }
     .ledgr-content::-webkit-scrollbar-track { background: transparent; }
     .ledgr-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
@@ -207,11 +244,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
+  card:         { background:"linear-gradient(145deg, var(--card-hi, #28231b) 0%, var(--card, #1a1711) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"linear-gradient(145deg, var(--card-hi, #28231b) 0%, var(--card, #1a1711) 100%)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -220,7 +257,7 @@ const S = {
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" };
     if (variant==="amber")   return { ...base, background:"var(--amber-dim)", color:"var(--amber)", borderColor:"rgba(201,149,106,0.3)" };
-    return { ...base, background:"var(--surface)", color:"var(--t2)" };
+    return { ...base, background:"var(--card)", color:"var(--t2)" };
   },
   input:        { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
   select:       { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
@@ -231,7 +268,7 @@ const S = {
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
   toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
-  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #2a2318) 0%, var(--card, #16130f) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  monthBar:     { background:"linear-gradient(145deg, var(--card-hi, #28231b) 0%, var(--card, #1a1711) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
   th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
@@ -4433,7 +4470,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       budget: (
-        <div className="obsidian-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
+        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
@@ -4534,7 +4571,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       upcoming: upcoming.length === 0 ? null : (
-        <div className="obsidian-card" style={S.card}>
+        <div className="obsidian-card ledgr-txn-gradient" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
@@ -4796,7 +4833,7 @@ function AppInner({ isDemo = false }) {
         {filteredTxns.length===0 ? (
           <div style={{textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</div>
         ) : (
-          <div style={{background:"var(--card)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
+          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(180deg, var(--card-hi, #28231b) 0%, var(--card, #1a1711) 100%)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
             {dates.map((date,di)=>{
               const txns    = grouped[date];
               const dayTotal = txns.reduce((a,t)=>a+t.amount,0);
@@ -5062,7 +5099,7 @@ function AppInner({ isDemo = false }) {
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap:10, marginBottom: 16 }}>
                     {sections.map((section) => (
-                      <div key={section.key} style={{ background: "var(--card)", borderRadius: "var(--radius)" }}>
+                      <div key={section.key} style={{ background: "linear-gradient(180deg, var(--card-hi, #28231b) 0%, var(--card, #1a1711) 100%)", borderRadius: "var(--radius)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)", borderRadius: "var(--radius) var(--radius) 0 0" }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.key === "over" ? "var(--red)" : section.key === "done" ? "var(--t3)" : "var(--t2)", fontFamily: "var(--font-disp)", textTransform: "uppercase", letterSpacing: "0.8px" }}>{section.label}</span>
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--t3)" }}>{section.cats.length} {section.cats.length === 1 ? "category" : "categories"}</span>
@@ -7326,7 +7363,10 @@ function AppInner({ isDemo = false }) {
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
       <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">ℓ</div>
-      <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+      <div style={{position:"relative",display:"inline-block"}}>
+        <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+        <div className="ledgr-loading-bar"/>
+      </div>
       <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
     </div>
   );

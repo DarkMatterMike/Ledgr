@@ -88,11 +88,8 @@ function useIsMobile() {
 
     /* ── Aurora: card glass surface + gradient border ── */
     .ledgr-card {
-      background: rgba(255,255,255,0.03) !important;
-      border: 1px solid rgba(255,255,255,0.07) !important;
-      border-radius: 14px !important;
-      position: relative; overflow: hidden;
-      box-shadow: none !important;
+      position: relative;
+      overflow: hidden;
     }
     .ledgr-card::before {
       content: ''; position: absolute; inset: 0; border-radius: 14px;
@@ -249,11 +246,11 @@ function useIsMobile() {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:"10px 12px", position:"relative" },
+  card:         { background:"var(--card-glass, rgba(255,255,255,0.03))", border:"1px solid var(--card-border, rgba(255,255,255,0.07))", borderRadius:14, padding:"10px 12px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"var(--card-glass, rgba(255,255,255,0.03))", border:"1px solid var(--card-border, rgba(255,255,255,0.07))", borderRadius:14, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -269,14 +266,14 @@ const S = {
   field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
   overlay:      { position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(8px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
-  modal:        { background:"var(--card)", border:"1px solid var(--border2)", borderRadius:14, padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
+  modal:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:14, padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--card)", border:"1px solid var(--border2)", borderRadius:14, padding:"10px 16px", fontSize:12, color:"var(--t1)", backdropFilter:"blur(12px)" },
+  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:14, padding:"10px 16px", fontSize:12, color:"var(--t1)", backdropFilter:"blur(12px)" },
   monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
-  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--card)", zIndex:2 },
+  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
   td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:8, flexWrap:"wrap", marginBottom:10, alignItems:"center" },
 };
@@ -2075,7 +2072,9 @@ function applyTheme(theme) {
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
 
-  // Aurora gradient system — derive a 3-stop gradient from the accent color
+  // Aurora glass card vars — always transparent regardless of theme
+  root.style.setProperty("--card-glass",  "rgba(255,255,255,0.03)");
+  root.style.setProperty("--card-border", "rgba(255,255,255,0.07)");
   // grad-a = accent (warm/purple end), grad-b = accent, grad-c = complementary cool
   if (theme.accent) {
     const a = theme.accent;

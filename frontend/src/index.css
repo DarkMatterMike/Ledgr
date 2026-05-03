@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body, #root { height: 100%; background: #06090f; }
+html, body, #root { height: 100%; background: #07091a; }
 
 :root {
   --bg:          #07091a;
@@ -9,6 +9,8 @@ html, body, #root { height: 100%; background: #06090f; }
   --surface-solid: #0d1130;
   --bg-solid:    #07091a;
   --card:        #111628;
+  --card-glass:  rgba(255,255,255,0.03);
+  --card-border: rgba(255,255,255,0.07);
   --border:      #1c2545;
   --border2:     #263060;
   --cyan:        #00d4ff;
@@ -29,55 +31,18 @@ html, body, #root { height: 100%; background: #06090f; }
   --font-script: 'Dancing Script', cursive;
   --radius:      8px;
   --radius-lg:   14px;
-  /* Aurora gradient system — updated per theme accent */
   --grad-a:      #a78bfa;
-  --grad-b:      #00d4ff;
-  --grad-c:      #00e676;
+  --grad-b:      #60a5fa;
+  --grad-c:      #34d399;
   --glow-color:  rgba(167,139,250,0.12);
 }
 
 body { font-family: var(--font-body); color: var(--t1); overflow-x: hidden; }
 input, select, textarea, button { font-family: var(--font-body); }
 
-/* ── Gradient border utility ── */
-.ledgr-grad-border {
-  position: relative;
-}
-.ledgr-grad-border::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, var(--grad-a), var(--grad-b), var(--grad-c));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-/* ── Ambient glow blobs ── */
-.ledgr-glow-a {
-  position: absolute;
-  width: 500px; height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
-  pointer-events: none;
-  top: -150px; right: -150px;
-}
-.ledgr-glow-b {
-  position: absolute;
-  width: 350px; height: 350px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,212,255,0.05) 0%, transparent 70%);
-  pointer-events: none;
-  bottom: 50px; left: 50px;
-}
-
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
 
 @media (max-width: 768px) {
   input, textarea, select { font-size: 16px !important; }

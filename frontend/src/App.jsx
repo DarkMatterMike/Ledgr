@@ -1225,7 +1225,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
       <div
         onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
         style={{padding:"7px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
-          borderLeft:t.recurring?"3px solid var(--amber)":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
+          borderLeft:t.recurring?"3px solid #fbbf24":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
           paddingLeft:t.recurring||needsReview(t)?10:0,
           background: isSelected ? "var(--cyan-dim)" : "transparent",
           transition:"background 0.1s"}}>
@@ -4758,17 +4758,17 @@ function AppInner({ isDemo = false }) {
 
         {/* Pending reconciliation banner */}
         {(activeDuplicatePairs.length>0)&&(
-          <div style={{background:"#fbbf2412",borderLeft:"3px solid var(--amber)",
+          <div style={{background:"rgba(251,191,36,0.08)",borderLeft:"3px solid #fbbf24",
             borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-                <span style={{color:"var(--amber)",fontWeight:700}}>{activeDuplicatePairs.length}</span> possible duplicate transaction{activeDuplicatePairs.length!==1?"s":""} found
+                <span style={{color:"#fbbf24",fontWeight:700}}>{activeDuplicatePairs.length}</span> possible duplicate transaction{activeDuplicatePairs.length!==1?"s":""} found
               </span>
               <button onClick={()=>{
                 if (showReconcile && duplicateScanActive) setDuplicateScanActive(false);
                 setShowReconcile(p=>!p);
               }}
-                style={{background:showReconcile?"var(--amber)":"none",color:showReconcile?"#000":"var(--amber)",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
+                style={{background:showReconcile?"#fbbf24":"none",color:showReconcile?"#000":"#fbbf24",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
                 {showReconcile?"✕ Close":"Review ›"}
               </button>
             </div>
@@ -4784,7 +4784,7 @@ function AppInner({ isDemo = false }) {
                       {/* Pending row */}
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--amber)",fontWeight:600,marginBottom:2}}>{isScannedDuplicate ? (p.pending ? "PENDING / CANDIDATE" : "CANDIDATE A") : "PENDING"}</div>
+                          <div style={{fontSize:12,color:"#fbbf24",fontWeight:600,marginBottom:2}}>{isScannedDuplicate ? (p.pending ? "PENDING / CANDIDATE" : "CANDIDATE A") : "PENDING"}</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name||p.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{p.date}{pCat&&<span style={{color:pCat.color}}> · {pCat.name}</span>}{p.recurring&&<span style={{color:"var(--amber)"}}> · ↻</span>}</div>
                         </div>

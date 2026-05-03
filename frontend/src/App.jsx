@@ -29,122 +29,127 @@ function useIsMobile() {
 /* --- Global CSS --------------------------------------------------- */
 (function injectCSS() {
   if (document.getElementById("ledgr-css")) return;
-  const s = document.createElement("style");
-  s.id = "ledgr-css";
-  s.textContent = `
-    * { box-sizing: border-box; }
+  const el = document.createElement("style");
+  el.id = "ledgr-css";
+  el.textContent = `
+    *, *::before, *::after { box-sizing: border-box; }
     button {
       background: transparent; border: none; outline: none;
       box-shadow: none; -webkit-appearance: none; appearance: none;
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ── Layout helpers ── */
-    .ledgr-content       { padding: 20px; }
-    .ledgr-stat-grid     { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-    .ledgr-dash-cards    { display: flex; flex-direction: column; gap: 10px; }
-    .ledgr-acct-grid     { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .ledgr-budget-grid   { display: grid; grid-template-columns: 1fr; gap: 0; }
-    .ledgr-cal-cell      { min-height: 80px; padding: 8px; }
+    /* ─── AURORA DESIGN SYSTEM ──────────────────────────────── */
+
+    /* Layout */
+    .ledgr-content     { padding: 20px; position: relative; }
+    .ledgr-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .ledgr-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
+    .ledgr-acct-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .ledgr-budget-grid { display: grid; grid-template-columns: 1fr; gap: 0; }
+    .ledgr-cal-cell    { min-height: 80px; padding: 8px; }
     .ledgr-monthbar-meta { display: flex; align-items: center; gap: 16px; }
 
     @media (max-width: 768px) {
-      .ledgr-content { padding: 12px !important; }
-      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 10px !important; justify-content: center !important; }
+      .ledgr-content { padding: 14px !important; }
+      .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 8px !important; justify-content: center !important; }
     }
 
-    /* ── Aurora: glass nav ── */
-    .ledgr-aurora-nav {
-      background: rgba(255,255,255,0.025) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
-      border-right: 1px solid rgba(255,255,255,0.05) !important;
+    /* ── Sidebar: glass panel ── */
+    .aurora-nav {
+      background: rgba(255,255,255,0.025);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(255,255,255,0.05);
     }
 
-    /* ── Aurora: nav items — dot only, no icons ── */
-    .ledgr-nav-item {
+    /* ── Nav items: dot, label, right-border accent on active ── */
+    .aurora-nav-item {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 20px; font-size: 13px; font-weight: 400;
-      color: rgba(255,255,255,0.4); cursor: pointer;
-      transition: all 0.2s; background: transparent; border: none;
-      width: 100%; text-align: left;
-      border-right: 2px solid transparent;
-      font-family: var(--font-body);
+      color: rgba(255,255,255,0.4);
+      cursor: pointer; transition: all 0.2s;
+      background: transparent; border: none; border-right: 2px solid transparent;
+      width: 100%; text-align: left; font-family: var(--font-body);
       box-sizing: border-box;
     }
-    .ledgr-nav-item:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
-    .ledgr-nav-item.active {
-      color: #fff; background: color-mix(in srgb, var(--grad-a) 12%, transparent);
-      border-right: 2px solid var(--grad-a, #a78bfa); font-weight: 500;
+    .aurora-nav-item:hover { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.03); }
+    .aurora-nav-item.active {
+      color: #fff;
+      background: rgba(167,139,250,0.12);
+      border-right: 2px solid var(--grad-a, #a78bfa);
+      font-weight: 500;
     }
-    .ledgr-nav-dot {
+    .aurora-nav-dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: currentColor; opacity: 0.5; flex-shrink: 0; transition: all 0.2s;
     }
-    .ledgr-nav-item.active .ledgr-nav-dot {
-      background: var(--grad-a, #a78bfa); opacity: 1;
+    .aurora-nav-item.active .aurora-nav-dot {
+      background: var(--grad-a, #a78bfa);
+      opacity: 1;
       box-shadow: 0 0 8px var(--grad-a, #a78bfa);
     }
 
-    /* ── Aurora: card glass surface + gradient border ── */
-    .ledgr-card {
+    /* ── Cards: glass surface + gradient border via ::before mask ── */
+    .aurora-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
       position: relative;
       overflow: hidden;
     }
-    .ledgr-card::before {
-      content: ''; position: absolute; inset: 0; border-radius: 14px;
-      padding: 1px;
-      background: linear-gradient(135deg, var(--grad-a, #a78bfa) 0%, var(--grad-b, #60a5fa) 50%, transparent 100%);
+    .aurora-card::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: 14px; padding: 1px;
+      background: linear-gradient(135deg, rgba(167,139,250,0.4), transparent 60%);
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events: none; opacity: 0.45; transition: opacity 0.2s;
+      pointer-events: none;
     }
-    .ledgr-card:hover::before { opacity: 0.7; }
 
-    /* ── Aurora: topbar gradient line ── */
-    .ledgr-topbar { position: relative; }
-    .ledgr-topbar::after {
-      content: ''; position: absolute;
-      bottom: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--grad-a, #a78bfa), var(--grad-b, #60a5fa), transparent);
+    /* ── Glow blobs ── */
+    .aurora-glow-a {
+      position: absolute; width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%);
+      pointer-events: none; top: -150px; right: -100px; z-index: 0;
+    }
+    .aurora-glow-b {
+      position: absolute; width: 350px; height: 350px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(52,211,153,0.06) 0%, transparent 70%);
+      pointer-events: none; bottom: 0; left: 100px; z-index: 0;
+    }
+
+    /* ── Topbar gradient accent line ── */
+    .aurora-topbar {
+      position: relative;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    }
+    .aurora-topbar::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--grad-a, #a78bfa) 30%, var(--grad-b, #60a5fa) 70%, transparent);
       opacity: 0.5;
     }
 
-    /* ── Aurora: ambient glow blobs ── */
-    .ledgr-glow-a {
-      position: absolute; width: 500px; height: 500px; border-radius: 50%;
-      background: radial-gradient(circle, var(--glow-color, rgba(167,139,250,0.08)) 0%, transparent 70%);
-      pointer-events: none; top: -150px; right: -150px; z-index: 0;
-    }
-    .ledgr-glow-b {
-      position: absolute; width: 350px; height: 350px; border-radius: 50%;
-      background: radial-gradient(circle, color-mix(in srgb, var(--grad-c, #34d399) 8%, transparent) 0%, transparent 70%);
-      pointer-events: none; bottom: 50px; left: 50px; z-index: 0;
-    }
-
-    /* ── Animations ── */
-    @keyframes ledgr-view-in {
-      from { opacity: 0; transform: translateY(6px); }
+    /* ─── ANIMATIONS ───────────────────────────────────────── */
+    @keyframes aurora-view-in {
+      from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .ledgr-view-enter { animation: ledgr-view-in 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-view-enter { animation: aurora-view-in 0.3s cubic-bezier(0.22,1,0.36,1) both; }
 
     @keyframes ledgr-card-up {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     .ledgr-card-anim { animation: ledgr-card-up 0.4s cubic-bezier(0.22,1,0.36,1) both; }
-    .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms;   }
-    .ledgr-card-anim:nth-child(2)  { animation-delay: 60ms;  }
+    .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms; }
+    .ledgr-card-anim:nth-child(2)  { animation-delay: 60ms; }
     .ledgr-card-anim:nth-child(3)  { animation-delay: 120ms; }
     .ledgr-card-anim:nth-child(4)  { animation-delay: 180ms; }
     .ledgr-card-anim:nth-child(5)  { animation-delay: 240ms; }
     .ledgr-card-anim:nth-child(n+6){ animation-delay: 300ms; }
 
-    @keyframes ledgr-bar-fill {
-      from { transform: scaleX(0); }
-      to   { transform: scaleX(1); }
-    }
+    @keyframes ledgr-bar-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
     .ledgr-bar { transform-origin: left center; animation: ledgr-bar-fill 1.1s cubic-bezier(0.22,1,0.36,1) both; }
     .ledgr-bar:nth-child(1)  { animation-delay: 60ms; }
     .ledgr-bar:nth-child(2)  { animation-delay: 160ms; }
@@ -153,10 +158,7 @@ function useIsMobile() {
     .ledgr-bar:nth-child(5)  { animation-delay: 460ms; }
     .ledgr-bar:nth-child(n+6){ animation-delay: 560ms; }
 
-    @keyframes ledgr-donut-seg-in {
-      from { opacity: 0; transform: scale(0.92); }
-      to   { opacity: 1; transform: scale(1); }
-    }
+    @keyframes ledgr-donut-seg-in { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
     .ledgr-donut-seg { transform-origin: center; transform-box: fill-box; animation: ledgr-donut-seg-in 0.5s cubic-bezier(0.22,1,0.36,1) both; }
     .ledgr-donut-seg:nth-child(1) { animation-delay: 80ms; }
     .ledgr-donut-seg:nth-child(2) { animation-delay: 180ms; }
@@ -167,10 +169,7 @@ function useIsMobile() {
     @keyframes ledgr-ring-fill { from { stroke-dashoffset: 200; } }
     .ledgr-ring-fill { animation: ledgr-ring-fill 1.2s cubic-bezier(0.22,1,0.36,1) both; }
 
-    @keyframes ledgr-stat-in {
-      from { opacity: 0; transform: scale(0.88) translateY(6px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
+    @keyframes ledgr-stat-in { from { opacity:0; transform:scale(0.88) translateY(6px); } to { opacity:1; transform:scale(1) translateY(0); } }
     .ledgr-stat-val { animation: ledgr-stat-in 0.45s cubic-bezier(0.22,1,0.36,1) both; }
     .ledgr-stat-val:nth-child(1) { animation-delay: 80ms; }
     .ledgr-stat-val:nth-child(2) { animation-delay: 160ms; }
@@ -179,68 +178,50 @@ function useIsMobile() {
 
     @keyframes ledgr-bell-ring {
       0%,70%,100% { transform: rotate(0deg); }
-      10%  { transform: rotate(14deg); }
-      20%  { transform: rotate(-12deg); }
-      30%  { transform: rotate(10deg); }
-      40%  { transform: rotate(-8deg); }
-      50%  { transform: rotate(5deg); }
-      60%  { transform: rotate(-3deg); }
+      10% { transform: rotate(14deg); } 20% { transform: rotate(-12deg); }
+      30% { transform: rotate(10deg); } 40% { transform: rotate(-8deg); }
+      50% { transform: rotate(5deg);  } 60% { transform: rotate(-3deg); }
     }
     .ledgr-bell-ring { animation: ledgr-bell-ring 2.4s ease-in-out infinite; transform-origin: top center; display: inline-flex; }
 
-    @keyframes ledgr-notif-enter {
-      from { opacity: 0; transform: translateX(8px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
+    @keyframes ledgr-notif-enter { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:translateX(0); } }
     .ledgr-notif-enter { animation: ledgr-notif-enter 0.25s ease both; }
 
-    @keyframes ledgr-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes ledgr-overlay-in { from { opacity:0; } to { opacity:1; } }
     .ledgr-overlay-anim { animation: ledgr-overlay-in 0.18s ease both; }
 
-    @keyframes ledgr-modal-in {
-      from { opacity: 0; transform: scale(0.96) translateY(8px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
+    @keyframes ledgr-modal-in { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
     .ledgr-modal-anim { animation: ledgr-modal-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
 
-    @keyframes ledgr-logo-pulse {
-      0%,100% { opacity: 1; } 50% { opacity: 0.7; }
-    }
+    @keyframes ledgr-logo-pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
     .ledgr-logo-pulse { animation: ledgr-logo-pulse 3s ease-in-out infinite; }
 
     @keyframes ledgr-pulse-glow {
-      0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan) 0%, transparent); }
-      50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 15%, transparent); }
+      0%,100% { box-shadow: 0 0 0 0 rgba(0,212,255,0); }
+      50%      { box-shadow: 0 0 0 4px rgba(0,212,255,0.15); }
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
-    /* Drag handle */
     .ledgr-drag-handle { opacity: 0.25; transition: opacity 0.15s, color 0.15s; }
     .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
     [data-card-id]:hover .ledgr-drag-handle { opacity: 0.6; }
 
-    /* Chevron */
     .ledgr-chevron { display: inline-block; transition: transform 0.2s; font-size: 10px; }
     .ledgr-chevron-open { transform: rotate(180deg); }
 
-    /* Expand panel */
-    @keyframes ledgr-expand {
-      from { opacity: 0; max-height: 0; }
-      to   { opacity: 1; max-height: 600px; }
-    }
+    @keyframes ledgr-expand { from { opacity:0; max-height:0; } to { opacity:1; max-height:600px; } }
     .ledgr-expand { animation: ledgr-expand 0.22s ease both; overflow: hidden; }
 
-    /* Card hover */
-    .ledgr-card-hover { transition: transform 0.2s ease, border-color 0.2s ease; cursor: pointer; }
+    .ledgr-card-hover { transition: transform 0.2s ease; cursor: pointer; }
     .ledgr-card-hover:hover { transform: translateY(-2px); }
 
-    /* Scrollbar */
     .ledgr-content::-webkit-scrollbar { width: 3px; }
     .ledgr-content::-webkit-scrollbar-track { background: transparent; }
     .ledgr-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
   `;
-  document.head.appendChild(s);
+  document.head.appendChild(el);
 })();
+
 
 
 /* --- Styles ------------------------------------------------------- */
@@ -1065,27 +1046,18 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   }
   return (
     <>
-      <div style={{padding:"16px 16px 12px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <span style={{
-            fontFamily:"var(--font-script)",fontSize:24,fontWeight:700,lineHeight:1,marginTop:2,
-            background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",
-            WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
-          }} className="ledgr-logo-pulse">ℓ</span>
-          <div style={{fontFamily:"'Syne', sans-serif",fontSize:15,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
-            ledgr<span style={{
-              background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",
-              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
-            }}>.</span>
-          </div>
-        </div>
-        <div style={{fontSize:10,color:"var(--t3)",marginTop:4,paddingLeft:1,letterSpacing:"0.5px"}}>personal finance</div>
+      <div style={{padding:"20px 20px 28px",flexShrink:0}}>
+        <div style={{
+          fontFamily:"'Syne', sans-serif",fontSize:22,fontWeight:800,lineHeight:1,
+          background:"linear-gradient(135deg, var(--grad-a, #a78bfa), var(--grad-b, #60a5fa))",
+          WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
+        }} className="ledgr-logo-pulse">ℓ ledgr</div>
       </div>
-      <nav style={{flex:1,padding:"8px 0",display:"flex",flexDirection:"column",overflowY:"auto"}}>
+      <nav style={{flex:1,display:"flex",flexDirection:"column",overflowY:"auto"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}
-            className={`ledgr-nav-item${view===n.id?" active":""}`}>
-            <div className="ledgr-nav-dot"/>
+            className={`aurora-nav-item${view===n.id?" active":""}`}>
+            <div className="aurora-nav-dot"/>
             <span>{n.label}</span>
           </button>
         ))}
@@ -1093,14 +1065,14 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         {currentUser?.role === "owner" && (
           <div style={{marginTop:8,borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:8,display:"flex",flexDirection:"column"}}>
             <button onClick={()=>onNav("dani")}
-              className={`ledgr-nav-item${view==="dani"?" active":""}`}
+              className={`aurora-nav-item${view==="dani"?" active":""}`}
               style={view==="dani"?{borderRightColor:"#f9a8d4",background:"rgba(249,168,212,0.1)",color:"#f9a8d4"}:{}}>
-              <div className="ledgr-nav-dot" style={view==="dani"?{background:"#f9a8d4",opacity:1,boxShadow:"0 0 8px #f9a8d4"}:{}}/>
+              <div className="aurora-nav-dot" style={view==="dani"?{background:"#f9a8d4",opacity:1,boxShadow:"0 0 8px #f9a8d4"}:{}}/>
               <span>Dani</span>
             </button>
             <button onClick={()=>onNav("admin")}
-              className={`ledgr-nav-item${view==="admin"?" active":""}`}>
-              <div className="ledgr-nav-dot"/>
+              className={`aurora-nav-item${view==="admin"?" active":""}`}>
+              <div className="aurora-nav-dot"/>
               <span>Admin</span>
             </button>
           </div>
@@ -1438,7 +1410,7 @@ function Paywall({ onUpgrade }) {
 
 function SettingsSection({ title, children }) {
   return (
-    <div className="ledgr-card" style={{ ...S.card, marginBottom:16 }}>
+    <div className="aurora-card" style={{ ...S.card, marginBottom:16 }}>
       <div style={S.cardTitle}>{title}</div>
       {children}
     </div>
@@ -2228,7 +2200,7 @@ function AdminPanel() {
       {/* Messages Tab */}
       {adminTab === "messages" && (
         <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:640}}>
-          <div className="ledgr-card" style={{...S.card,padding:20}}>
+          <div className="aurora-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:8}}>Send Status Message</div>
             <div style={{fontSize:11,color:"var(--t3)",marginBottom:12,lineHeight:1.5}}>
               Appears as a modal to all users on next login. Expires after 24 hours. Users can dismiss with "Don't show again".
@@ -2240,7 +2212,7 @@ function AdminPanel() {
               {msgSending?"Sending...":"Send Message"}
             </button>
           </div>
-          <div className="ledgr-card" style={{...S.card,padding:20}}>
+          <div className="aurora-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:12}}>Message History</div>
             {msgLoading ? (
               <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",padding:"20px 0"}}>Loading...</div>
@@ -2291,7 +2263,7 @@ function AdminPanel() {
       {error && <div style={{color:"var(--red)",fontSize:13,marginBottom:16,padding:"10px 14px",background:"#ff4d6d11",borderRadius:"var(--radius)",border:"1px solid #ff4d6d33"}}>{error}</div>}
 
       {/* Users list */}
-      <div className="ledgr-card" style={{...S.card,padding:0,overflow:"hidden"}}>
+      <div className="aurora-card" style={{...S.card,padding:0,overflow:"hidden"}}>
         <div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
@@ -4145,7 +4117,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div className="ledgr-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
+    <div className="aurora-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -4230,7 +4202,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const CashFlowCard = (
-    <div className="ledgr-card" style={{ ...S.card }}>
+    <div className="aurora-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Cash Flow</div>
       </div>
@@ -4301,7 +4273,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const OverspendingHighlightsCard = (
-    <div className="ledgr-card" style={{ ...S.card }}>
+    <div className="aurora-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
         <div style={S.cardTitle}>Overspending Highlights</div>
       </div>
@@ -4427,7 +4399,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       budget: (
-        <div className="ledgr-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
+        <div className="aurora-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
@@ -4458,7 +4430,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       action: (
-        <div className="ledgr-card" style={S.card}>
+        <div className="aurora-card" style={S.card}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:22}}>
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
@@ -4489,7 +4461,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       goals: goals.length === 0 ? null : (
-        <div className="ledgr-card" style={S.card}>
+        <div className="aurora-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
             <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
@@ -4528,7 +4500,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       upcoming: upcoming.length === 0 ? null : (
-        <div className="ledgr-card" style={S.card}>
+        <div className="aurora-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
@@ -4558,7 +4530,7 @@ function AppInner({ isDemo = false }) {
       {/* Month bar */}
       {!isMobile && (
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
-          <div className="ledgr-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
+          <div className="aurora-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
               <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -4578,7 +4550,7 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
       {isMobile && (
-        <div className="ledgr-card" style={{...S.card,padding:"10px 14px"}}>
+        <div className="aurora-card" style={{...S.card,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
             <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
             <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -5004,7 +4976,7 @@ function AppInner({ isDemo = false }) {
       )}
 
       {categories.length === 0 ? (
-        <div className="ledgr-card" style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
+        <div className="aurora-card" style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
       ) : (
         <>
           {isMobile ? (
@@ -5387,7 +5359,7 @@ function AppInner({ isDemo = false }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
-                <div className="ledgr-card" style={{ ...S.card }}>
+                <div className="aurora-card" style={{ ...S.card }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                     <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
                   </div>
@@ -5458,7 +5430,7 @@ function AppInner({ isDemo = false }) {
       left={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {accounts.length===0
-            ? <div className="ledgr-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+            ? <div className="aurora-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
             : (()=>{
                 // Group by Plaid connection (plaidItemId) so separate logins to the
                 // same bank appear as separate groups. Manual accounts go under "Manual".
@@ -5550,8 +5522,8 @@ function AppInner({ isDemo = false }) {
       right={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {plaidItems.length>0&&(
-            <div className="ledgr-card" style={{...S.card,padding:"10px 14px"}}>
-              <div className="ledgr-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
+            <div className="aurora-card" style={{...S.card,padding:"10px 14px"}}>
+              <div className="aurora-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {plaidItems.map(item=>{
                   const isStale = staleItemIds.has(item.item_id);
@@ -5705,13 +5677,13 @@ function AppInner({ isDemo = false }) {
             )}
 
             {rules.length === 0 ? (
-              <div className="ledgr-card" style={{...S.card,textAlign:"center",padding:48}}>
+              <div className="aurora-card" style={{...S.card,textAlign:"center",padding:48}}>
                 <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
                 <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
                 <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="ledgr-card" style={{...S.card,textAlign:"center",padding:32}}>
+              <div className="aurora-card" style={{...S.card,textAlign:"center",padding:32}}>
                 <div style={{fontSize:13,color:"var(--t3)"}}>No rules match "{ruleSearch}"</div>
               </div>
             ) : (
@@ -5861,7 +5833,7 @@ function AppInner({ isDemo = false }) {
           </button>
         </div>
 
-        <div className="ledgr-card" style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
+        <div className="aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
           <div
             style={{
               display: "grid",
@@ -5991,7 +5963,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {acctEntries.length > 0 && (
-          <div className="ledgr-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)" }}>
                 {acctLabel}
@@ -6067,7 +6039,7 @@ function AppInner({ isDemo = false }) {
         )}
 
         {calendarDay?.day && selectedDayTxns.length > 0 && (
-          <div className="ledgr-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>
                 {selectedDayDateLabel}
@@ -6146,7 +6118,7 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
-        <div className="ledgr-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+        <div className="aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
           <div
             style={{
               padding: "12px 16px",
@@ -6544,7 +6516,7 @@ function AppInner({ isDemo = false }) {
 
             {/* Recurring list card now matches calendar width */}
             {recurringTxns.length > 0 && (
-              <div className="ledgr-card" style={{ ...S.card, minWidth: 0 }}>
+              <div className="aurora-card" style={{ ...S.card, minWidth: 0 }}>
                 <div style={S.cardTitle}>All Recurring Transactions</div>
 
                 {[...recurringTxns]
@@ -7422,7 +7394,7 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Mobile top bar */}
-        <div className="ledgr-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none"}}>
+        <div className="aurora-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none"}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
@@ -7512,7 +7484,7 @@ function AppInner({ isDemo = false }) {
             </div>
           )}
           {/* Overlay drawer */}
-          <div className="ledgr-aurora-nav" style={{
+          <div className="aurora-nav" style={{
             position:"fixed",top:0,left:0,bottom:0,width:240,
             display:"flex",flexDirection:"column",
             transform:drawerOpen?"translateX(0)":"translateX(-100%)",
@@ -7534,7 +7506,7 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Desktop top bar */}
-        <div className="ledgr-topbar" style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"none"}}>
+        <div className="aurora-topbar" style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"none"}}>
           <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t3)",letterSpacing:"-0.2px"}}>
             {NAV.find(n=>n.id===view)?.label}
           </div>
@@ -7611,18 +7583,15 @@ function AppInner({ isDemo = false }) {
         {/* Desktop body */}
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
-          <aside className="ledgr-aurora-nav" style={{
-            width:220,flexShrink:0,
-            background:"rgba(13,17,48,0.85)",
-            borderRight:"none",
-            display:"flex",flexDirection:"column",
+          <aside className="aurora-nav" style={{
+            width:220,flexShrink:0,display:"flex",flexDirection:"column",
           }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
           {/* Content with Aurora glow blobs */}
           <div ref={contentRef} style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content">
-            <div className="ledgr-glow-a" style={{zIndex:0,pointerEvents:"none",opacity:0.8}}/>
-            <div className="ledgr-glow-b" style={{zIndex:0,pointerEvents:"none",opacity:0.6}}/>
+            <div className="aurora-glow-a"/>
+            <div className="aurora-glow-b"/>
             <div key={view} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
           </div>
         </div>

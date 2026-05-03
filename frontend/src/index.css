@@ -18,7 +18,7 @@ body {
   --surface-solid: #1a1612;
   --bg-solid:      #0f0e0d;
   --card:          #181511;
-  --card-hi:       #231f1a;   /* ~9 steps above card */
+  --card-hi:       #231f1a;   /* first gradient ~22 steps */
   --border:        transparent;
   --border2:       rgba(255,255,255,0.06);
   --cyan:          #c9956a;

@@ -522,9 +522,12 @@ function useDashboardOrder(defaultOrder, scheduleSaveRef) {
   const [dragging,  setDragging]  = useState(null);
   const draggingRef = useRef(null); // ref so onDragEnter closure is never stale
 
-  useEffect(() => {
+  const prevKeyRef = useRef(defaultOrder.join(','));
+  const key = defaultOrder.join(',');
+  if (key !== prevKeyRef.current) {
+    prevKeyRef.current = key;
     setLiveOrder(defaultOrder);
-  }, [defaultOrder.join(',')]);
+  }
 
   function reorder(arr, fromId, toId) {
     const next = [...arr];
@@ -2844,6 +2847,7 @@ function AppInner({ isDemo = false }) {
   const [theme,         setTheme]         = useState({});
   const [daniData,      setDaniData]      = useState({ tab1:{ selectedAccountId:null, wishlist:[] }, tab2:{ selectedAccountId:null, wishlist:[] } });
   const [goals, setGoals] = useState([]);
+  const [customAccountNames, setCustomAccountNames] = useState({});
   const [dashboardCardOrder, setDashboardCardOrder] = useState(["spending","budget","action","goals","upcoming"]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* -- Demo mode: inject fake data once on mount -- */
@@ -2870,6 +2874,12 @@ function AppInner({ isDemo = false }) {
       if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
       if (data.goals)              setGoals(data.goals);
       if (Array.isArray(data.dashboardCardOrder)) setDashboardCardOrder(data.dashboardCardOrder);
+      if (data.customAccountNames && Object.keys(data.customAccountNames).length) {
+        setCustomAccountNames(data.customAccountNames);
+        setAccounts(prev => prev.map(a =>
+          data.customAccountNames[a.id] ? { ...a, name: data.customAccountNames[a.id] } : a
+        ));
+      }
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
@@ -3599,7 +3609,7 @@ function AppInner({ isDemo = false }) {
             ...(byPlaidId[pa.account_id] || { id: "a" + pa.account_id }),
             plaidId: pa.account_id,
             plaidItemId: pa.item_id,
-            name: byPlaidId[pa.account_id]?.name || pa.name,
+            name: customAccountNames['a'+pa.account_id] || byPlaidId[pa.account_id]?.name || pa.name,
             balance: pa.balance,
             available: pa.available,
             type: cap(pa.subtype || pa.type),
@@ -3729,7 +3739,10 @@ function AppInner({ isDemo = false }) {
     } else {
       const patch = { name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type };
       setAccounts(p => p.map(a => a.id === editTarget.id ? {...a, ...patch} : a));
-      api.updateAccount(editTarget.id, patch).catch(console.error);
+      api.updateAccount(editTarget.id, patch).catch(e => console.warn("PATCH accounts failed:", e.message));
+      const updatedNames = { ...customAccountNames, [editTarget.id]: acctForm.name.trim() };
+      setCustomAccountNames(updatedNames);
+      scheduleSaveRef.current?.({ customAccountNames: updatedNames });
     }
     setModal(null); showToast("Account saved");
   }

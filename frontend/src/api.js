@@ -276,5 +276,13 @@ export function getAiInsights(context) {
   });
 }
 
-
+export function getStatusMessages() {
+  return request("/api/status-messages");
+}
+export function sendStatusMessage(text) {
+  return request("/api/status-messages", { method: "POST", body: JSON.stringify({ text }) });
+}
+export function deleteStatusMessage(id) {
+  return request(`/api/status-messages/${id}`, { method: "DELETE" });
+}
 

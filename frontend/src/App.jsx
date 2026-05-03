@@ -121,9 +121,14 @@ button {
       border-color: var(--grad-b) !important;
     }
 
-    /* -- Aurora gradient border on cards -- */
+    /* -- Aurora gradient border — global card glow -- */
+    .ledgr-content > .ledgr-view-enter div[style*="border-radius"] {
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    /* Explicit aurora card class for gradient border via ::before */
     .ledgr-aurora-card {
       position: relative;
+      isolation: isolate;
     }
     .ledgr-aurora-card::before {
       content: '';
@@ -135,19 +140,57 @@ button {
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
-      opacity: 0.25;
+      opacity: 0.3;
       pointer-events: none;
       transition: opacity 0.2s;
+      z-index: 0;
     }
-    .ledgr-aurora-card:hover::before { opacity: 0.5; }
+    .ledgr-aurora-card:hover::before { opacity: 0.55; }
 
     /* -- Aurora stat glow accent -- */
     .ledgr-stat-accent {
       color: var(--cyan);
       text-shadow: 0 0 20px var(--glow-color);
     }
-    .ledgr-stat-accent-green { color: var(--green); }
-    .ledgr-stat-accent-red   { color: var(--red);   }
+    .ledgr-stat-accent-green { color: var(--green); text-shadow: 0 0 16px rgba(0,230,118,0.3); }
+    .ledgr-stat-accent-red   { color: var(--red);   text-shadow: 0 0 16px rgba(255,77,109,0.3); }
+
+    /* -- Aurora header bar -- */
+    .ledgr-aurora-header {
+      background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .ledgr-aurora-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--grad-a), var(--grad-b), transparent);
+      opacity: 0.4;
+    }
+
+    /* -- Topbar gradient line -- */
+    .ledgr-topbar {
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .ledgr-topbar::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--grad-a) 30%, var(--grad-b) 60%, transparent 100%);
+      opacity: 0.5;
+    }
+
+    /* -- Stat number glow -- */
+    .ledgr-num-glow {
+      background: linear-gradient(135deg, var(--grad-a), var(--grad-b));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
 
     /* -- Stat number count-up shimmer -- */
     @keyframes ledgr-stat-in {
@@ -369,11 +412,11 @@ button {
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 12px", position:"relative" },
+  card:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"10px 12px", position:"relative", boxShadow:"0 0 0 1px var(--border), 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"var(--card)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"12px 14px", position:"relative", overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
@@ -1584,7 +1627,7 @@ function Paywall({ onUpgrade }) {
 
 function SettingsSection({ title, children }) {
   return (
-    <div style={{ ...S.card, marginBottom:16 }}>
+    <div className="ledgr-aurora-card" style={{ ...S.card, marginBottom:16 }}>
       <div style={S.cardTitle}>{title}</div>
       {children}
     </div>
@@ -2372,7 +2415,7 @@ function AdminPanel() {
       {/* Messages Tab */}
       {adminTab === "messages" && (
         <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:640}}>
-          <div style={{...S.card,padding:20}}>
+          <div className="ledgr-aurora-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:8}}>Send Status Message</div>
             <div style={{fontSize:11,color:"var(--t3)",marginBottom:12,lineHeight:1.5}}>
               Appears as a modal to all users on next login. Expires after 24 hours. Users can dismiss with "Don't show again".
@@ -2384,7 +2427,7 @@ function AdminPanel() {
               {msgSending?"Sending...":"Send Message"}
             </button>
           </div>
-          <div style={{...S.card,padding:20}}>
+          <div className="ledgr-aurora-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:12}}>Message History</div>
             {msgLoading ? (
               <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",padding:"20px 0"}}>Loading...</div>
@@ -2435,7 +2478,7 @@ function AdminPanel() {
       {error && <div style={{color:"var(--red)",fontSize:13,marginBottom:16,padding:"10px 14px",background:"#ff4d6d11",borderRadius:"var(--radius)",border:"1px solid #ff4d6d33"}}>{error}</div>}
 
       {/* Users list */}
-      <div style={{...S.card,padding:0,overflow:"hidden"}}>
+      <div className="ledgr-aurora-card" style={{...S.card,padding:0,overflow:"hidden"}}>
         <div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
@@ -4289,7 +4332,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
+    <div className="ledgr-aurora-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -4374,7 +4417,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const CashFlowCard = (
-    <div style={{ ...S.card }}>
+    <div className="ledgr-aurora-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Cash Flow</div>
       </div>
@@ -4445,7 +4488,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const OverspendingHighlightsCard = (
-    <div style={{ ...S.card }}>
+    <div className="ledgr-aurora-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
         <div style={S.cardTitle}>Overspending Highlights</div>
       </div>
@@ -4571,7 +4614,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       budget: (
-        <div style={{...S.card, height:"100%", boxSizing:"border-box"}}>
+        <div className="ledgr-aurora-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
@@ -4602,7 +4645,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       action: (
-        <div style={S.card}>
+        <div style={S.card} className="ledgr-aurora-card">
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:22}}>
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
@@ -4633,7 +4676,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       goals: goals.length === 0 ? null : (
-        <div style={S.card}>
+        <div style={S.card} className="ledgr-aurora-card">
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
             <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
@@ -4672,7 +4715,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       upcoming: upcoming.length === 0 ? null : (
-        <div style={S.card}>
+        <div style={S.card} className="ledgr-aurora-card">
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
@@ -4702,7 +4745,7 @@ function AppInner({ isDemo = false }) {
       {/* Month bar */}
       {!isMobile && (
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
-          <div style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
+          <div className="ledgr-aurora-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
               <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -4722,7 +4765,7 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
       {isMobile && (
-        <div style={{...S.card,padding:"10px 14px"}}>
+        <div className="ledgr-aurora-card" style={{...S.card,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
             <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
             <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -5148,7 +5191,7 @@ function AppInner({ isDemo = false }) {
       )}
 
       {categories.length === 0 ? (
-        <div style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
+        <div className="ledgr-aurora-card" style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
       ) : (
         <>
           {isMobile ? (
@@ -5531,7 +5574,7 @@ function AppInner({ isDemo = false }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
-                <div style={{ ...S.card }}>
+                <div className="ledgr-aurora-card" style={{ ...S.card }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                     <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
                   </div>
@@ -5602,7 +5645,7 @@ function AppInner({ isDemo = false }) {
       left={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {accounts.length===0
-            ? <div style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+            ? <div className="ledgr-aurora-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
             : (()=>{
                 // Group by Plaid connection (plaidItemId) so separate logins to the
                 // same bank appear as separate groups. Manual accounts go under "Manual".
@@ -5694,8 +5737,8 @@ function AppInner({ isDemo = false }) {
       right={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {plaidItems.length>0&&(
-            <div style={{...S.card,padding:"10px 14px"}}>
-              <div style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
+            <div className="ledgr-aurora-card" style={{...S.card,padding:"10px 14px"}}>
+              <div className="ledgr-aurora-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {plaidItems.map(item=>{
                   const isStale = staleItemIds.has(item.item_id);
@@ -5849,13 +5892,13 @@ function AppInner({ isDemo = false }) {
             )}
 
             {rules.length === 0 ? (
-              <div style={{...S.card,textAlign:"center",padding:48}}>
+              <div className="ledgr-aurora-card" style={{...S.card,textAlign:"center",padding:48}}>
                 <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
                 <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
                 <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
               </div>
             ) : filtered.length === 0 ? (
-              <div style={{...S.card,textAlign:"center",padding:32}}>
+              <div className="ledgr-aurora-card" style={{...S.card,textAlign:"center",padding:32}}>
                 <div style={{fontSize:13,color:"var(--t3)"}}>No rules match "{ruleSearch}"</div>
               </div>
             ) : (
@@ -6005,7 +6048,7 @@ function AppInner({ isDemo = false }) {
           </button>
         </div>
 
-        <div style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
+        <div className="ledgr-aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
           <div
             style={{
               display: "grid",
@@ -6135,7 +6178,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {acctEntries.length > 0 && (
-          <div style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="ledgr-aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)" }}>
                 {acctLabel}
@@ -6211,7 +6254,7 @@ function AppInner({ isDemo = false }) {
         )}
 
         {calendarDay?.day && selectedDayTxns.length > 0 && (
-          <div style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="ledgr-aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>
                 {selectedDayDateLabel}
@@ -6290,7 +6333,7 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
-        <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+        <div className="ledgr-aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
           <div
             style={{
               padding: "12px 16px",
@@ -6688,7 +6731,7 @@ function AppInner({ isDemo = false }) {
 
             {/* Recurring list card now matches calendar width */}
             {recurringTxns.length > 0 && (
-              <div style={{ ...S.card, minWidth: 0 }}>
+              <div className="ledgr-aurora-card" style={{ ...S.card, minWidth: 0 }}>
                 <div style={S.cardTitle}>All Recurring Transactions</div>
 
                 {[...recurringTxns]
@@ -7566,7 +7609,7 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Mobile top bar */}
-        <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
+        <div className="ledgr-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none"}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
@@ -7574,7 +7617,7 @@ function AppInner({ isDemo = false }) {
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
               <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
             </button>
-            <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,color:"var(--cyan)",lineHeight:1,marginTop:2}} className="ledgr-logo-pulse">ℓ</span>
+            <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,marginTop:2,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span>
             <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
@@ -7680,7 +7723,7 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Desktop top bar */}
-        <div style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
+        <div className="ledgr-topbar" style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"none"}}>
           <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t3)",letterSpacing:"-0.2px"}}>
             {NAV.find(n=>n.id===view)?.label}
           </div>
@@ -7759,17 +7802,19 @@ function AppInner({ isDemo = false }) {
           {/* Persistent sidebar */}
           <aside style={{
             width:220,flexShrink:0,
-            background:"var(--surface-solid)",
-            borderRight:"1px solid var(--border)",
+            background:"rgba(13,17,48,0.85)",
+            borderRight:"1px solid var(--border2)",
             display:"flex",flexDirection:"column",
-            backdropFilter:"blur(20px)",
+            backdropFilter:"blur(24px)",
+            WebkitBackdropFilter:"blur(24px)",
+            boxShadow:"4px 0 32px rgba(0,0,0,0.4), inset -1px 0 0 rgba(167,139,250,0.1)",
           }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
           {/* Content with Aurora glow blobs */}
           <div ref={contentRef} style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content">
-            <div className="ledgr-glow-a" style={{zIndex:0,pointerEvents:"none"}}/>
-            <div className="ledgr-glow-b" style={{zIndex:0,pointerEvents:"none"}}/>
+            <div className="ledgr-glow-a" style={{zIndex:0,pointerEvents:"none",opacity:0.8}}/>
+            <div className="ledgr-glow-b" style={{zIndex:0,pointerEvents:"none",opacity:0.6}}/>
             <div key={view} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
           </div>
         </div>

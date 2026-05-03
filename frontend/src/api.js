@@ -46,8 +46,11 @@ async function request(path, options = {}) {
   });
 
   if (res.status === 401) {
+    const hadToken = !!getToken();
     clearToken();
-    window.location.reload();
+    if (hadToken) {
+      window.location.reload(); // token was revoked — fresh load will show login
+    }
     return;
   }
 
@@ -273,15 +276,5 @@ export function getAiInsights(context) {
   });
 }
 
-export async function getActiveMessage() {
-  return request("/api/messages/active");
-}
-export async function getStatusMessages() {
-  return request("/api/admin/messages");
-}
-export async function sendStatusMessage(text) {
-  return request("/api/admin/messages", { method: "POST", body: JSON.stringify({ text }) });
-}
-export async function deleteStatusMessage(id) {
-  return request(`/api/admin/messages/${id}`, { method: "DELETE" });
-}
+
+

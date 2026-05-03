@@ -17,7 +17,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /* ── Shared components ────────────────────────────────────────────── */
 function Card({ children, style }) {
-  return <div className="aurora-card" style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"var(--radius)", padding:"10px 14px", ...style }}>{children}</div>;
+  return <div className="obsidian-card" style={{ background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:"var(--radius)", padding:"10px 14px", ...style }}>{children}</div>;
 }
 function SectionHead({ title, sub }) {
   return (
@@ -260,8 +260,8 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
           {pickerOpen && (
             <>
               <div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={() => setPickerOpen(false)} />
-              <div className="aurora-card" style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
-                background:"rgba(255,255,255,0.03)", border:"1px solid var(--border2)", borderRadius:12,
+              <div className="obsidian-card" style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
+                background:"var(--card)", border:"1px solid var(--border2)", borderRadius:12,
                 boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
                 {PACE_RANGES.map(r => (
                   <button key={r.key}
@@ -1462,7 +1462,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                           <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", marginBottom:2 }}>{ins.title}</div>
                           <div style={{ fontSize:12, color:"var(--t2)", lineHeight:1.5 }}>{ins.body}</div>
                           {ins.suggestion && (
-                            <div className="aurora-card" style={{ marginTop:8, background:"rgba(255,255,255,0.03)", borderRadius:"var(--radius)", padding:"8px 10px", border:"1px solid rgba(255,255,255,0.07)" }}>
+                            <div className="obsidian-card" style={{ marginTop:8, background:"var(--card)", borderRadius:"var(--radius)", padding:"8px 10px", border:"1px solid rgba(255,255,255,0.07)" }}>
                               <div style={{ display:"flex", gap:8, alignItems:"flex-start" }}>
                                 <span style={{ fontSize:11, color:"var(--cyan)", flexShrink:0, marginTop:1 }}>↗</span>
                                 <div style={{ fontSize:11, color:"var(--t2)", lineHeight:1.5, flex:1 }}>{ins.suggestion}</div>

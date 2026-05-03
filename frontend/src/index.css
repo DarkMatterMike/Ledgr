@@ -1,40 +1,42 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body, #root { height: 100%; background: #07091a; }
+html, body, #root { height: 100%; background: #0f0e0d; }
 
 :root {
-  --bg:          #07091a;
-  --surface:     #0d1130;
-  --surface-solid: #0d1130;
-  --bg-solid:    #07091a;
-  --card:        #111628;
-  --card-glass:  rgba(255,255,255,0.03);
-  --card-border: rgba(255,255,255,0.07);
-  --border:      #1c2545;
-  --border2:     #263060;
-  --cyan:        #00d4ff;
-  --cyan-dim:    #00d4ff18;
-  --green:       #00e676;
-  --green-dim:   #00e67618;
-  --red:         #ff4d6d;
-  --red-dim:     #ff4d6d18;
-  --amber:       #fbbf24;
-  --amber-dim:   #fbbf2418;
-  --purple:      #a78bfa;
-  --t1:          #e2eaf8;
-  --t2:          #7a8fa8;
-  --t3:          #3d5070;
-  --font-disp:   'Syne', sans-serif;
-  --font-body:   'DM Sans', sans-serif;
-  --font-mono:   'JetBrains Mono', monospace;
-  --font-script: 'Dancing Script', cursive;
-  --radius:      8px;
-  --radius-lg:   14px;
-  --grad-a:      #a78bfa;
-  --grad-b:      #60a5fa;
-  --grad-c:      #34d399;
-  --glow-color:  rgba(167,139,250,0.12);
+  /* Obsidian defaults — warm near-black palette */
+  --bg:            #0f0e0d;
+  --surface:       #161412;
+  --surface-solid: #161412;
+  --bg-solid:      #0f0e0d;
+  --card:          #161412;
+  --card-glass:    #161412;
+  --card-border:   rgba(255,255,255,0.07);
+  --border:        rgba(255,255,255,0.07);
+  --border2:       rgba(255,255,255,0.1);
+  --cyan:          #c9956a;
+  --cyan-dim:      rgba(201,149,106,0.12);
+  --green:         #6db88a;
+  --green-dim:     rgba(109,184,138,0.15);
+  --red:           #e07070;
+  --red-dim:       rgba(224,112,112,0.15);
+  --amber:         #c9956a;
+  --amber-dim:     rgba(201,149,106,0.15);
+  --purple:        #c9956a;
+  --t1:            #e8ddd0;
+  --t2:            rgba(232,221,208,0.55);
+  --t3:            rgba(232,221,208,0.3);
+  --font-disp:     'Syne', sans-serif;
+  --font-body:     'DM Sans', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+  --font-script:   'Dancing Script', cursive;
+  --radius:        8px;
+  --radius-lg:     12px;
+  --grad-a:        #c9956a;
+  --grad-b:        #e8ddd0;
+  --grad-c:        #6db88a;
+  --glow-color:    rgba(201,149,106,0.1);
+  --accent-rgb:    201,149,106;
 }
 
 body { font-family: var(--font-body); color: var(--t1); overflow-x: hidden; }

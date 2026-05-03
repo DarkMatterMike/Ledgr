@@ -39,10 +39,10 @@ function useIsMobile() {
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ─── AURORA DESIGN SYSTEM ──────────────────────────────── */
+    /* ─── OBSIDIAN DESIGN SYSTEM ──────────────────────────── */
 
     /* Layout */
-    .ledgr-content     { padding: 20px; position: relative; }
+    .ledgr-content     { padding: 20px; }
     .ledgr-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
     .ledgr-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
     .ledgr-acct-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -55,126 +55,111 @@ function useIsMobile() {
       .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 8px !important; justify-content: center !important; }
     }
 
-    /* ── Sidebar: glass panel ── */
-    .aurora-nav {
-      background: rgba(255,255,255,0.025);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-right: 1px solid rgba(255,255,255,0.05);
+    /* ── Sidebar ── */
+    .obsidian-nav {
+      background: var(--surface);
+      border-right: 1px solid rgba(255,255,255,0.06);
     }
 
-    /* ── Nav items: dot, label, right-border accent on active ── */
-    .aurora-nav-item {
+    /* ── Nav items ── */
+    .obsidian-nav-item {
       display: flex; align-items: center; gap: 10px;
-      padding: 10px 20px; font-size: 13px; font-weight: 400;
-      color: rgba(255,255,255,0.4);
-      cursor: pointer; transition: all 0.2s;
-      background: transparent; border: none; border-right: 2px solid transparent;
-      width: 100%; text-align: left; font-family: var(--font-body);
+      padding: 9px 20px; font-size: 13px; font-weight: 400;
+      color: var(--t2);
+      cursor: pointer; transition: all 0.15s;
+      background: transparent; border: none;
+      border-right: 2px solid transparent;
+      width: 100%; text-align: left;
+      font-family: var(--font-body);
       box-sizing: border-box;
     }
-    .aurora-nav-item:hover { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.03); }
-    .aurora-nav-item.active {
-      color: #fff;
-      background: rgba(167,139,250,0.12);
-      border-right: 2px solid var(--grad-a, #a78bfa);
+    .obsidian-nav-item:hover {
+      color: var(--t1);
+      background: rgba(255,255,255,0.03);
+    }
+    .obsidian-nav-item.active {
+      color: var(--t1);
+      background: rgba(var(--accent-rgb, 201,149,106), 0.08);
+      border-right-color: var(--cyan);
       font-weight: 500;
     }
-    .aurora-nav-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: currentColor; opacity: 0.5; flex-shrink: 0; transition: all 0.2s;
+    .obsidian-nav-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: currentColor; opacity: 0.4; flex-shrink: 0;
+      transition: all 0.15s;
     }
-    .aurora-nav-item.active .aurora-nav-dot {
-      background: var(--grad-a, #a78bfa);
+    .obsidian-nav-item.active .obsidian-nav-dot {
+      background: var(--cyan);
       opacity: 1;
-      box-shadow: 0 0 8px var(--grad-a, #a78bfa);
+      box-shadow: 0 0 6px var(--cyan);
     }
 
-    /* ── Cards: glass surface + gradient border via ::before mask ── */
-    .aurora-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 14px;
+    /* ── Cards: solid warm surface, clean border ── */
+    .obsidian-card {
+      background: var(--card) !important;
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-radius: 12px !important;
       position: relative;
-      overflow: hidden;
     }
-    .aurora-card::before {
-      content: '';
-      position: absolute; inset: 0; border-radius: 14px; padding: 1px;
-      background: linear-gradient(135deg, rgba(167,139,250,0.4), transparent 60%);
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events: none;
-    }
+    .obsidian-card::before { display: none !important; }
 
-    /* ── Glow blobs ── */
-    .aurora-glow-a {
-      position: absolute; width: 500px; height: 500px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%);
-      pointer-events: none; top: -150px; right: -100px; z-index: 0;
-    }
-    .aurora-glow-b {
-      position: absolute; width: 350px; height: 350px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(52,211,153,0.06) 0%, transparent 70%);
-      pointer-events: none; bottom: 0; left: 100px; z-index: 0;
-    }
-
-    /* ── Topbar gradient accent line ── */
-    .aurora-topbar {
+    /* ── Topbar accent line ── */
+    .obsidian-topbar {
       position: relative;
       border-bottom: 1px solid rgba(255,255,255,0.06) !important;
     }
-    .aurora-topbar::after {
-      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--grad-a, #a78bfa) 30%, var(--grad-b, #60a5fa) 70%, transparent);
-      opacity: 0.5;
+    .obsidian-topbar::after {
+      content: ''; position: absolute;
+      bottom: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: 0.3;
     }
 
-    /* ─── ANIMATIONS ───────────────────────────────────────── */
-    @keyframes aurora-view-in {
+    /* ─── ANIMATIONS ─────────────────────────────── */
+    @keyframes obsidian-view-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ledgr-view-enter { animation: obsidian-view-in 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+
+    @keyframes ledgr-card-up {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .ledgr-view-enter { animation: aurora-view-in 0.3s cubic-bezier(0.22,1,0.36,1) both; }
-
-    @keyframes ledgr-card-up {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .ledgr-card-anim { animation: ledgr-card-up 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-card-anim { animation: ledgr-card-up 0.35s cubic-bezier(0.22,1,0.36,1) both; }
     .ledgr-card-anim:nth-child(1)  { animation-delay: 0ms; }
-    .ledgr-card-anim:nth-child(2)  { animation-delay: 60ms; }
-    .ledgr-card-anim:nth-child(3)  { animation-delay: 120ms; }
-    .ledgr-card-anim:nth-child(4)  { animation-delay: 180ms; }
-    .ledgr-card-anim:nth-child(5)  { animation-delay: 240ms; }
-    .ledgr-card-anim:nth-child(n+6){ animation-delay: 300ms; }
+    .ledgr-card-anim:nth-child(2)  { animation-delay: 50ms; }
+    .ledgr-card-anim:nth-child(3)  { animation-delay: 100ms; }
+    .ledgr-card-anim:nth-child(4)  { animation-delay: 150ms; }
+    .ledgr-card-anim:nth-child(5)  { animation-delay: 200ms; }
+    .ledgr-card-anim:nth-child(n+6){ animation-delay: 250ms; }
 
     @keyframes ledgr-bar-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-    .ledgr-bar { transform-origin: left center; animation: ledgr-bar-fill 1.1s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-bar { transform-origin: left center; animation: ledgr-bar-fill 1s cubic-bezier(0.22,1,0.36,1) both; }
     .ledgr-bar:nth-child(1)  { animation-delay: 60ms; }
-    .ledgr-bar:nth-child(2)  { animation-delay: 160ms; }
-    .ledgr-bar:nth-child(3)  { animation-delay: 260ms; }
-    .ledgr-bar:nth-child(4)  { animation-delay: 360ms; }
-    .ledgr-bar:nth-child(5)  { animation-delay: 460ms; }
-    .ledgr-bar:nth-child(n+6){ animation-delay: 560ms; }
+    .ledgr-bar:nth-child(2)  { animation-delay: 150ms; }
+    .ledgr-bar:nth-child(3)  { animation-delay: 240ms; }
+    .ledgr-bar:nth-child(4)  { animation-delay: 330ms; }
+    .ledgr-bar:nth-child(5)  { animation-delay: 420ms; }
+    .ledgr-bar:nth-child(n+6){ animation-delay: 500ms; }
 
     @keyframes ledgr-donut-seg-in { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
-    .ledgr-donut-seg { transform-origin: center; transform-box: fill-box; animation: ledgr-donut-seg-in 0.5s cubic-bezier(0.22,1,0.36,1) both; }
-    .ledgr-donut-seg:nth-child(1) { animation-delay: 80ms; }
-    .ledgr-donut-seg:nth-child(2) { animation-delay: 180ms; }
-    .ledgr-donut-seg:nth-child(3) { animation-delay: 280ms; }
-    .ledgr-donut-seg:nth-child(4) { animation-delay: 360ms; }
-    .ledgr-donut-seg:nth-child(5) { animation-delay: 440ms; }
+    .ledgr-donut-seg { transform-origin: center; transform-box: fill-box; animation: ledgr-donut-seg-in 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-donut-seg:nth-child(1) { animation-delay: 60ms; }
+    .ledgr-donut-seg:nth-child(2) { animation-delay: 150ms; }
+    .ledgr-donut-seg:nth-child(3) { animation-delay: 240ms; }
+    .ledgr-donut-seg:nth-child(4) { animation-delay: 320ms; }
+    .ledgr-donut-seg:nth-child(5) { animation-delay: 400ms; }
 
     @keyframes ledgr-ring-fill { from { stroke-dashoffset: 200; } }
-    .ledgr-ring-fill { animation: ledgr-ring-fill 1.2s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-ring-fill { animation: ledgr-ring-fill 1.1s cubic-bezier(0.22,1,0.36,1) both; }
 
-    @keyframes ledgr-stat-in { from { opacity:0; transform:scale(0.88) translateY(6px); } to { opacity:1; transform:scale(1) translateY(0); } }
-    .ledgr-stat-val { animation: ledgr-stat-in 0.45s cubic-bezier(0.22,1,0.36,1) both; }
-    .ledgr-stat-val:nth-child(1) { animation-delay: 80ms; }
-    .ledgr-stat-val:nth-child(2) { animation-delay: 160ms; }
-    .ledgr-stat-val:nth-child(3) { animation-delay: 240ms; }
-    .ledgr-stat-val:nth-child(4) { animation-delay: 320ms; }
+    @keyframes ledgr-stat-in { from { opacity:0; transform:scale(0.9) translateY(4px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .ledgr-stat-val { animation: ledgr-stat-in 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-stat-val:nth-child(1) { animation-delay: 60ms; }
+    .ledgr-stat-val:nth-child(2) { animation-delay: 130ms; }
+    .ledgr-stat-val:nth-child(3) { animation-delay: 200ms; }
+    .ledgr-stat-val:nth-child(4) { animation-delay: 270ms; }
 
     @keyframes ledgr-bell-ring {
       0%,70%,100% { transform: rotate(0deg); }
@@ -185,26 +170,26 @@ function useIsMobile() {
     .ledgr-bell-ring { animation: ledgr-bell-ring 2.4s ease-in-out infinite; transform-origin: top center; display: inline-flex; }
 
     @keyframes ledgr-notif-enter { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:translateX(0); } }
-    .ledgr-notif-enter { animation: ledgr-notif-enter 0.25s ease both; }
+    .ledgr-notif-enter { animation: ledgr-notif-enter 0.22s ease both; }
 
     @keyframes ledgr-overlay-in { from { opacity:0; } to { opacity:1; } }
-    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.18s ease both; }
+    .ledgr-overlay-anim { animation: ledgr-overlay-in 0.16s ease both; }
 
-    @keyframes ledgr-modal-in { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
-    .ledgr-modal-anim { animation: ledgr-modal-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+    @keyframes ledgr-modal-in { from { opacity:0; transform:scale(0.97) translateY(6px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .ledgr-modal-anim { animation: ledgr-modal-in 0.2s cubic-bezier(0.22,1,0.36,1) both; }
 
-    @keyframes ledgr-logo-pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+    @keyframes ledgr-logo-pulse { 0%,100% { opacity:1; } 50% { opacity:0.75; } }
     .ledgr-logo-pulse { animation: ledgr-logo-pulse 3s ease-in-out infinite; }
 
     @keyframes ledgr-pulse-glow {
-      0%,100% { box-shadow: 0 0 0 0 rgba(0,212,255,0); }
-      50%      { box-shadow: 0 0 0 4px rgba(0,212,255,0.15); }
+      0%,100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+      50%      { box-shadow: 0 0 0 3px rgba(201,149,106,0.2); }
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
-    .ledgr-drag-handle { opacity: 0.25; transition: opacity 0.15s, color 0.15s; }
+    .ledgr-drag-handle { opacity: 0.2; transition: opacity 0.15s, color 0.15s; }
     .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
-    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.6; }
+    [data-card-id]:hover .ledgr-drag-handle { opacity: 0.5; }
 
     .ledgr-chevron { display: inline-block; transition: transform 0.2s; font-size: 10px; }
     .ledgr-chevron-open { transform: rotate(180deg); }
@@ -212,8 +197,8 @@ function useIsMobile() {
     @keyframes ledgr-expand { from { opacity:0; max-height:0; } to { opacity:1; max-height:600px; } }
     .ledgr-expand { animation: ledgr-expand 0.22s ease both; overflow: hidden; }
 
-    .ledgr-card-hover { transition: transform 0.2s ease; cursor: pointer; }
-    .ledgr-card-hover:hover { transform: translateY(-2px); }
+    .ledgr-card-hover { transition: transform 0.2s ease, border-color 0.2s ease; cursor: pointer; }
+    .ledgr-card-hover:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.15) !important; }
 
     .ledgr-content::-webkit-scrollbar { width: 3px; }
     .ledgr-content::-webkit-scrollbar-track { background: transparent; }
@@ -224,38 +209,39 @@ function useIsMobile() {
 
 
 
+
 /* --- Styles ------------------------------------------------------- */
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
-  card:         { background:"var(--card-glass, rgba(255,255,255,0.03))", border:"1px solid var(--card-border, rgba(255,255,255,0.07))", borderRadius:14, padding:"10px 12px", position:"relative" },
+  card:         { background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 14px", position:"relative" },
   cardTitle:    { fontFamily:"var(--font-disp)", fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:"1.5px", color:"var(--t3)", marginBottom:10 },
   grid2:        { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
   grid4:        { display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 },
-  stat:         { background:"var(--card-glass, rgba(255,255,255,0.03))", border:"1px solid var(--card-border, rgba(255,255,255,0.07))", borderRadius:14, padding:"12px 14px", position:"relative", overflow:"hidden" },
+  stat:         { background:"var(--card)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"12px 14px", position:"relative", overflow:"hidden" },
   statLabel:    { fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:6 },
   statValue:    { fontFamily:"var(--font-mono)", fontSize:22, fontWeight:500 },
   statSub:      { fontSize:11, color:"var(--t2)", marginTop:3 },
   btn: (variant="ghost", sm=false) => {
     const base = { display:"inline-flex", alignItems:"center", gap:5, padding:sm?"3px 8px":"5px 11px", borderRadius:"var(--radius)", fontSize:12, fontWeight:500, cursor:"pointer", border:"1px solid transparent", transition:"all 0.15s", userSelect:"none", lineHeight:"1.4", whiteSpace:"nowrap" };
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
-    if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"#ff4d6d44" };
-    if (variant==="amber")   return { ...base, background:"#fbbf2422", color:"var(--amber)", borderColor:"#fbbf2444" };
+    if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" };
+    if (variant==="amber")   return { ...base, background:"var(--amber-dim)", color:"var(--amber)", borderColor:"rgba(201,149,106,0.3)" };
     return { ...base, background:"transparent", color:"var(--t2)", borderColor:"var(--border2)" };
   },
   input:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
   select:       { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
   field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
-  overlay:      { position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(8px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
-  modal:        { background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:14, padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
+  overlay:      { position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(6px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
+  modal:        { background:"var(--surface)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:14, padding:20, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto" },
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:5, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"22", color, border:`1px solid ${color}33`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", border:"1px solid var(--border2)", borderRadius:14, padding:"10px 16px", fontSize:12, color:"var(--t1)", backdropFilter:"blur(12px)" },
-  monthBar:     { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:14, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
+  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
+  monthBar:     { background:"var(--surface)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },
-  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid var(--border)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
-  td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", borderBottom:"1px solid var(--border)", verticalAlign:"middle" },
+  th:           { fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700, padding:"6px 10px", textAlign:"left", whiteSpace:"nowrap", fontFamily:"var(--font-disp)", borderBottom:"1px solid rgba(255,255,255,0.07)", position:"sticky", top:0, background:"var(--surface)", zIndex:2 },
+  td:           { padding:"8px 10px", fontSize:12, color:"var(--t2)", borderBottom:"1px solid rgba(255,255,255,0.05)", verticalAlign:"middle" },
   filterRow:    { display:"flex", gap:8, flexWrap:"wrap", marginBottom:10, alignItems:"center" },
 };
 
@@ -1049,15 +1035,16 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
       <div style={{padding:"20px 20px 28px",flexShrink:0}}>
         <div style={{
           fontFamily:"'Syne', sans-serif",fontSize:22,fontWeight:800,lineHeight:1,
-          background:"linear-gradient(135deg, var(--grad-a, #a78bfa), var(--grad-b, #60a5fa))",
-          WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
-        }} className="ledgr-logo-pulse">ℓ ledgr</div>
+          color:"var(--t1)",letterSpacing:"-0.5px",
+        }} className="ledgr-logo-pulse">
+          ℓ<span style={{color:"var(--cyan)"}}>.</span>ledgr
+        </div>
       </div>
       <nav style={{flex:1,display:"flex",flexDirection:"column",overflowY:"auto"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}
-            className={`aurora-nav-item${view===n.id?" active":""}`}>
-            <div className="aurora-nav-dot"/>
+            className={`obsidian-nav-item${view===n.id?" active":""}`}>
+            <div className="obsidian-nav-dot"/>
             <span>{n.label}</span>
           </button>
         ))}
@@ -1065,14 +1052,14 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
         {currentUser?.role === "owner" && (
           <div style={{marginTop:8,borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:8,display:"flex",flexDirection:"column"}}>
             <button onClick={()=>onNav("dani")}
-              className={`aurora-nav-item${view==="dani"?" active":""}`}
+              className={`obsidian-nav-item${view==="dani"?" active":""}`}
               style={view==="dani"?{borderRightColor:"#f9a8d4",background:"rgba(249,168,212,0.1)",color:"#f9a8d4"}:{}}>
-              <div className="aurora-nav-dot" style={view==="dani"?{background:"#f9a8d4",opacity:1,boxShadow:"0 0 8px #f9a8d4"}:{}}/>
+              <div className="obsidian-nav-dot" style={view==="dani"?{background:"#f9a8d4",opacity:1,boxShadow:"0 0 8px #f9a8d4"}:{}}/>
               <span>Dani</span>
             </button>
             <button onClick={()=>onNav("admin")}
-              className={`aurora-nav-item${view==="admin"?" active":""}`}>
-              <div className="aurora-nav-dot"/>
+              className={`obsidian-nav-item${view==="admin"?" active":""}`}>
+              <div className="obsidian-nav-dot"/>
               <span>Admin</span>
             </button>
           </div>
@@ -1410,7 +1397,7 @@ function Paywall({ onUpgrade }) {
 
 function SettingsSection({ title, children }) {
   return (
-    <div className="aurora-card" style={{ ...S.card, marginBottom:16 }}>
+    <div className="obsidian-card" style={{ ...S.card, marginBottom:16 }}>
       <div style={S.cardTitle}>{title}</div>
       {children}
     </div>
@@ -1755,19 +1742,17 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       <SettingsSection title="Appearance">
         {(()=>{
           const PRESETS = [
-            { name:"Aurora",      bg:"#07091a", surface:"#0d1130", card:"#111628", border:"#1c2545", border2:"#263060", accent:"#a78bfa", t1:"#e8eaff", t2:"#7a8fa8", t3:"#3d5070" },
-            { name:"Ledgr Dark",  bg:"#06090f", surface:"#0c1220", card:"#101826", border:"#1a2640", border2:"#243452", accent:"#00d4ff", t1:"#e2eaf8", t2:"#7a8fa8", t3:"#3d5070" },
-            { name:"Midnight",    bg:"#0a0a0f", surface:"#111120", card:"#181828", border:"#232340", border2:"#2d2d55", accent:"#a78bfa", t1:"#e8e8ff", t2:"#8080b0", t3:"#404070" },
-            { name:"Deep Green",  bg:"#020d08", surface:"#071a10", card:"#0c2018", border:"#123022", border2:"#1a4030", accent:"#00e676", t1:"#d8f5e4", t2:"#60a878", t3:"#2a6040" },
-            { name:"Ember",       bg:"#0f0800", surface:"#1a1000", card:"#221600", border:"#3a2200", border2:"#4a3000", accent:"#fbbf24", t1:"#f5e8d0", t2:"#a07840", t3:"#604820" },
-            { name:"Rose",        bg:"#0f060a", surface:"#1a0c14", card:"#22101c", border:"#3a1a2a", border2:"#4a2038", accent:"#f472b6", t1:"#f5d8e8", t2:"#a06080", t3:"#603048" },
-            { name:"Slate",       bg:"#080c10", surface:"#101620", card:"#16202c", border:"#1e2e3e", border2:"#263a4e", accent:"#60a5fa", t1:"#dce8f8", t2:"#6080a0", t3:"#304060" },
-            { name:"Obsidian",    bg:"#0c0c0c", surface:"#141414", card:"#1c1c1c", border:"#2a2a2a", border2:"#363636", accent:"#e2e8f0", t1:"#f0f0f0", t2:"#888888", t3:"#444444" },
-            { name:"Ocean",       bg:"#020b14", surface:"#041828", card:"#062038", border:"#0a3050", border2:"#0e4068", accent:"#38bdf8", t1:"#daf0ff", t2:"#5090b8", t3:"#205070" },
-            { name:"Crimson",     bg:"#0f0205", surface:"#1a0408", card:"#22080e", border:"#3a0e18", border2:"#4a1422", accent:"#f87171", t1:"#fde8e8", t2:"#a05060", t3:"#602030" },
-            { name:"Neon",        bg:"#020208", surface:"#060618", card:"#0a0a22", border:"#141440", border2:"#1e1e58", accent:"#39ff14", t1:"#e8ffe8", t2:"#50a050", t3:"#205020" },
-            { name:"Dusk",        bg:"#0a0710", surface:"#120e1c", card:"#181428", border:"#26203e", border2:"#342c52", accent:"#f59e0b", t1:"#f0eaff", t2:"#8878aa", t3:"#48386a" },
-            { name:"Arctic",      bg:"#06101a", surface:"#0e1e2e", card:"#142640", border:"#1e3858", border2:"#284a70", accent:"#67e8f9", t1:"#e0f8ff", t2:"#5a9ab8", t3:"#2a5a70" },
+            { name:"Obsidian",    bg:"#0f0e0d", surface:"#161412", card:"#161412", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
+            { name:"Midnight",    bg:"#09090f", surface:"#111120", card:"#18181e", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)", t3:"rgba(232,232,255,0.3)" },
+            { name:"Ledgr Dark",  bg:"#060a0f", surface:"#0d1520", card:"#111a28", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)", t3:"rgba(218,234,248,0.3)" },
+            { name:"Deep Green",  bg:"#050f08", surface:"#0a1c0e", card:"#0e2414", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#4ade80", t1:"#d4f0df", t2:"rgba(212,240,223,0.5)", t3:"rgba(212,240,223,0.3)" },
+            { name:"Ember",       bg:"#100600", surface:"#1c0e00", card:"#241400", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#fb923c", t1:"#f5e4d0", t2:"rgba(245,228,208,0.5)", t3:"rgba(245,228,208,0.3)" },
+            { name:"Rose",        bg:"#0f0608", surface:"#1c0c12", card:"#241018", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#f472b6", t1:"#f5d8e8", t2:"rgba(245,216,232,0.5)", t3:"rgba(245,216,232,0.3)" },
+            { name:"Slate",       bg:"#080c10", surface:"#101820", card:"#16222c", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#60a5fa", t1:"#dce8f8", t2:"rgba(220,232,248,0.5)", t3:"rgba(220,232,248,0.3)" },
+            { name:"Ocean",       bg:"#020c14", surface:"#041a2a", card:"#062238", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#38bdf8", t1:"#d8f0ff", t2:"rgba(216,240,255,0.5)", t3:"rgba(216,240,255,0.3)" },
+            { name:"Crimson",     bg:"#0f0206", surface:"#1a060c", card:"#220a12", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#f87171", t1:"#fde8e8", t2:"rgba(253,232,232,0.5)", t3:"rgba(253,232,232,0.3)" },
+            { name:"Dusk",        bg:"#090610", surface:"#100e1c", card:"#161428", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#f59e0b", t1:"#f0e8ff", t2:"rgba(240,232,255,0.5)", t3:"rgba(240,232,255,0.3)" },
+            { name:"Arctic",      bg:"#06101a", surface:"#0e1e2e", card:"#142640", border:"rgba(255,255,255,0.07)", border2:"rgba(255,255,255,0.1)", accent:"#67e8f9", t1:"#e0f8ff", t2:"rgba(224,248,255,0.5)", t3:"rgba(224,248,255,0.3)" },
           ];
           const FONTS = [
             { label:"Syne (default)",      value:"'Syne', sans-serif" },
@@ -2035,55 +2020,49 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 function applyTheme(theme) {
   if (!theme) return;
   const root = document.documentElement;
+
+  // Core palette
   const vars = [
-    ["--bg", theme.bg], ["--surface", theme.surface], ["--card", theme.card],
-    ["--border", theme.border], ["--border2", theme.border2],
-    ["--cyan", theme.accent], ["--cyan-dim", theme.accent ? theme.accent + "18" : null],
-    ["--t1", theme.t1], ["--t2", theme.t2], ["--t3", theme.t3],
+    ["--bg",      theme.bg],
+    ["--surface", theme.surface],
+    ["--card",    theme.card],
+    ["--border",  theme.border  || "rgba(255,255,255,0.07)"],
+    ["--border2", theme.border2 || "rgba(255,255,255,0.1)"],
+    ["--cyan",    theme.accent],
+    ["--cyan-dim",theme.accent ? theme.accent + "20" : null],
+    ["--amber",   theme.accent],
+    ["--amber-dim",theme.accent ? theme.accent + "18" : null],
+    ["--t1",      theme.t1],
+    ["--t2",      theme.t2],
+    ["--t3",      theme.t3],
   ];
   vars.forEach(([k, v]) => { if (v) root.style.setProperty(k, v); });
+
+  // card-glass always matches --card (solid, not transparent)
+  root.style.setProperty("--card-glass",  theme.card || "#161412");
+  root.style.setProperty("--card-border", "rgba(255,255,255,0.07)");
+
+  // surface-solid and bg-solid for elements that must be opaque
+  root.style.setProperty("--surface-solid", theme.surface || "#161412");
+  root.style.setProperty("--bg-solid",      theme.bg      || "#0f0e0d");
+
+  // Font
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
 
-  // Aurora glass card vars — always transparent regardless of theme
-  root.style.setProperty("--card-glass",  "rgba(255,255,255,0.03)");
-  root.style.setProperty("--card-border", "rgba(255,255,255,0.07)");
-  // grad-a = accent (warm/purple end), grad-b = accent, grad-c = complementary cool
+  // Gradient vars derived from accent for topbar line and subtle accents
   if (theme.accent) {
-    const a = theme.accent;
-    // Complementary colours for the gradient based on accent hue
-    // We store preset-specific pairs, falling back to cyan/green
-    const gradMap = {
-      "#00d4ff": ["#a78bfa", "#00d4ff", "#00e676"],  // Ledgr Dark
-      "#a78bfa": ["#a78bfa", "#818cf8", "#60a5fa"],  // Midnight
-      "#00e676": ["#00e676", "#22d3ee", "#a78bfa"],  // Deep Green
-      "#fbbf24": ["#fbbf24", "#f97316", "#f87171"],  // Ember
-      "#f472b6": ["#f472b6", "#a78bfa", "#818cf8"],  // Rose
-      "#60a5fa": ["#60a5fa", "#38bdf8", "#34d399"],  // Slate
-      "#e2e8f0": ["#e2e8f0", "#94a3b8", "#64748b"],  // Obsidian
-      "#38bdf8": ["#38bdf8", "#60a5fa", "#34d399"],  // Ocean
-      "#f87171": ["#f87171", "#fb923c", "#fbbf24"],  // Crimson
-      "#39ff14": ["#39ff14", "#00d4ff", "#a78bfa"],  // Neon
-      "#f59e0b": ["#f59e0b", "#f97316", "#a78bfa"],  // Dusk
-      "#67e8f9": ["#67e8f9", "#38bdf8", "#a78bfa"],  // Arctic
-    };
-    const [ga, gb, gc] = gradMap[a] || [a, "#00d4ff", "#00e676"];
-    root.style.setProperty("--grad-a", ga);
-    root.style.setProperty("--grad-b", gb);
-    root.style.setProperty("--grad-c", gc);
-    // Glow uses grad-a at low opacity
-    root.style.setProperty("--glow-color", ga + "18");
+    root.style.setProperty("--grad-a", theme.accent);
+    root.style.setProperty("--grad-b", theme.t1 || "#e8ddd0");
+    root.style.setProperty("--grad-c", theme.accent);
+    root.style.setProperty("--glow-color", theme.accent + "18");
   }
 
-  // Always-opaque versions for solid backgrounds (nav drawer etc.)
-  root.style.setProperty("--surface-solid", theme.surface || "#0d1130");
-  root.style.setProperty("--bg-solid",      theme.bg      || "#07091a");
-
+  // bgImage support
   if (theme.bgImage) {
-    const bg = theme.bg || "#07091a";
+    const bg = theme.bg || "#0f0e0d";
     root.style.setProperty("--bg",      bg + "cc");
-    root.style.setProperty("--surface", (theme.surface || "#0d1130") + "dd");
-    root.style.setProperty("--card",    (theme.card    || "#111628") + "ee");
-    document.body.style.backgroundImage = "";
+    root.style.setProperty("--surface", (theme.surface || "#161412") + "dd");
+    root.style.setProperty("--card",    (theme.card    || "#161412") + "ee");
     document.body.style.background = "transparent";
     document.documentElement.classList.add("ledgr-has-bgimage");
   } else {
@@ -2200,7 +2179,7 @@ function AdminPanel() {
       {/* Messages Tab */}
       {adminTab === "messages" && (
         <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:640}}>
-          <div className="aurora-card" style={{...S.card,padding:20}}>
+          <div className="obsidian-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:8}}>Send Status Message</div>
             <div style={{fontSize:11,color:"var(--t3)",marginBottom:12,lineHeight:1.5}}>
               Appears as a modal to all users on next login. Expires after 24 hours. Users can dismiss with "Don't show again".
@@ -2212,7 +2191,7 @@ function AdminPanel() {
               {msgSending?"Sending...":"Send Message"}
             </button>
           </div>
-          <div className="aurora-card" style={{...S.card,padding:20}}>
+          <div className="obsidian-card" style={{...S.card,padding:20}}>
             <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",marginBottom:12}}>Message History</div>
             {msgLoading ? (
               <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",padding:"20px 0"}}>Loading...</div>
@@ -2263,7 +2242,7 @@ function AdminPanel() {
       {error && <div style={{color:"var(--red)",fontSize:13,marginBottom:16,padding:"10px 14px",background:"#ff4d6d11",borderRadius:"var(--radius)",border:"1px solid #ff4d6d33"}}>{error}</div>}
 
       {/* Users list */}
-      <div className="aurora-card" style={{...S.card,padding:0,overflow:"hidden"}}>
+      <div className="obsidian-card" style={{...S.card,padding:0,overflow:"hidden"}}>
         <div style={{padding:"10px 12px",borderBottom:"1px solid var(--border)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
             <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
@@ -4117,7 +4096,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div className="aurora-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
+    <div className="obsidian-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -4202,7 +4181,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const CashFlowCard = (
-    <div className="aurora-card" style={{ ...S.card }}>
+    <div className="obsidian-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Cash Flow</div>
       </div>
@@ -4273,7 +4252,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const OverspendingHighlightsCard = (
-    <div className="aurora-card" style={{ ...S.card }}>
+    <div className="obsidian-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
         <div style={S.cardTitle}>Overspending Highlights</div>
       </div>
@@ -4399,7 +4378,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       budget: (
-        <div className="aurora-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
+        <div className="obsidian-card" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
@@ -4430,7 +4409,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       action: (
-        <div className="aurora-card" style={S.card}>
+        <div className="obsidian-card" style={S.card}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:22}}>
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
@@ -4461,7 +4440,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       goals: goals.length === 0 ? null : (
-        <div className="aurora-card" style={S.card}>
+        <div className="obsidian-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
             <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
@@ -4500,7 +4479,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       upcoming: upcoming.length === 0 ? null : (
-        <div className="aurora-card" style={S.card}>
+        <div className="obsidian-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
             <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
@@ -4530,7 +4509,7 @@ function AppInner({ isDemo = false }) {
       {/* Month bar */}
       {!isMobile && (
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
-          <div className="aurora-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
+          <div className="obsidian-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
               <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
               <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -4550,7 +4529,7 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
       {isMobile && (
-        <div className="aurora-card" style={{...S.card,padding:"10px 14px"}}>
+        <div className="obsidian-card" style={{...S.card,padding:"10px 14px"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
             <button onClick={prevMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
             <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"1px solid var(--border2)",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
@@ -4976,7 +4955,7 @@ function AppInner({ isDemo = false }) {
       )}
 
       {categories.length === 0 ? (
-        <div className="aurora-card" style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
+        <div className="obsidian-card" style={{ ...S.card, textAlign: "center", padding: 48, color: "var(--t3)" }}>No categories yet.</div>
       ) : (
         <>
           {isMobile ? (
@@ -5359,7 +5338,7 @@ function AppInner({ isDemo = false }) {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
-                <div className="aurora-card" style={{ ...S.card }}>
+                <div className="obsidian-card" style={{ ...S.card }}>
                   <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
                     <div style={S.sectionTitle}>{budgetDrillCat ? `${budgetDrillCat.name} Transactions` : 'Category Transactions'}</div>
                   </div>
@@ -5430,7 +5409,7 @@ function AppInner({ isDemo = false }) {
       left={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {accounts.length===0
-            ? <div className="aurora-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
+            ? <div className="obsidian-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
             : (()=>{
                 // Group by Plaid connection (plaidItemId) so separate logins to the
                 // same bank appear as separate groups. Manual accounts go under "Manual".
@@ -5522,8 +5501,8 @@ function AppInner({ isDemo = false }) {
       right={
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {plaidItems.length>0&&(
-            <div className="aurora-card" style={{...S.card,padding:"10px 14px"}}>
-              <div className="aurora-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
+            <div className="obsidian-card" style={{...S.card,padding:"10px 14px"}}>
+              <div className="obsidian-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {plaidItems.map(item=>{
                   const isStale = staleItemIds.has(item.item_id);
@@ -5677,13 +5656,13 @@ function AppInner({ isDemo = false }) {
             )}
 
             {rules.length === 0 ? (
-              <div className="aurora-card" style={{...S.card,textAlign:"center",padding:48}}>
+              <div className="obsidian-card" style={{...S.card,textAlign:"center",padding:48}}>
                 <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
                 <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
                 <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="aurora-card" style={{...S.card,textAlign:"center",padding:32}}>
+              <div className="obsidian-card" style={{...S.card,textAlign:"center",padding:32}}>
                 <div style={{fontSize:13,color:"var(--t3)"}}>No rules match "{ruleSearch}"</div>
               </div>
             ) : (
@@ -5833,7 +5812,7 @@ function AppInner({ isDemo = false }) {
           </button>
         </div>
 
-        <div className="aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
+        <div className="obsidian-card" style={{ ...S.card, padding: 0, overflow: "hidden", marginBottom: 16 }}>
           <div
             style={{
               display: "grid",
@@ -5963,7 +5942,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {acctEntries.length > 0 && (
-          <div className="aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="obsidian-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)" }}>
                 {acctLabel}
@@ -6039,7 +6018,7 @@ function AppInner({ isDemo = false }) {
         )}
 
         {calendarDay?.day && selectedDayTxns.length > 0 && (
-          <div className="aurora-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
+          <div className="obsidian-card" style={{ ...S.card, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: "var(--t1)" }}>
                 {selectedDayDateLabel}
@@ -6118,7 +6097,7 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
-        <div className="aurora-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+        <div className="obsidian-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
           <div
             style={{
               padding: "12px 16px",
@@ -6516,7 +6495,7 @@ function AppInner({ isDemo = false }) {
 
             {/* Recurring list card now matches calendar width */}
             {recurringTxns.length > 0 && (
-              <div className="aurora-card" style={{ ...S.card, minWidth: 0 }}>
+              <div className="obsidian-card" style={{ ...S.card, minWidth: 0 }}>
                 <div style={S.cardTitle}>All Recurring Transactions</div>
 
                 {[...recurringTxns]
@@ -7394,7 +7373,7 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Mobile top bar */}
-        <div className="aurora-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none"}}>
+        <div className="obsidian-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none"}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <button onClick={()=>setDrawerOpen(p=>!p)}
               style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
@@ -7484,7 +7463,7 @@ function AppInner({ isDemo = false }) {
             </div>
           )}
           {/* Overlay drawer */}
-          <div className="aurora-nav" style={{
+          <div className="obsidian-nav" style={{
             position:"fixed",top:0,left:0,bottom:0,width:240,
             display:"flex",flexDirection:"column",
             transform:drawerOpen?"translateX(0)":"translateX(-100%)",
@@ -7506,7 +7485,7 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Desktop top bar */}
-        <div className="aurora-topbar" style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"none"}}>
+        <div className="obsidian-topbar" style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"none"}}>
           <div style={{fontFamily:"var(--font-disp)",fontSize:15,fontWeight:700,color:"var(--t3)",letterSpacing:"-0.2px"}}>
             {NAV.find(n=>n.id===view)?.label}
           </div>
@@ -7583,15 +7562,15 @@ function AppInner({ isDemo = false }) {
         {/* Desktop body */}
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
-          <aside className="aurora-nav" style={{
+          <aside className="obsidian-nav" style={{
             width:220,flexShrink:0,display:"flex",flexDirection:"column",
           }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
           {/* Content with Aurora glow blobs */}
           <div ref={contentRef} style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content">
-            <div className="aurora-glow-a"/>
-            <div className="aurora-glow-b"/>
+            
+            
             <div key={view} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
           </div>
         </div>

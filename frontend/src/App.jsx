@@ -183,7 +183,7 @@ function useIsMobile() {
 
     /* ── Mobile bottom nav ── */
     .mobile-bottom-nav {
-      height: 64px;
+      height: 68px;
       background: var(--surface);
       border-top: 1px solid rgba(255,255,255,0.07);
       display: flex; align-items: stretch; flex-shrink: 0;
@@ -235,7 +235,7 @@ function useIsMobile() {
 
     /* ── More sheet ── */
     .mobile-more-sheet {
-      position: fixed; left: 0; right: 0; bottom: 64px;
+      position: fixed; left: 0; right: 0; bottom: 68px;
       background: var(--surface);
       border-top: 1px solid rgba(255,255,255,0.07);
       border-radius: 20px 20px 0 0;
@@ -7759,7 +7759,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {/* More sheet overlay */}
-        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:64,zIndex:39}}/>}
+        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:68,zIndex:39}}/>}
 
         {/* More sheet */}
         <div className={`mobile-more-sheet${moreOpen?" open":""}`}>

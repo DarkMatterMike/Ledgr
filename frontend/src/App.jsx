@@ -201,9 +201,9 @@ function useIsMobile() {
     .mobile-nav-item {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 3px; cursor: pointer; border: none;
+      gap: 2px; cursor: pointer; border: none;
       background: transparent; position: relative;
-      padding: 0 1px 4px; transition: background 0.18s;
+      padding: 0 0 2px; transition: background 0.18s;
       -webkit-tap-highlight-color: transparent;
     }
     .mobile-nav-item.active { background: var(--cyan-dim); }

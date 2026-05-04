@@ -1265,7 +1265,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
             onClick={e=>e.stopPropagation()}
             onChange={e=>{e.stopPropagation();const v=e.target.value;if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
             style={{
-              background:"var(--card-hi, #231f1a)",
+              background:"var(--surface)",
               border:"none",
               borderRadius:20,
               cursor:"pointer",

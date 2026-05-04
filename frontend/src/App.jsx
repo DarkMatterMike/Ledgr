@@ -6047,13 +6047,17 @@ function AppInner({ isDemo = false }) {
     const shownIds = calendarAccounts || accounts.map(a=>a.id);
     const byAccount = {};
     shownIds.forEach(id=>{ const a=acctMap[id]; if(a) byAccount[id]={id,name:a.name,total:0,count:0,txns:[]}; });
+    // Fallback bucket for recurring txns whose accountId isn't in the current filter
+    byAccount["__unlinked__"] = {id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
     relevantTxns.forEach(t=>{
-      if (!t.accountId||!byAccount[t.accountId]) return;
       if (t.amount>=0) return;
-      byAccount[t.accountId].total+=Math.abs(t.amount);
-      byAccount[t.accountId].count+=1;
-      byAccount[t.accountId].txns.push(t);
+      const bucket = (t.accountId && byAccount[t.accountId]) ? t.accountId : "__unlinked__";
+      byAccount[bucket].total+=Math.abs(t.amount);
+      byAccount[bucket].count+=1;
+      byAccount[bucket].txns.push(t);
     });
+    // Only show unlinked bucket if it has entries
+    if (byAccount["__unlinked__"].count === 0) delete byAccount["__unlinked__"];
     const acctEntries = Object.values(byAccount).sort((a,b)=>b.total-a.total);
     const acctTotal   = acctEntries.reduce((a,e)=>a+e.total,0);
     const acctLabel   = isPastCalMonth?`Charged in ${monthLabel(calendarMonth)}`:isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
@@ -6061,13 +6065,18 @@ function AppInner({ isDemo = false }) {
     // Half-month split data
     const byAccountFirst = {}, byAccountSecond = {};
     shownIds.forEach(id=>{ const a=acctMap[id]; if(a){ byAccountFirst[id]={id,name:a.name,total:0,count:0}; byAccountSecond[id]={id,name:a.name,total:0,count:0}; } });
+    byAccountFirst["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0};
+    byAccountSecond["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0};
     relevantTxns.forEach(t=>{
-      if (!t.accountId||!byAccountFirst[t.accountId]||t.amount>=0) return;
+      if (t.amount>=0) return;
+      const acctKey = (t.accountId && byAccountFirst[t.accountId]) ? t.accountId : "__unlinked__";
       const day=parseInt((t.date||"").split("-")[2]||"0");
-      const bucket=day<=15?byAccountFirst:byAccountSecond;
-      bucket[t.accountId].total+=Math.abs(t.amount);
-      bucket[t.accountId].count+=1;
+      const halves=day<=15?byAccountFirst:byAccountSecond;
+      halves[acctKey].total+=Math.abs(t.amount);
+      halves[acctKey].count+=1;
     });
+    if (byAccountFirst["__unlinked__"].count===0) delete byAccountFirst["__unlinked__"];
+    if (byAccountSecond["__unlinked__"].count===0) delete byAccountSecond["__unlinked__"];
     const firstEntries=Object.values(byAccountFirst).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
     const secondEntries=Object.values(byAccountSecond).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
     const firstTotal=firstEntries.reduce((a,e)=>a+e.total,0);
@@ -7324,7 +7333,7 @@ function AppInner({ isDemo = false }) {
         }}>Remove Recurring</button>
         <button style={S.btn("ghost")} onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
         <button style={S.btn("primary")} onClick={()=>{
-          const patch = { name: editTarget.name, recurringDay: editTarget.recurringDay, recurringFreq: editTarget.recurringFreq||"monthly", recurringStart: editTarget.recurringStart||null, categoryId: editTarget.categoryId||null };
+          const patch = { name: editTarget.name, recurringDay: editTarget.recurringDay, recurringFreq: editTarget.recurringFreq||"monthly", recurringStart: editTarget.recurringStart||null, categoryId: editTarget.categoryId||null, accountId: editTarget.accountId||null };
           setTransactions(p=>p.map(t=>t.id===editTarget.id?{...t,...patch}:t));
           api.updateTransaction(editTarget.id, patch).catch(console.error);
           setModal(null);setEditTarget(null);showToast("Updated");
@@ -7357,6 +7366,10 @@ function AppInner({ isDemo = false }) {
         <div style={S.field}>
           <label style={S.label}>Category</label>
           <CustomSelect value={editTarget.categoryId||""} onChange={v=>setEditTarget(p=>({...p,categoryId:v||null}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Bank Account</label>
+          <CustomSelect value={editTarget.accountId||""} onChange={v=>setEditTarget(p=>({...p,accountId:v||null}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}}/>
         </div>
       </div>
     </Modal>

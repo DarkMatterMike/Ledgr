@@ -3559,6 +3559,14 @@ function AppInner({ isDemo = false }) {
     clearSelection();
     refreshSummary();
   }
+  function bulkSetAccount(accountId) {
+    const ids = [...selectedTxns];
+    const val = accountId || null;
+    setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, accountId: val} : t));
+    api.bulkUpdateTransactions(ids, { accountId: val }).catch(console.error);
+    showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
+    clearSelection();
+  }
   function bulkMarkReviewed(reviewed) {
     const ids = [...selectedTxns];
     setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, reviewed} : t));
@@ -8046,6 +8054,8 @@ function AppInner({ isDemo = false }) {
           <CustomSelect value="" onChange={v=>{ if(v) bulkSetCategory(v); }} options={[{value:"",label:"Set category…"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:130}} compact/>
           {/* Type */}
           <CustomSelect value="" onChange={v=>{ if(v) bulkSetType(v); }} options={[{value:"",label:"Set type…"},{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{flex:1,minWidth:120}} compact/>
+          {/* Account */}
+          <CustomSelect value="" onChange={v=>{ if(v) bulkSetAccount(v==="__none__"?"":v); }} options={[{value:"",label:"Set account…"},{value:"__none__",label:"— Remove —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:130}} compact/>
           <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
           <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
           <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✕</button>

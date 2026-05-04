@@ -4624,11 +4624,12 @@ function AppInner({ isDemo = false }) {
       return { id:`reauth-${itemId}`, type:"reauth", itemId, institution: item?.institution || "Connected bank" };
     });
     return [
+      ...(newTxnCount > 0 ? [{ id:"newTxns", type:"newTxns", count:newTxnCount }] : []),
       ...reauthNotifs,
       ...(reviewCount > 0 ? [{ id:"review", type:"review", count:reviewCount }] : []),
       ...goalReminders,
     ];
-  }, [reviewCount, goals, today, staleItemIds, plaidItems]);
+  }, [reviewCount, goals, today, staleItemIds, plaidItems, newTxnCount]);
 
   const visibleNotifs = useMemo(
     () => notifList.filter(n => !dismissedNotifs.has(n.id)),
@@ -4893,7 +4894,14 @@ function AppInner({ isDemo = false }) {
         </div>
       ) : (
         /* Desktop: CSS grid, 3 cols, cards flow naturally */
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",justifyContent:"flex-end"}}>
+            <button onClick={()=>setDashEditMode(p=>!p)}
+              style={{...S.btn("ghost",true),fontSize:11,color:dashEditMode?"var(--cyan)":"var(--t3)"}}>
+              {dashEditMode?"✓ Done":"⇅ Reorder"}
+            </button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
           {dashOrder
             .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
             .map((id, idx, arr) => (
@@ -4904,6 +4912,7 @@ function AppInner({ isDemo = false }) {
               </DragCard>
             ))
           }
+          </div>
         </div>
       )}
 
@@ -7771,24 +7780,24 @@ function AppInner({ isDemo = false }) {
                       <div style={{maxHeight:360,overflowY:"auto"}}>
                         {visibleNotifs.map((n,i) => (
                           <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
-                            <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                              {n.type==="review"?"◎":n.type==="reauth"?"◈":"›"}
+                            <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":n.type==="newTxns"?"var(--green-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":n.type==="newTxns"?"var(--green)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
+                              {n.type==="review"?"◎":n.type==="reauth"?"◈":n.type==="newTxns"?"⇅":"›"}
                             </div>
                             <div style={{flex:1,minWidth:0}}>
                               <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
-                                {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
+                                {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : n.type==="newTxns" ? `${n.count} new transaction${n.count!==1?"s":""} synced` : "Goal contribution due today"}
                               </div>
                               <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
-                                {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : n.type==="newTxns" ? "Tap to view your latest transactions" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
                               </div>
                               <button
-                                onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
-                                style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
-                                {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":"View goals ←"}
+                                onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else if(n.type==="newTxns"){ setNewTxnCount(0); navigate("transactions"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":n.type==="newTxns"?"var(--green)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                                {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":n.type==="newTxns"?"View transactions ←":"View goals ←"}
                               </button>
                             </div>
                             <button
-                              onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
+                              onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(n.type==="newTxns") setNewTxnCount(0); if(next.size>=notifList.length)setNotifOpen(false);}}
                               style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
                           </div>
                         ))}
@@ -7894,24 +7903,24 @@ function AppInner({ isDemo = false }) {
                         <div style={{maxHeight:360,overflowY:"auto"}}>
                           {visibleNotifs.map((n,i) => (
                             <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
-                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"◎":n.type==="reauth"?"◈":"›"}
+                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":n.type==="newTxns"?"var(--green-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":n.type==="newTxns"?"var(--green)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
+                                {n.type==="review"?"◎":n.type==="reauth"?"◈":n.type==="newTxns"?"⇅":"›"}
                               </div>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
-                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
+                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : n.type==="newTxns" ? `${n.count} new transaction${n.count!==1?"s":""} synced` : "Goal contribution due today"}
                                 </div>
                                 <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
-                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : n.type==="newTxns" ? "Tap to view your latest transactions" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
                                 </div>
                                 <button
-                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
-                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
-                                  {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":"View goals ←"}
+                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else if(n.type==="newTxns"){ setNewTxnCount(0); navigate("transactions"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":n.type==="newTxns"?"var(--green)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                                  {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":n.type==="newTxns"?"View transactions ←":"View goals ←"}
                                 </button>
                               </div>
                               <button
-                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
+                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(n.type==="newTxns") setNewTxnCount(0); if(next.size>=notifList.length)setNotifOpen(false);}}
                                 style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
                             </div>
                           ))}
@@ -8028,26 +8037,7 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
 
-      {newTxnCount>0&&(
-        <div style={{
-          position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
-          zIndex:300,background:"var(--cyan)",color:"#000",
-          borderRadius:12,padding:"12px 20px",
-          boxShadow:"0 8px 32px #00000080",
-          display:"flex",alignItems:"center",gap:10,
-          maxWidth:400,width:"90vw",cursor:"pointer",
-        }} onClick={()=>{ setView("transactions"); setNewTxnCount(0); }}>
-          <span style={{fontSize:18}}>⇅</span>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:700,fontSize:14}}>
-              {newTxnCount} new transaction{newTxnCount!==1?"s":""} synced
-            </div>
-            <div style={{fontSize:12,opacity:0.7}}>Tap to view</div>
-          </div>
-          <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}}
-            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000"}}>✕</button>
-        </div>
-      )}
+
 
       {undoAction&&(
         <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:500,

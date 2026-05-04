@@ -181,9 +181,106 @@ function useIsMobile() {
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
-    .ledgr-drag-handle { color: var(--t3); opacity: 1; transition: opacity 0.15s, color 0.15s; }
-    .ledgr-drag-handle:hover { opacity: 1 !important; color: var(--t1) !important; }
-    [data-card-id]:hover .ledgr-drag-handle { opacity: 1; }
+    /* ── Mobile bottom nav ── */
+    .mobile-bottom-nav {
+      height: 60px;
+      background: var(--surface);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: stretch; flex-shrink: 0;
+      position: relative; z-index: 10;
+    }
+    .mobile-nav-indicator {
+      position: absolute; top: -2px; height: 2px;
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--glow-color);
+      border-radius: 0 0 2px 2px;
+      transition: left 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1);
+      pointer-events: none; z-index: 11;
+    }
+    .mobile-nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; cursor: pointer; border: none;
+      background: transparent; position: relative;
+      padding: 0 2px 6px; transition: background 0.18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-nav-item.active { background: var(--cyan-dim); }
+    .mobile-nav-item svg {
+      width: 20px; height: 20px;
+      stroke: rgba(232,221,208,0.32); fill: none;
+      stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
+      transition: stroke 0.18s, filter 0.18s;
+    }
+    .mobile-nav-item.active svg {
+      stroke: var(--cyan);
+      filter: drop-shadow(0 0 4px var(--glow-color));
+    }
+    .mobile-nav-label {
+      font-size: 9px; font-weight: 500; letter-spacing: 0.2px;
+      color: rgba(232,221,208,0.32); transition: color 0.18s;
+      font-family: var(--font-body); line-height: 1;
+    }
+    .mobile-nav-item.active .mobile-nav-label { color: var(--cyan); }
+
+    /* ── Top-right glow orb ── */
+    .mobile-glow-orb {
+      position: absolute; top: -60px; right: -60px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      opacity: 1;
+    }
+
+    /* ── More sheet ── */
+    .mobile-more-sheet {
+      position: fixed; left: 0; right: 0; bottom: 60px;
+      background: var(--surface);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px 20px 0 0;
+      padding: 8px 0 12px;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+      z-index: 30;
+    }
+    .mobile-more-sheet.open { transform: translateY(0); }
+    .mobile-sheet-handle {
+      width: 32px; height: 3px; background: rgba(255,255,255,0.15);
+      border-radius: 99px; margin: 6px auto 10px;
+    }
+    .mobile-sheet-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 20px; font-size: 14px; color: var(--t2);
+      cursor: pointer; transition: background 0.15s;
+      border: none; background: none; width: 100%; text-align: left;
+      font-family: var(--font-body);
+    }
+    .mobile-sheet-item:hover, .mobile-sheet-item:active { background: rgba(255,255,255,0.04); }
+    .mobile-sheet-item svg {
+      width: 18px; height: 18px; stroke: var(--t3); fill: none;
+      stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
+    }
+    .mobile-sheet-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 20px; }
+
+    /* ── Dashboard edit-order mode ── */
+    .dash-edit-card {
+      position: relative;
+      outline: 1px dashed rgba(255,255,255,0.15);
+      outline-offset: 2px;
+    }
+    .dash-reorder-btns {
+      position: absolute; top: 8px; right: 8px;
+      display: flex; gap: 4px; z-index: 5;
+    }
+    .dash-reorder-btn {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: var(--surface); border: none;
+      color: var(--t2); font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .dash-reorder-btn:hover { background: var(--cyan); color: #000; }
+    .dash-reorder-btn:disabled { opacity: 0.2; cursor: default; }
 
     .ledgr-chevron { display: inline-block; transition: transform 0.2s; font-size: 10px; }
     .ledgr-chevron-open { transform: rotate(180deg); }
@@ -341,79 +438,19 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
 }
 
 /* --- DragCard — drag-to-reorder wrapper with handle ---------------- */
-function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDragging }) {
-
-  function findCardAt(x, y, selfId) {
-    // Find which [data-card-id] element contains this point, excluding self
-    const cards = document.querySelectorAll('[data-card-id]');
-    for (const card of cards) {
-      if (card.dataset.cardId === selfId) continue;
-      const r = card.getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-        return card.dataset.cardId;
-      }
-    }
-    return null;
-  }
-
-  function handleTouchStart(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    onDragStart(id);
-    const onMove = (te) => {
-      te.preventDefault();
-      const t = te.touches[0];
-      const target = findCardAt(t.clientX, t.clientY, id);
-      if (target) onDragEnter(target);
-    };
-    const onEnd = () => {
-      onDragEnd();
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend', onEnd);
-    };
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onEnd, { passive: false });
-  }
-
-  function handleMouseDown(e) {
-    e.preventDefault();
-    onDragStart(id);
-    const onMove = (me) => {
-      const target = findCardAt(me.clientX, me.clientY, id);
-      if (target) onDragEnter(target);
-    };
-    const onUp = () => {
-      onDragEnd();
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }
-
+function DragCard({ id, children, onMoveUp, onMoveDown, canMoveUp, canMoveDown, editMode }) {
   return (
     <div
       data-card-id={id}
-      style={{
-        position: 'relative',
-        opacity: isDragging ? 0.35 : 1,
-        borderRadius: 'var(--radius-lg)',
-        transition: 'opacity 0.15s',
-      }}
+      style={{ position: 'relative', borderRadius: 'var(--radius-lg)' }}
+      className={editMode ? 'dash-edit-card' : ''}
     >
-      <div
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-        title="Drag to reorder"
-        style={{
-          position: 'absolute', top: 8, left: 10, zIndex: 10,
-          cursor: 'grab', color: 'var(--t3)', fontSize: 12, lineHeight: 1,
-          userSelect: 'none', touchAction: 'none', padding: '2px',
-        }}
-        className="ledgr-drag-handle"
-      >
-        ⠿
-      </div>
+      {editMode && (
+        <div className="dash-reorder-btns">
+          <button className="dash-reorder-btn" disabled={!canMoveUp} onClick={onMoveUp} title="Move up">↑</button>
+          <button className="dash-reorder-btn" disabled={!canMoveDown} onClick={onMoveDown} title="Move down">↓</button>
+        </div>
+      )}
       {children}
     </div>
   );
@@ -422,8 +459,6 @@ function DragCard({ id, children, onDragStart, onDragEnter, onDragEnd, isDraggin
 /* --- useDashboardOrder — live reorder preview during drag ----------- */
 function useDashboardOrder(defaultOrder, scheduleSaveRef) {
   const [liveOrder, setLiveOrder] = useState(defaultOrder);
-  const [dragging,  setDragging]  = useState(null);
-  const draggingRef = useRef(null); // ref so onDragEnter closure is never stale
 
   const prevKeyRef = useRef(defaultOrder.join(','));
   const key = defaultOrder.join(',');
@@ -432,39 +467,21 @@ function useDashboardOrder(defaultOrder, scheduleSaveRef) {
     setLiveOrder(defaultOrder);
   }
 
-  function reorder(arr, fromId, toId) {
-    const next = [...arr];
-    const from = next.indexOf(fromId);
-    const to   = next.indexOf(toId);
-    if (from === -1 || to === -1) return arr;
-    next.splice(from, 1);
-    next.splice(to, 0, fromId);
-    return next;
-  }
-
-  function onDragStart(id) {
-    draggingRef.current = id;
-    setDragging(id);
-  }
-
-  function onDragEnter(id) {
-    const current = draggingRef.current;
-    if (!current || id === current) return;
-    setLiveOrder(prev => reorder(prev, current, id));
-  }
-
-  function onDragEnd() {
+  function moveItem(id, dir) {
     setLiveOrder(prev => {
-      scheduleSaveRef?.current?.({ dashboardCardOrder: prev });
-      return prev;
+      const idx = prev.indexOf(id);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      const swap = idx + dir;
+      if (swap < 0 || swap >= next.length) return prev;
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      scheduleSaveRef?.current?.({ dashboardCardOrder: next });
+      return next;
     });
-    draggingRef.current = null;
-    setDragging(null);
   }
 
-  return { order: liveOrder, dragging, onDragStart, onDragEnter, onDragEnd };
+  return { order: liveOrder, moveItem };
 }
-
 
 function CategoryBadge({ cat }) {
   if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
@@ -2788,16 +2805,80 @@ function InstallPrompt() {
   );
 }
 
+/* --- BottomNav — mobile bottom navigation bar ---------------------- */
+const BOTTOM_NAV = [
+  { id:"dashboard",    label:"Home",      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
+  { id:"transactions", label:"Txns",      icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg> },
+  { id:"budgets",      label:"Budgets",   icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg> },
+  { id:"calendar",     label:"Calendar",  icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+  { id:"ai",           label:"Ask AI",    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3c-1 2.5-2.5 4-5 5 2.5 1 4 2.5 5 5 1-2.5 2.5-4 5-5-2.5-1-4-2.5-5-5z"/><path d="M5 3c-.5 1.5-1.5 2.5-3 3 1.5.5 2.5 1.5 3 3 .5-1.5 1.5-2.5 3-3-1.5-.5-2.5-1.5-3-3z"/></svg> },
+  { id:"analytics",    label:"Analytics", icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+  { id:"__more__",     label:"More",      icon: <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.75"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg> },
+];
+
+function BottomNav({ view, navigate, moreOpen, setMoreOpen }) {
+  const navRef = useRef(null);
+  const indicatorRef = useRef(null);
+
+  const activeIdx = moreOpen ? BOTTOM_NAV.length - 1
+    : BOTTOM_NAV.findIndex(n => n.id === view && n.id !== "__more__");
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const ind = indicatorRef.current;
+    if (!nav || !ind) return;
+    const items = nav.querySelectorAll('.mobile-nav-item');
+    const target = items[activeIdx < 0 ? 0 : activeIdx];
+    if (!target) return;
+    const navRect = nav.getBoundingClientRect();
+    const itemRect = target.getBoundingClientRect();
+    ind.style.left = (itemRect.left - navRect.left) + 'px';
+    ind.style.width = itemRect.width + 'px';
+  }, [activeIdx]);
+
+  // Set initial position without transition
+  useEffect(() => {
+    const ind = indicatorRef.current;
+    if (ind) {
+      ind.style.transition = 'none';
+      requestAnimationFrame(() => {
+        ind.style.transition = 'left 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1)';
+      });
+    }
+  }, []);
+
+  return (
+    <div className="mobile-bottom-nav" ref={navRef}>
+      <div className="mobile-nav-indicator" ref={indicatorRef}/>
+      {BOTTOM_NAV.map((item, idx) => {
+        const isMore = item.id === "__more__";
+        const isActive = isMore ? moreOpen : (!moreOpen && view === item.id);
+        return (
+          <button key={item.id}
+            className={`mobile-nav-item${isActive ? " active" : ""}`}
+            onClick={() => {
+              if (isMore) { setMoreOpen(p => !p); }
+              else { setMoreOpen(false); navigate(item.id); }
+            }}>
+            {item.icon}
+            <span className="mobile-nav-label">{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function AppInner({ isDemo = false }) {
   const isMobile = useIsMobile();
 
   /* -- State -- */
   const [view,          setView]          = useState("dashboard");
-  const [drawerOpen,    setDrawerOpen]    = useState(false);
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [dismissedNotifs, setDismissedNotifs] = useState(new Set()); // Set of notif ids dismissed this session
   const [systemMsg,     setSystemMsg]     = useState(null);  // active system message from server
   const [systemMsgOpen, setSystemMsgOpen] = useState(false); // modal open
+  const [moreOpen,      setMoreOpen]      = useState(false); // mobile more sheet
   const [accounts,      setAccounts]      = useState([]);
   const [categories,    setCategories]    = useState([]);
   const [transactions,  setTransactions]  = useState([]);
@@ -3108,33 +3189,6 @@ function AppInner({ isDemo = false }) {
   }, [selectedMonth, initialized.current]);
 
   /* -- Swipe gesture to open/close drawer on mobile -- */
-  useEffect(() => {
-    if (!isMobile) return;
-    let startX = 0, startY = 0;
-    const MIN_SWIPE    = 50;  // minimum horizontal distance to count as swipe
-    const MAX_VERTICAL = 60;  // max vertical drift before ignoring
-
-    function onTouchStart(e) {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    }
-    function onTouchEnd(e) {
-      const dx = e.changedTouches[0].clientX - startX;
-      const dy = Math.abs(e.changedTouches[0].clientY - startY);
-      if (dy > MAX_VERTICAL) return; // too vertical — scroll, not swipe
-      if (dx > MIN_SWIPE && !drawerOpen) {
-        setDrawerOpen(true);  // swipe right from anywhere to open
-      } else if (dx < -MIN_SWIPE && drawerOpen) {
-        setDrawerOpen(false); // swipe left to close
-      }
-    }
-    document.addEventListener("touchstart", onTouchStart, { passive: true });
-    document.addEventListener("touchend",   onTouchEnd,   { passive: true });
-    return () => {
-      document.removeEventListener("touchstart", onTouchStart);
-      document.removeEventListener("touchend",   onTouchEnd);
-    };
-  }, [isMobile, drawerOpen]);
 
   /* -- Service worker + push notification subscription -- */
   useEffect(() => {
@@ -3173,7 +3227,6 @@ function AppInner({ isDemo = false }) {
   const showToast = msg => { setToast(msg); setTimeout(()=>setToast(""),2800); };
   const navigate  = id  => {
     setView(id);
-    setDrawerOpen(false);
     contentRef.current?.scrollTo({ top: 0 });
     // Lazy-load section data on first navigation — each loads at most once per session
     if (id === "portfolio") loadPortfolioOnce();
@@ -4569,9 +4622,8 @@ function AppInner({ isDemo = false }) {
   const onboardingProgress = onboardingSteps.filter(s => s.done).length;
 
   /* -- useDashboardOrder hook -- */
-  const { order: dashOrder, dragging: dashDragging,
-          onDragStart: dashDragStart, onDragEnter: dashDragEnter, onDragEnd: dashDragEnd,
-  } = useDashboardOrder(dashboardCardOrder, scheduleSaveRef);
+  const { order: dashOrder, moveItem: dashMoveItem } = useDashboardOrder(dashboardCardOrder, scheduleSaveRef);
+  const [dashEditMode, setDashEditMode] = useState(false);
 
   // dashOrder from useDashboardOrder is the source of truth for rendering
 
@@ -4697,26 +4749,29 @@ function AppInner({ isDemo = false }) {
           )}
         </div>
       ),
-      upcoming: upcoming.length === 0 ? null : (
+      upcoming: (
         <div className="obsidian-card ledgr-txn-gradient" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
-            <button style={S.btn("ghost",true)} onClick={()=>navigate("calendar")}>Calendar ←</button>
+            <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:0}}>
-            {upcoming.map((t,i) => (
-              <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid var(--border)":"none"}}>
-                <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                  <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
-                </div>
-                <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:t.amount>=0?"var(--green)":"var(--red)",flexShrink:0}}>{t.amount>=0?"+":""}{fmt(t.amount)}</div>
+          {upcoming.length === 0
+            ? <div style={{fontSize:12,color:"var(--t3)",padding:"4px 0 2px"}}>No upcoming transactions this month.</div>
+            : <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                {upcoming.map((t,i) => (
+                  <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:i<upcoming.length-1?"1px solid rgba(0,0,0,0.25)":"none"}}>
+                    <div style={{width:26,height:26,borderRadius:"50%",background:"var(--surface)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:t.amount>=0?"var(--green)":"var(--red)",flexShrink:0}}>{t.amount>=0?"+":""}{fmt(t.amount)}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+          }
         </div>
       ),
     };
@@ -4768,14 +4823,20 @@ function AppInner({ isDemo = false }) {
 
       {/* Draggable cards */}
       {isMobile ? (
-        /* Mobile: single flex column, all 5 slots */
+        /* Mobile: single flex column, edit-order mode with up/down buttons */
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:-4}}>
+            <button onClick={()=>setDashEditMode(p=>!p)}
+              style={{...S.btn("ghost",true),fontSize:11,color:dashEditMode?"var(--cyan)":"var(--t3)"}}>
+              {dashEditMode?"✓ Done":"⇅ Reorder"}
+            </button>
+          </div>
           {dashOrder
             .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
-            .map(id => (
-              <DragCard key={id} id={id}
-                onDragStart={dashDragStart} onDragEnter={dashDragEnter} onDragEnd={dashDragEnd}
-                isDragging={dashDragging===id} isOver={false}>
+            .map((id, idx, arr) => (
+              <DragCard key={id} id={id} editMode={dashEditMode}
+                canMoveUp={idx > 0} canMoveDown={idx < arr.length - 1}
+                onMoveUp={()=>dashMoveItem(id,-1)} onMoveDown={()=>dashMoveItem(id,1)}>
                 {dashCardDefs[id]}
               </DragCard>
             ))
@@ -4786,10 +4847,10 @@ function AppInner({ isDemo = false }) {
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
           {dashOrder
             .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
-            .map(id => (
-              <DragCard key={id} id={id}
-                onDragStart={dashDragStart} onDragEnter={dashDragEnter} onDragEnd={dashDragEnd}
-                isDragging={dashDragging===id} isOver={false}>
+            .map((id, idx, arr) => (
+              <DragCard key={id} id={id} editMode={dashEditMode}
+                canMoveUp={idx > 0} canMoveDown={idx < arr.length - 1}
+                onMoveUp={()=>dashMoveItem(id,-1)} onMoveDown={()=>dashMoveItem(id,1)}>
                 {dashCardDefs[id]}
               </DragCard>
             ))
@@ -7612,116 +7673,123 @@ function AppInner({ isDemo = false }) {
       </div>
     )}
     {isMobile ? (
-      /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
-         MOBILE — hamburger + overlay drawer
-         ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
+      /* ── MOBILE — bottom nav ── */
       <>
         {/* Mobile top bar */}
-        <div className="obsidian-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none"}}>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <button onClick={()=>setDrawerOpen(p=>!p)}
-              style={{background:"none",border:"none",cursor:"pointer",padding:"6px 4px",color:"var(--t2)",display:"flex",flexDirection:"column",gap:5,flexShrink:0}}>
-              <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
-              <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
-              <span style={{display:"block",width:20,height:2,background:"currentColor",borderRadius:1}}/>
-            </button>
+        <div className="obsidian-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none",position:"relative",overflow:"visible"}}>
+          {/* Glow orb — top right, theme-matched */}
+          <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle, var(--glow-color) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
+          <div style={{display:"flex",alignItems:"center",gap:6,position:"relative",zIndex:1}}>
             <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,marginTop:2,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span>
             <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
               ledgr<span style={{color:"var(--cyan)"}}>.</span>
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>-</span>}
+          <div style={{display:"flex",alignItems:"center",gap:8,position:"relative",zIndex:1}}>
+            {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>↻</span>}
             <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)"}}>{daysLeft()}d left</div>
             <div style={{position:"relative"}}>
-                <button
-                  onClick={()=>setNotifOpen(p=>!p)}
-                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                  <span className={notifCount > 0 ? "ledgr-bell-ring" : ""} style={{display:"inline-flex"}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={notifCount > 0 ? "var(--cyan)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
+              <button onClick={()=>setNotifOpen(p=>!p)}
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+                <span className={notifCount > 0 ? "ledgr-bell-ring" : ""} style={{display:"inline-flex"}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={notifCount > 0 ? "var(--cyan)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  </svg>
+                </span>
+                {notifCount > 0 && (
+                  <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
+                    {notifCount}
                   </span>
-                  {notifCount > 0 && (
-                    <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
-                      {notifCount}
-                    </span>
-                  )}
-                </button>
-                {notifOpen && (
-                  <>
-                    <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
-                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
-                      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                        <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
-                        {visibleNotifs.length > 0 && (
-                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
-                        )}
-                      </div>
-                      {visibleNotifs.length === 0 ? (
-                        <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
-                          <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>\U0001F514</div>
-                          You're all caught up
-                        </div>
-                      ) : (
-                        <div style={{maxHeight:360,overflowY:"auto"}}>
-                          {visibleNotifs.map((n,i) => (
-                            <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
-                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"◎":n.type==="reauth"?"◈":"›"}
-                              </div>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
-                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
-                                </div>
-                                <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
-                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
-                                </div>
-                                <button
-                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
-                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
-                                  {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":"View goals ←"}
-                                </button>
-                              </div>
-                              <button
-                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
-                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
-                            </div>
-                          ))}
-                        </div>
+                )}
+              </button>
+              {notifOpen && (
+                <>
+                  <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
+                  <div className="ledgr-overlay-anim" style={{position:"fixed",top:52,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
+                    <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
+                      {visibleNotifs.length > 0 && (
+                        <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
                       )}
                     </div>
-                  </>
-                )}
-              </div>
-          </div>
-        </div>
-
-        {/* Mobile body */}
-        <div style={{flex:1,position:"relative",overflow:"visible"}}>
-          {/* Backdrop */}
-          {drawerOpen&&(
-            <div style={{position:"fixed",inset:0,zIndex:40}} onClick={()=>setDrawerOpen(false)}>
-              <div style={{position:"absolute",top:0,left:240,right:0,bottom:0,background:"#00000044",backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)",pointerEvents:"none"}}/>
+                    {visibleNotifs.length === 0 ? (
+                      <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
+                        <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>🔔</div>
+                        You're all caught up
+                      </div>
+                    ) : (
+                      <div style={{maxHeight:360,overflowY:"auto"}}>
+                        {visibleNotifs.map((n,i) => (
+                          <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
+                            <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
+                              {n.type==="review"?"◎":n.type==="reauth"?"◈":"›"}
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
+                                {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
+                              </div>
+                              <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
+                                {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
+                              </div>
+                              <button
+                                onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
+                                style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                                {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":"View goals ←"}
+                              </button>
+                            </div>
+                            <button
+                              onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
+                              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
-          )}
-          {/* Overlay drawer */}
-          <div className="obsidian-nav" style={{
-            position:"fixed",top:0,left:0,bottom:0,width:240,
-            display:"flex",flexDirection:"column",
-            transform:drawerOpen?"translateX(0)":"translateX(-100%)",
-            transition:"transform 0.22s cubic-bezier(.4,0,.2,1)",
-            zIndex:50,boxShadow:drawerOpen?"6px 0 24px #00000044":"none",
-          }}>
-
-            <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
-          </div>
-          {/* Content */}
-          <div ref={contentRef} style={{position:"absolute",inset:0,overflowY:"auto"}} className="ledgr-content">
-            <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
           </div>
         </div>
+
+        {/* Content area */}
+        <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">
+          <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
+        </div>
+
+        {/* More sheet overlay */}
+        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:60,zIndex:25}}/>}
+
+        {/* More sheet */}
+        <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
+          <div className="mobile-sheet-handle"/>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("settings"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Profile & Settings
+          </button>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("accounts"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Accounts
+          </button>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("rules"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+            Rules
+          </button>
+          {currentUser?.role === "owner" && <>
+            <div className="mobile-sheet-divider"/>
+            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("admin"); }} style={{color:"var(--cyan)"}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              Admin
+            </button>
+            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("dani"); }} style={{color:"#f9a8d4"}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              Dani
+            </button>
+          </>}
+        </div>
+
+        {/* Bottom nav */}
+        <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
       </>
     ) : (
       /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓

@@ -1331,6 +1331,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
 
       {expanded&&(
         <div className="ledgr-expand" style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>{t.name||t.merchant}</div>
           {editingId===t.id&&(
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <input style={{...S.input,flex:1,fontSize:13}}

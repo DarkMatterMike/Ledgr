@@ -183,11 +183,12 @@ function useIsMobile() {
 
     /* ── Mobile bottom nav ── */
     .mobile-bottom-nav {
-      height: 60px;
+      height: 64px;
       background: var(--surface);
       border-top: 1px solid rgba(255,255,255,0.07);
       display: flex; align-items: stretch; flex-shrink: 0;
       position: relative; z-index: 50;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     .mobile-nav-indicator {
       position: absolute; top: -2px; height: 2px;
@@ -202,7 +203,7 @@ function useIsMobile() {
       align-items: center; justify-content: center;
       gap: 3px; cursor: pointer; border: none;
       background: transparent; position: relative;
-      padding: 0 2px 6px; transition: background 0.18s;
+      padding: 0 1px 4px; transition: background 0.18s;
       -webkit-tap-highlight-color: transparent;
     }
     .mobile-nav-item.active { background: var(--cyan-dim); }
@@ -234,7 +235,7 @@ function useIsMobile() {
 
     /* ── More sheet ── */
     .mobile-more-sheet {
-      position: fixed; left: 0; right: 0; bottom: 60px;
+      position: fixed; left: 0; right: 0; bottom: 64px;
       background: var(--surface);
       border-top: 1px solid rgba(255,255,255,0.07);
       border-radius: 20px 20px 0 0;
@@ -7758,7 +7759,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {/* More sheet overlay */}
-        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:60,zIndex:39}}/>}
+        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:64,zIndex:39}}/>}
 
         {/* More sheet */}
         <div className={`mobile-more-sheet${moreOpen?" open":""}`}>

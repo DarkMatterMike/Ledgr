@@ -6102,7 +6102,7 @@ function AppInner({ isDemo = false }) {
       <div>
         <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
           <div style={S.sectionTitle}>Recurring Calendar</div>
-          <div style={{ fontSize: 13, color: "var(--t2)" }}>{recurringTxns.length} recurring</div>
+          <div style={{ fontSize: 13, color: "var(--t2)", marginLeft:8 }}>{recurringTxns.length} recurring</div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -6542,9 +6542,9 @@ function AppInner({ isDemo = false }) {
             gap:10,
           }}
         >
-          <div style={{...S.sectionHdr, marginBottom:0}}>
+          <div style={{...S.sectionHdr, marginBottom:0, gap:12}}>
             <div style={S.sectionTitle}>Calendar</div>
-            <div style={{ fontSize: 11, color: "var(--t3)", fontFamily:"var(--font-mono)" }}>
+            <div style={{ fontSize: 11, color: "var(--t3)", fontFamily:"var(--font-mono)", marginLeft:8 }}>
               {recurringTxns.length} recurring
             </div>
           </div>
@@ -6932,7 +6932,7 @@ function AppInner({ isDemo = false }) {
                               color: t.amount < 0 ? "var(--red)" : "var(--green)",
                             }}
                           >
-                            {t.amount < 0 ? "↻" : "+"}
+                            {t.amount < 0 ? "↻ " : "+"}
                             {fmt(Math.abs(t.amount))}
                           </span>
                           <span style={{ fontSize: 11, color: "var(--t3)" }}>»</span>

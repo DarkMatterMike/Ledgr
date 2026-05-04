@@ -183,7 +183,7 @@ function useIsMobile() {
 
     /* ── Mobile bottom nav ── */
     .mobile-bottom-nav {
-      height: 76px;
+      height: 72px;
       background: var(--surface);
       border-top: 1px solid rgba(255,255,255,0.07);
       display: flex; align-items: stretch; flex-shrink: 0;
@@ -201,14 +201,14 @@ function useIsMobile() {
     .mobile-nav-item {
       flex: 1; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 2px; cursor: pointer; border: none;
+      gap: 4px; cursor: pointer; border: none;
       background: transparent; position: relative;
-      padding: 0; max-width: 40px; transition: background 0.18s;
+      padding: 0; transition: background 0.18s;
       -webkit-tap-highlight-color: transparent;
     }
     .mobile-nav-item.active { background: var(--cyan-dim); }
     .mobile-nav-item svg {
-      width: 20px; height: 20px;
+      width: 24px; height: 24px;
       stroke: rgba(232,221,208,0.32); fill: none;
       stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round;
       transition: stroke 0.18s, filter 0.18s;
@@ -218,7 +218,7 @@ function useIsMobile() {
       filter: drop-shadow(0 0 4px var(--glow-color));
     }
     .mobile-nav-label {
-      font-size: 9px; font-weight: 500; letter-spacing: 0.2px;
+      font-size: 10px; font-weight: 500; letter-spacing: 0.2px;
       color: rgba(232,221,208,0.32); transition: color 0.18s;
       font-family: var(--font-body); line-height: 1;
     }
@@ -235,7 +235,7 @@ function useIsMobile() {
 
     /* ── More sheet ── */
     .mobile-more-sheet {
-      position: fixed; left: 0; right: 0; bottom: 76px;
+      position: fixed; left: 0; right: 0; bottom: 72px;
       background: var(--surface);
       border-top: 1px solid rgba(255,255,255,0.07);
       border-radius: 20px 20px 0 0;
@@ -7759,7 +7759,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {/* More sheet overlay */}
-        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:76,zIndex:39}}/>}
+        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:72,zIndex:39}}/>}
 
         {/* More sheet */}
         <div className={`mobile-more-sheet${moreOpen?" open":""}`}>

@@ -3143,10 +3143,11 @@ function AppInner({ isDemo = false }) {
     const interval = setInterval(async () => {
       if (!initialized.current) return;
       try {
-        // Poll latest 100 transactions and refresh summary for current month
-        const [txnData, summaryData] = await Promise.allSettled([
+        // Poll latest 100 transactions, refresh summary, and refresh account balances
+        const [txnData, summaryData, acctData] = await Promise.allSettled([
           api.loadTransactions({ limit: 100, offset: 0 }),
           api.loadSummary(selectedMonth),
+          api.getAccounts(),
         ]);
         if (txnData.status === "fulfilled") {
           const incoming = txnData.value.transactions || [];
@@ -3171,6 +3172,20 @@ function AppInner({ isDemo = false }) {
         if (summaryData.status === "fulfilled") {
           setSummary(summaryData.value);
           setSummaryMonth(summaryData.value.month);
+        }
+        // Refresh balances only — never touch plaidId/plaidItemId/name/user fields
+        if (acctData.status === "fulfilled") {
+          const freshAccts = acctData.value.accounts || [];
+          if (freshAccts.length > 0) {
+            const balanceMap = Object.fromEntries(
+              freshAccts.map(a => [a.account_id, { balance: a.balance, available: a.available }])
+            );
+            setAccounts(prev => prev.map(a =>
+              a.plaidId && balanceMap[a.plaidId]
+                ? { ...a, balance: balanceMap[a.plaidId].balance, available: balanceMap[a.plaidId].available }
+                : a
+            ));
+          }
         }
       } catch (e) {
         console.warn("Poll error:", e.message);
@@ -3843,22 +3858,28 @@ function AppInner({ isDemo = false }) {
       type:t.amount<0?"expense":"income"};
   }
   async function disconnectItem(itemId) {
+    // Server-first: confirm all deletes before touching local state.
+    // If anything fails the UI stays consistent and the user can retry.
     try {
-      // Best-effort server delete — ignore 404 (item may not be in DB)
+      // 1. Remove from Plaid (best-effort — ignore 404)
       try { await api.deleteItem(itemId); } catch(e) {
         if (!e.message?.includes("404") && !e.message?.includes("not found")) throw e;
       }
-      const cleanAccounts     = accounts.filter(a => a.plaidItemId !== itemId);
-      const cleanTransactions = transactions.filter(t => t.plaidItemId !== itemId);
-      const cleanPlaidItems   = plaidItems.filter(i => i.item_id !== itemId);
-      setAccounts(cleanAccounts);
-      setTransactions(cleanTransactions);
-      setPlaidItems(cleanPlaidItems);
-      await api.deleteAllTransactions(itemId);
-      await api.deleteAccountsByItem(itemId);
+      // 2. Delete DB records — run in parallel, fail fast if either throws
+      await Promise.all([
+        api.deleteAllTransactions(itemId),
+        api.deleteAccountsByItem(itemId),
+      ]);
+      // 3. Persist updated plaidItems blob
+      const cleanPlaidItems = plaidItems.filter(i => i.item_id !== itemId);
       await api.saveData({ plaidItems: cleanPlaidItems });
+      // 4. Only now update local state — server is clean
+      setAccounts(prev => prev.filter(a => a.plaidItemId !== itemId));
+      setTransactions(prev => prev.filter(t => t.plaidItemId !== itemId));
+      setPlaidItems(cleanPlaidItems);
+      setStaleItemIds(prev => { const n = new Set(prev); n.delete(itemId); return n; });
       showToast("Bank disconnected");
-    } catch(e) { showToast("Error: " + e.message); }
+    } catch(e) { showToast("Disconnect failed — please try again: " + e.message); }
   }
 
   /* -- Category CRUD -- */

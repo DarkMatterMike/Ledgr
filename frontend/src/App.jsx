@@ -33,6 +33,7 @@ function useIsMobile() {
   el.id = "ledgr-css";
   el.textContent = `
     *, *::before, *::after { box-sizing: border-box; }
+    html, body { overscroll-behavior: none; }
     button {
       background: transparent; border: none; outline: none;
       box-shadow: none; -webkit-appearance: none; appearance: none;
@@ -7812,7 +7813,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {/* Content area */}
-        <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">
+        <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
           <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
         </div>
 

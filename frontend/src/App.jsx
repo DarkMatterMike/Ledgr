@@ -3581,6 +3581,12 @@ function AppInner({ isDemo = false }) {
         return [...applyRules(rawNew, rules, { onlyUncategorized: true }),...next];
       });
       const {accounts:plaidAccts} = await api.getAccounts();
+      // Fetch fresh items from server — don't trust stale React state
+      const freshItemsRes = await api.getPlaidItems();
+      const freshItems = freshItemsRes?.items || [];
+      const freshItemIds = new Set(freshItems.map(i => i.item_id));
+      // Update plaidItems state so UI stays in sync
+      if (freshItems.length > 0) setPlaidItems(freshItems);
 
       // Detect stale items — connected items that returned no accounts
       if (plaidAccts.length === 0 && plaidItems.length > 0) {
@@ -3597,9 +3603,9 @@ function AppInner({ isDemo = false }) {
       setAccounts(prev => {
         const manual = prev.filter(a => !a.plaidId);
         const byPlaidId = Object.fromEntries(prev.filter(a => a.plaidId).map(a => [a.plaidId, a]));
-        // Use item IDs from both stale state and fresh API response to handle new connections
+        // Use FRESH item IDs from server — never stale React state
         const activeItemIds = new Set([
-          ...plaidItems.map(i => i.item_id),
+          ...freshItemIds,
           ...plaidAccts.map(pa => pa.item_id),
         ]);
         // Build merged Plaid accounts - deduplicated by plaid account_id
@@ -3617,14 +3623,13 @@ function AppInner({ isDemo = false }) {
             institution: pa.institution,
             mask: pa.mask,
           }));
-        // Also include any existing Plaid accounts not returned by this sync
-        // (e.g. accounts from other institutions not included in this sync call)
+        // Keep existing Plaid accounts from OTHER active items not returned by this sync
         const returnedPlaidIds = new Set(plaidAccts.map(pa => pa.account_id));
         const existingOtherPlaid = prev.filter(a =>
           a.plaidId && !returnedPlaidIds.has(a.plaidId) && activeItemIds.has(a.plaidItemId)
         );
         const updated = [...manual, ...existingOtherPlaid, ...plaidUpdated];
-        // Clean up genuine orphans (item deleted/disconnected)
+        // Clean up genuine orphans — items no longer in server's plaid_items table
         const orphans = prev.filter(a =>
           a.plaidId && a.plaidItemId && !activeItemIds.has(a.plaidItemId)
         );
@@ -7406,12 +7411,12 @@ function AppInner({ isDemo = false }) {
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
-      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,color:"var(--cyan)",lineHeight:1}} className="ledgr-logo-bounce">ℓ</div>
+      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</div>
       <div style={{position:"relative",display:"inline-block"}}>
         <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
         <div className="ledgr-loading-bar"/>
       </div>
-      <div style={{fontSize:12,color:"var(--t3)",marginTop:4}} className="ledgr-loading-text">Loading your data…</div>
+      <div style={{fontSize:12,color:"var(--t3)",marginTop:4}}>Loading your data…</div>
     </div>
   );
 

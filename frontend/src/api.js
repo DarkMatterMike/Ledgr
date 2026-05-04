@@ -198,6 +198,7 @@ export function exchangePublicToken(publicToken, name)  { return request("/api/p
 export function syncTransactions(itemId)                { return request("/api/plaid/transactions/sync", { method: "POST", body: JSON.stringify(itemId ? { item_id: itemId } : {}) }); }
 export function getAccounts()                           { return request("/api/plaid/accounts"); }
 export function deleteItem(itemId)                      { return request(`/api/plaid/items/${itemId}`, { method: "DELETE" }); }
+export function getPlaidItems()                         { return request("/api/plaid/items"); }
 
 /* ── Push ─────────────────────────────────────────────────────────── */
 export function subscribePush(subscription) {

@@ -423,7 +423,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
       value={String(value)}
       onChange={e => onChange(e.target.value)}
       style={{
-        background:"var(--surface)", border:"none",
+        background:"var(--card-hi, #231f1a)", border:"none",
         borderRadius:20, cursor:"pointer", outline:"none",
         padding: compact ? "5px 10px" : "8px 14px",
         fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
@@ -1257,12 +1257,39 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
         <span style={{fontSize:13,fontWeight:500,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
-        </span>        {(!noCategory && cat) ? (
-          <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
-        ) : (
+        </span>        {noCategory ? (
           <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0,textTransform:"capitalize"}}>{typeVal}</span>
+        ) : (
+          <select
+            value={String(t.categoryId||"")}
+            onClick={e=>e.stopPropagation()}
+            onChange={e=>{e.stopPropagation();const v=e.target.value;if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
+            style={{
+              background:"var(--card-hi, #231f1a)",
+              border:"none",
+              borderRadius:20,
+              cursor:"pointer",
+              outline:"none",
+              padding:"3px 24px 3px 9px",
+              fontSize:11,
+              color: cat ? cat.color : "var(--t3)",
+              fontWeight:500,
+              flexShrink:0,
+              maxWidth:120,
+              appearance:"none", WebkitAppearance:"none",
+              backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23888'/%3E%3C/svg%3E")`,
+              backgroundRepeat:"no-repeat",
+              backgroundPosition:"right 8px center",
+              boxSizing:"border-box",
+            }}>
+            <option value="">— None —</option>
+            {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+            <option value="__new__">+ New category</option>
+          </select>
         )}
-        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,minWidth:80,textAlign:"right"}}>
           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
         </span>
         <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>

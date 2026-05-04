@@ -1220,7 +1220,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
       <div
         onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
         style={{padding:"7px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
-          borderLeft:t.recurring?"3px solid #fbbf24":needsReview(t)?"3px solid var(--cyan)":"3px solid transparent",
+          borderLeft:t.recurring?"3px solid var(--recurring-color, #fbbf24)":needsReview(t)?"3px solid var(--review-color, var(--cyan))":"3px solid transparent",
           paddingLeft:t.recurring||needsReview(t)?10:0,
           background: isSelected ? "var(--cyan-dim)" : "transparent",
           transition:"background 0.1s"}}>
@@ -1330,7 +1330,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           </div>
 
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>toggleRecurring(t.id)} style={{...S.btn(t.recurring?"amber":"ghost",true)}}>
+            <button onClick={()=>toggleRecurring(t.id)} style={{...S.btn(t.recurring?"amber":"ghost",true), background:t.recurring?"var(--amber-dim)":"var(--card-hi, #231f1a)"}}>
               {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
             </button>
             {t.recurring&&(
@@ -1804,11 +1804,15 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             { key:"t1",      label:"Text primary" },
             { key:"t2",      label:"Text secondary" },
             { key:"t3",      label:"Text muted" },
+            { key:"reviewColor",    label:"Review stripe" },
+            { key:"recurringColor", label:"Recurring stripe" },
           ];
           const defaults = PRESETS[0];
-          const current = { ...defaults, fontDisp:"'Syne', sans-serif", ...(theme||{}) };
-          const gradSteps = current.gradSteps ?? 6;
+          const current = { ...defaults, fontDisp:"'Syne', sans-serif", reviewColor:"#00d4ff", recurringColor:"#fbbf24", ...(theme||{}) };          const gradSteps = current.gradSteps ?? 6;
           const gradAngle = current.gradAngle ?? 315;
+          const savedThemes = current._savedThemes || [];
+          const [saveThemeName, setSaveThemeName] = useState("");
+          const [showSaveInput, setShowSaveInput] = useState(false);
 
           function patch(k, v) {
             const next = { ...current, [k]: v };
@@ -1833,6 +1837,21 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           function applyPreset(preset) {
             const next = { ...current, ...preset };
             onSaveTheme(next);
+          }
+
+          function saveCurrentTheme() {
+            if (!saveThemeName.trim()) return;
+            const { _savedThemes: _, ...themeData } = current;
+            const entry = { ...themeData, name: saveThemeName.trim() };
+            const next = [...savedThemes.filter(t=>t.name!==entry.name), entry];
+            patch('_savedThemes', next);
+            setSaveThemeName("");
+            setShowSaveInput(false);
+            showToast("Theme saved: " + entry.name);
+          }
+
+          function deleteCustomTheme(name) {
+            patch('_savedThemes', savedThemes.filter(t=>t.name!==name));
           }
 
           function reset() {
@@ -1871,6 +1890,61 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Saved custom themes */}
+              <div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>My Themes</div>
+                  <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>setShowSaveInput(p=>!p)}>
+                    {showSaveInput?"Cancel":"+ Save current"}
+                  </button>
+                </div>
+                {showSaveInput&&(
+                  <div style={{display:"flex",gap:8,marginBottom:10}}>
+                    <input
+                      autoFocus
+                      value={saveThemeName}
+                      onChange={e=>setSaveThemeName(e.target.value)}
+                      onKeyDown={e=>{ if(e.key==="Enter") saveCurrentTheme(); if(e.key==="Escape") setShowSaveInput(false); }}
+                      placeholder="Theme name…"
+                      style={{...S.input,flex:1,fontSize:12}}/>
+                    <button style={S.btn("primary",true)} onClick={saveCurrentTheme} disabled={!saveThemeName.trim()}>Save</button>
+                  </div>
+                )}
+                {savedThemes.length===0&&!showSaveInput&&(
+                  <div style={{fontSize:12,color:"var(--t3)",padding:"8px 0"}}>No saved themes yet. Customise the settings below then save.</div>
+                )}
+                {savedThemes.length>0&&(
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:6}}>
+                    {savedThemes.map(t=>(
+                      <div key={t.name} style={{display:"flex",gap:0,borderRadius:"var(--radius)",overflow:"hidden",border:`1px solid ${current.accent||"var(--border2)"}22`}}>
+                        <button onClick={()=>applyPreset(t)} style={{
+                          flex:1,display:"flex",alignItems:"center",gap:5,padding:"6px 8px",
+                          background:"var(--surface)",color:"var(--t2)",border:"none",cursor:"pointer",
+                          fontSize:11,fontWeight:500,overflow:"hidden",textAlign:"left",
+                          transition:"all 0.15s",
+                        }}
+                        onMouseEnter={e=>{e.currentTarget.style.color="var(--t1)";}}
+                        onMouseLeave={e=>{e.currentTarget.style.color="var(--t2)";}}>
+                          <span style={{display:"inline-flex",gap:3,flexShrink:0}}>
+                            {["bg","accent","t1"].map(k=>(
+                              <span key={k} style={{width:7,height:7,borderRadius:"50%",background:t[k]||"#888",display:"inline-block"}}/>
+                            ))}
+                          </span>
+                          <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</span>
+                        </button>
+                        <button onClick={()=>deleteCustomTheme(t.name)} style={{
+                          background:"var(--surface)",border:"none",borderLeft:`1px solid ${current.accent||"var(--border2)"}22`,
+                          color:"var(--t3)",cursor:"pointer",padding:"0 8px",fontSize:14,flexShrink:0,
+                          transition:"color 0.15s",
+                        }}
+                        onMouseEnter={e=>{e.currentTarget.style.color="var(--red)";}}
+                        onMouseLeave={e=>{e.currentTarget.style.color="var(--t3)";}}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Background Image */}
@@ -2134,6 +2208,10 @@ function applyTheme(theme) {
   }
   // Gradient angle
   root.style.setProperty("--grad-angle", (theme.gradAngle ?? 315) + "deg");
+
+  // Transaction stripe colors
+  if (theme.reviewColor)    root.style.setProperty("--review-color",    theme.reviewColor);
+  if (theme.recurringColor) root.style.setProperty("--recurring-color", theme.recurringColor);
   root.style.setProperty("--card-border", "transparent");
   root.style.setProperty("--surface-solid", theme.surface || "#161412");
   root.style.setProperty("--bg-solid",      theme.bg      || "#0f0e0d");
@@ -5643,7 +5721,7 @@ function AppInner({ isDemo = false }) {
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {plaidItems.length>0&&(
             <div className="obsidian-card" style={{...S.card,padding:"10px 14px"}}>
-              <div className="obsidian-card" style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
+              <div style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {plaidItems.map(item=>{
                   const isStale = staleItemIds.has(item.item_id);

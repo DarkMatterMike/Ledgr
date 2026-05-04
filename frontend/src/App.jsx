@@ -356,10 +356,10 @@ const S = {
     if (variant==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
     if (variant==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" };
     if (variant==="amber")   return { ...base, background:"var(--amber-dim)", color:"var(--amber)", borderColor:"rgba(201,149,106,0.3)" };
-    return { ...base, background:"var(--card)", color:"var(--t2)" };
+    return { ...base, background:"var(--card-hi, #2b251d)", color:"var(--t2)" };
   },
-  input:        { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
-  select:       { background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
+  input:        { background:"var(--card-hi, #2b251d)", border:"none", borderRadius:"var(--radius)", padding:"7px 10px", fontSize:12, color:"var(--t1)", outline:"none", width:"100%" },
+  select:       { background:"var(--card-hi, #2b251d)", border:"none", borderRadius:"var(--radius)", padding:"5px 8px", fontSize:11, color:"var(--t1)", outline:"none" },
   field:        { display:"flex", flexDirection:"column", gap:4 },
   label:        { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600 },
   overlay:      { position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(6px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" },
@@ -1081,9 +1081,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   }
   return (
     <>
-      <div style={{padding:"20px 20px 28px",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span><div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div></div>
-      </div>
+      <div style={{height:16,flexShrink:0}}/>
       <nav style={{flex:1,display:"flex",flexDirection:"column",overflowY:"auto"}}>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}

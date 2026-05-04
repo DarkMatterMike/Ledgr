@@ -200,11 +200,12 @@ function useIsMobile() {
     }
     .mobile-nav-item {
       flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      align-items: center; justify-content: flex-start;
       gap: 4px; cursor: pointer; border: none;
       background: transparent; position: relative;
-      padding: 10px 0 0; align-items: center; justify-content: flex-start; transition: background 0.18s;
+      padding: 10px 0 0; transition: background 0.18s;
       -webkit-tap-highlight-color: transparent;
+      align-self: stretch;
     }
     .mobile-nav-item.active { background: var(--cyan-dim); }
     .mobile-nav-item svg {

@@ -188,7 +188,6 @@ function useIsMobile() {
       border-top: 1px solid rgba(255,255,255,0.07);
       display: flex; align-items: stretch; flex-shrink: 0;
       position: relative; z-index: 50;
-      padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
     }
     .mobile-nav-indicator {
       position: absolute; top: -2px; height: 2px;
@@ -203,7 +202,8 @@ function useIsMobile() {
       align-items: center; justify-content: flex-start;
       gap: 4px; cursor: pointer; border: none;
       background: transparent; position: relative;
-      padding: 10px 0 0; transition: background 0.18s;
+      padding: 10px 0 max(env(safe-area-inset-bottom, 0px), 12px);
+      transition: background 0.18s;
       -webkit-tap-highlight-color: transparent;
       align-self: stretch;
     }

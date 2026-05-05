@@ -1270,11 +1270,12 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               onChange={e=>{ const v=e.target.value; if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
               style={{
                 background:"var(--surface)", border:"none", outline:"none",
-                fontSize:11, color:cat?cat.color:"var(--t3)",
+                fontSize:13, color:cat?cat.color:"var(--t3)",
                 fontWeight:600, cursor:"pointer", maxWidth:"100%",
                 appearance:"none", WebkitAppearance:"none",
                 fontFamily:"var(--font-body)", padding:"2px 6px 2px 6px",
                 borderRadius:20, colorScheme:"dark",
+                touchAction:"manipulation",
               }}>
               <option value="">— None —</option>
               {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(

@@ -4905,8 +4905,7 @@ function AppInner({ isDemo = false }) {
     const upcoming = [...recurringItems]
       .filter(item => {
         if (!item.recurringDay || item.recurringFreq !== "monthly") return false;
-        if ((item.recurringDay||0) <= todayD) return false;
-        // Skip if already posted this month
+        // Show all unposted items for the current month regardless of day
         const postedThisMonth = (item.linkedTxnIds||[]).some(txnId => {
           const t = transactions.find(x => x.id === txnId);
           if (!t || !t.date) return false;

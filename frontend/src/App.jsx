@@ -4384,7 +4384,7 @@ function AppInner({ isDemo = false }) {
       recurringStart: riForm.recurringStart||null,
       categoryId: riForm.categoryId||null,
       accountId: riForm.accountId||null,
-      linkedTxnIds: editingRecurringItem ? (editingRecurringItem.linkedTxnIds||[]) : [],
+      linkedTxnIds: editingRecurringItem ? ((recurringItems.find(r=>r.id===editingRecurringItem.id)||editingRecurringItem).linkedTxnIds||[]) : [],
     };
     saveRecurringItem(item);
     setRecurringItemModal(false);
@@ -7599,7 +7599,8 @@ function AppInner({ isDemo = false }) {
             <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
               {riSearchResults.map(t=>{
                 const itemId = editingRecurringItem?.id || ("ri"+Date.now()+"_pending");
-                const alreadyLinked = editingRecurringItem && (editingRecurringItem.linkedTxnIds||[]).includes(t.id);
+                const liveRI = editingRecurringItem && (recurringItems.find(r=>r.id===editingRecurringItem.id) || editingRecurringItem);
+                const alreadyLinked = liveRI && (liveRI.linkedTxnIds||[]).includes(t.id);
                 const cat = catMap[t.categoryId];
                 return (
                   <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"var(--surface)",borderRadius:"var(--radius)",flexShrink:0}}>
@@ -7630,11 +7631,15 @@ function AppInner({ isDemo = false }) {
               })}
             </div>
           )}
-          {/* Show already-linked txns when editing */}
-          {editingRecurringItem && (editingRecurringItem.linkedTxnIds||[]).length > 0 && (
+          {/* Show already-linked txns when editing — read live from recurringItems not stale snapshot */}
+          {editingRecurringItem && (()=>{
+            const liveItem = recurringItems.find(r=>r.id===editingRecurringItem.id) || editingRecurringItem;
+            const liveLinked = liveItem.linkedTxnIds||[];
+            if (liveLinked.length === 0) return null;
+            return (
             <div style={{display:"flex",flexDirection:"column",gap:2}}>
-              <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>Linked ({editingRecurringItem.linkedTxnIds.length})</div>
-              {editingRecurringItem.linkedTxnIds.map(txnId=>{
+              <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>Linked ({liveLinked.length})</div>
+              {liveLinked.map(txnId=>{
                 const t = transactions.find(x=>x.id===txnId);
                 if (!t) return null;
                 return (
@@ -7652,7 +7657,8 @@ function AppInner({ isDemo = false }) {
                 );
               })}
             </div>
-          )}
+          );
+          })()}
         </div>
       </div>
     </Modal>

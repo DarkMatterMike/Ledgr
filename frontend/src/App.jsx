@@ -1262,6 +1262,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
         <MerchantIcon name={t.merchant||t.name} size={24}/>
         <span style={{fontSize:13,fontWeight:400,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
+          {t.recurringItemId && <span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>
         {/* Inline category selector in collapsed row */}
@@ -1383,16 +1384,6 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           </div>
 
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>toggleRecurring(t.id)} style={{...S.btn(t.recurring?"amber":"ghost",true), background:t.recurring?"var(--amber-dim)":"var(--card-hi, #231f1a)"}}>
-              {t.recurring?"↻ Recurring":"↻ Mark Recurring"}
-            </button>
-            {t.recurring&&(
-              <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--t2)"}}>
-                Day: <input type="number" min="1" max="31"
-                  style={{...S.input,width:52}}
-                  value={t.recurringDay||""} onChange={e=>updateRecurringDay(t.id,e.target.value)}/>
-              </div>
-            )}
             <button onClick={()=>setExpandedTxnId(null)} style={{...S.btn("ghost",true),marginLeft:"auto"}}>Done</button>
           </div>
         </div>
@@ -3019,6 +3010,13 @@ function AppInner({ isDemo = false }) {
   const txnSearchCaretRef = useRef({ start: null, end: null });
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
+  const [recurringItems, setRecurringItems] = useState([]);
+  const [recurringItemModal, setRecurringItemModal] = useState(false);
+  const [editingRecurringItem, setEditingRecurringItem] = useState(null);
+  const [riForm, setRiForm] = useState({ name:"", amountMin:"", amountMax:"", recurringDay:"", recurringFreq:"monthly", recurringStart:"", categoryId:"", accountId:"" });
+  const [riSearch, setRiSearch] = useState("");
+  const [riSearchResults, setRiSearchResults] = useState([]);
+  const [riSearchLoading, setRiSearchLoading] = useState(false);
   const [deletedTransactions, setDeletedTransactions] = useState([]);
   const [showTrash, setShowTrash] = useState(false);
   const [filterReview,  setFilterReview]  = useState(false);
@@ -3122,6 +3120,7 @@ function AppInner({ isDemo = false }) {
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
       if (Array.isArray(data.deletedTransactions)) setDeletedTransactions(data.deletedTransactions);
+      if (Array.isArray(data.recurringItems)) setRecurringItems(data.recurringItems);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
       if (data.dani)           setDaniData(data.dani);
       if (data.theme)          { setTheme(data.theme); applyTheme(data.theme); }
@@ -4275,6 +4274,93 @@ function AppInner({ isDemo = false }) {
       api.createTransaction(txn).catch(console.error);
     });
   }
+  // ── Recurring Item CRUD ───────────────────────────────────────────
+  function saveRecurringItem(item) {
+    const next = editingRecurringItem
+      ? recurringItems.map(r => r.id === item.id ? item : r)
+      : [...recurringItems, item];
+    setRecurringItems(next);
+    scheduleSaveRef.current?.({ recurringItems: next });
+  }
+  function deleteRecurringItem(id) {
+    // Unlink any transactions that were linked to this item
+    setTransactions(prev => prev.map(t => t.recurringItemId === id ? { ...t, recurringItemId: null } : t));
+    const next = recurringItems.filter(r => r.id !== id);
+    setRecurringItems(next);
+    scheduleSaveRef.current?.({ recurringItems: next });
+    showToast("Recurring item removed");
+  }
+  function linkTxnToRecurringItem(txnId, itemId) {
+    const item = recurringItems.find(r => r.id === itemId);
+    if (!item) return;
+    const linkedIds = [...new Set([...(item.linkedTxnIds||[]), txnId])];
+    const next = recurringItems.map(r => r.id === itemId ? { ...r, linkedTxnIds: linkedIds } : r);
+    setRecurringItems(next);
+    scheduleSaveRef.current?.({ recurringItems: next });
+    setTransactions(prev => prev.map(t => t.id === txnId ? { ...t, recurringItemId: itemId } : t));
+    api.updateTransaction(txnId, { recurringItemId: itemId }).catch(console.error);
+  }
+  function unlinkTxnFromRecurringItem(txnId, itemId) {
+    const next = recurringItems.map(r => r.id === itemId
+      ? { ...r, linkedTxnIds: (r.linkedTxnIds||[]).filter(id => id !== txnId) }
+      : r);
+    setRecurringItems(next);
+    scheduleSaveRef.current?.({ recurringItems: next });
+    setTransactions(prev => prev.map(t => t.id === txnId ? { ...t, recurringItemId: null } : t));
+    api.updateTransaction(txnId, { recurringItemId: null }).catch(console.error);
+  }
+  function openNewRecurringItem() {
+    setEditingRecurringItem(null);
+    setRiForm({ name:"", amountMin:"", amountMax:"", recurringDay:"", recurringFreq:"monthly", recurringStart:"", categoryId:"", accountId:"" });
+    setRiSearch(""); setRiSearchResults([]);
+    setRecurringItemModal(true);
+  }
+  function openEditRecurringItem(item) {
+    setEditingRecurringItem(item);
+    setRiForm({ name:item.name||"", amountMin:item.amountMin!=null?String(item.amountMin):"", amountMax:item.amountMax!=null?String(item.amountMax):"", recurringDay:item.recurringDay||"", recurringFreq:item.recurringFreq||"monthly", recurringStart:item.recurringStart||"", categoryId:item.categoryId||"", accountId:item.accountId||"" });
+    setRiSearch(""); setRiSearchResults([]);
+    setRecurringItemModal(true);
+  }
+  async function searchTxnsForRI() {
+    if (!riSearch.trim() && !riForm.amountMin && !riForm.amountMax) return;
+    setRiSearchLoading(true);
+    try {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
+      const cutoffStr = cutoff.toISOString().slice(0,10);
+      const res = await api.loadTransactions({ limit: 500, offset: 0, search: riSearch.trim()||undefined });
+      const txns = (res.transactions||[]).filter(t => {
+        if (t.date < cutoffStr) return false;
+        const amt = Math.abs(t.amount);
+        const min = parseFloat(riForm.amountMin);
+        const max = parseFloat(riForm.amountMax);
+        if (!isNaN(min) && amt < min) return false;
+        if (!isNaN(max) && amt > max) return false;
+        return true;
+      });
+      setRiSearchResults(txns.slice(0, 50));
+    } catch(e) { showToast("Search failed: " + e.message); }
+    setRiSearchLoading(false);
+  }
+  function saveRecurringItemForm() {
+    if (!riForm.name.trim()) return;
+    const item = {
+      id: editingRecurringItem ? editingRecurringItem.id : "ri"+Date.now(),
+      name: riForm.name.trim(),
+      amountMin: riForm.amountMin !== "" ? parseFloat(riForm.amountMin) : null,
+      amountMax: riForm.amountMax !== "" ? parseFloat(riForm.amountMax) : null,
+      recurringDay: parseInt(riForm.recurringDay)||null,
+      recurringFreq: riForm.recurringFreq||"monthly",
+      recurringStart: riForm.recurringStart||null,
+      categoryId: riForm.categoryId||null,
+      accountId: riForm.accountId||null,
+      linkedTxnIds: editingRecurringItem ? (editingRecurringItem.linkedTxnIds||[]) : [],
+    };
+    saveRecurringItem(item);
+    setRecurringItemModal(false);
+    setEditingRecurringItem(null);
+    showToast(editingRecurringItem ? "Updated" : "Recurring item added");
+  }
+
   function toggleRecurring(id) {
     setTransactions(p=>p.map(t=>{
       if(t.id!==id) return t;
@@ -6194,7 +6280,7 @@ function AppInner({ isDemo = false }) {
       <div>
         <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
           <div style={S.sectionTitle}>Recurring Calendar</div>
-          <div style={{ fontSize: 13, color: "var(--t2)" }}>{recurringTxns.length} recurring</div>
+          <div style={{ fontSize: 13, color: "var(--t2)" }}>{recurringItems.length} recurring</div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -6528,28 +6614,35 @@ function AppInner({ isDemo = false }) {
               fontFamily: "var(--font-disp)",
             }}
           >
-            All Recurring Transactions
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%"}}>
+              <span>All Recurring</span>
+              <button style={S.btn("ghost",true)} onClick={e=>{e.stopPropagation();openNewRecurringItem();}}>+ New</button>
+            </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column" }}>
-            {recurringTxns.length === 0 ? (
+            {recurringItems.length === 0 ? (
               <div style={{ padding: 20, color: "var(--t3)", textAlign: "center" }}>
-                No recurring transactions yet
+                No recurring items yet
               </div>
             ) : (
-              recurringTxns
-                .slice()
-                .sort((a, b) => (parseInt(a.recurringDay)||0) - (parseInt(b.recurringDay)||0))
-                .map((t, idx) => {
-                  const cat = catMap[t.categoryId];
+              [...recurringItems]
+                .sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0))
+                .map((item, idx) => {
+                  const cat = catMap[item.categoryId];
+                  const calY = parseInt(calendarMonth.split("-")[0]);
+                  const calM = parseInt(calendarMonth.split("-")[1]);
+                  const postedThisMonth = (item.linkedTxnIds||[]).some(txnId=>{
+                    const t = transactions.find(x=>x.id===txnId);
+                    if (!t||!t.date) return false;
+                    const [ty,tm] = t.date.split("-").map(Number);
+                    return ty===calY && tm===calM;
+                  });
                   return (
                     <button
-                      key={t.id}
+                      key={item.id}
                       type="button"
-                      onClick={() => {
-                        setEditTarget(t);
-                        setModal("editRecurring");
-                      }}
+                      onClick={()=>openEditRecurringItem(item)}
                       style={{
                         display: "grid",
                         gridTemplateColumns: "32px 1fr auto",
@@ -6567,53 +6660,23 @@ function AppInner({ isDemo = false }) {
                         WebkitTapHighlightColor: "transparent",
                       }}
                     >
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 8,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: "var(--cyan)",
-                          background: "var(--surface)",
-                        }}
-                      >
-                        {t.recurringDay || "—"}
+                      <div style={{width:28,height:28,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",background:"var(--surface)"}}>
+                        {postedThisMonth ? "✓" : (item.recurringDay || "—")}
                       </div>
-
                       <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "var(--t1)",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {t.name || t.merchant}
+                        <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          {item.name}
                         </div>
                         <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>
-                          {t.recurringFreq || "monthly"}
+                          {item.recurringFreq || "monthly"}
                           {cat ? <span style={{ color: cat.color }}> · {cat.name}</span> : null}
+                          {(item.linkedTxnIds||[]).length>0&&<span style={{marginLeft:4}}>· {item.linkedTxnIds.length} linked</span>}
                         </div>
                       </div>
-
-                      <div
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {t.amount < 0 ? "-" : "+"}
-                        {fmt(Math.abs(t.amount))}
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)",whiteSpace:"nowrap"}}>
+                        {item.amountMin!=null?fmt(item.amountMin):""}
+                        {item.amountMin!=null&&item.amountMax!=null?"–":""}
+                        {item.amountMax!=null&&item.amountMax!==item.amountMin?fmt(item.amountMax):""}
                       </div>
                     </button>
                   );
@@ -6637,7 +6700,7 @@ function AppInner({ isDemo = false }) {
           <div style={{...S.sectionHdr, marginBottom:0}}>
             <div style={S.sectionTitle}>Calendar</div>
             <div style={{ fontSize: 11, color: "var(--t3)", fontFamily:"var(--font-mono)" }}>
-              {recurringTxns.length} recurring
+              {recurringItems.length} recurring
             </div>
           </div>
 
@@ -6909,131 +6972,76 @@ function AppInner({ isDemo = false }) {
               </div>
             </div>
 
-            {/* Recurring list card now matches calendar width */}
-            {recurringTxns.length > 0 && (
-              <div className="obsidian-card" style={{ ...S.card, minWidth: 0 }}>
-                <div style={S.cardTitle}>All Recurring Transactions</div>
-
-                {[...recurringTxns]
-                  .sort((a, b) => (parseInt(a.recurringDay)||0) - (parseInt(b.recurringDay)||0))
-                  .map((t) => {
-                    const cat = catMap[t.categoryId];
+            {/* Recurring items card */}
+            <div className="obsidian-card" style={{ ...S.card, minWidth: 0 }}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:recurringItems.length>0?12:0}}>
+                <div style={S.cardTitle}>All Recurring</div>
+                <button style={S.btn("ghost",true)} onClick={openNewRecurringItem}>+ New</button>
+              </div>
+              {recurringItems.length === 0 ? (
+                <div style={{padding:"16px 0",color:"var(--t3)",fontSize:13,textAlign:"center"}}>No recurring items yet</div>
+              ) : (
+                [...recurringItems]
+                  .sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0))
+                  .map(item=>{
+                    const cat = catMap[item.categoryId];
+                    // Check if posted this calendar month
+                    const calY = parseInt(calendarMonth.split("-")[0]);
+                    const calM = parseInt(calendarMonth.split("-")[1]);
+                    const postedThisMonth = (item.linkedTxnIds||[]).some(txnId=>{
+                      const t = transactions.find(x=>x.id===txnId);
+                      if (!t||!t.date) return false;
+                      const [ty,tm] = t.date.split("-").map(Number);
+                      return ty===calY && tm===calM;
+                    });
+                    const amtLabel = item.amountMin!=null&&item.amountMax!=null
+                      ? `${fmt(item.amountMin)}–${fmt(item.amountMax)}`
+                      : item.amountMin!=null ? `~${fmt(item.amountMin)}` : "";
                     return (
                       <button
-                        key={t.id}
+                        key={item.id}
                         type="button"
-                        onClick={() => {
-                          setEditTarget(t);
-                          setModal("editRecurring");
-                        }}
-                        onTouchEnd={isMobile ? (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setEditTarget(t);
-                          setModal("editRecurring");
-                        } : undefined}
-                        onKeyDown={isMobile ? (e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setEditTarget(t);
-                            setModal("editRecurring");
-                          }
-                        } : undefined}
+                        onClick={()=>openEditRecurringItem(item)}
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "10px 8px",
-                          margin: "0 -8px 2px",
-                          background: "transparent",
-                          border: "none",
-                          outline: "none",
-                          boxShadow: "none",
-                          borderBottom: "1px solid rgba(255,255,255,0.05)",
-                          cursor: "pointer",
-                          borderRadius: 6,
-                          transition: "background 0.12s",
-                          WebkitTapHighlightColor: "transparent",
-                          touchAction: isMobile ? "manipulation" : undefined,
-                          width: "calc(100% + 16px)",
-                          textAlign: "left",
-                          appearance: "none",
-                          WebkitAppearance: "none",
+                          display:"flex",alignItems:"center",justifyContent:"space-between",
+                          padding:"10px 8px",margin:"0 -8px 2px",
+                          background:"transparent",border:"none",outline:"none",boxShadow:"none",
+                          borderBottom:"1px solid rgba(255,255,255,0.05)",
+                          cursor:"pointer",borderRadius:6,transition:"background 0.12s",
+                          WebkitTapHighlightColor:"transparent",
+                          width:"calc(100% + 16px)",textAlign:"left",
+                          appearance:"none",WebkitAppearance:"none",
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap:10, flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: 8,
-                              background: "var(--surface)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontFamily: "var(--font-mono)",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: "var(--cyan)",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {t.recurringDay || "?"}
-                          </div>
-
-                          <div style={{ minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: 14,
-                                fontWeight: 600,
-                                color: "var(--t1)",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {t.name || t.merchant}
+                        <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
+                          {/* Day badge + checkmark */}
+                          <div style={{position:"relative",flexShrink:0}}>
+                            <div style={{width:30,height:30,borderRadius:8,background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)"}}>
+                              {postedThisMonth ? "✓" : (item.recurringDay||"?")}
                             </div>
-
-                            <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>
-                              {t.recurringFreq === "weekly"
-                                ? "Weekly"
-                                : t.recurringFreq === "biweekly"
-                                ? "Bi-weekly"
-                                : t.recurringFreq === "annual"
-                                ? "Annual"
-                                : `Day ${t.recurringDay || "?"} of month`}
-                              {t.recurringStart && <span style={{ marginLeft: 6 }}>· from {t.recurringStart}</span>}
-                              {cat && (
-                                <>
-                                  {" "}· <span style={{ color: cat.color }}>{cat.name}</span>
-                                </>
-                              )}
+                          </div>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                              {item.name}
+                            </div>
+                            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>
+                              {item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"}`}
+                              {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
+                              {(item.linkedTxnIds||[]).length>0&&<span style={{marginLeft:4,color:"var(--t3)"}}>· {item.linkedTxnIds.length} linked</span>}
                             </div>
                           </div>
                         </div>
-
-                        <div style={{ display: "flex", alignItems: "center", gap:10, flexShrink: 0, marginLeft: 10 }}>
-                          <span
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: 14,
-                              fontWeight: 700,
-                              color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                            }}
-                          >
-                            {t.amount < 0 ? "↻" : "+"}
-                            {fmt(Math.abs(t.amount))}
-                          </span>
-                          <span style={{ fontSize: 11, color: "var(--t3)" }}>»</span>
+                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:10}}>
+                          {amtLabel && <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)"}}>{amtLabel}</span>}
+                          <span style={{fontSize:11,color:"var(--t3)"}}>»</span>
                         </div>
                       </button>
                     );
-                  })}
-              </div>
-            )}
+                  })
+              )}
+            </div>
           </div>
 
           {/* RIGHT COLUMN: sidebar */}
@@ -7442,6 +7450,144 @@ function AppInner({ isDemo = false }) {
         <div style={S.field}>
           <label style={S.label}>Bank Account</label>
           <CustomSelect value={editTarget.accountId||""} onChange={v=>setEditTarget(p=>({...p,accountId:v||null}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}}/>
+        </div>
+      </div>
+    </Modal>
+  ) : null;
+
+  const RecurringItemModal = recurringItemModal ? (
+    <Modal
+      title={editingRecurringItem ? "Edit Recurring" : "New Recurring"}
+      onClose={()=>{ setRecurringItemModal(false); setEditingRecurringItem(null); }}
+      actions={<>
+        {editingRecurringItem && (
+          <button style={{...S.btn("ghost"),color:"var(--t3)"}} onClick={()=>{
+            deleteRecurringItem(editingRecurringItem.id);
+            setRecurringItemModal(false); setEditingRecurringItem(null);
+          }}>Delete</button>
+        )}
+        <button style={S.btn("ghost")} onClick={()=>{ setRecurringItemModal(false); setEditingRecurringItem(null); }}>Cancel</button>
+        <button style={S.btn("primary")} onClick={saveRecurringItemForm}>Save</button>
+      </>}
+    >
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {/* Name */}
+        <div style={S.field}>
+          <label style={S.label}>Name</label>
+          <input style={S.input} placeholder="e.g. Netflix" value={riForm.name} onChange={e=>setRiForm(p=>({...p,name:e.target.value}))}/>
+        </div>
+        {/* Frequency + Day */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div style={S.field}>
+            <label style={S.label}>Frequency</label>
+            <CustomSelect value={riForm.recurringFreq} onChange={v=>setRiForm(p=>({...p,recurringFreq:v}))} options={[{value:"weekly",label:"Weekly"},{value:"biweekly",label:"Bi-weekly"},{value:"monthly",label:"Monthly"},{value:"annual",label:"Annual"}]} style={{width:"100%"}}/>
+          </div>
+          {(riForm.recurringFreq==="monthly"||!riForm.recurringFreq) && (
+            <div style={S.field}>
+              <label style={S.label}>Day of Month</label>
+              <input style={S.input} type="number" min="1" max="31" placeholder="e.g. 15" value={riForm.recurringDay} onChange={e=>setRiForm(p=>({...p,recurringDay:e.target.value}))}/>
+            </div>
+          )}
+        </div>
+        {/* Amount range */}
+        <div style={S.field}>
+          <label style={S.label}>Expected Amount Range ($)</label>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <input style={{...S.input,flex:1}} type="number" placeholder="Min" value={riForm.amountMin} onChange={e=>setRiForm(p=>({...p,amountMin:e.target.value}))}/>
+            <span style={{color:"var(--t3)",fontSize:12}}>–</span>
+            <input style={{...S.input,flex:1}} type="number" placeholder="Max" value={riForm.amountMax} onChange={e=>setRiForm(p=>({...p,amountMax:e.target.value}))}/>
+          </div>
+        </div>
+        {/* Category + Account */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div style={S.field}>
+            <label style={S.label}>Category</label>
+            <CustomSelect value={riForm.categoryId} onChange={v=>setRiForm(p=>({...p,categoryId:v}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
+          </div>
+          <div style={S.field}>
+            <label style={S.label}>Account</label>
+            <CustomSelect value={riForm.accountId} onChange={v=>setRiForm(p=>({...p,accountId:v}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}}/>
+          </div>
+        </div>
+        {/* Start Date */}
+        <div style={S.field}>
+          <label style={S.label}>Start Date</label>
+          <input style={S.input} type="date" value={riForm.recurringStart} onChange={e=>setRiForm(p=>({...p,recurringStart:e.target.value}))}/>
+        </div>
+
+        {/* Transaction search */}
+        <div style={{borderTop:"1px solid var(--border)",paddingTop:12,display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{fontSize:12,fontWeight:600,color:"var(--t2)"}}>Link Transactions <span style={{color:"var(--t3)",fontWeight:400}}>(last 60 days)</span></div>
+          <div style={{display:"flex",gap:8}}>
+            <input
+              style={{...S.input,flex:1}}
+              placeholder="Search merchant name…"
+              value={riSearch}
+              onChange={e=>setRiSearch(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&searchTxnsForRI()}
+            />
+            <button style={S.btn("ghost",true)} onClick={searchTxnsForRI} disabled={riSearchLoading}>
+              {riSearchLoading?"…":"Search"}
+            </button>
+          </div>
+          {riSearchResults.length > 0 && (
+            <div style={{maxHeight:180,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
+              {riSearchResults.map(t=>{
+                const itemId = editingRecurringItem?.id || ("ri"+Date.now()+"_pending");
+                const alreadyLinked = editingRecurringItem && (editingRecurringItem.linkedTxnIds||[]).includes(t.id);
+                const cat = catMap[t.categoryId];
+                return (
+                  <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"var(--surface)",borderRadius:"var(--radius)",flexShrink:0}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <div style={{fontSize:11,color:"var(--t3)"}}>{t.date}{cat&&<span style={{color:cat.color}}> · {cat.name}</span>}</div>
+                    </div>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+                      {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+                    </span>
+                    {editingRecurringItem ? (
+                      <button style={{...S.btn(alreadyLinked?"danger":"ghost",true),fontSize:11,flexShrink:0}} onClick={()=>{
+                        alreadyLinked
+                          ? unlinkTxnFromRecurringItem(t.id, editingRecurringItem.id)
+                          : linkTxnToRecurringItem(t.id, editingRecurringItem.id);
+                        setEditingRecurringItem(prev => ({
+                          ...prev,
+                          linkedTxnIds: alreadyLinked
+                            ? (prev.linkedTxnIds||[]).filter(id=>id!==t.id)
+                            : [...(prev.linkedTxnIds||[]),t.id]
+                        }));
+                      }}>{alreadyLinked?"Unlink":"Link"}</button>
+                    ) : (
+                      <span style={{fontSize:11,color:"var(--t3)"}}>Save first to link</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Show already-linked txns when editing */}
+          {editingRecurringItem && (editingRecurringItem.linkedTxnIds||[]).length > 0 && (
+            <div style={{display:"flex",flexDirection:"column",gap:2}}>
+              <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>Linked ({editingRecurringItem.linkedTxnIds.length})</div>
+              {editingRecurringItem.linkedTxnIds.map(txnId=>{
+                const t = transactions.find(x=>x.id===txnId);
+                if (!t) return null;
+                return (
+                  <div key={txnId} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface)",borderRadius:"var(--radius)"}}>
+                    <div style={{flex:1,minWidth:0,fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                    <span style={{fontSize:11,color:"var(--t3)"}}>{t.date}</span>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                      {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+                    </span>
+                    <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>{
+                      unlinkTxnFromRecurringItem(txnId, editingRecurringItem.id);
+                      setEditingRecurringItem(prev=>({...prev, linkedTxnIds:(prev.linkedTxnIds||[]).filter(id=>id!==txnId)}));
+                    }}>✕</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </Modal>
@@ -8049,6 +8195,7 @@ function AppInner({ isDemo = false }) {
       {modal==="addTxn"                        && TxnModal}
       {(modal==="addRule"||modal==="editRule") && RuleModal}
       {EditRecurringModal}
+      {RecurringItemModal}
 
       {/* Category suggestion confirmation modal */}
       {catSuggestions && (

@@ -6680,7 +6680,7 @@ function AppInner({ isDemo = false }) {
           >
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%"}}>
               <span>All Recurring</span>
-              <button style={S.btn("ghost",true)} onClick={e=>{e.stopPropagation();openNewRecurringItem();}}>+ New</button>
+              <button style={S.btn("primary",true)} onClick={e=>{e.stopPropagation();openNewRecurringItem();}}>+ New</button>
             </div>
           </div>
 
@@ -7052,7 +7052,7 @@ function AppInner({ isDemo = false }) {
             <div className="obsidian-card" style={{ ...S.card, minWidth: 0 }}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:recurringItems.length>0?12:0}}>
                 <div style={S.cardTitle}>All Recurring</div>
-                <button style={S.btn("ghost",true)} onClick={openNewRecurringItem}>+ New</button>
+                <button style={S.btn("primary",true)} onClick={openNewRecurringItem}>+ New</button>
               </div>
               {recurringItems.length === 0 ? (
                 <div style={{padding:"16px 0",color:"var(--t3)",fontSize:13,textAlign:"center"}}>No recurring items yet</div>

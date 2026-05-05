@@ -1263,17 +1263,18 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>
         {/* Inline category selector in collapsed row */}
-        <div onClick={e=>e.stopPropagation()} style={{flexShrink:0,maxWidth:"30%"}}>
+        <div onClick={e=>e.stopPropagation()} style={{flexShrink:0,width:120}}>
           {(!noCategory) ? (
             <select
               value={t.categoryId||""}
               onChange={e=>{ const v=e.target.value; if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
               style={{
-                background:"transparent", border:"none", outline:"none",
+                background:"var(--surface)", border:"none", outline:"none",
                 fontSize:11, color:cat?cat.color:"var(--t3)",
                 fontWeight:600, cursor:"pointer", maxWidth:"100%",
                 appearance:"none", WebkitAppearance:"none",
-                fontFamily:"var(--font-body)", padding:"2px 0",
+                fontFamily:"var(--font-body)", padding:"2px 6px 2px 6px",
+                borderRadius:20, colorScheme:"dark",
               }}>
               <option value="">— None —</option>
               {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
@@ -1285,7 +1286,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
             <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",textTransform:"capitalize"}}>{typeVal}</span>
           )}
         </div>
-        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,minWidth:80,textAlign:"right"}}>
           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
         </span>
         <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>

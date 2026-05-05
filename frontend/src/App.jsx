@@ -5189,6 +5189,7 @@ function AppInner({ isDemo = false }) {
                     {txns.map(t=><TxnRow key={t.id} t={t}
                       expandedTxnId={expandedTxnId} setExpandedTxnId={setExpandedTxnId}
                       ellipsisId={ellipsisId} setEllipsisId={setEllipsisId}
+                      ellipsisRect={ellipsisRect} setEllipsisRect={setEllipsisRect}
                       editingId={editingId} editingName={editingName}
                       setEditingName={setEditingName} setEditingId={setEditingId}
                       catMap={catMap} acctMap={acctMap}

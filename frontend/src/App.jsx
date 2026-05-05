@@ -1301,7 +1301,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
             const _r=_btn?_btn.getBoundingClientRect():{right:window.innerWidth,bottom:0};
             return (<>
               <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
-              <div style={{position:"fixed",right:window.innerWidth-_r.right,top:_r.bottom+4,zIndex:30,background:"var(--card)",
+              <div style={{position:"fixed",left:Math.min(_r.right-150,window.innerWidth-160),top:_r.bottom+4,zIndex:30,background:"var(--card)",
                 border:"none",borderRadius:"var(--radius)",
                 boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
               <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}

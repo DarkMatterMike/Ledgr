@@ -4915,7 +4915,7 @@ function AppInner({ isDemo = false }) {
         <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
-            <button style={S.btn("ghost",true)} onClick={()=>navigate("budgets")}>All ←</button>
+            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>
           </div>
           {categories.length===0
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
@@ -4948,7 +4948,7 @@ function AppInner({ isDemo = false }) {
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
               <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
-                style={S.btn("ghost",true)}>Clear all</button>
+                style={{...S.btn("ghost",true),color:"var(--cyan)"}}>Clear all</button>
             )}
           </div>
           {insightsTodos.length === 0 ? (
@@ -4977,7 +4977,7 @@ function AppInner({ isDemo = false }) {
         <div className="obsidian-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
-            <button style={S.btn("ghost",true)} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All ←</button>
+            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
           </div>
           {atRisk.length === 0 ? (
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
@@ -5016,7 +5016,7 @@ function AppInner({ isDemo = false }) {
         <div className="obsidian-card ledgr-txn-gradient" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
-            <button style={S.btn("ghost",true)} onClick={()=>navigate("transactions")}>All →</button>
+            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("transactions")}>All →</button>
           </div>
           {upcoming.length === 0
             ? <div style={{fontSize:12,color:"var(--t3)",padding:"4px 0 2px"}}>No upcoming transactions this month.</div>
@@ -6162,8 +6162,8 @@ function AppInner({ isDemo = false }) {
           {/* AI badge */}
           {isAi && <span style={{fontSize:9,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"1px 5px",borderRadius:4,flexShrink:0}}>AI</span>}
           {/* Actions */}
-          <button style={{...S.btn("ghost",true),color:rule.enabled?"var(--t2)":"var(--t3)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-          <button style={S.btn("ghost",true)} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+          <button style={rule.enabled?{...S.btn("primary",true)}:{...S.btn("ghost",true),color:"var(--t3)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
+          <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
           <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
         </div>
       );

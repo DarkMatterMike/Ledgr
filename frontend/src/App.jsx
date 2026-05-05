@@ -4900,8 +4900,21 @@ function AppInner({ isDemo = false }) {
       return pct < 0.9 && (dl_days === null || dl_days < 90);
     });
     const todayD = today.getDate();
-    const upcoming = recurringTxns
-      .filter(t => (t.recurringDay||0) > todayD)
+    const currentMonth = today.toISOString().slice(0,7); // "YYYY-MM"
+    const [curY, curM] = [today.getFullYear(), today.getMonth()+1];
+    const upcoming = [...recurringItems]
+      .filter(item => {
+        if (!item.recurringDay || item.recurringFreq !== "monthly") return false;
+        if ((item.recurringDay||0) <= todayD) return false;
+        // Skip if already posted this month
+        const postedThisMonth = (item.linkedTxnIds||[]).some(txnId => {
+          const t = transactions.find(x => x.id === txnId);
+          if (!t || !t.date) return false;
+          const [ty, tm] = t.date.split("-").map(Number);
+          return ty === curY && tm === curM;
+        });
+        return !postedThisMonth;
+      })
       .sort((a,b) => (parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0))
       .slice(0,5);
 
@@ -5027,10 +5040,13 @@ function AppInner({ isDemo = false }) {
                       <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--t2)"}}>{t.recurringDay}</span>
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</div>
                       <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
                     </div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:t.amount>=0?"var(--green)":"var(--red)",flexShrink:0}}>{t.amount>=0?"+":""}{fmt(t.amount)}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0}}>
+                      {t.amountMin!=null?fmt(t.amountMin):"—"}
+                      {t.amountMin!=null&&t.amountMax!=null&&t.amountMax!==t.amountMin?`–${fmt(t.amountMax)}`:""}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -5038,7 +5054,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
     };
-  }, [goals, today, recurringTxns, categories, sortedCategories, spentByCat, selectedMonth,
+  }, [goals, today, recurringTxns, recurringItems, transactions, categories, sortedCategories, spentByCat, selectedMonth,
       insightsTodos, isMobile, catMap]);
 
   const Dashboard = (

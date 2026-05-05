@@ -1,5 +1,6 @@
 /**
  * src/App.jsx — Ledgr personal finance app
+ * @updated txn expanded fixes, budget arc, transparency slider
  */
 import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import { usePlaidLink } from "react-plaid-link";

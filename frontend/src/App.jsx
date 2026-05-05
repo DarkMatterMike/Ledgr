@@ -34,6 +34,7 @@ function useIsMobile() {
   el.id = "ledgr-css";
   el.textContent = `
     *, *::before, *::after { box-sizing: border-box; }
+    html, body { overscroll-behavior: none; }
     button {
       background: transparent; border: none; outline: none;
       box-shadow: none; -webkit-appearance: none; appearance: none;
@@ -190,6 +191,7 @@ function useIsMobile() {
       height: 82px;
       background: var(--surface);
       border-top: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.6);
       display: flex; align-items: stretch; flex-shrink: 0;
       position: relative; z-index: 50;
     }
@@ -3204,10 +3206,11 @@ function AppInner({ isDemo = false }) {
     const interval = setInterval(async () => {
       if (!initialized.current) return;
       try {
-        // Poll latest 100 transactions and refresh summary for current month
-        const [txnData, summaryData] = await Promise.allSettled([
+        // Poll latest 100 transactions, refresh summary, and refresh account balances
+        const [txnData, summaryData, acctData] = await Promise.allSettled([
           api.loadTransactions({ limit: 100, offset: 0 }),
           api.loadSummary(selectedMonth),
+          api.getAccounts(),
         ]);
         if (txnData.status === "fulfilled") {
           const incoming = txnData.value.transactions || [];
@@ -3232,6 +3235,20 @@ function AppInner({ isDemo = false }) {
         if (summaryData.status === "fulfilled") {
           setSummary(summaryData.value);
           setSummaryMonth(summaryData.value.month);
+        }
+        // Refresh balances only — never touch plaidId/plaidItemId/name/user fields
+        if (acctData.status === "fulfilled") {
+          const freshAccts = acctData.value.accounts || [];
+          if (freshAccts.length > 0) {
+            const balanceMap = Object.fromEntries(
+              freshAccts.map(a => [a.account_id, { balance: a.balance, available: a.available }])
+            );
+            setAccounts(prev => prev.map(a =>
+              a.plaidId && balanceMap[a.plaidId]
+                ? { ...a, balance: balanceMap[a.plaidId].balance, available: balanceMap[a.plaidId].available }
+                : a
+            ));
+          }
         }
       } catch (e) {
         console.warn("Poll error:", e.message);
@@ -3417,7 +3434,8 @@ function AppInner({ isDemo = false }) {
       if (!showDuplicates && pendingPairs.some(p=>p.pending.id===t.id)) return false;
       if (search && !label.includes(search.toLowerCase())) return false;
       if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
-      if (filterAcct   !== "all" && t.accountId  !== filterAcct) return false;
+      if (filterAcct   !== "all" && filterAcct === "__unlinked__" && t.accountId) return false;
+      if (filterAcct   !== "all" && filterAcct !== "__unlinked__" && t.accountId !== filterAcct) return false;
       if (filterReview && !needsReview(t)) return false;
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
@@ -3602,6 +3620,14 @@ function AppInner({ isDemo = false }) {
     showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
     clearSelection();
     refreshSummary();
+  }
+  function bulkSetAccount(accountId) {
+    const ids = [...selectedTxns];
+    const val = accountId || null;
+    setTransactions(p => p.map(t => selectedTxns.has(t.id) ? {...t, accountId: val} : t));
+    api.bulkUpdateTransactions(ids, { accountId: val }).catch(console.error);
+    showToast(`Updated ${selectedTxns.size} transaction${selectedTxns.size!==1?"s":""}`);
+    clearSelection();
   }
   function bulkMarkReviewed(reviewed) {
     const ids = [...selectedTxns];
@@ -3904,22 +3930,23 @@ function AppInner({ isDemo = false }) {
       type:t.amount<0?"expense":"income"};
   }
   async function disconnectItem(itemId) {
+    // Server-first: confirm all deletes before touching local state.
     try {
-      // Best-effort server delete — ignore 404 (item may not be in DB)
       try { await api.deleteItem(itemId); } catch(e) {
         if (!e.message?.includes("404") && !e.message?.includes("not found")) throw e;
       }
-      const cleanAccounts     = accounts.filter(a => a.plaidItemId !== itemId);
-      const cleanTransactions = transactions.filter(t => t.plaidItemId !== itemId);
-      const cleanPlaidItems   = plaidItems.filter(i => i.item_id !== itemId);
-      setAccounts(cleanAccounts);
-      setTransactions(cleanTransactions);
-      setPlaidItems(cleanPlaidItems);
-      await api.deleteAllTransactions(itemId);
-      await api.deleteAccountsByItem(itemId);
+      await Promise.all([
+        api.deleteAllTransactions(itemId),
+        api.deleteAccountsByItem(itemId),
+      ]);
+      const cleanPlaidItems = plaidItems.filter(i => i.item_id !== itemId);
       await api.saveData({ plaidItems: cleanPlaidItems });
+      setAccounts(prev => prev.filter(a => a.plaidItemId !== itemId));
+      setTransactions(prev => prev.filter(t => t.plaidItemId !== itemId));
+      setPlaidItems(cleanPlaidItems);
+      setStaleItemIds(prev => { const n = new Set(prev); n.delete(itemId); return n; });
       showToast("Bank disconnected");
-    } catch(e) { showToast("Error: " + e.message); }
+    } catch(e) { showToast("Disconnect failed — please try again: " + e.message); }
   }
 
   /* -- Category CRUD -- */
@@ -5098,7 +5125,7 @@ function AppInner({ isDemo = false }) {
           {/* Row 2: Dropdowns + Select All — side by side on both mobile and desktop */}
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)} options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:0}} compact/>
-            <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)} options={[{value:"all",label:"All Accounts"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:0}} compact/>
+            <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)} options={[{value:"all",label:"All Accounts"},{value:"__unlinked__",label:"Unlinked"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:0}} compact/>
             <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}}
               onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
               {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
@@ -7351,7 +7378,7 @@ function AppInner({ isDemo = false }) {
         }}>Remove Recurring</button>
         <button style={S.btn("ghost")} onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
         <button style={S.btn("primary")} onClick={()=>{
-          const patch = { name: editTarget.name, recurringDay: editTarget.recurringDay, recurringFreq: editTarget.recurringFreq||"monthly", recurringStart: editTarget.recurringStart||null, categoryId: editTarget.categoryId||null };
+          const patch = { name: editTarget.name, recurringDay: editTarget.recurringDay, recurringFreq: editTarget.recurringFreq||"monthly", recurringStart: editTarget.recurringStart||null, categoryId: editTarget.categoryId||null, accountId: editTarget.accountId||null };
           setTransactions(p=>p.map(t=>t.id===editTarget.id?{...t,...patch}:t));
           api.updateTransaction(editTarget.id, patch).catch(console.error);
           setModal(null);setEditTarget(null);showToast("Updated");
@@ -7384,6 +7411,10 @@ function AppInner({ isDemo = false }) {
         <div style={S.field}>
           <label style={S.label}>Category</label>
           <CustomSelect value={editTarget.categoryId||""} onChange={v=>setEditTarget(p=>({...p,categoryId:v||null}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
+        </div>
+        <div style={S.field}>
+          <label style={S.label}>Bank Account</label>
+          <CustomSelect value={editTarget.accountId||""} onChange={v=>setEditTarget(p=>({...p,accountId:v||null}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}}/>
         </div>
       </div>
     </Modal>
@@ -7840,7 +7871,7 @@ function AppInner({ isDemo = false }) {
         </div>
 
         {/* Content area */}
-        <div ref={contentRef} style={{flex:1,overflowY:"auto"}} className="ledgr-content">
+        <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
           <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
         </div>
 
@@ -8060,6 +8091,7 @@ function AppInner({ isDemo = false }) {
           <CustomSelect value="" onChange={v=>{ if(v) bulkSetCategory(v); }} options={[{value:"",label:"Set category…"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:130}} compact/>
           {/* Type */}
           <CustomSelect value="" onChange={v=>{ if(v) bulkSetType(v); }} options={[{value:"",label:"Set type…"},{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{flex:1,minWidth:120}} compact/>
+          <CustomSelect value="" onChange={v=>{ if(v) bulkSetAccount(v==="__none__"?"":v); }} options={[{value:"",label:"Set account…"},{value:"__none__",label:"— Remove —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:130}} compact/>
           <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
           <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
           <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✕</button>

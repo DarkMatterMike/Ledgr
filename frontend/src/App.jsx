@@ -1258,7 +1258,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
         </div>
         <MerchantIcon name={t.merchant||t.name} size={24}/>
-        <span style={{fontSize:13,fontWeight:500,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
+        <span style={{fontSize:13,fontWeight:400,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>
@@ -1272,7 +1272,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               style={{
                 background:"var(--surface)", border:"none", outline:"none",
                 fontSize:16, color:cat?cat.color:"var(--t3)",
-                fontWeight:600, cursor:"pointer", width:"100%",
+                fontWeight:400, cursor:"pointer", width:"100%",
                 appearance:"none", WebkitAppearance:"none",
                 fontFamily:"var(--font-body)", padding:"2px 6px 2px 6px",
                 borderRadius:20, colorScheme:"dark",

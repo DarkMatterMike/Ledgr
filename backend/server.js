@@ -662,8 +662,6 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
       getData(uid, "dashboardCardOrder"),
-      getData(uid, "recurringItems"),
-      getData(uid, "deletedTransactions"),
       getData(uid, "aiApiKey"),
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
@@ -673,6 +671,8 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "insightsTodos"),  // needed for dashboard Action Items card
       getData(uid, "dani"),              // owner-only Dani page
       getData(uid, "theme"),             // user theme preferences
+      getData(uid, "recurringItems"),
+      getData(uid, "deletedTransactions"),
     ]);
 
     const reauthItemIds = plaidItemRows.rows

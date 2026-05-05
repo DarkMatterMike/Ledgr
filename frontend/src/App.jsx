@@ -3197,7 +3197,8 @@ function AppInner({ isDemo = false }) {
       })
       .catch(() => {}); // silently fail — non-critical
   }, []);
-  const knownTxnIds = useRef(null);
+  const knownTxnIds    = useRef(null);
+  const lastSyncedAt   = useRef(0);
   useEffect(() => {
     if (!initialized.current) return;
     // Record the IDs we loaded with
@@ -3944,7 +3945,7 @@ function AppInner({ isDemo = false }) {
         if (count > 0) showToast(`✦ Auto-categorized ${count} transaction${count === 1 ? "" : "s"}`);
       }
     } catch(e) { showToast("Sync error: "+e.message); }
-    finally { setSyncing(false); }
+    finally { setSyncing(false); lastSyncedAt.current = Date.now(); }
   }, [catMap, rules]);
 
   const handlePlaidSuccess = useCallback(async (publicToken, institutionName) => {

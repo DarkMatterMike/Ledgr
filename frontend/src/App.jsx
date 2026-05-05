@@ -426,7 +426,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
       value={String(value)}
       onChange={e => onChange(e.target.value)}
       style={{
-        background:"var(--surface)", border:"none",
+        background:"var(--card-hi, #2b251d)", border:"none",
         borderRadius:20, cursor:"pointer", outline:"none",
         padding: compact ? "5px 10px" : "8px 14px",
         fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
@@ -1306,7 +1306,15 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
       </div>
 
       {expanded&&(
-        <div className="ledgr-expand" style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+        <div className="ledgr-expand" style={{background:"var(--card)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+          {/* Full transaction name when expanded */}
+          {editingId!==t.id && (t.name||t.merchant) && (
+            <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>
+              {t.name||t.merchant}
+              {t.pending && <span style={{fontSize:10,color:"var(--amber)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
+            </div>
+          )}
+
           {editingId===t.id&&(
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <input style={{...S.input,flex:1,fontSize:13}}

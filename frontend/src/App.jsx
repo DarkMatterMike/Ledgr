@@ -1263,19 +1263,19 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>
         {/* Inline category selector in collapsed row */}
-        <div onClick={e=>e.stopPropagation()} style={{flexShrink:0,width:120}}>
+        <div onClick={e=>e.stopPropagation()} style={{flexShrink:0,width:120,overflow:"hidden"}}>
           {(!noCategory) ? (
+            <div style={{transform:"scale(0.8125)",transformOrigin:"left center",width:"123%"}}>
             <select
               value={t.categoryId||""}
               onChange={e=>{ const v=e.target.value; if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
               style={{
                 background:"var(--surface)", border:"none", outline:"none",
-                fontSize:13, color:cat?cat.color:"var(--t3)",
-                fontWeight:600, cursor:"pointer", maxWidth:"100%",
+                fontSize:16, color:cat?cat.color:"var(--t3)",
+                fontWeight:600, cursor:"pointer", width:"100%",
                 appearance:"none", WebkitAppearance:"none",
                 fontFamily:"var(--font-body)", padding:"2px 6px 2px 6px",
                 borderRadius:20, colorScheme:"dark",
-                touchAction:"manipulation",
               }}>
               <option value="">— None —</option>
               {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
@@ -1283,6 +1283,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               ))}
               <option value="__new__">+ New category</option>
             </select>
+            </div>
           ) : (
             <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",textTransform:"capitalize"}}>{typeVal}</span>
           )}

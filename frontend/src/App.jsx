@@ -6745,7 +6745,7 @@ function AppInner({ isDemo = false }) {
                         </span>
                         <button
                           onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}}
-                          style={{background:"var(--surface)",border:"none",borderRadius:6,cursor:"pointer",color:"var(--t2)",fontSize:11,padding:"4px 8px",flexShrink:0}}
+                          style={{...S.btn("ghost",true),color:"var(--cyan)",flexShrink:0}}
                         >Edit</button>
                       </div>
                     </button>
@@ -7113,7 +7113,7 @@ function AppInner({ isDemo = false }) {
                           {amtLabel && <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)"}}>{amtLabel}</span>}
                           <button
                             onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}}
-                            style={{background:"var(--surface)",border:"none",borderRadius:6,cursor:"pointer",color:"var(--t2)",fontSize:11,padding:"4px 8px",flexShrink:0}}
+                            style={{...S.btn("ghost",true),color:"var(--cyan)",flexShrink:0}}
                           >Edit</button>
                         </div>
                       </button>

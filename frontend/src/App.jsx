@@ -3262,6 +3262,29 @@ function AppInner({ isDemo = false }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-sync on boot if last sync was >4 hours ago
+  useEffect(() => {
+    if (!initialized.current) return;
+    if (plaidItems.length === 0) return;
+    if (Date.now() - lastSyncedAt.current > 4 * 60 * 60 * 1000) {
+      doSync();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized.current]);
+
+  // Auto-sync on tab/window focus if last sync was >30 minutes ago
+  useEffect(() => {
+    function handleFocus() {
+      if (!initialized.current) return;
+      if (plaidItems.length === 0) return;
+      if (Date.now() - lastSyncedAt.current > 30 * 60 * 1000) {
+        doSync();
+      }
+    }
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [doSync]);
+
   // Refresh server summary after mutations that affect totals (category changes, type changes)
   function refreshSummary() {
     api.loadSummary(selectedMonth).then(s => {

@@ -1294,14 +1294,12 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
         </span>
         <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-          <button id={"ell-"+t.id} onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
+          <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
             style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
-          {ellipsisId===t.id&&(()=>{
-            const _btn=document.getElementById("ell-"+t.id);
-            const _r=_btn?_btn.getBoundingClientRect():{right:window.innerWidth,bottom:0};
-            return (<>
+          {ellipsisId===t.id&&(
+            <>
               <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
-              <div style={{position:"fixed",left:Math.min(_r.right-150,window.innerWidth-160),top:_r.bottom+4,zIndex:30,background:"var(--card)",
+              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
                 border:"none",borderRadius:"var(--radius)",
                 boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
               <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
@@ -1327,8 +1325,8 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
             </div>
-            </>);
-          })()}
+          </>
+          )}
         </div>
       </div>
 
@@ -5166,7 +5164,7 @@ function AppInner({ isDemo = false }) {
         {filteredTxns.length===0 ? (
           <div style={{textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</div>
         ) : (
-          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
+          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)",border:"none",borderRadius:"var(--radius)"}}>
             {dates.map((date,di)=>{
               const txns    = grouped[date];
               const dayTotal = txns.reduce((a,t)=>a+t.amount,0);

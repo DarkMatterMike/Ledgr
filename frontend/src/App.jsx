@@ -1294,19 +1294,19 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
         </span>
         <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
-          <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
+          <button onClick={e=>{if(ellipsisId===t.id){setEllipsisId(null);setEllipsisRect(null);}else{const r=e.currentTarget.getBoundingClientRect();setEllipsisRect(r);setEllipsisId(t.id);}}}
             style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
-          {ellipsisId===t.id&&(
+          {ellipsisId===t.id&&ellipsisRect&&(
             <>
-              <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
-              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
+              <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>{setEllipsisId(null);setEllipsisRect(null);}}/>
+              <div style={{position:"fixed",right:window.innerWidth-ellipsisRect.right,top:ellipsisRect.bottom+4,zIndex:30,background:"var(--card)",
                 border:"none",borderRadius:"var(--radius)",
                 boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
-              <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
+              <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);setEllipsisRect(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
                 {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}
               </button>
-              <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
+              <button onClick={()=>{startRename(t);setEllipsisId(null);setEllipsisRect(null);setExpandedTxnId(t.id);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
               {goals && goals.length > 0 && (
                 <div style={{borderTop:"1px solid var(--border)",paddingTop:4,paddingBottom:4}}>
@@ -1314,7 +1314,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
                   {goals.map(g => {
                     const isAssigned = (g.assignedTxnIds||[]).includes(t.id);
                     return (
-                      <button key={g.id} onClick={()=>{assignTxnToGoal(t.id, g.id);setEllipsisId(null);}}
+                      <button key={g.id} onClick={()=>{assignTxnToGoal(t.id, g.id);setEllipsisId(null);setEllipsisRect(null);}}
                         style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:isAssigned?"var(--cyan)":"var(--t2)"}}>
                         {isAssigned?"✓ ":""}{g.title}
                       </button>
@@ -1322,7 +1322,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
                   })}
                 </div>
               )}
-              <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
+              <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);setEllipsisRect(null);}}
                 style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
             </div>
           </>
@@ -3024,6 +3024,7 @@ function AppInner({ isDemo = false }) {
   const [filterReview,  setFilterReview]  = useState(false);
   const [editingId,     setEditingId]     = useState(null);
   const [ellipsisId,    setEllipsisId]    = useState(null);
+  const [ellipsisRect,  setEllipsisRect]  = useState(null);
   const [expandedTxnId, setExpandedTxnId] = useState(null);
   const [editingName,   setEditingName]   = useState("");
   const [catForm,  setCatForm]  = useState({ name:"", limit:"", color:CAT_COLORS[0] });

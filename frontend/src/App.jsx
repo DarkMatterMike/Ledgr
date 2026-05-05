@@ -4948,7 +4948,7 @@ function AppInner({ isDemo = false }) {
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
               <button onClick={()=>{ const next=[]; setInsightsTodos(next); scheduleSaveRef.current?.({insightsTodos:next}); }}
-                style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>Clear all</button>
+                style={S.btn("ghost",true)}>Clear all</button>
             )}
           </div>
           {insightsTodos.length === 0 ? (
@@ -6007,7 +6007,7 @@ function AppInner({ isDemo = false }) {
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:11,padding:"2px 7px",borderRadius:"var(--radius)"}} onClick={()=>openEditAcct(acct)}>Edit</button>
+                          <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
                           <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
@@ -6162,8 +6162,8 @@ function AppInner({ isDemo = false }) {
           {/* AI badge */}
           {isAi && <span style={{fontSize:9,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"1px 5px",borderRadius:4,flexShrink:0}}>AI</span>}
           {/* Actions */}
-          <button style={{background:"none",border:"none",cursor:"pointer",color:rule.enabled?"var(--t2)":"var(--t3)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",fontSize:10,padding:"2px 6px",borderRadius:"var(--radius)",flexShrink:0}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
+          <button style={{...S.btn("ghost",true),color:rule.enabled?"var(--t2)":"var(--t3)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
+          <button style={S.btn("ghost",true)} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
           <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
         </div>
       );
@@ -7143,7 +7143,6 @@ function AppInner({ isDemo = false }) {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} compact/>
-                  <button onClick={openAddTxn} style={S.btn("ghost", true)}>Add</button>
                 </div>
               </div>
 
@@ -8101,7 +8100,7 @@ function AppInner({ isDemo = false }) {
                     <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
                       {visibleNotifs.length > 0 && (
-                        <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
+                        <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={S.btn("ghost",true)}>Dismiss all</button>
                       )}
                     </div>
                     {visibleNotifs.length === 0 ? (
@@ -8224,7 +8223,7 @@ function AppInner({ isDemo = false }) {
                       <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                         <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
                         {visibleNotifs.length > 0 && (
-                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--t3)"}}>Dismiss all</button>
+                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={S.btn("ghost",true)}>Dismiss all</button>
                         )}
                       </div>
                       {visibleNotifs.length === 0 ? (

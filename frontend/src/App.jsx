@@ -1355,14 +1355,14 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
             {/* Left: dropdowns */}
             <div style={{display:"flex", flexDirection:"column", gap:8, flex:1}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)} options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{width:"100%"}} compact/>
+                <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)} options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{width:"100%",background:"var(--card-hi)"}} compact/>
                 {noCategory ? (
                   <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
                 ) : (
-                  <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }} options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}} compact/>
+                  <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }} options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",background:"var(--card-hi)"}} compact/>
                 )}
               </div>
-              <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)} options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}} compact/>
+              <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)} options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%",background:"var(--card-hi)"}} compact/>
             </div>
 
             {/* Right: notes textarea */}

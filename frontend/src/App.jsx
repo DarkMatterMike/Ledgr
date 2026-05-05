@@ -3434,7 +3434,7 @@ function AppInner({ isDemo = false }) {
       if (!showDuplicates && pendingPairs.some(p=>p.pending.id===t.id)) return false;
       if (search && !label.includes(search.toLowerCase())) return false;
       if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
-      if (filterAcct   !== "all" && filterAcct === "__unlinked__" && t.accountId) return false;
+      if (filterAcct   !== "all" && filterAcct === "__unlinked__" && t.accountId && acctMap[t.accountId]) return false;
       if (filterAcct   !== "all" && filterAcct !== "__unlinked__" && t.accountId !== filterAcct) return false;
       if (filterReview && !needsReview(t)) return false;
       return true;

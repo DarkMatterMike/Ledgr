@@ -2209,60 +2209,6 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     </div>
 
     {/* Legal document modal */}
-    {showTrash && (
-      <div style={S.overlay} className="ledgr-overlay-anim" onClick={()=>setShowTrash(false)}>
-        <div className="ledgr-modal-anim" style={{...S.modal, width:560, maxHeight:"82vh", display:"flex", flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
-          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexShrink:0}}>
-            <div style={S.modalTitle}>Deleted Transactions</div>
-            <button onClick={()=>setShowTrash(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>✕</button>
-          </div>
-          {deletedTransactions.length === 0 ? (
-            <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--t3)", fontSize:13}}>No deleted transactions</div>
-          ) : (
-            <>
-              <div style={{fontSize:11, color:"var(--t3)", marginBottom:12, flexShrink:0}}>{deletedTransactions.length} deleted transaction{deletedTransactions.length!==1?"s":""}</div>
-              <div style={{overflowY:"auto", flex:1, display:"flex", flexDirection:"column", gap:2}}>
-                {deletedTransactions.map(t=>{
-                  const cat = catMap[t.categoryId];
-                  const acct = acctMap[t.accountId];
-                  const deletedDate = t.deletedAt ? new Date(t.deletedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "Unknown";
-                  return (
-                    <div key={t.id} style={{display:"flex", alignItems:"center", gap:10, padding:"9px 10px", background:"var(--surface)", borderRadius:"var(--radius)", flexShrink:0}}>
-                      <div style={{flex:1, minWidth:0}}>
-                        <div style={{fontSize:13, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                        <div style={{fontSize:11, color:"var(--t3)", marginTop:2}}>
-                          {t.date} · {cat ? <span style={{color:cat.color}}>{cat.name}</span> : "Uncategorized"}
-                          {acct && <span> · {acct.name}</span>}
-                          <span style={{marginLeft:6, opacity:0.6}}>deleted {deletedDate}</span>
-                        </div>
-                      </div>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
-                        {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
-                      </span>
-                      <button style={{...S.btn("ghost",true),fontSize:11,flexShrink:0}} onClick={()=>{
-                        const { deletedAt, ...restored } = t;
-                        setTransactions(p=>[restored,...p]);
-                        setDeletedTransactions(p=>{ const next=p.filter(x=>x.id!==t.id); scheduleSaveRef.current?.({ deletedTransactions: next }); return next; });
-                        api.createTransaction(restored).catch(console.error);
-                        showToast("Transaction restored");
-                      }}>Restore</button>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{marginTop:14, flexShrink:0, display:"flex", justifyContent:"flex-end", gap:8}}>
-                <button style={{...S.btn("danger",true),fontSize:12}} onClick={()=>{
-                  if(!window.confirm(`Permanently delete all ${deletedTransactions.length} transactions? This cannot be undone.`)) return;
-                  setDeletedTransactions([]);
-                  scheduleSaveRef.current?.({ deletedTransactions: [] });
-                }}>Empty Trash</button>
-                <button style={S.btn("ghost")} onClick={()=>setShowTrash(false)}>Close</button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    )}
     {legalDoc && (
       <div style={S.overlay} className="ledgr-overlay-anim" onClick={() => setLegalDoc(null)}>
         <div className="ledgr-modal-anim" style={{
@@ -8220,6 +8166,60 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
 
+      {showTrash && (
+        <div style={S.overlay} className="ledgr-overlay-anim" onClick={()=>setShowTrash(false)}>
+          <div className="ledgr-modal-anim" style={{...S.modal, width:560, maxHeight:"82vh", display:"flex", flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexShrink:0}}>
+              <div style={S.modalTitle}>Deleted Transactions</div>
+              <button onClick={()=>setShowTrash(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>✕</button>
+            </div>
+            {deletedTransactions.length === 0 ? (
+              <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--t3)", fontSize:13}}>No deleted transactions</div>
+            ) : (
+              <>
+                <div style={{fontSize:11, color:"var(--t3)", marginBottom:12, flexShrink:0}}>{deletedTransactions.length} deleted transaction{deletedTransactions.length!==1?"s":""}</div>
+                <div style={{overflowY:"auto", flex:1, display:"flex", flexDirection:"column", gap:2}}>
+                  {deletedTransactions.map(t=>{
+                    const cat = catMap[t.categoryId];
+                    const acct = acctMap[t.accountId];
+                    const deletedDate = t.deletedAt ? new Date(t.deletedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "Unknown";
+                    return (
+                      <div key={t.id} style={{display:"flex", alignItems:"center", gap:10, padding:"9px 10px", background:"var(--surface)", borderRadius:"var(--radius)", flexShrink:0}}>
+                        <div style={{flex:1, minWidth:0}}>
+                          <div style={{fontSize:13, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                          <div style={{fontSize:11, color:"var(--t3)", marginTop:2}}>
+                            {t.date} · {cat ? <span style={{color:cat.color}}>{cat.name}</span> : "Uncategorized"}
+                            {acct && <span> · {acct.name}</span>}
+                            <span style={{marginLeft:6, opacity:0.6}}>deleted {deletedDate}</span>
+                          </div>
+                        </div>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
+                          {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+                        </span>
+                        <button style={{...S.btn("ghost",true),fontSize:11,flexShrink:0}} onClick={()=>{
+                          const { deletedAt, ...restored } = t;
+                          setTransactions(p=>[restored,...p]);
+                          setDeletedTransactions(p=>{ const next=p.filter(x=>x.id!==t.id); scheduleSaveRef.current?.({ deletedTransactions: next }); return next; });
+                          api.createTransaction(restored).catch(console.error);
+                          showToast("Transaction restored");
+                        }}>Restore</button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{marginTop:14, flexShrink:0, display:"flex", justifyContent:"flex-end", gap:8}}>
+                  <button style={{...S.btn("danger",true),fontSize:12}} onClick={()=>{
+                    if(!window.confirm(`Permanently delete all ${deletedTransactions.length} transactions? This cannot be undone.`)) return;
+                    setDeletedTransactions([]);
+                    scheduleSaveRef.current?.({ deletedTransactions: [] });
+                  }}>Empty Trash</button>
+                  <button style={S.btn("ghost")} onClick={()=>setShowTrash(false)}>Close</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       <Toast msg={toast}/>
     </div>
   );

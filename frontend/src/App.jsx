@@ -43,7 +43,6 @@ function useIsMobile() {
 
     /* Layout */
     .ledgr-content     { padding: 20px; }
-    .ledgr-app-shell   { opacity: var(--global-opacity, 1); }
     .ledgr-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
     .ledgr-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
     .ledgr-acct-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -1858,8 +1857,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           }
 
           function patchGlobalOpacity(val) {
-            document.getElementById('ledgr-app-root')?.style.setProperty('opacity', val / 100);
-            document.documentElement.style.setProperty('--global-opacity', val / 100);
+            applyGlobalOpacity(val, current);
             patch('globalOpacity', val);
           }
 
@@ -2205,6 +2203,31 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
    MAIN APP
 ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
 /* -- Theme application helper ------------------------------------ */
+/* Helper: apply transparency to surface/card/nav backgrounds only */
+function applyGlobalOpacity(pct, theme) {
+  const a = Math.round((pct / 100) * 255).toString(16).padStart(2,'0');
+  const root = document.documentElement;
+
+  // Parse a hex color and append alpha
+  function withAlpha(hex, alpha) {
+    if (!hex || !hex.startsWith('#')) return hex;
+    const base = hex.slice(0,7); // strip existing alpha
+    return base + alpha;
+  }
+
+  const bg      = theme?.bg      || '#0f0e0d';
+  const surface = theme?.surface || '#1a1612';
+  const card    = theme?.card    || '#181511';
+
+  root.style.setProperty('--surface',       withAlpha(surface, a));
+  root.style.setProperty('--surface-solid', withAlpha(surface, a));
+  root.style.setProperty('--card',          withAlpha(card, a));
+  root.style.setProperty('--card-glass',    withAlpha(card, a));
+  // card-hi: same alpha, slightly lighter base
+  const cardHi = theme?.cardHi || card;
+  root.style.setProperty('--card-hi', withAlpha(cardHi, a));
+}
+
 function applyTheme(theme) {
   if (!theme) return;
   const root = document.documentElement;
@@ -2252,15 +2275,20 @@ function applyTheme(theme) {
   // Gradient angle
   root.style.setProperty("--grad-angle", (theme.gradAngle ?? 315) + "deg");
 
-  // Global opacity — applied to app shell
-  const opacity = (theme.globalOpacity ?? 100) / 100;
-  root.style.setProperty("--global-opacity", String(opacity));
-
   // Transaction stripe colors
   if (theme.reviewColor)    root.style.setProperty("--review-color",    theme.reviewColor);
   if (theme.recurringColor) root.style.setProperty("--recurring-color", theme.recurringColor);
   root.style.setProperty("--card-border", "transparent");
   root.style.setProperty("--surface-solid", theme.surface || "#161412");
+
+  // Global opacity — affects surface/card/nav backgrounds only, not text or bg image
+  // Must run after card-hi is derived above
+  if (theme.card) {
+    const hi = shift(theme.card, theme.gradSteps ?? 6);
+    applyGlobalOpacity(theme.globalOpacity ?? 100, { ...theme, cardHi: hi });
+  } else {
+    applyGlobalOpacity(theme.globalOpacity ?? 100, theme);
+  }
   root.style.setProperty("--bg-solid",      theme.bg      || "#0f0e0d");
 
   // Font
@@ -7593,7 +7621,7 @@ function AppInner({ isDemo = false }) {
     : null;
 
   return (
-    <div className="ledgr-app-shell" style={{...S.shell, paddingTop: isDemo ? 45 : 0, ...(theme.bgImage ? {
+    <div style={{...S.shell, paddingTop: isDemo ? 45 : 0, ...(theme.bgImage ? {
       background: "transparent",
       backgroundImage: `url(${theme.bgImage})`,
       backgroundSize: "cover",

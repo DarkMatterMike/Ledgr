@@ -427,7 +427,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
       value={String(value)}
       onChange={e => onChange(e.target.value)}
       style={{
-        background:"var(--card-hi, #2b251d)", border:"none",
+        background:"var(--card)", border:"none",
         borderRadius:20, cursor:"pointer", outline:"none",
         padding: compact ? "5px 10px" : "8px 14px",
         fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
@@ -1261,11 +1261,30 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
         <span style={{fontSize:13,fontWeight:500,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
-        </span>        {(!noCategory && cat) ? (
-          <span style={{fontSize:11,color:cat.color,whiteSpace:"nowrap",flexShrink:0,maxWidth:"25%",overflow:"hidden",textOverflow:"ellipsis"}}>{cat.name}</span>
-        ) : (
-          <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",flexShrink:0,textTransform:"capitalize"}}>{typeVal}</span>
-        )}
+        </span>
+        {/* Inline category selector in collapsed row */}
+        <div onClick={e=>e.stopPropagation()} style={{flexShrink:0,maxWidth:"30%"}}>
+          {(!noCategory) ? (
+            <select
+              value={t.categoryId||""}
+              onChange={e=>{ const v=e.target.value; if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
+              style={{
+                background:"transparent", border:"none", outline:"none",
+                fontSize:11, color:cat?cat.color:"var(--t3)",
+                fontWeight:600, cursor:"pointer", maxWidth:"100%",
+                appearance:"none", WebkitAppearance:"none",
+                fontFamily:"var(--font-body)", padding:"2px 0",
+              }}>
+              <option value="">— None —</option>
+              {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+              <option value="__new__">+ New category</option>
+            </select>
+          ) : (
+            <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",textTransform:"capitalize"}}>{typeVal}</span>
+          )}
+        </div>
         <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
         </span>
@@ -1307,7 +1326,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
       </div>
 
       {expanded&&(
-        <div className="ledgr-expand" style={{background:"var(--card)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+        <div className="ledgr-expand" style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
           {/* Full transaction name when expanded */}
           {editingId!==t.id && (t.name||t.merchant) && (
             <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>

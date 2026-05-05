@@ -648,7 +648,8 @@ app.get("/api/data", async (req, res) => {
     const uid = req.user.id;
     const [accts, ruleRows, categories, plaidItems, calendarAccounts, calendarSplitView,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
-           dashboardCardOrder, aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData] = await Promise.all([
+           dashboardCardOrder, aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData,
+           recurringItemsData, deletedTransactionsData] = await Promise.all([
       getAccounts(uid),
       getRules(uid),
       getData(uid, "categories"),
@@ -661,6 +662,8 @@ app.get("/api/data", async (req, res) => {
       getData(uid, "scanMemory"),
       getData(uid, "goals"),
       getData(uid, "dashboardCardOrder"),
+      getData(uid, "recurringItems"),
+      getData(uid, "deletedTransactions"),
       getData(uid, "aiApiKey"),
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
@@ -690,6 +693,8 @@ app.get("/api/data", async (req, res) => {
       scanMemory:       scanMemory       || null,
       goals:            goals            || [],
       dashboardCardOrder: dashboardCardOrder || null,
+      recurringItems:     recurringItemsData      || [],
+      deletedTransactions: deletedTransactionsData || [],
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],
       dani:             daniData          || null,
@@ -891,7 +896,8 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     const { categories, plaidItems, dani, theme, calendarAccounts, calendarSplitView,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
-            aiConversations, aiCurrentConvId, goals, customAccountNames, dashboardCardOrder } = req.body;
+            aiConversations, aiCurrentConvId, goals, customAccountNames, dashboardCardOrder,
+            recurringItems, deletedTransactions } = req.body;
     const ops = [];
     // accounts → POST/PATCH/DELETE /api/accounts/*
     // rules    → POST/PATCH/DELETE /api/rules/*
@@ -943,6 +949,8 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
     // goals handled by guard above
     if (Array.isArray(dashboardCardOrder))  ops.push(setData(uid, "dashboardCardOrder", dashboardCardOrder));
+    if (Array.isArray(recurringItems))      ops.push(setData(uid, "recurringItems",      recurringItems));
+    if (Array.isArray(deletedTransactions)) ops.push(setData(uid, "deletedTransactions", deletedTransactions));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }

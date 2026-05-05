@@ -429,7 +429,7 @@ function CustomSelect({ value, onChange, options, style = {}, compact = false })
       value={String(value)}
       onChange={e => onChange(e.target.value)}
       style={{
-        background:"var(--card)", border:"none",
+        backgroundColor:"var(--card)", border:"none",
         borderRadius:20, cursor:"pointer", outline:"none",
         padding: compact ? "5px 10px" : "8px 14px",
         fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
@@ -1273,7 +1273,7 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
               value={t.categoryId||""}
               onChange={e=>{ const v=e.target.value; if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
               style={{
-                background:"var(--surface)", border:"none", outline:"none",
+                backgroundColor:"var(--surface)", border:"none", outline:"none",
                 fontSize:16, color:cat?cat.color:"var(--t3)",
                 fontWeight:400, cursor:"pointer", width:"100%",
                 appearance:"none", WebkitAppearance:"none",
@@ -1356,14 +1356,14 @@ function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
             {/* Left: dropdowns */}
             <div style={{display:"flex", flexDirection:"column", gap:8, flex:1}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)} options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{width:"100%",background:"var(--card-hi)"}} compact/>
+                <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)} options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
                 {noCategory ? (
                   <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
                 ) : (
-                  <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }} options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",background:"var(--card-hi)"}} compact/>
+                  <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }} options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
                 )}
               </div>
-              <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)} options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%",background:"var(--card-hi)"}} compact/>
+              <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)} options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
             </div>
 
             {/* Right: notes textarea */}
@@ -2162,7 +2162,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             <button style={S.btn("ghost",true)} onClick={exportCSV}>↓ Export CSV</button>
           </div>
           <button style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:6}} onClick={()=>setShowTrash(true)}>
-            🗑 Deleted Transactions {deletedTransactions.length > 0 && <span style={{fontSize:10,background:"var(--card-hi)",borderRadius:20,padding:"1px 7px",color:"var(--t3)"}}>{deletedTransactions.length}</span>}
+            🗑 Deleted Transactions {deletedTransactions.length > 0 && <span style={{fontSize:10,backgroundColor:"var(--card-hi)",borderRadius:20,padding:"1px 7px",color:"var(--t3)"}}>{deletedTransactions.length}</span>}
           </button>
           <button style={S.btn("danger",true)} onClick={deleteAllTransactions}>
             Delete All Transactions
@@ -6708,10 +6708,16 @@ function AppInner({ isDemo = false }) {
                           {(item.linkedTxnIds||[]).length>0&&<span style={{marginLeft:4}}>· {item.linkedTxnIds.length} linked</span>}
                         </div>
                       </div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)",whiteSpace:"nowrap"}}>
-                        {item.amountMin!=null?fmt(item.amountMin):""}
-                        {item.amountMin!=null&&item.amountMax!=null?"–":""}
-                        {item.amountMax!=null&&item.amountMax!==item.amountMin?fmt(item.amountMax):""}
+                      <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)",whiteSpace:"nowrap"}}>
+                          {item.amountMin!=null?fmt(item.amountMin):""}
+                          {item.amountMin!=null&&item.amountMax!=null?"–":""}
+                          {item.amountMax!=null&&item.amountMax!==item.amountMin?fmt(item.amountMax):""}
+                        </span>
+                        <button
+                          onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}}
+                          style={{background:"var(--surface)",border:"none",borderRadius:6,cursor:"pointer",color:"var(--t2)",fontSize:11,padding:"4px 8px",flexShrink:0}}
+                        >Edit</button>
                       </div>
                     </button>
                   );
@@ -7076,7 +7082,10 @@ function AppInner({ isDemo = false }) {
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:10}}>
                           {amtLabel && <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)"}}>{amtLabel}</span>}
-                          <span style={{fontSize:11,color:"var(--t3)"}}>»</span>
+                          <button
+                            onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}}
+                            style={{background:"var(--surface)",border:"none",borderRadius:6,cursor:"pointer",color:"var(--t2)",fontSize:11,padding:"4px 8px",flexShrink:0}}
+                          >Edit</button>
                         </div>
                       </button>
                     );
@@ -7470,7 +7479,7 @@ function AppInner({ isDemo = false }) {
         </div>
         <div style={S.field}>
           <label style={S.label}>Frequency</label>
-          <CustomSelect value={editTarget.recurringFreq||"monthly"} onChange={v=>setEditTarget(p=>({...p,recurringFreq:v}))} options={[{value:"weekly",label:"Weekly"},{value:"biweekly",label:"Bi-weekly"},{value:"monthly",label:"Monthly"},{value:"annual",label:"Annual"}]} style={{width:"100%",background:"var(--card-hi)"}}/>
+          <CustomSelect value={editTarget.recurringFreq||"monthly"} onChange={v=>setEditTarget(p=>({...p,recurringFreq:v}))} options={[{value:"weekly",label:"Weekly"},{value:"biweekly",label:"Bi-weekly"},{value:"monthly",label:"Monthly"},{value:"annual",label:"Annual"}]} style={{width:"100%",backgroundColor:"var(--card-hi)"}}/>
         </div>
         {(editTarget.recurringFreq==="monthly"||!editTarget.recurringFreq)&&(
           <div style={S.field}>
@@ -7486,11 +7495,11 @@ function AppInner({ isDemo = false }) {
         </div>
         <div style={S.field}>
           <label style={S.label}>Category</label>
-          <CustomSelect value={editTarget.categoryId||""} onChange={v=>setEditTarget(p=>({...p,categoryId:v||null}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",background:"var(--card-hi)"}}/>
+          <CustomSelect value={editTarget.categoryId||""} onChange={v=>setEditTarget(p=>({...p,categoryId:v||null}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}}/>
         </div>
         <div style={S.field}>
           <label style={S.label}>Bank Account</label>
-          <CustomSelect value={editTarget.accountId||""} onChange={v=>setEditTarget(p=>({...p,accountId:v||null}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%",background:"var(--card-hi)"}}/>
+          <CustomSelect value={editTarget.accountId||""} onChange={v=>setEditTarget(p=>({...p,accountId:v||null}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}}/>
         </div>
       </div>
     </Modal>
@@ -7521,7 +7530,7 @@ function AppInner({ isDemo = false }) {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}>
             <label style={S.label}>Frequency</label>
-            <CustomSelect value={riForm.recurringFreq} onChange={v=>setRiForm(p=>({...p,recurringFreq:v}))} options={[{value:"weekly",label:"Weekly"},{value:"biweekly",label:"Bi-weekly"},{value:"monthly",label:"Monthly"},{value:"annual",label:"Annual"}]} style={{width:"100%"}}/>
+            <CustomSelect value={riForm.recurringFreq} onChange={v=>setRiForm(p=>({...p,recurringFreq:v}))} options={[{value:"weekly",label:"Weekly"},{value:"biweekly",label:"Bi-weekly"},{value:"monthly",label:"Monthly"},{value:"annual",label:"Annual"}]} style={{width:"100%",backgroundColor:"var(--card-hi)"}}/>
           </div>
           {(riForm.recurringFreq==="monthly"||!riForm.recurringFreq) && (
             <div style={S.field}>
@@ -7543,11 +7552,11 @@ function AppInner({ isDemo = false }) {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div style={S.field}>
             <label style={S.label}>Category</label>
-            <CustomSelect value={riForm.categoryId} onChange={v=>setRiForm(p=>({...p,categoryId:v}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
+            <CustomSelect value={riForm.categoryId} onChange={v=>setRiForm(p=>({...p,categoryId:v}))} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}}/>
           </div>
           <div style={S.field}>
             <label style={S.label}>Account</label>
-            <CustomSelect value={riForm.accountId} onChange={v=>setRiForm(p=>({...p,accountId:v}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}}/>
+            <CustomSelect value={riForm.accountId} onChange={v=>setRiForm(p=>({...p,accountId:v}))} options={[{value:"",label:"— None —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}}/>
           </div>
         </div>
         {/* Start Date */}

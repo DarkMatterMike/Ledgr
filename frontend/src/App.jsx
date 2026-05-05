@@ -3073,6 +3073,8 @@ function AppInner({ isDemo = false }) {
   const txnSearchCaretRef = useRef({ start: null, end: null });
   const [filterCat,     setFilterCat]     = useState("all");
   const [filterAcct,    setFilterAcct]    = useState("all");
+  const [deletedTransactions, setDeletedTransactions] = useState([]);
+  const [showTrash, setShowTrash] = useState(false);
   const [filterReview,  setFilterReview]  = useState(false);
   const [editingId,     setEditingId]     = useState(null);
   const [ellipsisId,    setEllipsisId]    = useState(null);
@@ -3173,6 +3175,7 @@ function AppInner({ isDemo = false }) {
       }
       if (data.dismissedPairs) setDismissedPairs(data.dismissedPairs);
       if (data.scanMemory)     setScanMemory(data.scanMemory);
+      if (Array.isArray(data.deletedTransactions)) setDeletedTransactions(data.deletedTransactions);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
       if (data.dani)           setDaniData(data.dani);
       if (data.theme)          { setTheme(data.theme); applyTheme(data.theme); }

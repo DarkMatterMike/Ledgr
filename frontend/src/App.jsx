@@ -3498,51 +3498,82 @@ function AppInner({ isDemo = false }) {
     const [calY, calM] = calendarMonth.split("-").map(Number);
     const daysInCalMonth = daysInMonth(calY, calM);
 
-    recurringTxns.forEach(t => {
-      const freq  = t.recurringFreq || "monthly";
-      const start = t.recurringStart ? new Date(t.recurringStart + "T12:00:00") : null;
+    function addToDay(d, entry) {
+      if (d < 1 || d > daysInCalMonth) return;
+      if (!map[d]) map[d] = [];
+      // Avoid duplicates by id
+      if (!map[d].find(x => x.id === entry.id)) map[d].push(entry);
+    }
 
-      function addDay(d) {
-        if (d < 1 || d > daysInCalMonth) return;
-        if (!map[d]) map[d] = [];
-        map[d].push(t);
-      }
-
+    function plotOccurrences(freq, startDate, recurringDay, addFn) {
       if (freq === "monthly") {
-        if (t.recurringDay) addDay(parseInt(t.recurringDay));
-
+        if (recurringDay) addFn(parseInt(recurringDay));
       } else if (freq === "annual") {
-        // Show only if start date month matches calendar month
-        if (start && start.getMonth()+1 === calM) {
-          addDay(start.getDate());
+        if (startDate && startDate.getMonth()+1 === calM && startDate.getFullYear() <= calY) {
+          addFn(startDate.getDate());
         }
-
       } else if (freq === "weekly" || freq === "biweekly") {
-        // Need a start date to calculate weekly/biweekly occurrences
-        if (!start) {
-          // Fallback: use recurringDay as day-of-month if no start date
-          if (t.recurringDay) addDay(parseInt(t.recurringDay));
-          return;
-        }
+        if (!startDate) { if (recurringDay) addFn(parseInt(recurringDay)); return; }
         const intervalDays = freq === "weekly" ? 7 : 14;
-        // Walk from start date forward, finding all occurrences in this calendar month
-        let current = new Date(start);
-        // Move start back if needed to find earliest occurrence before the month
+        let current = new Date(startDate);
         while (current > new Date(calY, calM-1, 1)) {
           current = new Date(current.getTime() - intervalDays*24*60*60*1000);
         }
-        // Now walk forward through the month
         for (let i = 0; i < 60; i++) {
-          if (current.getFullYear() === calY && current.getMonth()+1 === calM) {
-            addDay(current.getDate());
-          }
+          if (current.getFullYear() === calY && current.getMonth()+1 === calM) addFn(current.getDate());
           if (current.getFullYear() > calY || (current.getFullYear() === calY && current.getMonth()+1 > calM)) break;
           current = new Date(current.getTime() + intervalDays*24*60*60*1000);
         }
       }
+    }
+
+    // Legacy recurring transactions
+    recurringTxns.forEach(t => {
+      const freq  = t.recurringFreq || "monthly";
+      const start = t.recurringStart ? new Date(t.recurringStart + "T12:00:00") : null;
+      plotOccurrences(freq, start, t.recurringDay, d => addToDay(d, t));
     });
+
+    // Recurring items — plot from their start date onward
+    recurringItems.forEach(item => {
+      const freq  = item.recurringFreq || "monthly";
+      const start = item.recurringStart ? new Date(item.recurringStart + "T12:00:00") : null;
+
+      // Don't show this item in months before its start date
+      if (start) {
+        const startY = start.getFullYear();
+        const startM = start.getMonth() + 1;
+        if (calY < startY || (calY === startY && calM < startM)) return;
+      }
+
+      // Check if a linked transaction has already posted this calendar month
+      const postedThisMonth = (item.linkedTxnIds||[]).some(txnId => {
+        const t = transactions.find(x => x.id === txnId);
+        if (!t || !t.date) return false;
+        const [ty, tm] = t.date.split("-").map(Number);
+        return ty === calY && tm === calM;
+      });
+
+      // Build a synthetic calendar entry for this item
+      const syntheticEntry = {
+        id: "ri_sched_" + item.id,
+        name: item.name,
+        merchant: item.name,
+        categoryId: item.categoryId,
+        accountId: item.accountId,
+        amount: item.amountMin != null ? -item.amountMin : 0,
+        isRecurringItem: true,
+        recurringItemId: item.id,
+        postedThisMonth,
+        recurringDay: item.recurringDay,
+        recurringFreq: item.recurringFreq,
+      };
+
+      plotOccurrences(freq, start, item.recurringDay, d => addToDay(d, syntheticEntry));
+    });
+
     return map;
-  }, [recurringTxns, calendarMonth]);
+  }, [recurringTxns, recurringItems, transactions, calendarMonth]);
 
   function prevMonth() {
     const [y,m]=selectedMonth.split("-").map(Number);
@@ -6411,13 +6442,16 @@ function AppInner({ isDemo = false }) {
 
                   {dayTxns.slice(0, 1).map((t) => {
                     const cat = catMap[t.categoryId];
+                    const isScheduled = t.isRecurringItem && !t.postedThisMonth;
+                    const isPosted = t.isRecurringItem && t.postedThisMonth;
                     return (
                       <div
                         key={t.id}
                         style={{
                           fontSize: 9,
-                          color: "var(--bg)",
-                          background: cat?.color || "var(--cyan)",
+                          color: isScheduled ? (cat?.color || "var(--cyan)") : "var(--bg)",
+                          background: isScheduled ? "transparent" : (cat?.color || "var(--cyan)"),
+                          border: isScheduled ? `1px dashed ${cat?.color || "var(--cyan)"}` : "none",
                           borderRadius: 3,
                           padding: "1px 4px",
                           marginBottom: 2,
@@ -6428,9 +6462,10 @@ function AppInner({ isDemo = false }) {
                           display: "block",
                           width: "100%",
                           boxSizing: "border-box",
+                          opacity: isScheduled ? 0.7 : 1,
                         }}
                       >
-                        {t.name || t.merchant}
+                        {isPosted ? "✓ " : ""}{t.name || t.merchant}
                       </div>
                     );
                   })}
@@ -6903,6 +6938,8 @@ function AppInner({ isDemo = false }) {
                           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                             {dayTxns.slice(0, 4).map((t) => {
                               const cat = catMap[t.categoryId];
+                              const isScheduled = t.isRecurringItem && !t.postedThisMonth;
+                              const isPosted = t.isRecurringItem && t.postedThisMonth;
                               return (
                                 <div
                                   key={t.id}
@@ -6913,7 +6950,8 @@ function AppInner({ isDemo = false }) {
                                     minWidth: 0,
                                     fontSize: 11,
                                     lineHeight: 1.2,
-                                    color: "var(--t1)",
+                                    color: isScheduled ? "var(--t3)" : "var(--t1)",
+                                    opacity: isScheduled ? 0.75 : 1,
                                   }}
                                 >
                                   <span
@@ -6921,7 +6959,8 @@ function AppInner({ isDemo = false }) {
                                       width: 6,
                                       height: 6,
                                       borderRadius: 999,
-                                      background: cat?.color || "var(--cyan)",
+                                      background: isScheduled ? "transparent" : (cat?.color || "var(--cyan)"),
+                                      border: isScheduled ? `1.5px dashed ${cat?.color || "var(--cyan)"}` : "none",
                                       flexShrink: 0,
                                     }}
                                   />
@@ -6930,23 +6969,25 @@ function AppInner({ isDemo = false }) {
                                       overflow: "hidden",
                                       textOverflow: "ellipsis",
                                       whiteSpace: "nowrap",
-                                      color: "var(--t1)",
+                                      color: isPosted ? "var(--green)" : isScheduled ? "var(--t3)" : "var(--t1)",
                                       fontWeight: 500,
                                     }}
                                   >
-                                    {t.name || t.merchant}
+                                    {isPosted ? "✓ " : ""}{t.name || t.merchant}
                                   </span>
-                                  <span
-                                    style={{
-                                      marginLeft: "auto",
-                                      fontFamily: "var(--font-mono)",
-                                      color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {t.amount < 0 ? "-" : "+"}
-                                    {fmt(Math.abs(t.amount)).replace("$", "")}
-                                  </span>
+                                  {!isScheduled && (
+                                    <span
+                                      style={{
+                                        marginLeft: "auto",
+                                        fontFamily: "var(--font-mono)",
+                                        color: t.amount < 0 ? "var(--red)" : "var(--green)",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {t.amount < 0 ? "-" : "+"}
+                                      {fmt(Math.abs(t.amount)).replace("$", "")}
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })}

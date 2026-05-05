@@ -7455,7 +7455,6 @@ function AppInner({ isDemo = false }) {
                     fontSize: 13,
                   }}
                 >
-                  Choose a day on the calendar to show its recurring charges.
                 </div>
               )}
             </div>

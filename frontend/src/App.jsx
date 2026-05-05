@@ -1482,7 +1482,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -7633,6 +7633,11 @@ function AppInner({ isDemo = false }) {
         setUserProfile(p);
         scheduleSaveRef.current?.({ userProfile: p });
       }}
+      deletedTransactions={deletedTransactions}
+      setDeletedTransactions={setDeletedTransactions}
+      showTrash={showTrash}
+      setShowTrash={setShowTrash}
+      scheduleSaveRef={scheduleSaveRef}
     />
   );
 

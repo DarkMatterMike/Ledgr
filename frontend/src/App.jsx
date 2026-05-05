@@ -6577,8 +6577,13 @@ function AppInner({ isDemo = false }) {
                     key={t.id}
                     type="button"
                     onClick={() => {
-                      setEditTarget(t);
-                      setModal("editRecurring");
+                      if (t.isRecurringItem) {
+                        const item = recurringItems.find(r => r.id === t.recurringItemId);
+                        if (item) openEditRecurringItem(item);
+                      } else {
+                        setEditTarget(t);
+                        setModal("editRecurring");
+                      }
                     }}
                     style={{
                       background: "var(--surface)",
@@ -7311,14 +7316,24 @@ function AppInner({ isDemo = false }) {
                             key={t.id}
                             type="button"
                             onClick={() => {
-                              setEditTarget(t);
-                              setModal("editRecurring");
+                              if (t.isRecurringItem) {
+                                const item = recurringItems.find(r => r.id === t.recurringItemId);
+                                if (item) openEditRecurringItem(item);
+                              } else {
+                                setEditTarget(t);
+                                setModal("editRecurring");
+                              }
                             }}
                             onTouchEnd={isMobile ? (e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              setEditTarget(t);
-                              setModal("editRecurring");
+                              if (t.isRecurringItem) {
+                                const item = recurringItems.find(r => r.id === t.recurringItemId);
+                                if (item) openEditRecurringItem(item);
+                              } else {
+                                setEditTarget(t);
+                                setModal("editRecurring");
+                              }
                             } : undefined}
                             style={{
                               background: "rgba(255,255,255,0.02)",

@@ -5101,11 +5101,7 @@ function AppInner({ isDemo = false }) {
       .slice(0,5);
 
     return {
-      spending: (
-        <div style={{height:"100%", boxSizing:"border-box"}}>
-          {SpendingBreakdownCard}
-        </div>
-      ),
+      spending: SpendingBreakdownCard,
       budget: (
         <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"100%", boxSizing:"border-box", display:"flex", flexDirection:"column"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22,flexShrink:0}}>

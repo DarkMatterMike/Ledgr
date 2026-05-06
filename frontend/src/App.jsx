@@ -5112,7 +5112,14 @@ function AppInner({ isDemo = false }) {
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
             : <div style={{overflow:"hidden"}}>
                 <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
-                {sortedCategories.slice(0,isMobile?6:undefined).map(cat=>{
+                {[...sortedCategories]
+                  .sort((a,b) => {
+                    const remA = a.limit - (spentByCat[a.id]||0);
+                    const remB = b.limit - (spentByCat[b.id]||0);
+                    return remA - remB;
+                  })
+                  .slice(0, isMobile ? 6 : 15)
+                  .map(cat=>{
                   const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
                   const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
                   const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);

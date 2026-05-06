@@ -95,6 +95,32 @@ export async function login(email, password) {
   return { token, user };
 }
 
+export async function checkEmail(email) {
+  const res = await fetch(`${BASE}/api/auth/check-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) return { exists: false };
+  return res.json();
+}
+
+export async function googleAuth(credential) {
+  const res = await fetch(`${BASE}/api/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Google sign-in failed" }));
+    throw new Error(err.error || "Google sign-in failed");
+  }
+  const { token, user } = await res.json();
+  setToken(token);
+  setStoredUser(user);
+  return { token, user };
+}
+
 export async function fetchMe() {
   return request("/api/auth/me");
 }

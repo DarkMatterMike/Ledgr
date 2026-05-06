@@ -787,34 +787,88 @@ function SecurityBadges({ compact = false }) {
 }
 
 function AuthGate({ onAuth }) {
-  // Check for reset token in URL
+  const GOOGLE_CLIENT_ID = "3297026544-9c609r8c4t156vpfnb4iggnrg2qgoo3d.apps.googleusercontent.com";
   const resetToken = new URLSearchParams(window.location.search).get("reset");
-  const [mode,          setMode]          = useState(resetToken ? "reset" : "login");
+
+  // step: "email" | "password" | "register" | "forgot" | "reset"
+  const [step,          setStep]          = useState(resetToken ? "reset" : "email");
   const [email,         setEmail]         = useState("");
   const [password,      setPassword]      = useState("");
   const [confirm,       setConfirm]       = useState("");
   const [error,         setError]         = useState("");
   const [success,       setSuccess]       = useState("");
   const [loading,       setLoading]       = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [shake,         setShake]         = useState(false);
   const [agreedTerms,   setAgreedTerms]   = useState(false);
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
-  const [legalModal,    setLegalModal]    = useState(null); // "privacy" | "terms" | null
+  const [legalModal,    setLegalModal]    = useState(null);
+  const googleBtnRef = useRef(null);
+  const googleCbRef  = useRef(null);
 
   function triggerShake(msg) {
     setError(msg); setShake(true);
     setTimeout(() => setShake(false), 600);
   }
 
+  async function handleGoogleCallback(response) {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      await api.googleAuth(response.credential);
+      onAuth();
+    } catch(err) {
+      triggerShake(err.message || "Google sign-in failed");
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+  googleCbRef.current = handleGoogleCallback;
+
+  // Initialize Google Identity Services button
+  useEffect(() => {
+    if (!window.google || !googleBtnRef.current) return;
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (r) => googleCbRef.current(r),
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    });
+    window.google.accounts.id.renderButton(googleBtnRef.current, {
+      type: "standard",
+      theme: "filled_black",
+      size: "large",
+      text: "continue_with",
+      shape: "rectangular",
+      width: 360,
+    });
+  }, [step]);
+
+  async function handleEmailContinue(e) {
+    e.preventDefault();
+    if (!email.trim()) return triggerShake("Email required");
+    setLoading(true);
+    setError("");
+    try {
+      // Check if account exists
+      const { exists } = await api.checkEmail(email);
+      setStep(exists ? "password" : "register");
+    } catch {
+      setStep("password");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(""); setSuccess("");
 
-    if (mode === "forgot") {
+    if (step === "forgot") {
       if (!email) return triggerShake("Email required");
       setLoading(true);
       try {
-        await fetch(`https://ledgr-production-9e35.up.railway.app/api/auth/forgot-password`, {
+        await fetch("https://ledgr-production-9e35.up.railway.app/api/auth/forgot-password", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
@@ -824,13 +878,13 @@ function AuthGate({ onAuth }) {
       return;
     }
 
-    if (mode === "reset") {
+    if (step === "reset") {
       if (!password) return triggerShake("Password required");
       if (password.length < 8) return triggerShake("Password must be at least 8 characters");
       if (password !== confirm) return triggerShake("Passwords do not match");
       setLoading(true);
       try {
-        const r = await fetch(`https://ledgr-production-9e35.up.railway.app/api/auth/reset-password`, {
+        const r = await fetch("https://ledgr-production-9e35.up.railway.app/api/auth/reset-password", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: resetToken, newPassword: password }),
         });
@@ -838,195 +892,271 @@ function AuthGate({ onAuth }) {
         if (!r.ok) return triggerShake(d.error || "Reset failed");
         window.history.replaceState({}, "", window.location.pathname);
         setSuccess("Password updated! You can now sign in.");
-        setTimeout(() => switchMode("login"), 1500);
+        setTimeout(() => setStep("email"), 1500);
       } catch { triggerShake("Reset failed. Please try again."); }
       finally { setLoading(false); }
       return;
     }
 
-    if (mode === "register" && password !== confirm) return triggerShake("Passwords do not match");
-    if (mode === "register" && password.length < 8)  return triggerShake("Password must be at least 8 characters");
-    if (mode === "register" && (!agreedTerms || !agreedPrivacy)) return triggerShake("Please agree to the Terms of Service and Privacy Policy");
+    if (step === "register") {
+      if (password !== confirm) return triggerShake("Passwords do not match");
+      if (password.length < 8) return triggerShake("Password must be at least 8 characters");
+      if (!agreedTerms || !agreedPrivacy) return triggerShake("Please agree to the Terms of Service and Privacy Policy");
+    }
 
     setLoading(true);
     try {
-      if (mode === "login") await api.login(email, password);
-      else                  await api.register(email, password);
+      if (step === "password") await api.login(email, password);
+      else                     await api.register(email, password);
       onAuth();
-    } catch (err) {
+    } catch(err) {
       triggerShake(err.message || "Something went wrong");
       setPassword(""); setConfirm("");
     } finally { setLoading(false); }
   }
 
-  function switchMode(m) {
-    setMode(m); setError(""); setSuccess("");
-    setPassword(""); setConfirm("");
-  }
-
-  function inputStyle(hasError) {
+  function inputStyle(hasError = false) {
     return {
-      background: "var(--surface)",
-      border: `1px solid ${hasError ? "var(--red)" : "var(--border2)"}`,
-      borderRadius: "var(--radius)", padding: "11px 14px",
-      fontSize: 14, color: "var(--t1)", outline: "none", width: "100%",
-      transition: "border-color 0.15s",
+      background: "var(--card-hi)",
+      border: `1px solid ${hasError ? "var(--red)" : "rgba(255,255,255,0.08)"}`,
+      borderRadius: 10, padding: "13px 16px",
+      fontSize: 15, color: "var(--t1)", outline: "none", width: "100%",
+      transition: "border-color 0.15s", boxSizing: "border-box",
+      fontFamily: "var(--font-body)",
     };
   }
 
-  const isForgotOrReset = mode === "forgot" || mode === "reset";
+  const showEmailStep  = step === "email";
+  const showPassStep   = step === "password" || step === "register";
+  const showGoogleBtn  = step === "email" || step === "password" || step === "register";
+  const isForgotReset  = step === "forgot" || step === "reset";
+
+  const headingMap = {
+    email:    ["Welcome", "back"],
+    password: ["Welcome", "back"],
+    register: ["Create your", "account"],
+    forgot:   ["Forgot your", "password?"],
+    reset:    ["Reset your", "password"],
+  };
+  const [h1, h2] = headingMap[step] || ["Welcome", "back"];
 
   return (
     <div style={{
-      display:"flex", alignItems:"center", justifyContent:"center",
-      height:"100vh", background:"var(--bg)", flexDirection:"column", gap:24,
-      fontFamily:"var(--font-body)",
+      minHeight: "100vh", background: "var(--bg)",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      fontFamily: "var(--font-body)", padding: "24px 16px",
     }}>
-
-      <div>
-        <div style={{fontFamily:"'Syne', sans-serif",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
-          ledgr<span style={{color:"var(--cyan)"}}>.</span>
+      {/* Logo */}
+      <div style={{ marginBottom: 32, textAlign: "center" }}>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 800, letterSpacing: "-1px", color: "var(--t1)" }}>
+          ledgr<span style={{ color: "var(--cyan)" }}>.</span>
         </div>
-        <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",marginTop:4}}>personal finance</div>
       </div>
 
-      <div className={shake?"shake":""} style={{
-        background:"var(--card)", border:"none",
-        borderRadius:"var(--radius-lg)", padding:"32px 28px",
-        width:360, maxWidth:"92vw",
-        boxShadow:"0 8px 40px #00000060",
+      {/* Card */}
+      <div className={shake ? "shake" : ""} style={{
+        width: "100%", maxWidth: 420,
+        display: "flex", flexDirection: "column", gap: 0,
       }}>
-        {/* Tab switcher — only for login/register */}
-        {!isForgotOrReset && (
-          <div style={{display:"flex",gap:0,marginBottom:24,background:"var(--surface)",borderRadius:"var(--radius)",padding:3}}>
-            {["login","register"].map(m => (
-              <button key={m} onClick={()=>switchMode(m)} style={{
-                flex:1, padding:"7px 0", borderRadius:"var(--radius)",
-                fontSize:13, fontWeight:600, cursor:"pointer", border:"none",
-                background: mode===m ? "var(--card)" : "transparent",
-                color: mode===m ? "var(--t1)" : "var(--t3)",
-                boxShadow: mode===m ? "0 1px 4px #00000030" : "none",
-                transition:"all 0.15s",
-              }}>
-                {m === "login" ? "Sign In" : "Create Account"}
+
+        {/* Heading */}
+        {!isForgotReset && (
+          <div style={{ marginBottom: 28, textAlign: "left" }}>
+            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, color: "var(--t1)", lineHeight: 1.2 }}>
+              {h1}{" "}<span style={{ color: "var(--t3)", fontWeight: 400 }}>{h2}</span>
+            </h1>
+            {showEmailStep && (
+              <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--t3)" }}>
+                Enter your email to sign in or create an account
+              </p>
+            )}
+            {showPassStep && (
+              <button onClick={() => { setStep("email"); setError(""); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--cyan)", fontSize: 13, padding: 0, marginTop: 6 }}>
+                ← {email}
               </button>
-            ))}
+            )}
           </div>
         )}
 
-        {/* Forgot/reset header */}
-        {isForgotOrReset && (
-          <div style={{marginBottom:20}}>
-            <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:4}}>
-              {mode === "forgot" ? "Forgot password" : "Reset password"}
-            </div>
-            <div style={{fontSize:13,color:"var(--t3)"}}>
-              {mode === "forgot"
-                ? "Enter your email and we'll send you a reset link."
-                : "Enter your new password below."}
-            </div>
+        {isForgotReset && (
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: "var(--t1)" }}>
+              {h1} <span style={{ color: "var(--t3)", fontWeight: 400 }}>{h2}</span>
+            </h1>
+            <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--t3)" }}>
+              {step === "forgot" ? "We'll send a reset link to your email." : "Enter your new password below."}
+            </p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:10}}>
-          {/* Email field — login, register, forgot */}
-          {mode !== "reset" && (
-            <input type="email" placeholder="Email address" value={email} autoFocus
-              onChange={e=>{ setEmail(e.target.value); setError(""); }}
-              style={inputStyle(!!error && !password)} />
-          )}
-
-          {/* Password field — login, register, reset */}
-          {mode !== "forgot" && (
-            <input type="password" placeholder={mode === "reset" ? "New password" : "Password"}
-              value={password} autoFocus={mode === "reset"}
-              onChange={e=>{ setPassword(e.target.value); setError(""); }}
-              style={inputStyle(!!error)} />
-          )}
-
-          {/* Confirm password — register, reset */}
-          {(mode === "register" || mode === "reset") && (
-            <input type="password" placeholder="Confirm password" value={confirm}
-              onChange={e=>{ setConfirm(e.target.value); setError(""); }}
-              style={inputStyle(!!error && confirm !== password)} />
-          )}
-
-          {/* Terms checkboxes — register only */}
-          {mode === "register" && (
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
-              {[
-                { checked: agreedTerms,   setChecked: setAgreedTerms,   doc:"terms",   label:"Terms of Service" },
-                { checked: agreedPrivacy, setChecked: setAgreedPrivacy, doc:"privacy", label:"Privacy Policy"   },
-              ].map(({ checked, setChecked, doc, label }) => (
-                <label key={doc} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:12,color:"var(--t2)"}}>
-                  <input type="checkbox" checked={checked} onChange={e=>setChecked(e.target.checked)}
-                    style={{width:15,height:15,accentColor:"var(--cyan)",flexShrink:0,cursor:"pointer"}}/>
-                  I agree to the{" "}
-                  <button type="button" onClick={()=>setLegalModal(doc)}
-                    style={{background:"none",border:"none",padding:0,color:"var(--cyan)",cursor:"pointer",fontSize:12,textDecoration:"underline"}}>
-                    {label}
-                  </button>
-                </label>
-              ))}
+        {/* Google button */}
+        {showGoogleBtn && (
+          <>
+            <div ref={googleBtnRef} style={{ width: "100%", marginBottom: 4, minHeight: 44 }}/>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }}/>
+              <span style={{ fontSize: 12, color: "var(--t3)", letterSpacing: "0.5px" }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }}/>
             </div>
-          )}
+          </>
+        )}
 
-          {error   && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
-          {success && <div style={{fontSize:12,color:"var(--green)"}}>{success}</div>}
-
-          <button type="submit" disabled={loading} style={{
-            marginTop:4,
-            background:"var(--cyan)", color:"#000", border:"none",
-            borderRadius:"var(--radius)", padding:"10px 16px",
-            fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
-            opacity:loading?0.7:1, transition:"opacity 0.15s",
-          }}>
-            {loading ? "…"
-              : mode === "login"    ? "Sign In"
-              : mode === "register" ? "Create Account"
-              : mode === "forgot"   ? "Send Reset Link"
-              : "Reset Password"}
-          </button>
-        </form>
-
-        {/* Footer links */}
-        <div style={{marginTop:16,textAlign:"center",display:"flex",flexDirection:"column",gap:8}}>
-          {mode === "login" && (
-            <button onClick={()=>switchMode("forgot")}
-              style={{fontSize:12,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>
-              Forgot your password?
+        {/* Email step */}
+        {showEmailStep && (
+          <form onSubmit={handleEmailContinue} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Email address</label>
+              <input type="email" placeholder="you@example.com" value={email} autoFocus
+                onChange={e => { setEmail(e.target.value); setError(""); }}
+                style={inputStyle(!!error)}/>
+            </div>
+            {error && <div style={{ fontSize: 12, color: "var(--red)" }}>{error}</div>}
+            <button type="submit" disabled={loading} style={{
+              marginTop: 4, background: "var(--cyan)", color: "#000", border: "none",
+              borderRadius: 10, padding: "13px 16px", fontSize: 15, fontWeight: 700,
+              cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              fontFamily: "var(--font-body)",
+            }}>
+              ✉ {loading ? "…" : "Continue with email"}
             </button>
-          )}
-          {isForgotOrReset && (
-            <button onClick={()=>switchMode("login")}
-              style={{fontSize:12,color:"var(--t3)",background:"none",border:"none",cursor:"pointer"}}>
-              → Back to sign in
+          </form>
+        )}
+
+        {/* Password / Register step */}
+        {showPassStep && (
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>
+                {step === "register" ? "Create a password" : "Password"}
+              </label>
+              <input type="password" placeholder="Password" value={password} autoFocus
+                onChange={e => { setPassword(e.target.value); setError(""); }}
+                style={inputStyle(!!error)}/>
+            </div>
+            {step === "register" && (
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Confirm password</label>
+                <input type="password" placeholder="Confirm password" value={confirm}
+                  onChange={e => { setConfirm(e.target.value); setError(""); }}
+                  style={inputStyle(!!error && confirm !== password)}/>
+              </div>
+            )}
+            {step === "register" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+                {[
+                  { checked: agreedTerms,   set: setAgreedTerms,   doc: "terms",   label: "Terms of Service" },
+                  { checked: agreedPrivacy, set: setAgreedPrivacy, doc: "privacy", label: "Privacy Policy" },
+                ].map(({ checked, set, doc, label }) => (
+                  <label key={doc} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 12, color: "var(--t2)" }}>
+                    <input type="checkbox" checked={checked} onChange={e => set(e.target.checked)}
+                      style={{ width: 15, height: 15, accentColor: "var(--cyan)", flexShrink: 0, cursor: "pointer" }}/>
+                    I agree to the{" "}
+                    <button type="button" onClick={() => setLegalModal(doc)}
+                      style={{ background: "none", border: "none", padding: 0, color: "var(--cyan)", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>
+                      {label}
+                    </button>
+                  </label>
+                ))}
+              </div>
+            )}
+            {error   && <div style={{ fontSize: 12, color: "var(--red)" }}>{error}</div>}
+            {success && <div style={{ fontSize: 12, color: "var(--green)" }}>{success}</div>}
+            <button type="submit" disabled={loading} style={{
+              marginTop: 4, background: "var(--cyan)", color: "#000", border: "none",
+              borderRadius: 10, padding: "13px 16px", fontSize: 15, fontWeight: 700,
+              cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
+              fontFamily: "var(--font-body)",
+            }}>
+              {loading ? "…" : step === "register" ? "Create account" : "Sign in"}
             </button>
-          )}
-        </div>
+            {step === "password" && (
+              <button type="button" onClick={() => { setStep("forgot"); setError(""); }}
+                style={{ fontSize: 12, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
+                Forgot your password?
+              </button>
+            )}
+          </form>
+        )}
+
+        {/* Forgot / Reset steps */}
+        {isForgotReset && (
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {step === "forgot" && (
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Email address</label>
+                <input type="email" placeholder="you@example.com" value={email} autoFocus
+                  onChange={e => { setEmail(e.target.value); setError(""); }}
+                  style={inputStyle(!!error)}/>
+              </div>
+            )}
+            {step === "reset" && (
+              <>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>New password</label>
+                  <input type="password" placeholder="New password" value={password} autoFocus
+                    onChange={e => { setPassword(e.target.value); setError(""); }}
+                    style={inputStyle(!!error)}/>
+                </div>
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Confirm password</label>
+                  <input type="password" placeholder="Confirm password" value={confirm}
+                    onChange={e => { setConfirm(e.target.value); setError(""); }}
+                    style={inputStyle(!!error && confirm !== password)}/>
+                </div>
+              </>
+            )}
+            {error   && <div style={{ fontSize: 12, color: "var(--red)" }}>{error}</div>}
+            {success && <div style={{ fontSize: 12, color: "var(--green)" }}>{success}</div>}
+            <button type="submit" disabled={loading} style={{
+              marginTop: 4, background: "var(--cyan)", color: "#000", border: "none",
+              borderRadius: 10, padding: "13px 16px", fontSize: 15, fontWeight: 700,
+              cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
+              fontFamily: "var(--font-body)",
+            }}>
+              {loading ? "…" : step === "forgot" ? "Send reset link" : "Reset password"}
+            </button>
+            <button type="button" onClick={() => { setStep("email"); setError(""); setSuccess(""); }}
+              style={{ fontSize: 12, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
+              ← Back to sign in
+            </button>
+          </form>
+        )}
+
+        {/* Divider + learn more — email step only */}
+        {showEmailStep && (
+          <div style={{ marginTop: 32 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }}/>
+              <span style={{ fontSize: 11, color: "var(--t3)", letterSpacing: "1px", textTransform: "uppercase" }}>New to Ledgr?</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }}/>
+            </div>
+            <button onClick={() => window.open("https://ledgrfinance.app", "_blank")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 13, width: "100%", textAlign: "center" }}>
+              Learn how zero-based budgeting works →
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Security badges — shown on register tab */}
-      {mode === "register" && <SecurityBadges />}
+      {step === "register" && <SecurityBadges />}
 
       {/* Legal modal */}
       {legalModal && (
-        <div style={S.overlay} className="ledgr-overlay-anim" onClick={()=>setLegalModal(null)}>
-          <div style={{...S.modal,width:640,maxHeight:"82vh",display:"flex",flexDirection:"column"}} className="ledgr-modal-anim"
-            onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexShrink:0}}>
-              <div style={S.modalTitle}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
+          onClick={() => setLegalModal(null)}>
+          <div style={{ background: "var(--card)", borderRadius: 12, padding: "28px 24px", width: 640, maxWidth: "92vw", maxHeight: "82vh", display: "flex", flexDirection: "column" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexShrink: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--t1)" }}>
                 {legalModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </div>
-              <button onClick={()=>setLegalModal(null)}
-                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,lineHeight:1}}>✕</button>
+              <button onClick={() => setLegalModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 20 }}>✕</button>
             </div>
-            <div style={{overflowY:"auto",flex:1,fontSize:13,color:"var(--t2)",lineHeight:1.7}}>
+            <div style={{ overflowY: "auto", flex: 1, fontSize: 13, color: "var(--t2)", lineHeight: 1.7 }}>
               {legalModal === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
-            </div>
-            <div style={{marginTop:16,flexShrink:0,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:11,color:"var(--t3)"}}>Last updated: {new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
-              <button onClick={()=>setLegalModal(null)} style={S.btn("primary",true)}>Close</button>
             </div>
           </div>
         </div>
@@ -1034,6 +1164,7 @@ function AuthGate({ onAuth }) {
     </div>
   );
 }
+
 
 export default function App() {
   // Wake up the Railway backend immediately on load to minimize cold start delay

@@ -4535,7 +4535,16 @@ function AppInner({ isDemo = false }) {
   }
   function openEditRecurringItem(item) {
     setEditingRecurringItem(item);
-    setRiForm({ name:item.name||"", amountMin:item.amountMin!=null?String(item.amountMin):"", amountMax:item.amountMax!=null?String(item.amountMax):"", recurringDay:item.recurringDay||"", recurringFreq:item.recurringFreq||"monthly", recurringStart:item.recurringStart||"", categoryId:item.categoryId||"", accountId:item.accountId||"" });
+    // Compute average from linked transactions if no amount set yet
+    const linkedAmts = (item.linkedTxnIds||[])
+      .map(id => transactions.find(t => t.id === id))
+      .filter(Boolean)
+      .map(t => Math.abs(t.amount));
+    const avg = linkedAmts.length > 0
+      ? (linkedAmts.reduce((a,b) => a+b, 0) / linkedAmts.length).toFixed(2)
+      : null;
+    const prefilledAmount = item.amountMin != null ? String(item.amountMin) : (avg || "");
+    setRiForm({ name:item.name||"", amountMin:prefilledAmount, amountMax:prefilledAmount, recurringDay:item.recurringDay||"", recurringFreq:item.recurringFreq||"monthly", recurringStart:item.recurringStart||"", categoryId:item.categoryId||"", accountId:item.accountId||"" });
     setRiSearch(""); setRiSearchResults([]);
     setRecurringItemModal(true);
   }
@@ -5096,7 +5105,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       budget: (
-        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, boxSizing:"border-box"}}>
+        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"100%", boxSizing:"border-box", overflowY:"auto"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>
@@ -7795,14 +7804,29 @@ function AppInner({ isDemo = false }) {
             </div>
           )}
         </div>
-        {/* Amount range */}
+        {/* Expected amount — single field, auto-averaged from linked txns */}
         <div style={S.field}>
-          <label style={S.label}>Expected Amount Range ($)</label>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <input style={{...S.input,flex:1}} type="number" placeholder="Min" value={riForm.amountMin} onChange={e=>setRiForm(p=>({...p,amountMin:e.target.value}))}/>
-            <span style={{color:"var(--t3)",fontSize:12}}>–</span>
-            <input style={{...S.input,flex:1}} type="number" placeholder="Max" value={riForm.amountMax} onChange={e=>setRiForm(p=>({...p,amountMax:e.target.value}))}/>
-          </div>
+          <label style={S.label}>Expected Amount ($)</label>
+          {(()=>{
+            const liveItem = editingRecurringItem && (recurringItems.find(r=>r.id===editingRecurringItem.id) || editingRecurringItem);
+            const linkedAmts = (liveItem?.linkedTxnIds||[])
+              .map(id=>transactions.find(t=>t.id===id))
+              .filter(Boolean)
+              .map(t=>Math.abs(t.amount));
+            const avg = linkedAmts.length > 0
+              ? (linkedAmts.reduce((a,b)=>a+b,0)/linkedAmts.length).toFixed(2)
+              : null;
+            return (
+              <input
+                style={S.input}
+                type="number"
+                step="0.01"
+                placeholder={avg ? `${avg}` : "e.g. 14.99"}
+                value={riForm.amountMin}
+                onChange={e=>setRiForm(p=>({...p, amountMin:e.target.value, amountMax:e.target.value}))}
+              />
+            );
+          })()}
         </div>
         {/* Category + Account */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>

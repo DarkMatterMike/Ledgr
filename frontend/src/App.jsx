@@ -4698,7 +4698,8 @@ function AppInner({ isDemo = false }) {
       .sort((a, b) => b.spent - a.spent);
 
     const totalSpentForBreakdown = spentCats.reduce((sum, c) => sum + c.spent, 0);
-    const topBreakdownCats = spentCats.slice(0, 5);
+    const topBreakdownCats = spentCats;
+    const donutCats = spentCats.slice(0, 8);
 
     const monthlyMap = {};
     transactions.forEach((t) => {
@@ -4754,6 +4755,7 @@ function AppInner({ isDemo = false }) {
 
     return {
       topBreakdownCats,
+      donutCats,
       totalSpentForBreakdown,
       cashFlowSeries,
       avgDelta,
@@ -4836,7 +4838,7 @@ function AppInner({ isDemo = false }) {
                     stroke="rgba(255,255,255,0.08)"
                     strokeWidth={stroke}
                   />
-                  {budgetAnalytics.topBreakdownCats.map((cat) => {
+                  {budgetAnalytics.donutCats.map((cat) => {
                     const fraction = cat.spent / budgetAnalytics.totalSpentForBreakdown;
                     const dash = fraction * circumference;
                     const gap = circumference - dash;

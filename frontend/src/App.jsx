@@ -4814,7 +4814,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div className="obsidian-card" style={{ ...S.card, height:"100%", boxSizing: "border-box" }}>
+    <div className="obsidian-card" style={{ ...S.card, height:"440px", boxSizing:"border-box", overflow:"hidden" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -5103,7 +5103,7 @@ function AppInner({ isDemo = false }) {
     return {
       spending: SpendingBreakdownCard,
       budget: (
-        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"100%", boxSizing:"border-box", overflow:"hidden"}}>
+        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"440px", boxSizing:"border-box", overflow:"hidden"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>
@@ -5303,7 +5303,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ) : (
         /* Desktop: CSS grid, 3 cols, cards flow naturally */
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"stretch"}}>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
           {dashOrder
             .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
             .map((id, idx, arr) => (

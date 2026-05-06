@@ -4814,7 +4814,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div className="obsidian-card" style={{ ...S.card, height:"380px", boxSizing:"border-box", overflow:"hidden" }}>
+    <div className="obsidian-card" style={{ ...S.card, height:"390px", boxSizing:"border-box", overflow:"hidden" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -5103,7 +5103,7 @@ function AppInner({ isDemo = false }) {
     return {
       spending: SpendingBreakdownCard,
       budget: (
-        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"380px", boxSizing:"border-box", overflow:"hidden"}}>
+        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"390px", boxSizing:"border-box", overflow:"hidden"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>

@@ -5096,7 +5096,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ),
       budget: (
-        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"100%", boxSizing:"border-box"}}>
+        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, boxSizing:"border-box"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>
@@ -5104,7 +5104,7 @@ function AppInner({ isDemo = false }) {
           {categories.length===0
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
             : <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
-                {sortedCategories.slice(0,isMobile?6:10).map(cat=>{
+                {sortedCategories.slice(0,isMobile?6:undefined).map(cat=>{
                   const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
                   const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;
                   const complete=!over&&(cat.completedMonths||[]).includes(selectedMonth);
@@ -5115,7 +5115,7 @@ function AppInner({ isDemo = false }) {
                     <Fragment key={cat.id}>
                       <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
                       <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
-                      <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
+                      <div style={{height:3,background:"rgba(255,255,255,0.07)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
                         <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
                       </div>
                       <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>

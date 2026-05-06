@@ -13,6 +13,9 @@ const helmet     = require("helmet");
 const dotenv     = require("dotenv");
 const crypto     = require("crypto");
 const bcrypt     = require("bcrypt");
+const { OAuth2Client } = require("google-auth-library");
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const jwt        = require("jsonwebtoken");
 const rateLimit  = require("express-rate-limit");
 const Stripe     = require("stripe");
@@ -28,6 +31,7 @@ const {
   getUserByEmail,
   getUserByStripeCustomerId,
   createUser,
+  findOrCreateGoogleUser,
   getData,
   setData,
   getAccounts,
@@ -412,6 +416,43 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
 });
 
 /* ── Logout — invalidates all existing tokens ────────────────────── */
+/* ── Check if email exists (for step-based login UI) ─────────────── */
+app.post("/api/auth/check-email", authLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email required" });
+  try {
+    const user = await getUserByEmail(email);
+    res.json({ exists: !!user });
+  } catch(e) {
+    res.json({ exists: false });
+  }
+});
+
+/* ── Google OAuth login ───────────────────────────────────────────── */
+app.post("/api/auth/google", authLimiter, async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: "Missing credential" });
+  if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: "Google auth not configured" });
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+    if (!email) return res.status(400).json({ error: "No email from Google" });
+    const user  = await findOrCreateGoogleUser(googleId, email, name, picture);
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, tv: user.token_version || 0 },
+      JWT_SECRET, { expiresIn: "30d" }
+    );
+    res.json({ token, user: { id: user.id, email: user.email, role: user.role } });
+  } catch(e) {
+    console.error("[google-auth]", e.message);
+    res.status(401).json({ error: "Google sign-in failed" });
+  }
+});
+
 app.post("/api/auth/logout", requireAuth, async (req, res) => {
   try {
     await pool.query(

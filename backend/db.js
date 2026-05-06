@@ -165,6 +165,8 @@ async function initDB() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_txn_fingerprint ON transactions(user_id, fingerprint) WHERE fingerprint IS NOT NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_freq  TEXT`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT`);
+  await pool.query(`ALTER TABLE users ALTER COLUMN password DROP NOT NULL`);
   await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS recurring_start TEXT`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS mask TEXT`);
   // ── Accounts table (replaces the JSON blob in app_data) ───────────
@@ -247,6 +249,38 @@ async function createUser(email, password) {
     [email.toLowerCase().trim(), hash, role, role === "owner" ? "active" : "trialing", trialEnds]
   );
   return res.rows[0];
+}
+
+async function findOrCreateGoogleUser(googleId, email, name, avatarUrl) {
+  const normalEmail = email.toLowerCase().trim();
+  // 1. Try to find existing user by google_id
+  let res = await pool.query("SELECT * FROM users WHERE google_id = $1", [googleId]);
+  if (res.rows[0]) {
+    // Update last login
+    await pool.query("UPDATE users SET last_login_at = $1 WHERE id = $2", [new Date(), res.rows[0].id]);
+    return res.rows[0];
+  }
+  // 2. Try to find by email (existing email/password user — link the Google account)
+  res = await pool.query("SELECT * FROM users WHERE email = $1", [normalEmail]);
+  if (res.rows[0]) {
+    await pool.query(
+      "UPDATE users SET google_id = $1, last_login_at = $2 WHERE id = $3",
+      [googleId, new Date(), res.rows[0].id]
+    );
+    return { ...res.rows[0], google_id: googleId };
+  }
+  // 3. Create new user (no password — Google-only account)
+  const countRes     = await pool.query("SELECT COUNT(*) FROM users");
+  const isFirst      = parseInt(countRes.rows[0].count, 10) === 0;
+  const isOwnerEmail = OWNER_EMAIL && normalEmail === OWNER_EMAIL.toLowerCase().trim();
+  const role         = (isOwnerEmail || isFirst) ? "owner" : "subscriber";
+  const trialEnds    = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  const insert = await pool.query(
+    `INSERT INTO users (email, password, role, subscription_status, trial_ends_at, google_id)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [normalEmail, null, role, role === "owner" ? "active" : "trialing", trialEnds, googleId]
+  );
+  return insert.rows[0];
 }
 
 /* ── App data helpers ─────────────────────────────────────────────── */
@@ -1002,6 +1036,7 @@ module.exports = {
   getUserByEmail,
   getUserByStripeCustomerId,
   createUser,
+  findOrCreateGoogleUser,
   // App data
   getData,
   setData,

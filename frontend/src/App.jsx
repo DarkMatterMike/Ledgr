@@ -4814,7 +4814,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div className="obsidian-card" style={{ ...S.card, height: "100%", boxSizing: "border-box" }}>
+    <div className="obsidian-card" style={{ ...S.card, boxSizing: "border-box" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -5103,14 +5103,14 @@ function AppInner({ isDemo = false }) {
     return {
       spending: SpendingBreakdownCard,
       budget: (
-        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"100%", boxSizing:"border-box", display:"flex", flexDirection:"column"}}>
-          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22,flexShrink:0}}>
+        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, boxSizing:"border-box"}}>
+          <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>
           </div>
           {categories.length===0
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
-            : <div style={{overflow:"hidden",flex:1}}>
+            : <div style={{overflow:"hidden", maxHeight:"360px"}}>
                 <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
                 {sortedCategories.slice(0,isMobile?6:undefined).map(cat=>{
                   const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
@@ -5303,7 +5303,7 @@ function AppInner({ isDemo = false }) {
         </div>
       ) : (
         /* Desktop: CSS grid, 3 cols, cards flow naturally */
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"stretch"}}>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
           {dashOrder
             .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
             .map((id, idx, arr) => (

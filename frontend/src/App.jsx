@@ -6596,7 +6596,7 @@ function AppInner({ isDemo = false }) {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(7,minmax(0,1fr))",
-              borderBottom: "1px solid var(--border)",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
             }}
           >
             {DAYS_OF_WEEK.map((d) => (
@@ -6888,7 +6888,7 @@ function AppInner({ isDemo = false }) {
           <div
             style={{
               padding: "12px 16px",
-              borderBottom: "1px solid var(--border)",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
               fontSize: 11,
               fontWeight: 700,
               textTransform: "uppercase",
@@ -6932,7 +6932,7 @@ function AppInner({ isDemo = false }) {
                         gap: 10,
                         alignItems: "center",
                         padding: "12px 16px",
-                        borderTop: idx === 0 ? "none" : "1px solid var(--border)",
+                        borderTop: idx === 0 ? "none" : "1px solid rgba(255,255,255,0.08)",
                         width: "100%",
                         textAlign: "left",
                         cursor: "pointer",
@@ -7026,7 +7026,7 @@ function AppInner({ isDemo = false }) {
                   gridTemplateColumns: "48px 1fr 48px",
                   alignItems: "center",
                   padding: "14px 16px",
-                  borderBottom: "1px solid var(--border)",
+                  borderBottom: "1px solid rgba(255,255,255,0.08)",
                   background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))",
                 }}
               >
@@ -7075,7 +7075,7 @@ function AppInner({ isDemo = false }) {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                  borderBottom: "1px solid var(--border)",
+                  borderBottom: "1px solid rgba(255,255,255,0.08)",
                   background: "rgba(255,255,255,0.015)",
                 }}
               >

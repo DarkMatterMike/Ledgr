@@ -1,6 +1,6 @@
 /**
  * src/App.jsx — Ledgr personal finance app
- * @updated txn expanded fixes, budget arc, transparency slider
+ * @updated mobile card height auto, desktop 395px fixed
  */
 import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import { usePlaidLink } from "react-plaid-link";
@@ -4814,7 +4814,7 @@ function AppInner({ isDemo = false }) {
   );
 
   const SpendingBreakdownCard = (
-    <div className="obsidian-card" style={{ ...S.card, height:"395px", boxSizing:"border-box", overflow:"hidden" }}>
+    <div className="obsidian-card" style={{ ...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -5103,7 +5103,7 @@ function AppInner({ isDemo = false }) {
     return {
       spending: SpendingBreakdownCard,
       budget: (
-        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:"395px", boxSizing:"border-box", overflow:"hidden"}}>
+        <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
             <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>
@@ -5112,8 +5112,7 @@ function AppInner({ isDemo = false }) {
             ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
             : <div style={{overflow:"hidden"}}>
                 <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
-                {[...sortedCategories]
-                  .sort((a,b) => {
+                {(isMobile ? sortedCategories.slice(0,5) : [...sortedCategories].sort((a,b) => {
                     const remA = a.limit - (spentByCat[a.id]||0);
                     const remB = b.limit - (spentByCat[b.id]||0);
                     const doneA = remA === 0 || (a.completedMonths||[]).includes(selectedMonth);
@@ -5121,8 +5120,7 @@ function AppInner({ isDemo = false }) {
                     if (doneA && !doneB) return 1;
                     if (!doneA && doneB) return -1;
                     return remA - remB;
-                  })
-                  .slice(0, isMobile ? 6 : 15)
+                  }).slice(0,15))
                   .map(cat=>{
                   const spent=spentByCat[cat.id]||0,remaining=cat.limit-spent;
                   const pct=Math.min((spent/cat.limit)*100,100),over=remaining<0,warn=pct>=80&&!over&&remaining!==0;

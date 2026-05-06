@@ -4348,10 +4348,40 @@ function AppInner({ isDemo = false }) {
   function linkTxnToRecurringItem(txnId, itemId) {
     const item = recurringItems.find(r => r.id === itemId);
     if (!item) return;
+    const txn = transactions.find(t => t.id === txnId);
     const linkedIds = [...new Set([...(item.linkedTxnIds||[]), txnId])];
-    const next = recurringItems.map(r => r.id === itemId ? { ...r, linkedTxnIds: linkedIds } : r);
+
+    // Auto-populate amount range from linked transactions if not manually set
+    let amountUpdate = {};
+    if (txn && item.amountMin == null && item.amountMax == null) {
+      const amt = Math.abs(txn.amount);
+      amountUpdate = { amountMin: amt, amountMax: amt };
+    } else if (txn) {
+      // Widen the range if this txn is outside it
+      const amt = Math.abs(txn.amount);
+      const newMin = item.amountMin != null ? Math.min(item.amountMin, amt) : amt;
+      const newMax = item.amountMax != null ? Math.max(item.amountMax, amt) : amt;
+      if (newMin !== item.amountMin || newMax !== item.amountMax) {
+        amountUpdate = { amountMin: newMin, amountMax: newMax };
+      }
+    }
+
+    const next = recurringItems.map(r => r.id === itemId ? { ...r, linkedTxnIds: linkedIds, ...amountUpdate } : r);
     setRecurringItems(next);
     scheduleSaveRef.current?.({ recurringItems: next });
+
+    // Also update riForm so the modal reflects the new amounts immediately
+    if (Object.keys(amountUpdate).length > 0) {
+      setRiForm(p => ({
+        ...p,
+        amountMin: amountUpdate.amountMin != null ? String(amountUpdate.amountMin) : p.amountMin,
+        amountMax: amountUpdate.amountMax != null ? String(amountUpdate.amountMax) : p.amountMax,
+      }));
+      setEditingRecurringItem(prev => prev ? { ...prev, linkedTxnIds: linkedIds, ...amountUpdate } : prev);
+    } else {
+      setEditingRecurringItem(prev => prev ? { ...prev, linkedTxnIds: linkedIds } : prev);
+    }
+
     setTransactions(prev => prev.map(t => t.id === txnId ? { ...t, recurringItemId: itemId } : t));
     api.updateTransaction(txnId, { recurringItemId: itemId }).catch(console.error);
   }
@@ -4377,47 +4407,31 @@ function AppInner({ isDemo = false }) {
     setRecurringItemModal(true);
   }
   async function searchTxnsForRI() {
-    if (!riSearch.trim() && !riForm.amountMin && !riForm.amountMax) return;
+    if (!riSearch.trim()) return;
     setRiSearchLoading(true);
     try {
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
-      const cutoffStr = cutoff.toISOString().slice(0,10);
       const searchLower = riSearch.trim().toLowerCase();
-      const min = parseFloat(riForm.amountMin);
-      const max = parseFloat(riForm.amountMax);
 
-      function matchesFilters(t) {
-        if (t.date < cutoffStr) return false;
-        if (searchLower) {
-          const merchantLower = (t.merchant||"").toLowerCase();
-          const nameLower = (t.name||"").toLowerCase();
-          if (!merchantLower.includes(searchLower) && !nameLower.includes(searchLower)) return false;
-        }
-        const amt = Math.abs(t.amount);
-        if (!isNaN(min) && amt < min) return false;
-        if (!isNaN(max) && amt > max) return false;
-        return true;
-      }
+      // Fetch all matching transactions directly from the server — no pagination limit
+      // This ensures results are complete regardless of how many txns are loaded locally
+      const pages = await Promise.all([
+        api.loadTransactions({ limit: 500, offset: 0,   search: riSearch.trim() }),
+        api.loadTransactions({ limit: 500, offset: 500, search: riSearch.trim() }),
+      ]);
+      const serverTxns = pages.flatMap(p => p.transactions || []);
 
-      // Search locally first (already loaded transactions)
-      const localMatches = transactions.filter(matchesFilters);
+      // Also check local state to catch any unsaved/in-memory transactions
+      const localOnly = transactions.filter(t => {
+        if (serverTxns.find(s => s.id === t.id)) return false; // already in server results
+        const m = (t.merchant||"").toLowerCase();
+        const n = (t.name||"").toLowerCase();
+        return m.includes(searchLower) || n.includes(searchLower);
+      });
 
-      // Also fetch from server to catch transactions not yet in local state
-      let serverMatches = [];
-      try {
-        const res = await api.loadTransactions({ limit: 500, offset: 0, search: riSearch.trim()||undefined });
-        serverMatches = (res.transactions||[]).filter(matchesFilters);
-      } catch(e) { /* server search failed, rely on local */ }
+      const merged = [...serverTxns, ...localOnly]
+        .sort((a,b) => (b.date||"").localeCompare(a.date||""));
 
-      // Merge, deduplicate by id, most recent first
-      const seen = new Set();
-      const merged = [...localMatches, ...serverMatches].filter(t => {
-        if (seen.has(t.id)) return false;
-        seen.add(t.id);
-        return true;
-      }).sort((a,b) => (b.date||"").localeCompare(a.date||""));
-
-      setRiSearchResults(merged.slice(0, 50));
+      setRiSearchResults(merged.slice(0, 100));
     } catch(e) { showToast("Search failed: " + e.message); }
     setRiSearchLoading(false);
   }
@@ -7676,7 +7690,7 @@ function AppInner({ isDemo = false }) {
 
         {/* Transaction search */}
         <div style={{borderTop:"1px solid var(--border)",paddingTop:12,display:"flex",flexDirection:"column",gap:8}}>
-          <div style={{fontSize:12,fontWeight:600,color:"var(--t2)"}}>Link Transactions <span style={{color:"var(--t3)",fontWeight:400}}>(last 60 days)</span></div>
+          <div style={{fontSize:12,fontWeight:600,color:"var(--t2)"}}>Link Transactions</div>
           <div style={{display:"flex",gap:8}}>
             <input
               style={{...S.input,flex:1}}

@@ -1,6 +1,6 @@
 /**
  * src/App.jsx — Ledgr personal finance app
- * @updated mobile card height auto, desktop 395px fixed
+ * @updated txn expanded fixes, budget arc, transparency slider
  */
 import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import { usePlaidLink } from "react-plaid-link";
@@ -6135,7 +6135,7 @@ function AppInner({ isDemo = false }) {
                                 <div style={{ fontSize: 12, color: "var(--t3)" }}>{t.date}</div>
                                 <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acctMap[t.accountId]?.name || 'No account'}</div>
                                 <div style={{ marginTop: 8 }}>
-                                  <CustomSelect value={t.categoryId||""} onChange={v=>updateTxnCat(t.id,v)} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}} compact/>
+                                  <CustomSelect value={t.categoryId||""} onChange={v=>updateTxnCat(t.id,v)} options={[{value:"",label:"— None —"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
                                 </div>
                               </div>
                               <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: t.amount < 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap" }}>{t.amount < 0 ? "-" : "+"}{fmt(Math.abs(t.amount))}</div>

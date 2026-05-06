@@ -693,7 +693,7 @@ app.get("/api/data", async (req, res) => {
       scanMemory:       scanMemory       || null,
       goals:            goals            || [],
       dashboardCardOrder: dashboardCardOrder || null,
-      recurringItems:     recurringItemsData      || [],
+      recurringItems:      recurringItemsData      || [],
       deletedTransactions: deletedTransactionsData || [],
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],
@@ -730,7 +730,7 @@ app.get("/api/transactions", async (req, res) => {
     if (category) { vals.push(category); conditions.push(`category_id = $${vals.length}`); }
     if (account)  { vals.push(account);  conditions.push(`account_id = $${vals.length}`); }
     if (month)    { vals.push(month + "%"); conditions.push(`date LIKE $${vals.length}`); }
-    if (search)   { vals.push("%" + search + "%"); conditions.push(`LOWER(merchant) LIKE $${vals.length}`); }
+    if (search)   { vals.push("%" + search.toLowerCase() + "%"); conditions.push(`(LOWER(merchant) LIKE $${vals.length} OR LOWER(name) LIKE $${vals.length})`); }
 
     const where = conditions.join(" AND ");
 

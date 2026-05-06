@@ -4382,17 +4382,42 @@ function AppInner({ isDemo = false }) {
     try {
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
       const cutoffStr = cutoff.toISOString().slice(0,10);
-      const res = await api.loadTransactions({ limit: 500, offset: 0, search: riSearch.trim()||undefined });
-      const txns = (res.transactions||[]).filter(t => {
+      const searchLower = riSearch.trim().toLowerCase();
+      const min = parseFloat(riForm.amountMin);
+      const max = parseFloat(riForm.amountMax);
+
+      function matchesFilters(t) {
         if (t.date < cutoffStr) return false;
+        if (searchLower) {
+          const merchantLower = (t.merchant||"").toLowerCase();
+          const nameLower = (t.name||"").toLowerCase();
+          if (!merchantLower.includes(searchLower) && !nameLower.includes(searchLower)) return false;
+        }
         const amt = Math.abs(t.amount);
-        const min = parseFloat(riForm.amountMin);
-        const max = parseFloat(riForm.amountMax);
         if (!isNaN(min) && amt < min) return false;
         if (!isNaN(max) && amt > max) return false;
         return true;
-      });
-      setRiSearchResults(txns.slice(0, 50));
+      }
+
+      // Search locally first (already loaded transactions)
+      const localMatches = transactions.filter(matchesFilters);
+
+      // Also fetch from server to catch transactions not yet in local state
+      let serverMatches = [];
+      try {
+        const res = await api.loadTransactions({ limit: 500, offset: 0, search: riSearch.trim()||undefined });
+        serverMatches = (res.transactions||[]).filter(matchesFilters);
+      } catch(e) { /* server search failed, rely on local */ }
+
+      // Merge, deduplicate by id, most recent first
+      const seen = new Set();
+      const merged = [...localMatches, ...serverMatches].filter(t => {
+        if (seen.has(t.id)) return false;
+        seen.add(t.id);
+        return true;
+      }).sort((a,b) => (b.date||"").localeCompare(a.date||""));
+
+      setRiSearchResults(merged.slice(0, 50));
     } catch(e) { showToast("Search failed: " + e.message); }
     setRiSearchLoading(false);
   }
@@ -6275,36 +6300,68 @@ function AppInner({ isDemo = false }) {
   const Calendar = (()=>{
     const isCurrentCalMonth = calYear===today.getFullYear()&&calMonthN===today.getMonth()+1;
     const isPastCalMonth    = calYear<today.getFullYear()||(calYear===today.getFullYear()&&calMonthN<today.getMonth()+1);
-    const relevantTxns = recurringTxns.filter(t=>{
-      if (isPastCalMonth) return false;
-      if (isCurrentCalMonth) return (t.recurringDay||0)>=today.getDate();
-      return true;
-    });
+    // Remaining card — reads from recurringItems
+    function getItemAmount(item) {
+      if (item.amountMin != null && item.amountMax != null) return (item.amountMin + item.amountMax) / 2;
+      if (item.amountMin != null) return item.amountMin;
+      if (item.amountMax != null) return item.amountMax;
+      return 0;
+    }
+    function itemPostedThisMonth(item) {
+      return (item.linkedTxnIds||[]).some(txnId => {
+        const t = transactions.find(x => x.id === txnId);
+        if (!t || !t.date) return false;
+        const [ty, tm] = t.date.split("-").map(Number);
+        return ty === calYear && tm === calMonthN;
+      });
+    }
+    function itemPostedAmount(item) {
+      return (item.linkedTxnIds||[]).reduce((sum, txnId) => {
+        const t = transactions.find(x => x.id === txnId);
+        if (!t || !t.date) return sum;
+        const [ty, tm] = t.date.split("-").map(Number);
+        if (ty !== calYear || tm !== calMonthN) return sum;
+        return sum + Math.abs(t.amount);
+      }, 0);
+    }
 
     const shownIds = calendarAccounts || accounts.map(a=>a.id);
     const byAccount = {};
     shownIds.forEach(id=>{ const a=acctMap[id]; if(a) byAccount[id]={id,name:a.name,total:0,count:0,txns:[]}; });
-    relevantTxns.forEach(t=>{
-      if (!t.accountId||!byAccount[t.accountId]) return;
-      if (t.amount>=0) return;
-      byAccount[t.accountId].total+=Math.abs(t.amount);
-      byAccount[t.accountId].count+=1;
-      byAccount[t.accountId].txns.push(t);
+    byAccount["__unlinked__"] = {id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
+
+    recurringItems.forEach(item => {
+      const posted = itemPostedThisMonth(item);
+      if (isPastCalMonth && !posted) return;
+      const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item);
+      if (amt <= 0) return;
+      const acctKey = (item.accountId && byAccount[item.accountId]) ? item.accountId : "__unlinked__";
+      byAccount[acctKey].total += amt;
+      byAccount[acctKey].count += 1;
     });
+    if (byAccount["__unlinked__"].count === 0) delete byAccount["__unlinked__"];
     const acctEntries = Object.values(byAccount).sort((a,b)=>b.total-a.total);
     const acctTotal   = acctEntries.reduce((a,e)=>a+e.total,0);
     const acctLabel   = isPastCalMonth?`Charged in ${monthLabel(calendarMonth)}`:isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
 
-    // Half-month split data
+    // Half-month split — based on recurringDay
     const byAccountFirst = {}, byAccountSecond = {};
     shownIds.forEach(id=>{ const a=acctMap[id]; if(a){ byAccountFirst[id]={id,name:a.name,total:0,count:0}; byAccountSecond[id]={id,name:a.name,total:0,count:0}; } });
-    relevantTxns.forEach(t=>{
-      if (!t.accountId||!byAccountFirst[t.accountId]||t.amount>=0) return;
-      const day=parseInt((t.date||"").split("-")[2]||"0");
-      const bucket=day<=15?byAccountFirst:byAccountSecond;
-      bucket[t.accountId].total+=Math.abs(t.amount);
-      bucket[t.accountId].count+=1;
+    byAccountFirst["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0};
+    byAccountSecond["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0};
+    recurringItems.forEach(item => {
+      const posted = itemPostedThisMonth(item);
+      if (isPastCalMonth && !posted) return;
+      const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item);
+      if (amt <= 0) return;
+      const acctKey = (item.accountId && byAccountFirst[item.accountId]) ? item.accountId : "__unlinked__";
+      const day = parseInt(item.recurringDay)||0;
+      const halves = day <= 15 ? byAccountFirst : byAccountSecond;
+      halves[acctKey].total += amt;
+      halves[acctKey].count += 1;
     });
+    if (byAccountFirst["__unlinked__"].count===0) delete byAccountFirst["__unlinked__"];
+    if (byAccountSecond["__unlinked__"].count===0) delete byAccountSecond["__unlinked__"];
     const firstEntries=Object.values(byAccountFirst).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
     const secondEntries=Object.values(byAccountSecond).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
     const firstTotal=firstEntries.reduce((a,e)=>a+e.total,0);

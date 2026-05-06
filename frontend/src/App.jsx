@@ -840,7 +840,7 @@ function AuthGate({ onAuth }) {
       size: "large",
       text: "continue_with",
       shape: "rectangular",
-      width: 360,
+      width: googleBtnRef.current?.offsetWidth || 300,
     });
   }, [step]);
 
@@ -971,8 +971,8 @@ function AuthGate({ onAuth }) {
                 <button key={label} onClick={()=>{ if(i===0){setStep("email");}else{setStep("register");} setError(""); }} style={{
                   flex:1, padding:"7px 0", borderRadius:"var(--radius)",
                   fontSize:13, fontWeight:600, cursor:"pointer", border:"none",
-                  background: isActive ? "var(--card)" : "transparent",
-                  color: isActive ? "var(--t1)" : "var(--t3)",
+                  background: isActive ? "var(--cyan)" : "transparent",
+                  color: isActive ? "#000" : "var(--t3)",
                   boxShadow: isActive ? "0 1px 4px #00000030" : "none",
                   transition:"all 0.15s",
                 }}>{label}</button>
@@ -996,7 +996,7 @@ function AuthGate({ onAuth }) {
         {/* Google button — shown on all non-forgot/reset steps */}
         {showGoogleBtn && (
           <>
-            <div ref={googleBtnRef} style={{width:"100%",marginBottom:4,minHeight:44}}/>
+            <div ref={googleBtnRef} style={{width:"100%",marginBottom:4,minHeight:44,overflow:"hidden",borderRadius:"var(--radius)"}}/>
             <div style={{display:"flex",alignItems:"center",gap:12,margin:"16px 0"}}>
               <div style={{flex:1,height:1,background:"rgba(255,255,255,0.08)"}}/>
               <span style={{fontSize:11,color:"var(--t3)",letterSpacing:"0.5px"}}>OR</span>

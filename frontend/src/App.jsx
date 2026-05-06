@@ -8146,8 +8146,39 @@ function AppInner({ isDemo = false }) {
       onSaveGoal={saveGoal}
       onDeleteGoal={deleteGoal}
       onMarkRecurring={ids => {
-        setTransactions(prev => prev.map(t => ids.includes(t.id) ? { ...t, recurring:true } : t));
-        ids.forEach(id => api.updateTransaction(id, { recurring:true }));
+        // Find the most common day-of-month across these transactions
+        const txns = transactions.filter(t => ids.includes(t.id));
+        const dayCounts = {};
+        txns.forEach(t => {
+          if (t.date) {
+            const d = parseInt(t.date.split("-")[2]);
+            dayCounts[d] = (dayCounts[d] || 0) + 1;
+          }
+        });
+        const recurringDay = Object.keys(dayCounts).length > 0
+          ? parseInt(Object.entries(dayCounts).sort((a,b) => b[1]-a[1])[0][0])
+          : null;
+        // Use earliest transaction date as recurringStart
+        const dates = txns.map(t => t.date).filter(Boolean).sort();
+        const recurringStart = dates[0] || null;
+
+        setTransactions(prev => prev.map(t => ids.includes(t.id) ? {
+          ...t,
+          recurring: true,
+          recurringDay: t.recurringDay || recurringDay,
+          recurringFreq: t.recurringFreq || "monthly",
+          recurringStart: t.recurringStart || recurringStart,
+        } : t));
+
+        ids.forEach(id => {
+          const t = transactions.find(tx => tx.id === id);
+          api.updateTransaction(id, {
+            recurring: true,
+            recurringDay: t?.recurringDay || recurringDay,
+            recurringFreq: t?.recurringFreq || "monthly",
+            recurringStart: t?.recurringStart || recurringStart,
+          }).catch(console.error);
+        });
       }}
       defaultTab={analyticsTab}
     />

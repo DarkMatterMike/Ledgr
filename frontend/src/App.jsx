@@ -7691,6 +7691,35 @@ function AppInner({ isDemo = false }) {
         {/* Transaction search */}
         <div style={{borderTop:"1px solid var(--border)",paddingTop:12,display:"flex",flexDirection:"column",gap:8}}>
           <div style={{fontSize:12,fontWeight:600,color:"var(--t2)"}}>Link Transactions</div>
+          {/* Always-visible linked transactions */}
+          {(()=>{
+            const liveItem = editingRecurringItem && (recurringItems.find(r=>r.id===editingRecurringItem.id) || editingRecurringItem);
+            const liveLinked = liveItem ? (liveItem.linkedTxnIds||[]) : [];
+            if (liveLinked.length === 0) return null;
+            return (
+              <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                <div style={{fontSize:11,color:"var(--t3)"}}>Linked ({liveLinked.length})</div>
+                {liveLinked.map(txnId=>{
+                  const t = transactions.find(x=>x.id===txnId);
+                  if (!t) return null;
+                  return (
+                    <div key={txnId} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface)",borderRadius:"var(--radius)"}}>
+                      <div style={{flex:1,minWidth:0,fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                      <span style={{fontSize:11,color:"var(--t3)"}}>{t.date}</span>
+                      <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                        {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+                      </span>
+                      <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>{
+                        unlinkTxnFromRecurringItem(txnId, editingRecurringItem.id);
+                        setEditingRecurringItem(prev=>({...prev, linkedTxnIds:(prev.linkedTxnIds||[]).filter(id=>id!==txnId)}));
+                      }}>✕</button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           <div style={{display:"flex",gap:8}}>
             <input
               style={{...S.input,flex:1}}
@@ -7739,34 +7768,6 @@ function AppInner({ isDemo = false }) {
               })}
             </div>
           )}
-          {/* Show already-linked txns when editing — read live from recurringItems not stale snapshot */}
-          {editingRecurringItem && (()=>{
-            const liveItem = recurringItems.find(r=>r.id===editingRecurringItem.id) || editingRecurringItem;
-            const liveLinked = liveItem.linkedTxnIds||[];
-            if (liveLinked.length === 0) return null;
-            return (
-            <div style={{display:"flex",flexDirection:"column",gap:2}}>
-              <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>Linked ({liveLinked.length})</div>
-              {liveLinked.map(txnId=>{
-                const t = transactions.find(x=>x.id===txnId);
-                if (!t) return null;
-                return (
-                  <div key={txnId} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface)",borderRadius:"var(--radius)"}}>
-                    <div style={{flex:1,minWidth:0,fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                    <span style={{fontSize:11,color:"var(--t3)"}}>{t.date}</span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:t.amount<0?"var(--red)":"var(--green)"}}>
-                      {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
-                    </span>
-                    <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>{
-                      unlinkTxnFromRecurringItem(txnId, editingRecurringItem.id);
-                      setEditingRecurringItem(prev=>({...prev, linkedTxnIds:(prev.linkedTxnIds||[]).filter(id=>id!==txnId)}));
-                    }}>✕</button>
-                  </div>
-                );
-              })}
-            </div>
-          );
-          })()}
         </div>
       </div>
     </Modal>

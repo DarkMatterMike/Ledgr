@@ -6623,7 +6623,7 @@ function AppInner({ isDemo = false }) {
               display: "grid",
               gridTemplateColumns: "repeat(7,minmax(0,1fr))",
               gap: 1,
-              background: "var(--border)",
+              background: "rgba(255,255,255,0.07)",
             }}
           >
             {Array.from({ length: totalCells }).map((_, i) => {
@@ -7102,7 +7102,7 @@ function AppInner({ isDemo = false }) {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                  background: "var(--border)",
+                  background: "rgba(255,255,255,0.07)",
                   gap: 1,
                 }}
               >

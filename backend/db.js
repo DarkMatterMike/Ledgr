@@ -257,7 +257,7 @@ async function findOrCreateGoogleUser(googleId, email, name, avatarUrl) {
   let res = await pool.query("SELECT * FROM users WHERE google_id = $1", [googleId]);
   if (res.rows[0]) {
     // Update last login
-    await pool.query("UPDATE users SET last_login_at = $1 WHERE id = $2", [new Date(), res.rows[0].id]);
+    await pool.query("UPDATE users SET last_login_at = $1 WHERE id = $2", [Date.now(), res.rows[0].id]);
     return res.rows[0];
   }
   // 2. Try to find by email (existing email/password user — link the Google account)
@@ -265,7 +265,7 @@ async function findOrCreateGoogleUser(googleId, email, name, avatarUrl) {
   if (res.rows[0]) {
     await pool.query(
       "UPDATE users SET google_id = $1, last_login_at = $2 WHERE id = $3",
-      [googleId, new Date(), res.rows[0].id]
+      [googleId, Date.now(), res.rows[0].id]
     );
     return { ...res.rows[0], google_id: googleId };
   }

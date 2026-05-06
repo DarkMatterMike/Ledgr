@@ -917,12 +917,11 @@ function AuthGate({ onAuth }) {
 
   function inputStyle(hasError = false) {
     return {
-      background: "var(--card-hi)",
-      border: `1px solid ${hasError ? "var(--red)" : "rgba(255,255,255,0.08)"}`,
-      borderRadius: 10, padding: "13px 16px",
-      fontSize: 15, color: "var(--t1)", outline: "none", width: "100%",
-      transition: "border-color 0.15s", boxSizing: "border-box",
-      fontFamily: "var(--font-body)",
+      background: "var(--surface)",
+      border: `1px solid ${hasError ? "var(--red)" : "var(--border2)"}`,
+      borderRadius: "var(--radius)", padding: "11px 14px",
+      fontSize: 14, color: "var(--t1)", outline: "none", width: "100%",
+      transition: "border-color 0.15s",
     };
   }
 
@@ -942,220 +941,219 @@ function AuthGate({ onAuth }) {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "var(--bg)",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      fontFamily: "var(--font-body)", padding: "24px 16px",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      height:"100vh", background:"var(--bg)", flexDirection:"column", gap:24,
+      fontFamily:"var(--font-body)",
     }}>
       {/* Logo */}
-      <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 32, fontWeight: 800, letterSpacing: "-1px", color: "var(--t1)" }}>
-          ledgr<span style={{ color: "var(--cyan)" }}>.</span>
+      <div>
+        <div style={{fontFamily:"'Syne', sans-serif",fontSize:36,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>
+          ledgr<span style={{color:"var(--cyan)"}}>.</span>
         </div>
+        <div style={{fontSize:13,color:"var(--t3)",textAlign:"center",marginTop:4}}>personal finance</div>
       </div>
 
       {/* Card */}
-      <div className={shake ? "shake" : ""} style={{
-        width: "100%", maxWidth: 420,
-        display: "flex", flexDirection: "column", gap: 0,
+      <div className={shake?"shake":""} style={{
+        background:"var(--card)", border:"none",
+        borderRadius:"var(--radius-lg)", padding:"32px 28px",
+        width:360, maxWidth:"92vw",
+        boxShadow:"0 8px 40px #00000060",
+        display:"flex", flexDirection:"column", gap:0,
       }}>
 
-        {/* Heading */}
-        {!isForgotReset && (
-          <div style={{ marginBottom: 28, textAlign: "left" }}>
-            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, color: "var(--t1)", lineHeight: 1.2 }}>
-              {h1}{" "}<span style={{ color: "var(--t3)", fontWeight: 400 }}>{h2}</span>
-            </h1>
-            {showEmailStep && (
-              <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--t3)" }}>
-                Enter your email to sign in or create an account
-              </p>
-            )}
-            {showPassStep && (
-              <button onClick={() => { setStep("email"); setError(""); }}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--cyan)", fontSize: 13, padding: 0, marginTop: 6 }}>
-                ← {email}
-              </button>
-            )}
+        {/* Tab switcher — email and password/register steps */}
+        {!isForgotReset && (showEmailStep || showPassStep) && (
+          <div style={{display:"flex",gap:0,marginBottom:24,background:"var(--surface)",borderRadius:"var(--radius)",padding:3}}>
+            {["Sign In","Create Account"].map((label, i) => {
+              const isActive = i === 0 ? (step==="email"||step==="password") : step==="register";
+              return (
+                <button key={label} onClick={()=>{ if(i===0){setStep("email");}else{setStep("register");} setError(""); }} style={{
+                  flex:1, padding:"7px 0", borderRadius:"var(--radius)",
+                  fontSize:13, fontWeight:600, cursor:"pointer", border:"none",
+                  background: isActive ? "var(--card)" : "transparent",
+                  color: isActive ? "var(--t1)" : "var(--t3)",
+                  boxShadow: isActive ? "0 1px 4px #00000030" : "none",
+                  transition:"all 0.15s",
+                }}>{label}</button>
+              );
+            })}
           </div>
         )}
 
+        {/* Forgot/reset header */}
         {isForgotReset && (
-          <div style={{ marginBottom: 24 }}>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: "var(--t1)" }}>
-              {h1} <span style={{ color: "var(--t3)", fontWeight: 400 }}>{h2}</span>
-            </h1>
-            <p style={{ margin: "8px 0 0", fontSize: 14, color: "var(--t3)" }}>
-              {step === "forgot" ? "We'll send a reset link to your email." : "Enter your new password below."}
-            </p>
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:4}}>
+              {step === "forgot" ? "Forgot password" : "Reset password"}
+            </div>
+            <div style={{fontSize:13,color:"var(--t3)"}}>
+              {step === "forgot" ? "Enter your email and we'll send you a reset link." : "Enter your new password below."}
+            </div>
           </div>
         )}
 
-        {/* Google button */}
+        {/* Google button — shown on all non-forgot/reset steps */}
         {showGoogleBtn && (
           <>
-            <div ref={googleBtnRef} style={{ width: "100%", marginBottom: 4, minHeight: 44 }}/>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0" }}>
-              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }}/>
-              <span style={{ fontSize: 12, color: "var(--t3)", letterSpacing: "0.5px" }}>OR</span>
-              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }}/>
+            <div ref={googleBtnRef} style={{width:"100%",marginBottom:4,minHeight:44}}/>
+            <div style={{display:"flex",alignItems:"center",gap:12,margin:"16px 0"}}>
+              <div style={{flex:1,height:1,background:"rgba(255,255,255,0.08)"}}/>
+              <span style={{fontSize:11,color:"var(--t3)",letterSpacing:"0.5px"}}>OR</span>
+              <div style={{flex:1,height:1,background:"rgba(255,255,255,0.08)"}}/>
             </div>
           </>
         )}
 
         {/* Email step */}
         {showEmailStep && (
-          <form onSubmit={handleEmailContinue} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Email address</label>
-              <input type="email" placeholder="you@example.com" value={email} autoFocus
-                onChange={e => { setEmail(e.target.value); setError(""); }}
-                style={inputStyle(!!error)}/>
-            </div>
-            {error && <div style={{ fontSize: 12, color: "var(--red)" }}>{error}</div>}
+          <form onSubmit={handleEmailContinue} style={{display:"flex",flexDirection:"column",gap:10}}>
+            <input type="email" placeholder="Email address" value={email} autoFocus
+              onChange={e=>{setEmail(e.target.value);setError("");}}
+              style={inputStyle(!!error&&!password)}/>
+            {error && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
             <button type="submit" disabled={loading} style={{
-              marginTop: 4, background: "var(--cyan)", color: "#000", border: "none",
-              borderRadius: 10, padding: "13px 16px", fontSize: 15, fontWeight: 700,
-              cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              fontFamily: "var(--font-body)",
+              marginTop:4, background:"var(--cyan)", color:"#000", border:"none",
+              borderRadius:"var(--radius)", padding:"10px 16px",
+              fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
+              opacity:loading?0.7:1, transition:"opacity 0.15s",
             }}>
-              ✉ {loading ? "…" : "Continue with email"}
+              {loading ? "…" : "Continue"}
             </button>
           </form>
         )}
 
-        {/* Password / Register step */}
-        {showPassStep && (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>
-                {step === "register" ? "Create a password" : "Password"}
-              </label>
-              <input type="password" placeholder="Password" value={password} autoFocus
-                onChange={e => { setPassword(e.target.value); setError(""); }}
-                style={inputStyle(!!error)}/>
+        {/* Password step (sign in) */}
+        {step === "password" && (
+          <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:10}}>
+            <div style={{fontSize:12,color:"var(--t3)",marginBottom:2}}>
+              Signing in as <span style={{color:"var(--cyan)"}}>{email}</span>{" "}
+              <button type="button" onClick={()=>{setStep("email");setError("");}}
+                style={{background:"none",border:"none",color:"var(--t3)",cursor:"pointer",fontSize:12,textDecoration:"underline",padding:0}}>change</button>
             </div>
-            {step === "register" && (
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Confirm password</label>
-                <input type="password" placeholder="Confirm password" value={confirm}
-                  onChange={e => { setConfirm(e.target.value); setError(""); }}
-                  style={inputStyle(!!error && confirm !== password)}/>
-              </div>
-            )}
-            {step === "register" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-                {[
-                  { checked: agreedTerms,   set: setAgreedTerms,   doc: "terms",   label: "Terms of Service" },
-                  { checked: agreedPrivacy, set: setAgreedPrivacy, doc: "privacy", label: "Privacy Policy" },
-                ].map(({ checked, set, doc, label }) => (
-                  <label key={doc} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 12, color: "var(--t2)" }}>
-                    <input type="checkbox" checked={checked} onChange={e => set(e.target.checked)}
-                      style={{ width: 15, height: 15, accentColor: "var(--cyan)", flexShrink: 0, cursor: "pointer" }}/>
-                    I agree to the{" "}
-                    <button type="button" onClick={() => setLegalModal(doc)}
-                      style={{ background: "none", border: "none", padding: 0, color: "var(--cyan)", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>
-                      {label}
-                    </button>
-                  </label>
-                ))}
-              </div>
-            )}
-            {error   && <div style={{ fontSize: 12, color: "var(--red)" }}>{error}</div>}
-            {success && <div style={{ fontSize: 12, color: "var(--green)" }}>{success}</div>}
+            <input type="password" placeholder="Password" value={password} autoFocus
+              onChange={e=>{setPassword(e.target.value);setError("");}}
+              style={inputStyle(!!error)}/>
+            {error && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
             <button type="submit" disabled={loading} style={{
-              marginTop: 4, background: "var(--cyan)", color: "#000", border: "none",
-              borderRadius: 10, padding: "13px 16px", fontSize: 15, fontWeight: 700,
-              cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
-              fontFamily: "var(--font-body)",
+              marginTop:4, background:"var(--cyan)", color:"#000", border:"none",
+              borderRadius:"var(--radius)", padding:"10px 16px",
+              fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
+              opacity:loading?0.7:1, transition:"opacity 0.15s",
             }}>
-              {loading ? "…" : step === "register" ? "Create account" : "Sign in"}
+              {loading ? "…" : "Sign In"}
             </button>
-            {step === "password" && (
-              <button type="button" onClick={() => { setStep("forgot"); setError(""); }}
-                style={{ fontSize: 12, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
-                Forgot your password?
-              </button>
-            )}
+            <button type="button" onClick={()=>{setStep("forgot");setError("");}}
+              style={{fontSize:12,color:"var(--t3)",background:"none",border:"none",cursor:"pointer",textAlign:"center"}}>
+              Forgot your password?
+            </button>
           </form>
         )}
 
-        {/* Forgot / Reset steps */}
+        {/* Register step */}
+        {step === "register" && (
+          <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:10}}>
+            <input type="email" placeholder="Email address" value={email} autoFocus
+              onChange={e=>{setEmail(e.target.value);setError("");}}
+              style={inputStyle(!!error&&!password)}/>
+            <input type="password" placeholder="Password" value={password}
+              onChange={e=>{setPassword(e.target.value);setError("");}}
+              style={inputStyle(!!error)}/>
+            <input type="password" placeholder="Confirm password" value={confirm}
+              onChange={e=>{setConfirm(e.target.value);setError("");}}
+              style={inputStyle(!!error&&confirm!==password)}/>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
+              {[
+                {checked:agreedTerms,   set:setAgreedTerms,   doc:"terms",   label:"Terms of Service"},
+                {checked:agreedPrivacy, set:setAgreedPrivacy, doc:"privacy", label:"Privacy Policy"},
+              ].map(({checked,set,doc,label})=>(
+                <label key={doc} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:12,color:"var(--t2)"}}>
+                  <input type="checkbox" checked={checked} onChange={e=>set(e.target.checked)}
+                    style={{width:15,height:15,accentColor:"var(--cyan)",flexShrink:0,cursor:"pointer"}}/>
+                  I agree to the{" "}
+                  <button type="button" onClick={()=>setLegalModal(doc)}
+                    style={{background:"none",border:"none",padding:0,color:"var(--cyan)",cursor:"pointer",fontSize:12,textDecoration:"underline"}}>
+                    {label}
+                  </button>
+                </label>
+              ))}
+            </div>
+            {error   && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
+            {success && <div style={{fontSize:12,color:"var(--green)"}}>{success}</div>}
+            <button type="submit" disabled={loading} style={{
+              marginTop:4, background:"var(--cyan)", color:"#000", border:"none",
+              borderRadius:"var(--radius)", padding:"10px 16px",
+              fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
+              opacity:loading?0.7:1, transition:"opacity 0.15s",
+            }}>
+              {loading ? "…" : "Create Account"}
+            </button>
+          </form>
+        )}
+
+        {/* Forgot / Reset */}
         {isForgotReset && (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <form onSubmit={handleSubmit} style={{display:"flex",flexDirection:"column",gap:10}}>
             {step === "forgot" && (
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Email address</label>
-                <input type="email" placeholder="you@example.com" value={email} autoFocus
-                  onChange={e => { setEmail(e.target.value); setError(""); }}
-                  style={inputStyle(!!error)}/>
-              </div>
+              <input type="email" placeholder="Email address" value={email} autoFocus
+                onChange={e=>{setEmail(e.target.value);setError("");}}
+                style={inputStyle(!!error)}/>
             )}
-            {step === "reset" && (
-              <>
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>New password</label>
-                  <input type="password" placeholder="New password" value={password} autoFocus
-                    onChange={e => { setPassword(e.target.value); setError(""); }}
-                    style={inputStyle(!!error)}/>
-                </div>
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: "var(--t2)", display: "block", marginBottom: 6 }}>Confirm password</label>
-                  <input type="password" placeholder="Confirm password" value={confirm}
-                    onChange={e => { setConfirm(e.target.value); setError(""); }}
-                    style={inputStyle(!!error && confirm !== password)}/>
-                </div>
-              </>
-            )}
-            {error   && <div style={{ fontSize: 12, color: "var(--red)" }}>{error}</div>}
-            {success && <div style={{ fontSize: 12, color: "var(--green)" }}>{success}</div>}
+            {step === "reset" && (<>
+              <input type="password" placeholder="New password" value={password} autoFocus
+                onChange={e=>{setPassword(e.target.value);setError("");}}
+                style={inputStyle(!!error)}/>
+              <input type="password" placeholder="Confirm password" value={confirm}
+                onChange={e=>{setConfirm(e.target.value);setError("");}}
+                style={inputStyle(!!error&&confirm!==password)}/>
+            </>)}
+            {error   && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
+            {success && <div style={{fontSize:12,color:"var(--green)"}}>{success}</div>}
             <button type="submit" disabled={loading} style={{
-              marginTop: 4, background: "var(--cyan)", color: "#000", border: "none",
-              borderRadius: 10, padding: "13px 16px", fontSize: 15, fontWeight: 700,
-              cursor: loading ? "wait" : "pointer", opacity: loading ? 0.7 : 1,
-              fontFamily: "var(--font-body)",
+              marginTop:4, background:"var(--cyan)", color:"#000", border:"none",
+              borderRadius:"var(--radius)", padding:"10px 16px",
+              fontSize:14, fontWeight:700, cursor:loading?"wait":"pointer",
+              opacity:loading?0.7:1, transition:"opacity 0.15s",
             }}>
-              {loading ? "…" : step === "forgot" ? "Send reset link" : "Reset password"}
+              {loading ? "…" : step==="forgot" ? "Send Reset Link" : "Reset Password"}
             </button>
-            <button type="button" onClick={() => { setStep("email"); setError(""); setSuccess(""); }}
-              style={{ fontSize: 12, color: "var(--t3)", background: "none", border: "none", cursor: "pointer", textAlign: "center" }}>
-              ← Back to sign in
+            <button type="button" onClick={()=>{setStep("email");setError("");setSuccess("");}}
+              style={{fontSize:12,color:"var(--t3)",background:"none",border:"none",cursor:"pointer",textAlign:"center"}}>
+              → Back to sign in
             </button>
           </form>
         )}
 
-        {/* Divider + learn more — email step only */}
-        {showEmailStep && (
-          <div style={{ marginTop: 32 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }}/>
-              <span style={{ fontSize: 11, color: "var(--t3)", letterSpacing: "1px", textTransform: "uppercase" }}>New to Ledgr?</span>
-              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }}/>
-            </div>
-            <button onClick={() => window.open("https://ledgrfinance.app", "_blank")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 13, width: "100%", textAlign: "center" }}>
-              Learn how zero-based budgeting works →
+        {/* Footer links */}
+        <div style={{marginTop:20,textAlign:"center",display:"flex",flexDirection:"column",gap:6}}>
+          <div style={{display:"flex",justifyContent:"center",gap:16}}>
+            <button onClick={()=>setLegalModal("privacy")}
+              style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>
+              Privacy Policy
+            </button>
+            <button onClick={()=>setLegalModal("terms")}
+              style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",cursor:"pointer",textDecoration:"underline"}}>
+              Terms of Service
             </button>
           </div>
-        )}
+        </div>
       </div>
 
       {step === "register" && <SecurityBadges />}
 
       {/* Legal modal */}
       {legalModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={() => setLegalModal(null)}>
-          <div style={{ background: "var(--card)", borderRadius: 12, padding: "28px 24px", width: 640, maxWidth: "92vw", maxHeight: "82vh", display: "flex", flexDirection: "column" }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexShrink: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--t1)" }}>
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(6px)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick={()=>setLegalModal(null)}>
+          <div style={{background:"var(--card)",borderRadius:12,padding:"28px 24px",width:640,maxWidth:"92vw",maxHeight:"82vh",display:"flex",flexDirection:"column"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20,flexShrink:0}}>
+              <div style={{fontSize:18,fontWeight:700,color:"var(--t1)"}}>
                 {legalModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </div>
-              <button onClick={() => setLegalModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 20 }}>✕</button>
+              <button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20}}>✕</button>
             </div>
-            <div style={{ overflowY: "auto", flex: 1, fontSize: 13, color: "var(--t2)", lineHeight: 1.7 }}>
+            <div style={{overflowY:"auto",flex:1,fontSize:13,color:"var(--t2)",lineHeight:1.7}}>
               {legalModal === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
             </div>
           </div>

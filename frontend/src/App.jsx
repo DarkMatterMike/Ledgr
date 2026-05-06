@@ -5116,6 +5116,10 @@ function AppInner({ isDemo = false }) {
                   .sort((a,b) => {
                     const remA = a.limit - (spentByCat[a.id]||0);
                     const remB = b.limit - (spentByCat[b.id]||0);
+                    const doneA = remA === 0 || (a.completedMonths||[]).includes(selectedMonth);
+                    const doneB = remB === 0 || (b.completedMonths||[]).includes(selectedMonth);
+                    if (doneA && !doneB) return 1;
+                    if (!doneA && doneB) return -1;
                     return remA - remB;
                   })
                   .slice(0, isMobile ? 6 : 15)

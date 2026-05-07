@@ -6343,7 +6343,7 @@ function AppInner({ isDemo = false }) {
                   return (
                     <div style={{borderRadius:12,overflow:"hidden",background:"linear-gradient(315deg,var(--card,#181511) 0%,var(--card-hi,#231f1a) 100%)"}}>
                       {/* Table header */}
-                      <div style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"10px 16px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"10px 16px",background:"var(--card-hi)",borderBottom:"1px solid var(--border)"}}>
                         {["Name","Category","Frequency","Day","Status","Amount",""].map((h,i)=>(
                           <div key={i} style={{fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)"}}>{h}</div>
                         ))}
@@ -6392,7 +6392,7 @@ function AppInner({ isDemo = false }) {
                         );
                       })}
                       {/* Summary bar */}
-                      <div style={{display:"flex",gap:24,padding:"12px 16px",background:"var(--surface)",borderTop:"1px solid var(--border)"}}>
+                      <div style={{display:"flex",gap:24,padding:"12px 16px",background:"var(--card-hi)",borderTop:"1px solid var(--border)"}}>
                         <div>
                           <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Monthly Total</div>
                           <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)"}}>{fmt(monthTotal)}</div>

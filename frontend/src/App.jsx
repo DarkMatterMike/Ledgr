@@ -2190,7 +2190,7 @@ function AppInner({ isDemo = false }) {
   const [drillTxnSearch, setDrillTxnSearch] = useState("");
   const [budgetDrillCat, setBudgetDrillCat] = useState(null);
   const [calendarDay,      setCalendarDay]      = useState(null);
-  const [calendarAcctPopup,setCalendarAcctPopup]= useState(null);
+  const [expandedCalendarAcct,setExpandedCalendarAcct]= useState(null);
   const [selectedMonth,    setSelectedMonth]    = useState(() => localStorage.getItem("ledgr_month") || currentMonth);
   const [calendarMonth,    setCalendarMonth]    = useState(currentMonth);
   const [calendarAccounts,   setCalendarAccounts]   = useState(null);
@@ -6004,14 +6004,33 @@ function AppInner({ isDemo = false }) {
             {calendarSplitView === "full" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {acctEntries.slice(0, 3).map((acct) => (
-                  <button key={acct.id} type="button" onClick={() => setCalendarAcctPopup(acct)}
-                    style={{ background: "var(--card-hi)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
-                      <div style={{ fontSize: 11, color: "var(--t3)" }}>{acct.count} charges</div>
-                    </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)", flexShrink: 0 }}>{fmt(acct.total)}</div>
-                  </button>
+                  <div key={acct.id} style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
+                    <button type="button" onClick={()=>setExpandedCalendarAcct(expandedCalendarAcct===acct.id?null:acct.id)}
+                      style={{display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",background:"none",padding:0,appearance:"none"}}>
+                      <div style={{minWidth:0}}>
+                        <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                        <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""} · {expandedCalendarAcct===acct.id?"▲":"▼"}</div>
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
+                    </button>
+                    {expandedCalendarAcct===acct.id && (
+                      <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid rgba(0,0,0,0.2)"}}>
+                        {[...acct.txns].sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+                          const tCat=catMap[t.categoryId];
+                          const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
+                          return (
+                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                                <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
+                              </div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             ) : (
@@ -6396,14 +6415,33 @@ function AppInner({ isDemo = false }) {
                   {acctEntries.length===0
                     ? <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
                     : acctEntries.slice(0,4).map(acct=>(
-                      <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
-                        style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
-                        <div style={{minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
-                          <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
-                        </div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
-                      </button>
+                      <div key={acct.id} style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
+                        <button type="button" onClick={()=>setExpandedCalendarAcct(expandedCalendarAcct===acct.id?null:acct.id)}
+                          style={{display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",background:"none",padding:0,appearance:"none"}}>
+                          <div style={{minWidth:0}}>
+                            <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                            <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""} · {expandedCalendarAcct===acct.id?"▲":"▼"}</div>
+                          </div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
+                        </button>
+                        {expandedCalendarAcct===acct.id && (
+                      <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid rgba(0,0,0,0.2)"}}>
+                        {[...acct.txns].sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+                          const tCat=catMap[t.categoryId];
+                          const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
+                          return (
+                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                                <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
+                              </div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                      </div>
                     ))
                   }
                 </div>
@@ -6417,14 +6455,33 @@ function AppInner({ isDemo = false }) {
                     {firstEntries.length>0 ? (
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {firstEntries.map(acct=>(
-                          <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
-                            style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
-                            <div style={{minWidth:0}}>
-                              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
-                              <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
+                          <div key={acct.id} style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
+                            <button type="button" onClick={()=>setExpandedCalendarAcct(expandedCalendarAcct===acct.id?null:acct.id)}
+                              style={{display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",background:"none",padding:0,appearance:"none"}}>
+                              <div style={{minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                                <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""} · {expandedCalendarAcct===acct.id?"▲":"▼"}</div>
+                              </div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
+                            </button>
+                            {expandedCalendarAcct===acct.id && (
+                      <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid rgba(0,0,0,0.2)"}}>
+                        {[...acct.txns].sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+                          const tCat=catMap[t.categoryId];
+                          const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
+                          return (
+                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                                <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
+                              </div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
                             </div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
-                          </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                          </div>
                         ))}
                       </div>
                     ) : <div style={{fontSize:12,color:"var(--t3)",padding:"4px 0"}}>No charges</div>}
@@ -6438,14 +6495,33 @@ function AppInner({ isDemo = false }) {
                     {secondEntries.length>0 ? (
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {secondEntries.map(acct=>(
-                          <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
-                            style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
-                            <div style={{minWidth:0}}>
-                              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
-                              <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
+                          <div key={acct.id} style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px"}}>
+                            <button type="button" onClick={()=>setExpandedCalendarAcct(expandedCalendarAcct===acct.id?null:acct.id)}
+                              style={{display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",background:"none",padding:0,appearance:"none"}}>
+                              <div style={{minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                                <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""} · {expandedCalendarAcct===acct.id?"▲":"▼"}</div>
+                              </div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
+                            </button>
+                            {expandedCalendarAcct===acct.id && (
+                      <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8,paddingTop:8,borderTop:"1px solid rgba(0,0,0,0.2)"}}>
+                        {[...acct.txns].sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
+                          const tCat=catMap[t.categoryId];
+                          const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
+                          return (
+                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                                <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
+                              </div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
                             </div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
-                          </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                          </div>
                         ))}
                       </div>
                     ) : <div style={{fontSize:12,color:"var(--t3)",padding:"4px 0"}}>No charges</div>}
@@ -6511,38 +6587,7 @@ function AppInner({ isDemo = false }) {
         {isMobile ? MobileCalendarView : DesktopCalendarView}
 
         {/* Account charges popup (mobile + desktop) */}
-        {calendarAcctPopup&&(
-          <div style={S.overlay} onClick={e=>e.target===e.currentTarget&&setCalendarAcctPopup(null)}>
-            <div style={{...S.modal,width:480}} className="ledgr-modal-anim">
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-                <div>
-                  <div style={S.modalTitle}>{calendarAcctPopup.name}</div>
-                  <div style={{fontSize:12,color:"var(--t3)",marginTop:-14}}>{calendarAcctPopup.count} charge{calendarAcctPopup.count!==1?"s":""} · {fmt(calendarAcctPopup.total)} total</div>
-                </div>
-                <button onClick={()=>setCalendarAcctPopup(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:20,padding:"4px 8px"}}>✕</button>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {[...calendarAcctPopup.txns].sort((a,b)=>(a.recurringDay||0)-(b.recurringDay||0)).map(t=>{
-                  const cat=catMap[t.categoryId];
-                  const freq=t.recurringFreq||"monthly";
-                  const freqLabel=freq==="biweekly"?"Bi-weekly":freq==="weekly"?"Weekly":freq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
-                  return (
-                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px",background:"var(--surface)",border:"none",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat?.color||"var(--cyan)"}`}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                        <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>{freqLabel}{cat&&<span style={{color:cat.color}}> · {cat.name}</span>}</div>
-                      </div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount))}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{marginTop:20,display:"flex",justifyContent:"flex-end"}}>
-                <button style={S.btn("ghost")} onClick={()=>setCalendarAcctPopup(null)}>Close</button>
-              </div>
-            </div>
-          </div>
-        )}
+
       </>
     );
   })();

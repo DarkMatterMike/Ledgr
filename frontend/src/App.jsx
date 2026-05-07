@@ -6252,7 +6252,7 @@ function AppInner({ isDemo = false }) {
                       key={i}
                       onClick={()=>{ if(!isValid) return; setCalendarDay({day,txns:dayTxns}); }}
                       style={{
-                        minHeight:72,
+                        minHeight:110,
                         borderRight:"1px solid rgba(255,255,255,0.04)",
                         borderBottom:"1px solid rgba(255,255,255,0.04)",
                         padding:"5px 6px 4px",
@@ -6311,7 +6311,7 @@ function AppInner({ isDemo = false }) {
               {recurringItems.length===0 ? (
                 <div style={{padding:"16px 0",color:"var(--t3)",fontSize:13,textAlign:"center"}}>No recurring items yet</div>
               ) : (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:6}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:8}}>
                   {[...recurringItems].sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(item=>{
                     const cat=catMap[item.categoryId];
                     const calY=parseInt(calendarMonth.split("-")[0]);
@@ -6324,23 +6324,28 @@ function AppInner({ isDemo = false }) {
                     });
                     const amtLabel=item.amountMin!=null?`${fmt(item.amountMin)}`+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"";
                     return (
-                      <div key={item.id} style={{background:"var(--surface)",borderRadius:8,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"background .12s"}}
+                      <div key={item.id} style={{background:"var(--card)",border:"1px solid rgba(255,255,255,0.05)",borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"background .12s"}}
                         onClick={()=>openEditRecurringItem(item)}
                         onMouseEnter={e=>e.currentTarget.style.background="var(--card-hi)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}>
-                        <div style={{width:30,height:30,borderRadius:8,background:"var(--card)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",flexShrink:0}}>
+                        onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}>
+                        {/* Day badge */}
+                        <div style={{width:36,height:36,borderRadius:9,background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",flexShrink:0}}>
                           {postedThisMonth?"✓":(item.recurringDay||"?")}
                         </div>
+                        {/* Info */}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
-                          <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>
+                          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                          <div style={{fontSize:11,color:"var(--t3)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                             {item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"}`}
                             {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
                             {(item.linkedTxnIds||[]).length>0&&<span> · {item.linkedTxnIds.length} linked</span>}
                           </div>
                         </div>
-                        {amtLabel&&<div style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--red)",flexShrink:0}}>{amtLabel}</div>}
-                        <button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),color:"var(--cyan)",flexShrink:0,fontSize:11}}>Edit</button>
+                        {/* Amount + edit */}
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+                          {amtLabel&&<div style={{fontSize:12,fontFamily:"var(--font-mono)",fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>}
+                          <button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),color:"var(--cyan)",fontSize:11,padding:"2px 8px"}}>Edit</button>
+                        </div>
                       </div>
                     );
                   })}

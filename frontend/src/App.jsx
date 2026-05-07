@@ -6171,59 +6171,96 @@ function AppInner({ isDemo = false }) {
             </div>
           </div>
 
-          <div style={{display:"flex",flexDirection:"column",gap:8,padding:"12px 16px"}}>
+          <div style={{padding:"12px 16px"}}>
             {recurringItems.length === 0 ? (
-              <div style={{padding:20,color:"var(--t3)",textAlign:"center"}}>
-                No recurring items yet
-              </div>
-            ) : (
-              [...recurringItems]
-                .sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0))
-                .map((item) => {
-                  const cat = catMap[item.categoryId];
-                  const calY = parseInt(calendarMonth.split("-")[0]);
-                  const calM = parseInt(calendarMonth.split("-")[1]);
-                  const postedThisMonth = (item.linkedTxnIds||[]).some(txnId=>{
-                    const t = transactions.find(x=>x.id===txnId);
-                    if (!t||!t.date) return false;
-                    const [ty,tm] = t.date.split("-").map(Number);
-                    return ty===calY && tm===calM;
-                  });
-                  const amtLabel = item.amountMin!=null
-                    ? fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:"")
-                    : "";
+              <div style={{padding:20,color:"var(--t3)",textAlign:"center"}}>No recurring items yet</div>
+            ) : (() => {
+                  const sorted = [...recurringItems].sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0));
+                  const monthTotal = sorted.reduce((s,item)=>s+(item.amountMin||0),0);
+                  const calY=parseInt(calendarMonth.split("-")[0]);
+                  const calM=parseInt(calendarMonth.split("-")[1]);
+                  const postedTotal = sorted.reduce((s,item)=>{
+                    const posted=(item.linkedTxnIds||[]).some(txnId=>{
+                      const t=transactions.find(x=>x.id===txnId);
+                      if(!t||!t.date) return false;
+                      const [ty,tm]=t.date.split("-").map(Number);
+                      return ty===calY&&tm===calM;
+                    });
+                    return s+(posted?(item.amountMin||0):0);
+                  },0);
                   return (
-                    <div
-                      key={item.id}
-                      onClick={()=>openEditRecurringItem(item)}
-                      style={{
-                        display:"flex",alignItems:"center",gap:12,
-                        background:"var(--card-hi)",border:"1px solid rgba(255,255,255,0.05)",
-                        borderRadius:10,padding:"12px 14px",cursor:"pointer",
-                        touchAction:"manipulation",WebkitTapHighlightColor:"transparent",
-                      }}
-                    >
-                      <div style={{width:36,height:36,borderRadius:9,background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",flexShrink:0}}>
-                        {postedThisMonth?"✓":(item.recurringDay||"—")}
+                    <div style={{borderRadius:12,overflow:"hidden",background:"linear-gradient(315deg,var(--card,#181511) 0%,var(--card-hi,#231f1a) 100%)"}}>
+                      {/* Table header */}
+                      <div style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"10px 16px",background:"rgba(0,0,0,0.25)",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                        {["Name","Category","Frequency","Day","Status","Amount",""].map((h,i)=>(
+                          <div key={i} style={{fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)"}}>{h}</div>
+                        ))}
                       </div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                          {item.name}
+                      {/* Rows */}
+                      {sorted.map(item=>{
+                        const cat=catMap[item.categoryId];
+                        const posted=(item.linkedTxnIds||[]).some(txnId=>{
+                          const t=transactions.find(x=>x.id===txnId);
+                          if(!t||!t.date) return false;
+                          const [ty,tm]=t.date.split("-").map(Number);
+                          return ty===calY&&tm===calM;
+                        });
+                        const freq=item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":"Monthly";
+                        const amtLabel=item.amountMin!=null?fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"—";
+                        return (
+                          <div key={item.id}
+                            onClick={()=>openEditRecurringItem(item)}
+                            onMouseEnter={e=>e.currentTarget.style.background="rgba(0,0,0,0.08)"}
+                            onMouseLeave={e=>e.currentTarget.style.background="rgba(0,0,0,0.18)"}
+                            style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"11px 16px",alignItems:"center",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",background:"rgba(0,0,0,0.18)",transition:"background .15s"}}>
+                            {/* Name */}
+                            <div style={{display:"flex",alignItems:"flex-start",gap:10,minWidth:0}}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:cat?.color||"var(--cyan)",flexShrink:0,marginTop:4}}/>
+                              <div style={{minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                                {(item.linkedTxnIds||[]).length>0&&<div style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:1}}>{item.linkedTxnIds.length} linked</div>}
+                              </div>
+                            </div>
+                            {/* Category */}
+                            <div style={{fontSize:11,color:cat?.color||"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat?.name||"—"}</div>
+                            {/* Frequency */}
+                            <div><span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:99,background:"rgba(255,255,255,0.06)",color:"var(--t3)"}}>{freq}</span></div>
+                            {/* Day */}
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--t2)"}}>{item.recurringDay||"—"}</div>
+                            {/* Status */}
+                            <div style={{display:"flex",alignItems:"center",gap:5}}>
+                              <div style={{width:6,height:6,borderRadius:"50%",background:posted?"var(--green)":"rgba(201,149,106,0.7)",flexShrink:0}}/>
+                              <span style={{fontSize:11,color:posted?"var(--green)":"rgba(201,149,106,0.7)"}}>{posted?"Posted":"Upcoming"}</span>
+                            </div>
+                            {/* Amount */}
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>
+                            {/* Edit */}
+                            <div><button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px",color:"var(--cyan)"}}>Edit</button></div>
+                          </div>
+                        );
+                      })}
+                      {/* Summary bar */}
+                      <div style={{display:"flex",gap:24,padding:"12px 16px",background:"rgba(255,255,255,0.04)",borderTop:"1px solid rgba(0,0,0,0.25)"}}>
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Monthly Total</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)"}}>{fmt(monthTotal)}</div>
                         </div>
-                        <div style={{fontSize:11,color:"var(--t3)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                          {item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"}`}
-                          {cat?<span style={{color:cat.color}}> · {cat.name}</span>:null}
-                          {(item.linkedTxnIds||[]).length>0&&<span> · {item.linkedTxnIds.length} linked</span>}
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Posted</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--green)"}}>{fmt(postedTotal)}</div>
                         </div>
-                      </div>
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
-                        {amtLabel&&<div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>}
-                        <button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),color:"var(--cyan)",fontSize:11,padding:"2px 8px"}}>Edit</button>
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Remaining</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)"}}>{fmt(monthTotal-postedTotal)}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Items</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--t2)"}}>{sorted.length}</div>
+                        </div>
                       </div>
                     </div>
                   );
-                })
-            )}
+                })()}
           </div>
         </div>
       </div>
@@ -6327,55 +6364,104 @@ function AppInner({ isDemo = false }) {
               </div>
             </div>
 
-            {/* Recurring items list */}
-            <div style={{background:"var(--card)",borderRadius:12,padding:"14px 16px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:recurringItems.length>0?12:0}}>
-                <div style={{fontSize:11,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:".8px"}}>All Recurring</div>
+            {/* Recurring items list — table layout */}
+            <div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                <div>
+                  <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>All Recurring Items</div>
+                  <div style={{fontSize:11,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:2}}>{recurringItems.length} items · {fmt(recurringItems.reduce((s,i)=>s+(i.amountMin||0),0))}/mo</div>
+                </div>
                 <button style={S.btn("primary",true)} onClick={openNewRecurringItem}>+ New</button>
               </div>
-              {recurringItems.length===0 ? (
-                <div style={{padding:"16px 0",color:"var(--t3)",fontSize:13,textAlign:"center"}}>No recurring items yet</div>
-              ) : (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                  {[...recurringItems].sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(item=>{
-                    const cat=catMap[item.categoryId];
-                    const calY=parseInt(calendarMonth.split("-")[0]);
-                    const calM=parseInt(calendarMonth.split("-")[1]);
-                    const postedThisMonth=(item.linkedTxnIds||[]).some(txnId=>{
+              {recurringItems.length===0
+                ? <div style={{padding:"24px 0",color:"var(--t3)",fontSize:13,textAlign:"center",background:"var(--card)",borderRadius:12}}>No recurring items yet</div>
+                : (() => {
+                  const sorted = [...recurringItems].sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0));
+                  const monthTotal = sorted.reduce((s,item)=>s+(item.amountMin||0),0);
+                  const calY=parseInt(calendarMonth.split("-")[0]);
+                  const calM=parseInt(calendarMonth.split("-")[1]);
+                  const postedTotal = sorted.reduce((s,item)=>{
+                    const posted=(item.linkedTxnIds||[]).some(txnId=>{
                       const t=transactions.find(x=>x.id===txnId);
                       if(!t||!t.date) return false;
                       const [ty,tm]=t.date.split("-").map(Number);
                       return ty===calY&&tm===calM;
                     });
-                    const amtLabel=item.amountMin!=null?`${fmt(item.amountMin)}`+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"";
-                    return (
-                      <div key={item.id} style={{background:"var(--card)",border:"1px solid rgba(255,255,255,0.05)",borderRadius:10,padding:"12px 14px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"background .12s"}}
-                        onClick={()=>openEditRecurringItem(item)}
-                        onMouseEnter={e=>e.currentTarget.style.background="var(--card-hi)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="var(--card)"}>
-                        {/* Day badge */}
-                        <div style={{width:36,height:36,borderRadius:9,background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",flexShrink:0}}>
-                          {postedThisMonth?"✓":(item.recurringDay||"?")}
-                        </div>
-                        {/* Info */}
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
-                          <div style={{fontSize:11,color:"var(--t3)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                            {item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"}`}
-                            {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
-                            {(item.linkedTxnIds||[]).length>0&&<span> · {item.linkedTxnIds.length} linked</span>}
+                    return s+(posted?(item.amountMin||0):0);
+                  },0);
+                  return (
+                    <div style={{borderRadius:12,overflow:"hidden",background:"linear-gradient(315deg,var(--card,#181511) 0%,var(--card-hi,#231f1a) 100%)"}}>
+                      {/* Table header */}
+                      <div style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"10px 16px",background:"rgba(0,0,0,0.25)",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+                        {["Name","Category","Frequency","Day","Status","Amount",""].map((h,i)=>(
+                          <div key={i} style={{fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)"}}>{h}</div>
+                        ))}
+                      </div>
+                      {/* Rows */}
+                      {sorted.map(item=>{
+                        const cat=catMap[item.categoryId];
+                        const posted=(item.linkedTxnIds||[]).some(txnId=>{
+                          const t=transactions.find(x=>x.id===txnId);
+                          if(!t||!t.date) return false;
+                          const [ty,tm]=t.date.split("-").map(Number);
+                          return ty===calY&&tm===calM;
+                        });
+                        const freq=item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":"Monthly";
+                        const amtLabel=item.amountMin!=null?fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"—";
+                        return (
+                          <div key={item.id}
+                            onClick={()=>openEditRecurringItem(item)}
+                            onMouseEnter={e=>e.currentTarget.style.background="rgba(0,0,0,0.08)"}
+                            onMouseLeave={e=>e.currentTarget.style.background="rgba(0,0,0,0.18)"}
+                            style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"11px 16px",alignItems:"center",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",background:"rgba(0,0,0,0.18)",transition:"background .15s"}}>
+                            {/* Name */}
+                            <div style={{display:"flex",alignItems:"flex-start",gap:10,minWidth:0}}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:cat?.color||"var(--cyan)",flexShrink:0,marginTop:4}}/>
+                              <div style={{minWidth:0}}>
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                                {(item.linkedTxnIds||[]).length>0&&<div style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:1}}>{item.linkedTxnIds.length} linked</div>}
+                              </div>
+                            </div>
+                            {/* Category */}
+                            <div style={{fontSize:11,color:cat?.color||"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat?.name||"—"}</div>
+                            {/* Frequency */}
+                            <div><span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:99,background:"rgba(255,255,255,0.06)",color:"var(--t3)"}}>{freq}</span></div>
+                            {/* Day */}
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--t2)"}}>{item.recurringDay||"—"}</div>
+                            {/* Status */}
+                            <div style={{display:"flex",alignItems:"center",gap:5}}>
+                              <div style={{width:6,height:6,borderRadius:"50%",background:posted?"var(--green)":"rgba(201,149,106,0.7)",flexShrink:0}}/>
+                              <span style={{fontSize:11,color:posted?"var(--green)":"rgba(201,149,106,0.7)"}}>{posted?"Posted":"Upcoming"}</span>
+                            </div>
+                            {/* Amount */}
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>
+                            {/* Edit */}
+                            <div><button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px",color:"var(--cyan)"}}>Edit</button></div>
                           </div>
+                        );
+                      })}
+                      {/* Summary bar */}
+                      <div style={{display:"flex",gap:24,padding:"12px 16px",background:"rgba(255,255,255,0.04)",borderTop:"1px solid rgba(0,0,0,0.25)"}}>
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Monthly Total</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)"}}>{fmt(monthTotal)}</div>
                         </div>
-                        {/* Amount + edit */}
-                        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
-                          {amtLabel&&<div style={{fontSize:12,fontFamily:"var(--font-mono)",fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>}
-                          <button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),color:"var(--cyan)",fontSize:11,padding:"2px 8px"}}>Edit</button>
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Posted</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--green)"}}>{fmt(postedTotal)}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Remaining</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--red)"}}>{fmt(monthTotal-postedTotal)}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:9,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)",marginBottom:2}}>Items</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--t2)"}}>{sorted.length}</div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                    </div>
+                  );
+                })()}
             </div>
           </div>
 

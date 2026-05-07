@@ -6005,7 +6005,7 @@ function AppInner({ isDemo = false }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {acctEntries.slice(0, 3).map((acct) => (
                   <button key={acct.id} type="button" onClick={() => setCalendarAcctPopup(acct)}
-                    style={{ background: "var(--surface)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                    style={{ background: "var(--card-hi)", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", cursor: "pointer", appearance: "none", WebkitAppearance: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
                       <div style={{ fontSize: 11, color: "var(--t3)" }}>{acct.count} charges</div>
@@ -6397,7 +6397,7 @@ function AppInner({ isDemo = false }) {
                     ? <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
                     : acctEntries.slice(0,4).map(acct=>(
                       <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
-                        style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
+                        style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
                         <div style={{minWidth:0}}>
                           <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
                           <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
@@ -6418,7 +6418,7 @@ function AppInner({ isDemo = false }) {
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {firstEntries.map(acct=>(
                           <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
-                            style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
+                            style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
                             <div style={{minWidth:0}}>
                               <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
                               <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
@@ -6439,7 +6439,7 @@ function AppInner({ isDemo = false }) {
                       <div style={{display:"flex",flexDirection:"column",gap:8}}>
                         {secondEntries.map(acct=>(
                           <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
-                            style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
+                            style={{background:"var(--card-hi)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
                             <div style={{minWidth:0}}>
                               <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
                               <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>

@@ -6019,13 +6019,21 @@ function AppInner({ isDemo = false }) {
                           const tCat=catMap[t.categoryId];
                           const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
                           return (
-                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                            <button key={t.id} type="button"
+                              onClick={()=>{
+                                const ri=recurringItems.find(r=>r.id===t.recurringItemId||r.id===t.id);
+                                if(ri) openEditRecurringItem(ri);
+                              }}
+                              style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",width:"100%",textAlign:"left",border:"none",cursor:"pointer",transition:"background 0.15s",WebkitTapHighlightColor:"transparent"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                              onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:tCat?.color||"var(--cyan)",flexShrink:0}}/>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
                               <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -6430,13 +6438,21 @@ function AppInner({ isDemo = false }) {
                           const tCat=catMap[t.categoryId];
                           const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
                           return (
-                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                            <button key={t.id} type="button"
+                              onClick={()=>{
+                                const ri=recurringItems.find(r=>r.id===t.recurringItemId||r.id===t.id);
+                                if(ri) openEditRecurringItem(ri);
+                              }}
+                              style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",width:"100%",textAlign:"left",border:"none",cursor:"pointer",transition:"background 0.15s",WebkitTapHighlightColor:"transparent"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                              onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:tCat?.color||"var(--cyan)",flexShrink:0}}/>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
                               <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -6470,13 +6486,21 @@ function AppInner({ isDemo = false }) {
                           const tCat=catMap[t.categoryId];
                           const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
                           return (
-                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                            <button key={t.id} type="button"
+                              onClick={()=>{
+                                const ri=recurringItems.find(r=>r.id===t.recurringItemId||r.id===t.id);
+                                if(ri) openEditRecurringItem(ri);
+                              }}
+                              style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",width:"100%",textAlign:"left",border:"none",cursor:"pointer",transition:"background 0.15s",WebkitTapHighlightColor:"transparent"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                              onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:tCat?.color||"var(--cyan)",flexShrink:0}}/>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
                               <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -6510,13 +6534,21 @@ function AppInner({ isDemo = false }) {
                           const tCat=catMap[t.categoryId];
                           const tFreq=t.recurringFreq==="biweekly"?"Bi-weekly":t.recurringFreq==="weekly"?"Weekly":t.recurringFreq==="annual"?"Annual":`Day ${t.recurringDay||"?"} of month`;
                           return (
-                            <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"var(--surface)",borderRadius:"var(--radius)",borderLeft:`2px solid ${tCat?.color||"var(--cyan)"}`}}>
+                            <button key={t.id} type="button"
+                              onClick={()=>{
+                                const ri=recurringItems.find(r=>r.id===t.recurringItemId||r.id===t.id);
+                                if(ri) openEditRecurringItem(ri);
+                              }}
+                              style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",width:"100%",textAlign:"left",border:"none",cursor:"pointer",transition:"background 0.15s",WebkitTapHighlightColor:"transparent"}}
+                              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                              onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:tCat?.color||"var(--cyan)",flexShrink:0}}/>
                               <div style={{flex:1,minWidth:0}}>
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
                               <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>

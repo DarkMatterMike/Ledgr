@@ -1,14 +1,14 @@
 /**
  * components/TxnRow.jsx
- * Collapsed and expanded transaction row used in the Transactions page
- * and anywhere the transaction list appears.
+ * Transaction list row — collapsed summary + expanded detail panel.
+ * Receives all data via props from AppInner.
  */
 import { useState } from 'react';
 import { S } from '../theme/index.js';
 import MerchantIcon from './MerchantIcon.jsx';
-import { CategoryBadge } from './ui/index.jsx';
+import { CategoryBadge, CustomSelect } from './ui/index.jsx';
 
-export function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
+export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   editingId, editingName, setEditingName, setEditingId,
   catMap, acctMap, categories, accounts,
   needsReview, markReviewed, startRename, deleteTxn,

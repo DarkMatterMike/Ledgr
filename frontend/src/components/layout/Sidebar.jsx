@@ -1,14 +1,14 @@
 /**
  * components/layout/Sidebar.jsx
- * Desktop sidebar navigation with account info, nav links, sync, and support.
+ * Desktop sidebar navigation with sync and support buttons.
  */
 import { useState } from 'react';
 import { S } from '../../theme/index.js';
 import * as api from '../../api.js';
 
-export function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
+function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
   const currentUser = api.getStoredUser();
-  const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
+  const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
   const [supportOpen,    setSupportOpen]    = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
@@ -169,3 +169,5 @@ export function SidebarContent({ onNav, view, syncing, doSync, showToast, avatar
     </>
   );
 }
+
+export { SidebarContent };

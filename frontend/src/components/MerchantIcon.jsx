@@ -1,9 +1,10 @@
 /**
  * components/MerchantIcon.jsx
- * Renders a merchant logo or fallback initials avatar.
+ * Merchant logo via Google favicon service with initials fallback.
  */
+import { useState } from 'react';
 
-export function MerchantIcon({ name, size=24 }) {
+function MerchantIcon({ name, size=24 }) {
   const [err, setErr] = useState(false);
   if (!name || err) return (
     <span style={{width:size,height:size,flexShrink:0,display:"flex",alignItems:"center",
@@ -21,3 +22,5 @@ export function MerchantIcon({ name, size=24 }) {
 }
 const cap          = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+
+export default MerchantIcon;

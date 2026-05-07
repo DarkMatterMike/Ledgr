@@ -1,11 +1,12 @@
 /**
  * components/layout/InstallPrompt.jsx
- * PWA install banner for iOS and Android.
+ * PWA install prompt for iOS and Android.
  */
 import { useState, useEffect } from 'react';
 import { S } from '../../theme/index.js';
 
 const INSTALL_KEY = "ledgr_install_prompt_dismissed";
+
 
 function getInstallPlatform() {
   // Already installed as PWA
@@ -119,3 +120,5 @@ function InstallPrompt() {
 }
 
 /* --- BottomNav — mobile bottom navigation bar ---------------------- */
+
+export { InstallPrompt, getInstallPlatform };

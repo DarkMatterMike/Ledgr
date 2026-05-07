@@ -1,16 +1,16 @@
 /**
  * auth/Legal.jsx
- * Privacy Policy and Terms of Service pages.
+ * Privacy Policy and Terms of Service.
  */
 
-export function LegalHeading({ children }) {
+function LegalHeading({ children }) {
   return <div style={{ fontWeight:700, color:"var(--t1)", fontSize:14, marginTop:20, marginBottom:6 }}>{children}</div>;
 }
-export function LegalP({ children }) {
+function LegalP({ children }) {
   return <p style={{ margin:"0 0 10px", color:"var(--t2)" }}>{children}</p>;
 }
 
-export function PrivacyPolicy() {
+function PrivacyPolicy() {
   return (
     <div>
       <LegalP>This Privacy Policy describes how Ledgr ("we", "us", or "our") collects, uses, and protects your information when you use ledgrfinance.app.</LegalP>
@@ -52,7 +52,7 @@ export function PrivacyPolicy() {
   );
 }
 
-export function TermsOfService() {
+function TermsOfService() {
   return (
     <div>
       <LegalP>These Terms of Service ("Terms") govern your use of ledgrfinance.app, operated by Ledgr ("we", "us", or "our"). By using Ledgr, you agree to these Terms.</LegalP>
@@ -105,3 +105,5 @@ export function TermsOfService() {
     </div>
   );
 }
+
+export { PrivacyPolicy, TermsOfService };

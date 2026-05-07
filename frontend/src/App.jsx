@@ -5445,19 +5445,27 @@ function AppInner({ isDemo = false }) {
       );
     }
 
+    // Shared colgroup — all tables use the same fixed column widths for alignment
+    const ColGroup = () => (
+      <colgroup>
+        <col style={{width:"40%"}}/>
+        <col style={{width:"110px"}}/>
+        <col style={{width:"90px"}}/>
+        <col style={{width:"60px"}}/>
+        <col style={{width:"90px"}}/>
+      </colgroup>
+    );
+
     // Table header (only shown once per section)
-    const TableHead = () => (
+    const TableHead = ({ hasType = false }) => (
       <thead>
         <tr style={{borderBottom:"1px solid var(--border)"}}>
-          {["Pattern","Match","Source",""].map((h,i) => (
-            <th key={i} style={{
-              textAlign: i === 3 ? "right" : "left",
-              padding:"6px 12px", fontSize:10, fontWeight:700,
-              textTransform:"uppercase", letterSpacing:".8px",
-              color:"var(--t3)", background:"var(--bg)", whiteSpace:"nowrap",
-            }}>{h}</th>
-          ))}
-          <th style={{padding:"6px 12px",width:50}}></th>
+          <th style={{padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",whiteSpace:"nowrap",textAlign:"left"}}>Pattern</th>
+          <th style={{padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",whiteSpace:"nowrap",textAlign:"left"}}>Match</th>
+          {hasType && <th style={{padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",whiteSpace:"nowrap",textAlign:"left"}}>Type</th>}
+          <th style={{padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",whiteSpace:"nowrap",textAlign:"left"}}>Source</th>
+          <th style={{padding:"6px 12px",width:60}}></th>
+          <th style={{padding:"6px 12px",width:90}}></th>
         </tr>
       </thead>
     );
@@ -5517,7 +5525,8 @@ function AppInner({ isDemo = false }) {
           </div>
           {/* Table */}
           {!collapsed && (
-            <table style={{width:"100%",borderCollapse:"collapse",background:"var(--bg)"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",background:"var(--bg)",tableLayout:"fixed"}}>
+              <ColGroup />
               <TableHead />
               <tbody>
                 {sectionRules.map(r => <RuleRow key={r.id} rule={r} />)}
@@ -5602,15 +5611,16 @@ function AppInner({ isDemo = false }) {
                       <span style={{fontSize:10,color:"var(--t3)",transition:"transform .2s",display:"inline-block",transform:collapsedSections["__types__"]?"rotate(-90deg)":"rotate(0deg)"}}>▼</span>
                     </div>
                     {!collapsedSections["__types__"] && (
-                      <table style={{width:"100%",borderCollapse:"collapse",background:"var(--bg)"}}>
-                        <thead>
-                          <tr style={{borderBottom:"1px solid var(--border)"}}>
-                            {["Pattern","Match","Type","Source",""].map((h,i) => (
-                              <th key={i} style={{textAlign:"left",padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",whiteSpace:"nowrap"}}>{h}</th>
-                            ))}
-                            <th style={{padding:"6px 12px",width:50}}></th>
-                          </tr>
-                        </thead>
+                      <table style={{width:"100%",borderCollapse:"collapse",background:"var(--bg)",tableLayout:"fixed"}}>
+                        <colgroup>
+                          <col style={{width:"35%"}}/>
+                          <col style={{width:"110px"}}/>
+                          <col style={{width:"110px"}}/>
+                          <col style={{width:"90px"}}/>
+                          <col style={{width:"60px"}}/>
+                          <col style={{width:"90px"}}/>
+                        </colgroup>
+                        <TableHead hasType={true} />
                         <tbody>
                           {typeRules.map(rule => {
                             const isAi = rule.source === "ai";

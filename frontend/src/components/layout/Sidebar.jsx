@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { S } from '../../theme/index.js';
 import * as api from '../../api.js';
+import { NAV } from '../../App.jsx';
 
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
   const currentUser = api.getStoredUser();

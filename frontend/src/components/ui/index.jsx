@@ -5,6 +5,7 @@
  */
 import { useState, useRef, useEffect } from 'react';
 import { S } from '../../theme/index.js';
+import { PAGE_RIGHT_COL_W, PAGE_COL_GAP, SHARED_LEFT_WIDTH } from '../../constants.js';
 
 export function Modal({ title, onClose, children, actions }) {
   return (

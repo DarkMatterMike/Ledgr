@@ -8,6 +8,8 @@ import { S } from '../theme/index.js';
 import MerchantIcon from './MerchantIcon.jsx';
 import { CategoryBadge, CustomSelect } from './ui/index.jsx';
 
+const fmt = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+
 export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   editingId, editingName, setEditingName, setEditingId,
   catMap, acctMap, categories, accounts,

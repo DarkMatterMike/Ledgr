@@ -387,7 +387,7 @@ const fmt          = n => new Intl.NumberFormat("en-US",{style:"currency",curren
 
 const cap          = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
 const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
-const NAV = [
+export const NAV = [
   { id:"dashboard",    icon:"◈", label:"Dashboard"    },
   { id:"transactions", icon:"⇅", label:"Transactions" },
   { id:"budgets",      icon:"◉", label:"Budgets"      },

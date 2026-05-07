@@ -323,6 +323,12 @@ function useIsMobile() {
       border-radius: 12px;
     }
     /* Loading bar animation */
+    @keyframes ledgr-rule-prompt-in {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+    }
+    .ledgr-rule-prompt { animation: ledgr-rule-prompt-in 0.22s cubic-bezier(0.34,1.56,0.64,1) both; }
+
     @keyframes ledgr-loading-bar {
       0%   { transform: translateX(-100%); }
       100% { transform: translateX(200%); }
@@ -2670,7 +2676,7 @@ function AdminPanel() {
           { label:"Trialing",    value:stats.trialing,                color:"var(--amber)" },
           { label:"MRR",         value:`$${stats.mrr.toFixed(2)}`,   color:"var(--cyan)"  },
         ].map(({label,value,color}) => (
-          <div key={label} style={{...S.card,padding:"14px 16px"}}>
+          <div key={label} className="obsidian-card" style={{...S.card,padding:"14px 16px"}}>
             <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:4}}>{label}</div>
             <div style={{fontFamily:"var(--font-mono)",fontSize:isMobile?20:24,fontWeight:700,color}}>{value}</div>
           </div>
@@ -6240,7 +6246,7 @@ function AppInner({ isDemo = false }) {
                       const { label: institution, accts } = group;
                       const groupTotal = accts.reduce((s,a) => s+(a.balance||0), 0);
                       return (
-                        <div key={institution} style={{...S.card,padding:0,overflow:"hidden"}}>
+                        <div key={institution} className="obsidian-card" style={{...S.card,padding:0,overflow:"hidden"}}>
                           {/* Bank header */}
                           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
                             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -6502,9 +6508,13 @@ function AppInner({ isDemo = false }) {
     shownIds.forEach(id=>{ const a=acctMap[id]; if(a) byAccount[id]={id,name:a.name,total:0,count:0,txns:[]}; });
     byAccount["__unlinked__"] = {id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
 
+    const todayD = today.getDate();
+
     recurringItems.forEach(item => {
       const posted = itemPostedThisMonth(item);
       if (isPastCalMonth && !posted) return;
+      // For current month: only include items not yet charged this month
+      if (isCurrentCalMonth && posted) return;
       const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item);
       if (amt <= 0) return;
       const acctKey = (item.accountId && byAccount[item.accountId]) ? item.accountId : "__unlinked__";
@@ -6524,6 +6534,8 @@ function AppInner({ isDemo = false }) {
     recurringItems.forEach(item => {
       const posted = itemPostedThisMonth(item);
       if (isPastCalMonth && !posted) return;
+      // For current month: only include items not yet charged this month
+      if (isCurrentCalMonth && posted) return;
       const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item);
       if (amt <= 0) return;
       const acctKey = (item.accountId && byAccountFirst[item.accountId]) ? item.accountId : "__unlinked__";
@@ -8621,24 +8633,30 @@ function AppInner({ isDemo = false }) {
       )}
 
       {rulePrompt&&(
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--cyan)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:10,maxWidth:420,width:"90vw"}}>
-          <div style={{flex:1,fontSize:13}}>
-            <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Save as a rule?</div>
-            <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; ← <strong>{catMap[rulePrompt.categoryId]?.name}</strong></div>
+        <div className="ledgr-rule-prompt" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,maxWidth:420,width:"90vw",borderRadius:12,overflow:"hidden",boxShadow:"0 12px 40px #00000090",display:"flex"}}>
+          <div style={{width:4,background:"var(--cyan)",flexShrink:0}}/>
+          <div style={{flex:1,background:"#1e1a15",padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>Save as a rule?</div>
+              <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; ← <strong style={{color:"var(--cyan)"}}>{catMap[rulePrompt.categoryId]?.name}</strong></div>
+            </div>
+            <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
+            <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
           </div>
-          <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
-          <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
         </div>
       )}
 
       {typeRulePrompt&&(
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"var(--card)",border:"1px solid var(--amber)44",borderRadius:12,padding:"14px 20px",boxShadow:"0 8px 32px #00000080",display:"flex",alignItems:"center",gap:10,maxWidth:440,width:"90vw"}}>
-          <div style={{flex:1,fontSize:13}}>
-            <div style={{fontWeight:600,color:"var(--t1)",marginBottom:2}}>Create a type rule?</div>
-            <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
+        <div className="ledgr-rule-prompt" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,maxWidth:440,width:"90vw",borderRadius:12,overflow:"hidden",boxShadow:"0 12px 40px #00000090",display:"flex"}}>
+          <div style={{width:4,background:"#fbbf24",flexShrink:0}}/>
+          <div style={{flex:1,background:"#1e1a15",padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>Create a type rule?</div>
+              <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{color:"#fbbf24",textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
+            </div>
+            <button style={{...S.btn("primary",true),background:"#fbbf24",borderColor:"#fbbf24",color:"#000"}} onClick={confirmTypeRule}>Save Rule</button>
+            <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>✕</button>
           </div>
-          <button style={{...S.btn("primary",true),background:"var(--amber)",borderColor:"var(--amber)"}} onClick={confirmTypeRule}>Save Rule</button>
-          <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>✕</button>
         </div>
       )}
 

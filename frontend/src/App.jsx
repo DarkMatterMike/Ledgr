@@ -6122,53 +6122,28 @@ function AppInner({ isDemo = false }) {
                       }
                     }}
                     style={{
-                      background: "var(--surface)",
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "9px 10px",
+                      background: "rgba(255,255,255,0.03)",
                       borderRadius: "var(--radius)",
-                      padding: "10px 12px",
-                      display: "grid",
-                      gridTemplateColumns: "1fr auto",
-                      gap: 8,
-                      width: "100%",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      appearance: "none",
-                      WebkitAppearance: "none",
-                      touchAction: "manipulation",
+                      width: "100%", textAlign: "left", border: "none",
+                      cursor: "pointer", transition: "background 0.15s",
                       WebkitTapHighlightColor: "transparent",
                     }}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}
                   >
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: "var(--t1)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
+                    <div style={{width:8,height:8,borderRadius:"50%",background:cat?.color||"var(--cyan)",flexShrink:0}}/>
+                    <div style={{ flex:1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {t.name || t.merchant}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>
-                        {acct?.name || "No account"}
-                      </div>
-                      <div style={{ fontSize: 11, color: cat?.color || "var(--t3)", marginTop: 2 }}>
-                        {cat?.name || "Uncategorized"}
+                      <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>
+                        {cat?.name || "Uncategorized"}{acct ? ` · ${acct.name}` : ""}
                       </div>
                     </div>
-
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {t.amount < 0 ? "-" : "+"}
-                      {fmt(Math.abs(t.amount))}
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, color: t.amount < 0 ? "var(--red)" : "var(--green)", whiteSpace: "nowrap", flexShrink:0 }}>
+                      {t.amount < 0 ? "-" : "+"}{fmt(Math.abs(t.amount))}
                     </div>
                   </button>
                 );
@@ -6588,12 +6563,12 @@ function AppInner({ isDemo = false }) {
                           if(t.isRecurringItem){const item=recurringItems.find(r=>r.id===t.recurringItemId);if(item)openEditRecurringItem(item);}
                           else{setEditTarget(t);setModal("editRecurring");}
                         }}
-                        style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"var(--surface)",borderRadius:8,border:"none",cursor:"pointer",textAlign:"left",width:"100%",transition:"background .12s"}}
-                        onMouseEnter={e=>e.currentTarget.style.background="var(--card-hi)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}>
-                        <div style={{width:6,height:6,borderRadius:"50%",background:isScheduled?"transparent":cat?.color||"var(--cyan)",border:isScheduled?`1.5px dashed ${cat?.color||"var(--cyan)"}`:undefined,flexShrink:0}}/>
+                        style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",border:"none",cursor:"pointer",textAlign:"left",width:"100%",transition:"background .15s",WebkitTapHighlightColor:"transparent"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+                        <div style={{width:8,height:8,borderRadius:"50%",background:isScheduled?"transparent":cat?.color||"var(--cyan)",border:isScheduled?`1.5px dashed ${cat?.color||"var(--cyan)"}`:undefined,flexShrink:0}}/>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:isPosted?"var(--green)":isScheduled?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          <div style={{fontSize:12,fontWeight:600,color:isPosted?"var(--green)":isScheduled?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                             {isPosted?"✓ ":""}{t.name||t.merchant}
                             {isScheduled&&<span style={{fontSize:9,color:"var(--t3)",border:"1px dashed var(--t3)",padding:"0 3px",borderRadius:2,marginLeft:4}}>scheduled</span>}
                           </div>

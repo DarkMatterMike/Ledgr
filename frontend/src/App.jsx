@@ -103,6 +103,13 @@ function useIsMobile() {
       border: none !important;
       border-radius: 12px !important;
       position: relative;
+      transition: box-shadow 0.2s ease, filter 0.2s ease;
+    }
+    @media (hover: hover) {
+      .obsidian-card:hover {
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.25);
+        filter: brightness(1.06);
+      }
     }
     .obsidian-card::before { display: none !important; }
 

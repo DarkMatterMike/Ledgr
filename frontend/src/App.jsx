@@ -3606,6 +3606,25 @@ function AppInner({ isDemo = false }) {
     setRiForm({ name:item.name||"", amountMin:prefilledAmount, amountMax:prefilledAmount, recurringDay:item.recurringDay||"", recurringFreq:item.recurringFreq||"monthly", recurringStart:item.recurringStart||"", categoryId:item.categoryId||"", accountId:item.accountId||"" });
     setRiSearch(""); setRiSearchResults([]);
     setRecurringItemModal(true);
+
+    // Fetch any linked transactions not yet in local state
+    const linkedIds = item.linkedTxnIds||[];
+    const missingIds = linkedIds.filter(id => !transactions.find(t => t.id === id));
+    if (missingIds.length > 0) {
+      Promise.all(
+        missingIds.map(id => api.loadTransactions({ search: id, limit: 1, offset: 0 })
+          .then(r => (r.transactions||[])[0])
+          .catch(() => null))
+      ).then(fetched => {
+        const found = fetched.filter(Boolean);
+        if (found.length > 0) {
+          setTransactions(prev => {
+            const existingIds = new Set(prev.map(t => t.id));
+            return [...prev, ...found.filter(t => !existingIds.has(t.id))];
+          });
+        }
+      });
+    }
   }
   async function searchTxnsForRI() {
     if (!riSearch.trim()) return;
@@ -6659,18 +6678,19 @@ function AppInner({ isDemo = false }) {
             if (liveLinked.length === 0) return null;
             return (
               <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                <div style={{fontSize:11,color:"var(--t3)"}}>Linked ({liveLinked.length})</div>
+                <div style={{fontSize:11,color:"var(--t3)",marginBottom:2}}>Linked ({liveLinked.length})</div>
                 {liveLinked.map(txnId=>{
                   const t = transactions.find(x=>x.id===txnId);
-                  if (!t) return null;
                   return (
                     <div key={txnId} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface)",borderRadius:"var(--radius)"}}>
-                      <div style={{flex:1,minWidth:0,fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                      <span style={{fontSize:11,color:"var(--t3)"}}>{t.date}</span>
-                      <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:t.amount<0?"var(--red)":"var(--green)"}}>
+                      <div style={{flex:1,minWidth:0,fontSize:12,color:t?"var(--t1)":"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {t ? (t.name||t.merchant) : <span style={{fontStyle:"italic"}}>Transaction not loaded — scroll transactions list to load more</span>}
+                      </div>
+                      {t&&<span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>{t.date}</span>}
+                      {t&&<span style={{fontFamily:"var(--font-mono)",fontSize:12,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
                         {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
-                      </span>
-                      <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>{
+                      </span>}
+                      <button style={{...S.btn("danger",true),fontSize:11,flexShrink:0}} onClick={()=>{
                         unlinkTxnFromRecurringItem(txnId, editingRecurringItem.id);
                         setEditingRecurringItem(prev=>({...prev, linkedTxnIds:(prev.linkedTxnIds||[]).filter(id=>id!==txnId)}));
                       }}>✕</button>

@@ -85,6 +85,15 @@ const STRIPE_PRICE_ID         = process.env.STRIPE_PRICE_ID          || "";
 const STRIPE_PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID  || "";
 const STRIPE_WEBHOOK_SECRET   = process.env.STRIPE_WEBHOOK_SECRET    || "";
 
+const IS_PROD = process.env.NODE_ENV === "production";
+
+/* ── Logger ──────────────────────────────────────────────────────── */
+const logger = {
+  info:  (...a) => { if (!IS_PROD) console.log("[INFO] ", ...a); },
+  warn:  (...a) => console.warn("[WARN] ", ...a),
+  error: (...a) => console.error("[ERROR]", ...a),
+};
+
 if (!JWT_SECRET)                    logger.warn("⚠  JWT_SECRET not set");
 if (!ENCRYPT_KEY)                   logger.warn("⚠  ENCRYPT_KEY not set");
 if (!OWNER_EMAIL)                   logger.warn("⚠  OWNER_EMAIL not set");
@@ -95,15 +104,6 @@ if (!process.env.RESEND_API_KEY)    logger.warn("⚠  RESEND_API_KEY not set");
 
 const app = express();
 app.set("trust proxy", 1);
-
-const IS_PROD = process.env.NODE_ENV === "production";
-
-/* ── Logger ──────────────────────────────────────────────────────── */
-const logger = {
-  info:  (...a) => IS_PROD ? null : logger.info("[INFO] ", ...a),
-  warn:  (...a) => logger.warn("[WARN] ", ...a),
-  error: (...a) => logger.error("[ERROR]", ...a),
-};
 
 // Generic error response — never leak internal details in production
 function serverError(res, err, fallback = "Internal server error") {
@@ -195,17 +195,21 @@ app.post("/api/billing/webhook",
   }
 );
 
-const ALLOWED_ORIGINS = [
-  FRONTEND_URL,
-  "https://ledgrfinance.app",
-  "https://www.ledgrfinance.app",
-  "https://app.ledgrfinance.app",
-  "https://ledgr-eight-zeta.vercel.app",
-  "https://ledgr-landing-omega.vercel.app",
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https?:\/\/localhost(:\d+)?$/,
+  /^https:\/\/([\w-]+\.)?ledgrfinance\.app$/,
+  /^https:\/\/[\w-]+-ledgr[\w-]*\.vercel\.app$/,
 ];
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // server-to-server
+  return ALLOWED_ORIGIN_PATTERNS.some(p => p.test(origin));
+}
+
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    if (isAllowedOrigin(origin)) return cb(null, true);
+    logger.warn(`CORS blocked: ${origin}`);
     cb(new Error("Not allowed by CORS"));
   },
   credentials: true,

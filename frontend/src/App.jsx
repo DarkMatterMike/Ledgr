@@ -5757,13 +5757,12 @@ function AppInner({ isDemo = false }) {
 
     // Half-month split — based on recurringDay
     const byAccountFirst = {}, byAccountSecond = {};
-    shownIds.forEach(id=>{ const a=acctMap[id]; if(a){ byAccountFirst[id]={id,name:a.name,total:0,count:0}; byAccountSecond[id]={id,name:a.name,total:0,count:0}; } });
-    byAccountFirst["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0};
-    byAccountSecond["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0};
+    shownIds.forEach(id=>{ const a=acctMap[id]; if(a){ byAccountFirst[id]={id,name:a.name,total:0,count:0,txns:[]}; byAccountSecond[id]={id,name:a.name,total:0,count:0,txns:[]}; } });
+    byAccountFirst["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
+    byAccountSecond["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
     recurringItems.forEach(item => {
       const posted = itemPostedThisMonth(item);
       if (isPastCalMonth && !posted) return;
-      // For current month: only include items not yet charged this month
       if (isCurrentCalMonth && posted) return;
       const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item);
       if (amt <= 0) return;
@@ -5772,6 +5771,7 @@ function AppInner({ isDemo = false }) {
       const halves = day <= 15 ? byAccountFirst : byAccountSecond;
       halves[acctKey].total += amt;
       halves[acctKey].count += 1;
+      halves[acctKey].txns.push({ ...item, _amt: amt });
     });
     if (byAccountFirst["__unlinked__"].count===0) delete byAccountFirst["__unlinked__"];
     if (byAccountSecond["__unlinked__"].count===0) delete byAccountSecond["__unlinked__"];

@@ -6205,691 +6205,271 @@ function AppInner({ isDemo = false }) {
     );
 
     const DesktopCalendarView = (
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap:10,
-          }}
-        >
-          <div style={{...S.sectionHdr, marginBottom:0}}>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+        {/* Page header */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{...S.sectionHdr,marginBottom:0}}>
             <div style={S.sectionTitle}>Calendar</div>
-            <div style={{ fontSize: 11, color: "var(--t3)", fontFamily:"var(--font-mono)" }}>
+            <div style={{fontSize:11,color:"var(--t3)",fontFamily:"var(--font-mono)",marginLeft:8}}>
               {recurringItems.length} recurring
             </div>
           </div>
-
-          <div style={{ fontSize: 12, color: "var(--t3)" }}>
-            {acctLabel}{" "}
-            <span style={{ color: "var(--red)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
-              {fmt(acctTotal)}
-            </span>
-          </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) 340px",
-            gap:10,
-            alignItems: "start",
-          }}
-        >
-          {/* LEFT COLUMN: calendar + recurring list */}
-          <div style={{ display: "flex", flexDirection: "column", gap:10, minWidth: 0 }}>
-            {/* Calendar card */}
-            <div
-              style={{
-                background: "var(--card)",
-                borderRadius: "var(--radius-lg)",
-                overflow: "hidden",
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "48px 1fr 48px",
-                  alignItems: "center",
-                  padding: "14px 16px",
-                  borderBottom: "1px solid rgba(255,255,255,0.08)",
-                  background: "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))",
-                }}
-              >
-                <button
-                  onClick={prevCalMonth}
-                  style={{
-                    ...S.btn("ghost", true),
-                    width: 36,
-                    height: 36,
-                    padding: 0,
-                    justifyContent: "center",
-                    justifySelf: "start",
-                  }}
-                >‹
-                </button>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) 340px",gap:12,alignItems:"start"}}>
 
-                <div style={{ textAlign: "center" }}>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-disp)",
-                      fontSize: 28,
-                      fontWeight: 800,
-                      color: "var(--t1)",
-                      letterSpacing: "-0.5px",
-                    }}
-                  >
-                    {monthLabel(calendarMonth)}
-                  </div>
-                </div>
+          {/* LEFT: calendar + recurring list */}
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
 
-                <button
-                  onClick={nextCalMonth}
-                  style={{
-                    ...S.btn("ghost", true),
-                    width: 36,
-                    height: 36,
-                    padding: 0,
-                    justifyContent: "center",
-                    justifySelf: "end",
-                  }}
-                >›
-                </button>
+            {/* Calendar */}
+            <div style={{background:"var(--card)",borderRadius:12,overflow:"hidden"}}>
+
+              {/* Month nav */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                <button onClick={prevCalMonth} style={{...S.btn("ghost",true),width:32,height:32,padding:0,justifyContent:"center",fontSize:14}}>‹</button>
+                <div style={{fontSize:15,fontWeight:700,color:"var(--t1)"}}>{monthLabel(calendarMonth)}</div>
+                <button onClick={nextCalMonth} style={{...S.btn("ghost",true),width:32,height:32,padding:0,justifyContent:"center",fontSize:14}}>›</button>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                  borderBottom: "1px solid rgba(255,255,255,0.08)",
-                  background: "rgba(255,255,255,0.015)",
-                }}
-              >
-                {DAYS_OF_WEEK.map((d) => (
-                  <div
-                    key={d}
-                    style={{
-                      textAlign: "center",
-                      padding: "12px 6px",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--t3)",
-                      fontFamily: "var(--font-disp)",
-                      textTransform: "uppercase",
-                      letterSpacing: "1.2px",
-                    }}
-                  >
-                    {d}
-                  </div>
+              {/* Day of week headers */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,minmax(0,1fr))",borderBottom:"1px solid rgba(255,255,255,0.05)",background:"rgba(255,255,255,0.01)"}}>
+                {DAYS_OF_WEEK.map(d=>(
+                  <div key={d} style={{textAlign:"center",padding:"7px 0",fontSize:9,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>{d}</div>
                 ))}
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-                  background: "rgba(255,255,255,0.07)",
-                  gap: 1,
-                }}
-              >
-                {Array.from({ length: totalCells }).map((_, i) => {
+              {/* Grid */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,minmax(0,1fr))"}}>
+                {Array.from({length:totalCells}).map((_,i)=>{
                   const day = i - firstDow + 1;
                   const isValid = day >= 1 && day <= daysInCal;
-                  const isToday =
-                    isValid &&
-                    calYear === today.getFullYear() &&
-                    calMonthN === today.getMonth() + 1 &&
-                    day === today.getDate();
-
-                  const dayTxns = isValid ? calendarTxnsByDay[day] || [] : [];
+                  const isToday = isValid && calYear===today.getFullYear() && calMonthN===today.getMonth()+1 && day===today.getDate();
+                  const dayTxns = isValid ? (calendarTxnsByDay[day]||[]) : [];
                   const isSelected = calendarDay?.day === day;
-
-                  const dayTotal = dayTxns.reduce(
-                    (sum, t) => sum + (t.amount < 0 ? Math.abs(t.amount) : 0),
-                    0
-                  );
-
                   return (
                     <div
                       key={i}
-                      onClick={() => {
-                        if (!isValid) return;
-                        setCalendarDay({ day, txns: dayTxns });
-                      }}
+                      onClick={()=>{ if(!isValid) return; setCalendarDay({day,txns:dayTxns}); }}
                       style={{
-                        minHeight: 154,
-                        background: !isValid
-                          ? "rgba(255,255,255,0.015)"
-                          : isSelected
-                          ? "rgba(59,130,246,0.10)"
-                          : "var(--card)",
-                        padding: 10,
-                        cursor: isValid ? "pointer" : "default",
-                        opacity: isValid ? 1 : 0.45,
-                        border: isSelected
-                          ? "1px solid rgba(96,165,250,0.45)"
-                          : "1px solid transparent",
-                        overflow: "hidden",
+                        minHeight:72,
+                        borderRight:"1px solid rgba(255,255,255,0.04)",
+                        borderBottom:"1px solid rgba(255,255,255,0.04)",
+                        padding:"5px 6px 4px",
+                        cursor:isValid?"pointer":"default",
+                        background:!isValid?"rgba(0,0,0,0.12)":isSelected?"rgba(201,149,106,0.15)":isToday?"rgba(201,149,106,0.08)":"var(--card)",
+                        outline:isSelected?"1.5px solid var(--cyan)":isToday?"1px solid rgba(201,149,106,0.3)":"none",
+                        outlineOffset:isSelected?"-1px":"-1px",
+                        opacity:isValid?1:0.4,
+                        display:"flex",flexDirection:"column",
+                        transition:"background 0.1s",
                       }}
                     >
-                      {isValid && (
-                        <>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              marginBottom: 8,
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontSize: 14,
-                                fontWeight: 700,
-                                color: isToday ? "#08111f" : "var(--t1)",
-                                background: isToday ? "var(--cyan)" : "transparent",
-                                borderRadius: 999,
-                                minWidth: isToday ? 26 : "auto",
-                                height: isToday ? 26 : "auto",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                padding: isToday ? "0 8px" : 0,
-                              }}
-                            >
-                              {day}
-                            </div>
-
-                            {dayTotal > 0 && (
-                              <div
-                                style={{
-                                  fontFamily: "var(--font-mono)",
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  color: "var(--red)",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                -{fmt(dayTotal).replace("$", "")}
-                              </div>
-                            )}
+                      {isValid&&(<>
+                        <div style={{fontSize:10,fontWeight:500,color:isToday?"var(--cyan)":isSelected?"var(--cyan)":"var(--t3)",marginBottom:3,lineHeight:1}}>{day}</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:2,flex:1}}>
+                          {dayTxns.slice(0,3).map(t=>{
+                            const cat=catMap[t.categoryId];
+                            const isScheduled=t.isRecurringItem&&!t.postedThisMonth;
+                            const isPosted=t.isRecurringItem&&t.postedThisMonth;
+                            const color=cat?.color||"var(--cyan)";
+                            return (
+                              <span key={t.id} style={{
+                                fontSize:9,fontWeight:600,
+                                padding:"2px 4px",borderRadius:3,
+                                whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
+                                display:"block",width:"100%",
+                                ...(isScheduled
+                                  ? {background:"transparent",border:`1px dashed ${color}`,color:color,opacity:.7}
+                                  : {background:color+"28",color:color,border:"none"})
+                              }}>
+                                {isPosted?"✓ ":""}{t.name||t.merchant}
+                              </span>
+                            );
+                          })}
+                          {dayTxns.length>3&&<div style={{fontSize:8,color:"var(--t3)",marginTop:1}}>+{dayTxns.length-3} more</div>}
+                        </div>
+                        {/* Amount bottom-right */}
+                        {dayTxns.some(t=>!t.isRecurringItem&&t.amount<0)&&(
+                          <div style={{fontSize:9,fontFamily:"var(--font-mono)",color:"var(--t3)",textAlign:"right",marginTop:"auto",paddingTop:2}}>
+                            -{fmt(dayTxns.filter(t=>!t.isRecurringItem&&t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0)).replace("$","")}
                           </div>
-
-                          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                            {dayTxns.slice(0, 4).map((t) => {
-                              const cat = catMap[t.categoryId];
-                              const isScheduled = t.isRecurringItem && !t.postedThisMonth;
-                              const isPosted = t.isRecurringItem && t.postedThisMonth;
-                              return (
-                                <div
-                                  key={t.id}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    minWidth: 0,
-                                    fontSize: 11,
-                                    lineHeight: 1.2,
-                                    color: isScheduled ? "var(--t3)" : "var(--t1)",
-                                    opacity: isScheduled ? 0.75 : 1,
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      width: 6,
-                                      height: 6,
-                                      borderRadius: 999,
-                                      background: isScheduled ? "transparent" : (cat?.color || "var(--cyan)"),
-                                      border: isScheduled ? `1.5px dashed ${cat?.color || "var(--cyan)"}` : "none",
-                                      flexShrink: 0,
-                                    }}
-                                  />
-                                  <span
-                                    style={{
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                      color: isPosted ? "var(--green)" : isScheduled ? "var(--t3)" : "var(--t1)",
-                                      fontWeight: 500,
-                                    }}
-                                  >
-                                    {isPosted ? "✓ " : ""}{t.name || t.merchant}
-                                  </span>
-                                  {!isScheduled && (
-                                    <span
-                                      style={{
-                                        marginLeft: "auto",
-                                        fontFamily: "var(--font-mono)",
-                                        color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                                        flexShrink: 0,
-                                      }}
-                                    >
-                                      {t.amount < 0 ? "-" : "+"}
-                                      {fmt(Math.abs(t.amount)).replace("$", "")}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-
-                            {dayTxns.length > 4 && (
-                              <div
-                                style={{
-                                  marginTop: 2,
-                                  fontSize: 11,
-                                  color: "var(--t3)",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                +{dayTxns.length - 4} more
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
+                        )}
+                      </>)}
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Recurring items card */}
-            <div className="obsidian-card" style={{ ...S.card, minWidth: 0 }}>
+            {/* Recurring items list */}
+            <div style={{background:"var(--card)",borderRadius:12,padding:"14px 16px"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:recurringItems.length>0?12:0}}>
-                <div style={S.cardTitle}>All Recurring</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:".8px"}}>All Recurring</div>
                 <button style={S.btn("primary",true)} onClick={openNewRecurringItem}>+ New</button>
               </div>
-              {recurringItems.length === 0 ? (
+              {recurringItems.length===0 ? (
                 <div style={{padding:"16px 0",color:"var(--t3)",fontSize:13,textAlign:"center"}}>No recurring items yet</div>
               ) : (
-                [...recurringItems]
-                  .sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0))
-                  .map(item=>{
-                    const cat = catMap[item.categoryId];
-                    // Check if posted this calendar month
-                    const calY = parseInt(calendarMonth.split("-")[0]);
-                    const calM = parseInt(calendarMonth.split("-")[1]);
-                    const postedThisMonth = (item.linkedTxnIds||[]).some(txnId=>{
-                      const t = transactions.find(x=>x.id===txnId);
-                      if (!t||!t.date) return false;
-                      const [ty,tm] = t.date.split("-").map(Number);
-                      return ty===calY && tm===calM;
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:6}}>
+                  {[...recurringItems].sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(item=>{
+                    const cat=catMap[item.categoryId];
+                    const calY=parseInt(calendarMonth.split("-")[0]);
+                    const calM=parseInt(calendarMonth.split("-")[1]);
+                    const postedThisMonth=(item.linkedTxnIds||[]).some(txnId=>{
+                      const t=transactions.find(x=>x.id===txnId);
+                      if(!t||!t.date) return false;
+                      const [ty,tm]=t.date.split("-").map(Number);
+                      return ty===calY&&tm===calM;
                     });
-                    const amtLabel = item.amountMin!=null&&item.amountMax!=null
-                      ? `${fmt(item.amountMin)}–${fmt(item.amountMax)}`
-                      : item.amountMin!=null ? `~${fmt(item.amountMin)}` : "";
+                    const amtLabel=item.amountMin!=null?`${fmt(item.amountMin)}`+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"";
                     return (
-                      <button
-                        key={item.id}
-                        type="button"
+                      <div key={item.id} style={{background:"var(--surface)",borderRadius:8,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",transition:"background .12s"}}
                         onClick={()=>openEditRecurringItem(item)}
-                        style={{
-                          display:"flex",alignItems:"center",justifyContent:"space-between",
-                          padding:"10px 8px",margin:"0 -8px 2px",
-                          background:"transparent",border:"none",outline:"none",boxShadow:"none",
-                          borderBottom:"1px solid rgba(255,255,255,0.05)",
-                          cursor:"pointer",borderRadius:6,transition:"background 0.12s",
-                          WebkitTapHighlightColor:"transparent",
-                          width:"calc(100% + 16px)",textAlign:"left",
-                          appearance:"none",WebkitAppearance:"none",
-                        }}
-                        onMouseEnter={e=>e.currentTarget.style.background="var(--surface)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                      >
-                        <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
-                          {/* Day badge + checkmark */}
-                          <div style={{position:"relative",flexShrink:0}}>
-                            <div style={{width:30,height:30,borderRadius:8,background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)"}}>
-                              {postedThisMonth ? "✓" : (item.recurringDay||"?")}
-                            </div>
-                          </div>
-                          <div style={{minWidth:0}}>
-                            <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                              {item.name}
-                            </div>
-                            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>
-                              {item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"}`}
-                              {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
-                              {(item.linkedTxnIds||[]).length>0&&<span style={{marginLeft:4,color:"var(--t3)"}}>· {item.linkedTxnIds.length} linked</span>}
-                            </div>
+                        onMouseEnter={e=>e.currentTarget.style.background="var(--card-hi)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}>
+                        <div style={{width:30,height:30,borderRadius:8,background:"var(--card)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",flexShrink:0}}>
+                          {postedThisMonth?"✓":(item.recurringDay||"?")}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                          <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>
+                            {item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"}`}
+                            {cat&&<span style={{color:cat.color}}> · {cat.name}</span>}
+                            {(item.linkedTxnIds||[]).length>0&&<span> · {item.linkedTxnIds.length} linked</span>}
                           </div>
                         </div>
-                        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginLeft:10}}>
-                          {amtLabel && <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)"}}>{amtLabel}</span>}
-                          <button
-                            onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}}
-                            style={{...S.btn("ghost",true),color:"var(--cyan)",flexShrink:0}}
-                          >Edit</button>
-                        </div>
-                      </button>
+                        {amtLabel&&<div style={{fontSize:11,fontFamily:"var(--font-mono)",color:"var(--red)",flexShrink:0}}>{amtLabel}</div>}
+                        <button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),color:"var(--cyan)",flexShrink:0,fontSize:11}}>Edit</button>
+                      </div>
                     );
-                  })
+                  })}
+                </div>
               )}
             </div>
           </div>
 
-          {/* RIGHT COLUMN: sidebar */}
-          <div style={{ display: "flex", flexDirection: "column", gap:10 }}>
-            <div
-              style={{
-                background: "var(--card)",
-                borderRadius: "var(--radius-lg)",
-                padding: 16,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--t3)", fontFamily: "var(--font-disp)", marginBottom: 6 }}>
-                    {acctLabel}
-                  </div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 800, color: "var(--red)" }}>
-                    {fmt(acctTotal)}
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} compact/>
-                </div>
-              </div>
+          {/* RIGHT: summary panel */}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
-              {calendarSplitView === "full" ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {acctEntries.slice(0, 4).map((acct) => (
-                    <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "12px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
-                        <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
-                      </div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 800, color: "var(--red)", alignSelf: "center" }}>
-                      {fmt(acct.total)}
-                    </div>
-                  </div>
-                ))}
+            {/* Remaining card */}
+            <div style={{background:"var(--card)",borderRadius:10,padding:16}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                <div style={{fontSize:9,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:".8px"}}>{acctLabel}</div>
+                <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} compact/>
               </div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:800,color:"var(--red)",lineHeight:1}}>{fmt(acctTotal)}</div>
+              <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>{recurringItems.length} items · {fmt(recurringItems.filter(item=>{
+                const calY=parseInt(calendarMonth.split("-")[0]);
+                const calM=parseInt(calendarMonth.split("-")[1]);
+                return !(item.linkedTxnIds||[]).some(txnId=>{
+                  const t=transactions.find(x=>x.id===txnId);
+                  if(!t||!t.date) return false;
+                  const [ty,tm]=t.date.split("-").map(Number);
+                  return ty===calY&&tm===calM;
+                });
+              }).reduce((s,item)=>s+(item.amountMin||0),0))} not yet posted</div>
+            </div>
+
+            {/* By account */}
+            <div style={{background:"var(--card)",borderRadius:10,padding:16}}>
+              <div style={{fontSize:9,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:".8px",marginBottom:10}}>By Account</div>
+              {calendarSplitView==="full" ? (
+                acctEntries.length===0
+                  ? <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
+                  : acctEntries.slice(0,4).map(acct=>(
+                    <div key={acct.id} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
+                      <div style={{width:7,height:7,borderRadius:"50%",background:acctMap[acct.id]?.color||"var(--cyan)",flexShrink:0}}/>
+                      <div style={{fontSize:12,color:"var(--t2)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                      <div style={{fontSize:12,fontWeight:700,fontFamily:"var(--font-mono)",color:"var(--red)"}}>{fmt(acct.total)}</div>
+                    </div>
+                  ))
               ) : (
-                <div>
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>1st – 15th</div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>{fmt(firstTotal)}</div>
-                    </div>
-                    {firstEntries.length > 0 ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {firstEntries.map(acct => (
-                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
-                              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
-                            </div>
-                            <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: "var(--red)", alignSelf: "center" }}>{fmt(acct.total)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: "var(--t3)", padding: "4px 0" }}>No charges</div>
-                    )}
-                  </div>
-                  <div style={{ height: 1, background: "var(--border)", margin: "12px 0" }}/>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "1px" }}>16th – End</div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700, color: "var(--red)" }}>{fmt(secondTotal)}</div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                      <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px"}}>1st – 15th</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{fmt(firstTotal)}</div>
                     </div>
-                    {secondEntries.length > 0 ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {secondEntries.map(acct => (
-                          <div key={acct.id} style={{ background: "rgba(255,255,255,0.02)", borderRadius: "var(--radius)", padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{acct.name}</div>
-                              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>{acct.count} charge{acct.count !== 1 ? "s" : ""}</div>
-                            </div>
-                            <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 800, color: "var(--red)", alignSelf: "center" }}>{fmt(acct.total)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: "var(--t3)", padding: "4px 0" }}>No charges</div>
-                    )}
+                    {firstEntries.length>0
+                      ? firstEntries.map(acct=>(
+                        <div key={acct.id} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
+                          <div style={{width:6,height:6,borderRadius:"50%",background:acctMap[acct.id]?.color||"var(--cyan)",flexShrink:0}}/>
+                          <div style={{fontSize:12,color:"var(--t2)",flex:1}}>{acct.name}</div>
+                          <div style={{fontSize:12,fontWeight:700,fontFamily:"var(--font-mono)",color:"var(--red)"}}>{fmt(acct.total)}</div>
+                        </div>
+                      ))
+                      : <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
+                    }
+                  </div>
+                  <div style={{height:1,background:"rgba(255,255,255,0.05)"}}/>
+                  <div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                      <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px"}}>16th – End</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{fmt(secondTotal)}</div>
+                    </div>
+                    {secondEntries.length>0
+                      ? secondEntries.map(acct=>(
+                        <div key={acct.id} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
+                          <div style={{width:6,height:6,borderRadius:"50%",background:acctMap[acct.id]?.color||"var(--cyan)",flexShrink:0}}/>
+                          <div style={{fontSize:12,color:"var(--t2)",flex:1}}>{acct.name}</div>
+                          <div style={{fontSize:12,fontWeight:700,fontFamily:"var(--font-mono)",color:"var(--red)"}}>{fmt(acct.total)}</div>
+                        </div>
+                      ))
+                      : <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
+                    }
                   </div>
                 </div>
               )}
             </div>
 
-            <div
-              style={{
-                background: "var(--card)",
-                borderRadius: "var(--radius-lg)",
-                padding: 16,
-                minHeight: 420,
-              }}
-            >
-              <div style={{ marginBottom: 14 }}>
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 800,
-                    color: "var(--t1)",
-                    letterSpacing: "-0.4px",
-                  }}
-                >
+            {/* Day detail */}
+            <div style={{background:"var(--card)",borderRadius:10,padding:16,minHeight:180}}>
+              <div style={{marginBottom:12}}>
+                <div style={{fontSize:14,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.2px"}}>
                   {calendarDay?.day ? selectedDayDateLabel : "No day selected"}
                 </div>
-
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "var(--t3)",
-                    marginTop: 4,
-                  }}
-                >
+                <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
                   {calendarDay?.day
-                    ? `${selectedDayTxns.length} recurring item${selectedDayTxns.length !== 1 ? "s" : ""} · ${fmt(selectedDayTotal)}`
+                    ? `${selectedDayTxns.length} item${selectedDayTxns.length!==1?"s":""} · ${fmt(selectedDayTotal)}`
                     : "Click a calendar day to see details"}
                 </div>
               </div>
 
-              {calendarDay?.day && selectedDayTxns.length > 0 ? (
-                <>
-                  <div style={{ marginBottom: 16 }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "1.2px",
-                        color: "var(--t3)",
-                        fontFamily: "var(--font-disp)",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Category Breakdown
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {selectedCatBreakdown.map((cat) => {
-                        const pct =
-                          selectedDayTotal > 0 ? Math.round((cat.total / selectedDayTotal) * 100) : 0;
-
-                        return (
-                          <div
-                            key={cat.id}
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "1fr auto auto",
-                              gap: 10,
-                              alignItems: "center",
-                              fontSize: 13,
-                            }}
-                          >
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                              <span
-                                style={{
-                                  width: 7,
-                                  height: 7,
-                                  borderRadius: 999,
-                                  background: cat.color,
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span
-                                style={{
-                                  color: "var(--t2)",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {cat.name}
-                              </span>
-                            </div>
-
-                            <span
-                              style={{
-                                fontFamily: "var(--font-mono)",
-                                color: "var(--t1)",
-                                fontWeight: 700,
-                              }}
-                            >
-                              {fmt(cat.total)}
-                            </span>
-
-                            <span style={{ color: "var(--t3)", fontSize: 12 }}>{pct}%</span>
+              {calendarDay?.day&&selectedDayTxns.length>0 ? (
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {selectedDayTxns.map(t=>{
+                    const cat=catMap[t.categoryId];
+                    const isScheduled=t.isRecurringItem&&!t.postedThisMonth;
+                    const isPosted=t.isRecurringItem&&t.postedThisMonth;
+                    const isIncome=t.amount>0;
+                    return (
+                      <button key={t.id} type="button"
+                        onClick={()=>{
+                          if(t.isRecurringItem){const item=recurringItems.find(r=>r.id===t.recurringItemId);if(item)openEditRecurringItem(item);}
+                          else{setEditTarget(t);setModal("editRecurring");}
+                        }}
+                        style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"var(--surface)",borderRadius:8,border:"none",cursor:"pointer",textAlign:"left",width:"100%",transition:"background .12s"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="var(--card-hi)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="var(--surface)"}>
+                        <div style={{width:6,height:6,borderRadius:"50%",background:isScheduled?"transparent":cat?.color||"var(--cyan)",border:isScheduled?`1.5px dashed ${cat?.color||"var(--cyan)"}`:undefined,flexShrink:0}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,color:isPosted?"var(--green)":isScheduled?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                            {isPosted?"✓ ":""}{t.name||t.merchant}
+                            {isScheduled&&<span style={{fontSize:9,color:"var(--t3)",border:"1px dashed var(--t3)",padding:"0 3px",borderRadius:2,marginLeft:4}}>scheduled</span>}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "1.2px",
-                        color: "var(--t3)",
-                        fontFamily: "var(--font-disp)",
-                        marginBottom: 10,
-                      }}
-                    >
-                      Transactions
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {selectedDayTxns.map((t) => {
-                        const acct = acctMap[t.accountId];
-                        const cat = catMap[t.categoryId];
-
-                        return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => {
-                              if (t.isRecurringItem) {
-                                const item = recurringItems.find(r => r.id === t.recurringItemId);
-                                if (item) openEditRecurringItem(item);
-                              } else {
-                                setEditTarget(t);
-                                setModal("editRecurring");
-                              }
-                            }}
-                            onTouchEnd={isMobile ? (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (t.isRecurringItem) {
-                                const item = recurringItems.find(r => r.id === t.recurringItemId);
-                                if (item) openEditRecurringItem(item);
-                              } else {
-                                setEditTarget(t);
-                                setModal("editRecurring");
-                              }
-                            } : undefined}
-                            style={{
-                              background: "rgba(255,255,255,0.02)",
-                              borderRadius: "var(--radius)",
-                              padding: "12px 12px",
-                              display: "grid",
-                              gridTemplateColumns: "1fr auto",
-                              gap: 8,
-                              alignItems: "start",
-                              cursor: "pointer",
-                              transition: "background 0.12s",
-                              appearance: "none",
-                              WebkitAppearance: "none",
-                              width: "100%",
-                              textAlign: "left",
-                              touchAction: isMobile ? "manipulation" : undefined,
-                              WebkitTapHighlightColor: "transparent",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "var(--surface)";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "rgba(255,255,255,0.02)";
-                            }}
-                          >
-                            <div style={{ minWidth: 0 }}>
-                              <div
-                                style={{
-                                  fontSize: 16,
-                                  fontWeight: 700,
-                                  color: "var(--t1)",
-                                  marginBottom: 4,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {t.name || t.merchant}
-                              </div>
-
-                              <div style={{ fontSize: 12, color: "var(--t3)" }}>
-                                {acct?.name || "No account"}
-                              </div>
-
-                              <div
-                                style={{
-                                  fontSize: 12,
-                                  color: cat?.color || "var(--t3)",
-                                  marginTop: 2,
-                                }}
-                              >
-                                {cat?.name || "Uncategorized"}
-                              </div>
-                            </div>
-
-                            <div
-                              style={{
-                                fontFamily: "var(--font-mono)",
-                                fontSize: 20,
-                                fontWeight: 800,
-                                color: t.amount < 0 ? "var(--red)" : "var(--green)",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {t.amount < 0 ? "-" : "+"}
-                              {fmt(Math.abs(t.amount))}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div
-                  style={{
-                    borderRadius: "var(--radius)",
-                    padding: 24,
-                    color: "var(--t3)",
-                    textAlign: "center",
-                    fontSize: 13,
-                  }}
-                >
+                          {cat&&<div style={{fontSize:10,color:cat.color,marginTop:1}}>{cat.name}</div>}
+                        </div>
+                        {!isScheduled&&<div style={{fontSize:12,fontWeight:700,fontFamily:"var(--font-mono)",color:isIncome?"var(--green)":"var(--red)",flexShrink:0}}>{isIncome?"+":"-"}{fmt(Math.abs(t.amount)).replace("$","")}</div>}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              ) : calendarDay?.day ? (
+                <div style={{fontSize:12,color:"var(--t3)"}}>No charges today</div>
+              ) : null}
             </div>
+
           </div>
         </div>
       </div>

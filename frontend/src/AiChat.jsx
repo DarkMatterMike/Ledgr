@@ -427,7 +427,7 @@ export default function AiChat({
             {ChatPanel}
           </div>
           {/* Right: conversation history */}
-          <div style={{ width: 280, flexShrink: 0, background:"var(--card)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ width: 340, flexShrink: 0, background:"var(--card)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {HistoryPanel}
           </div>
         </div>

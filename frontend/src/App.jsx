@@ -2317,7 +2317,8 @@ function AppInner({ isDemo = false }) {
       if (data.dani)           setDaniData(data.dani);
       if (data.theme)          { setTheme(data.theme); applyTheme(data.theme); }
       setTxnTotal(txnTotal || 0);
-      setTxnOffset(100);
+      // Offset is now managed by oldest-date pagination in loadMoreTransactions
+      setTxnOffset(0);
       if (data.reauthItemIds?.length) setStaleItemIds(new Set(data.reauthItemIds));
 
       // Clean up orphaned Plaid accounts — accounts whose item no longer exists
@@ -2464,16 +2465,20 @@ function AppInner({ isDemo = false }) {
   }
   async function loadMoreTransactions() {
     if (txnLoading) return;
-    if (transactions.length >= txnTotal) return;
     setTxnLoading(true);
     try {
-      const data = await api.loadTransactions({ limit: TXN_PAGE_SIZE, offset: txnOffset });
-      const newTxns = applyRules(data.transactions || [], rules, { onlyUncategorized: true });
-      setTransactions(prev => {
-        const existingIds = new Set(prev.map(t => t.id));
-        return [...prev, ...newTxns.filter(t => !existingIds.has(t.id))];
-      });
-      setTxnOffset(prev => prev + TXN_PAGE_SIZE);
+      // Use the oldest loaded transaction date as cursor — fetch 100 transactions before it
+      const dates = transactions.map(t => t.date).filter(Boolean).sort();
+      const oldestDate = dates[0];
+      if (!oldestDate) return;
+      const data = await api.loadTransactions({ limit: TXN_PAGE_SIZE, toDate: oldestDate });
+      const existingIds = new Set(transactions.map(t => t.id));
+      const newTxns = applyRules(
+        (data.transactions||[]).filter(t => !existingIds.has(t.id)),
+        rules, { onlyUncategorized: true }
+      );
+      if (newTxns.length === 0) { setTxnTotal(transactions.length); return; }
+      setTransactions(prev => [...prev, ...newTxns]);
       setTxnTotal(data.total || 0);
     } catch (e) {
       console.warn("Load more error:", e.message);
@@ -3611,19 +3616,18 @@ function AppInner({ isDemo = false }) {
     const linkedIds = item.linkedTxnIds||[];
     const missingIds = linkedIds.filter(id => !transactions.find(t => t.id === id));
     if (missingIds.length > 0) {
-      Promise.all(
-        missingIds.map(id => api.loadTransactions({ search: id, limit: 1, offset: 0 })
-          .then(r => (r.transactions||[])[0])
-          .catch(() => null))
-      ).then(fetched => {
-        const found = fetched.filter(Boolean);
-        if (found.length > 0) {
-          setTransactions(prev => {
-            const existingIds = new Set(prev.map(t => t.id));
-            return [...prev, ...found.filter(t => !existingIds.has(t.id))];
-          });
-        }
-      });
+      // Load a large batch and pick out the ones we need by ID
+      api.loadTransactions({ limit: 1000, offset: 0 })
+        .then(r => {
+          const found = (r.transactions||[]).filter(t => missingIds.includes(t.id));
+          if (found.length > 0) {
+            setTransactions(prev => {
+              const existingIds = new Set(prev.map(t => t.id));
+              return [...prev, ...found.filter(t => !existingIds.has(t.id))];
+            });
+          }
+        })
+        .catch(console.error);
     }
   }
   async function searchTxnsForRI() {

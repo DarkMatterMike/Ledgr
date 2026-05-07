@@ -70,9 +70,15 @@ export function useAppData({
         // Load core data, first page of transactions, recurring transactions, and auth in parallel.
         // Recurring transactions are loaded separately so they're always in memory regardless
         // of which page they fall on — the calendar and upcoming widget depend on them.
+        // Load current month + all of last month on boot so linked recurring transactions,
+        // recent budgets, and calendar data are fully available without paginating.
+        const now = new Date();
+        const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const fromDate = firstOfLastMonth.toISOString().slice(0, 10);
+
         const [coreResult, txnResult, recurringResult, meResult] = await Promise.allSettled([
           api.loadData(),
-          api.loadTransactions({ limit: 100, offset: 0 }),
+          api.loadTransactions({ fromDate, limit: 1000 }),
           api.loadTransactions({ recurring: true }),
           api.fetchMe(),
         ]);

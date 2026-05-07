@@ -85,34 +85,26 @@ const STRIPE_PRICE_ID         = process.env.STRIPE_PRICE_ID          || "";
 const STRIPE_PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID  || "";
 const STRIPE_WEBHOOK_SECRET   = process.env.STRIPE_WEBHOOK_SECRET    || "";
 
-const IS_PROD = process.env.NODE_ENV === "production";
-
-/* ── Logger ──────────────────────────────────────────────────────── */
-const logger = {
-  info:  (...a) => { if (!IS_PROD) console.log("[INFO] ", ...a); },
-  warn:  (...a) => console.warn("[WARN] ", ...a),
-  error: (...a) => console.error("[ERROR]", ...a),
-};
-
-if (!JWT_SECRET)                    logger.warn("⚠  JWT_SECRET not set");
-if (!ENCRYPT_KEY)                   logger.warn("⚠  ENCRYPT_KEY not set");
-if (!OWNER_EMAIL)                   logger.warn("⚠  OWNER_EMAIL not set");
-if (!process.env.STRIPE_SECRET_KEY) logger.warn("⚠  STRIPE_SECRET_KEY not set");
-if (!STRIPE_PRICE_ID)               logger.warn("⚠  STRIPE_PRICE_ID not set");
-if (!STRIPE_WEBHOOK_SECRET)         logger.warn("⚠  STRIPE_WEBHOOK_SECRET not set");
-if (!process.env.RESEND_API_KEY)    logger.warn("⚠  RESEND_API_KEY not set");
+if (!JWT_SECRET)                    console.warn("⚠  JWT_SECRET not set");
+if (!ENCRYPT_KEY)                   console.warn("⚠  ENCRYPT_KEY not set");
+if (!OWNER_EMAIL)                   console.warn("⚠  OWNER_EMAIL not set");
+if (!process.env.STRIPE_SECRET_KEY) console.warn("⚠  STRIPE_SECRET_KEY not set");
+if (!STRIPE_PRICE_ID)               console.warn("⚠  STRIPE_PRICE_ID not set");
+if (!STRIPE_WEBHOOK_SECRET)         console.warn("⚠  STRIPE_WEBHOOK_SECRET not set");
+if (!process.env.RESEND_API_KEY)    console.warn("⚠  RESEND_API_KEY not set");
 
 const app = express();
 app.set("trust proxy", 1);
 
+const IS_PROD = process.env.NODE_ENV === "production";
+
 // Generic error response — never leak internal details in production
 function serverError(res, err, fallback = "Internal server error") {
-  logger.error(err?.message || err);
+  console.error(err?.message || err);
   return res.status(500).json({ error: IS_PROD ? fallback : (err?.message || fallback) });
 }
 
 // Stripe webhook needs raw body — must be registered BEFORE express.json()
-/* ── Stripe Webhook ──────────────────────────────────────────── */
 app.post("/api/billing/webhook",
   express.raw({ type: "application/json" }),
   async (req, res) => {
@@ -121,7 +113,7 @@ app.post("/api/billing/webhook",
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-      logger.error("Webhook signature failed:", err.message);
+      console.error("Webhook signature failed:", err.message);
       return res.status(400).json({ error: "Webhook signature failed" });
     }
 
@@ -138,14 +130,14 @@ app.post("/api/billing/webhook",
                 const sub = await stripe.subscriptions.retrieve(session.subscription);
                 priceId = sub.items?.data[0]?.price?.id || null;
               }
-            } catch (e) { logger.warn("[stripe] could not fetch subscription price:", e.message); }
+            } catch (e) { console.warn("[stripe] could not fetch subscription price:", e.message); }
             await pool.query(
               "UPDATE users SET stripe_customer_id = $1, subscription_status = 'active', stripe_price_id = $2 WHERE id = $3",
               [session.customer, priceId, userId]
             );
             const user = await getUserById(userId);
             if (user) emailSubscriptionConfirmed(user.email).catch(() => {});
-            logger.info(`[stripe] checkout complete for user ${userId}, price: ${priceId}`);
+            console.log(`[stripe] checkout complete for user ${userId}, price: ${priceId}`);
           }
           break;
         }
@@ -162,7 +154,7 @@ app.post("/api/billing/webhook",
               "UPDATE users SET subscription_status = $1, stripe_price_id = $2 WHERE id = $3",
               [status, priceId, user.id]
             );
-            logger.info(`[stripe] subscription updated for user ${user.id}: ${status}, price: ${priceId}`);
+            console.log(`[stripe] subscription updated for user ${user.id}: ${status}, price: ${priceId}`);
           }
           break;
         }
@@ -171,7 +163,7 @@ app.post("/api/billing/webhook",
           const user = await getUserByStripeCustomerId(sub.customer);
           if (user) {
             await pool.query("UPDATE users SET subscription_status = 'canceled' WHERE id = $1", [user.id]);
-            logger.info(`[stripe] subscription canceled for user ${user.id}`);
+            console.log(`[stripe] subscription canceled for user ${user.id}`);
           }
           break;
         }
@@ -180,7 +172,7 @@ app.post("/api/billing/webhook",
           const user    = await getUserByStripeCustomerId(invoice.customer);
           if (user) {
             await pool.query("UPDATE users SET subscription_status = 'past_due' WHERE id = $1", [user.id]);
-            logger.info(`[stripe] payment failed for user ${user.id}`);
+            console.log(`[stripe] payment failed for user ${user.id}`);
           }
           break;
         }
@@ -188,28 +180,24 @@ app.post("/api/billing/webhook",
           break;
       }
     } catch (err) {
-      logger.error("Webhook handler error:", err.message);
+      console.error("Webhook handler error:", err.message);
     }
 
     res.json({ received: true });
   }
 );
 
-const ALLOWED_ORIGIN_PATTERNS = [
-  /^https?:\/\/localhost(:\d+)?$/,
-  /^https:\/\/([\w-]+\.)?ledgrfinance\.app$/,
-  /^https:\/\/[\w-]+-ledgr[\w-]*\.vercel\.app$/,
+const ALLOWED_ORIGINS = [
+  FRONTEND_URL,
+  "https://ledgrfinance.app",
+  "https://www.ledgrfinance.app",
+  "https://app.ledgrfinance.app",
+  "https://ledgr-eight-zeta.vercel.app",
+  "https://ledgr-landing-omega.vercel.app",
 ];
-
-function isAllowedOrigin(origin) {
-  if (!origin) return true; // server-to-server
-  return ALLOWED_ORIGIN_PATTERNS.some(p => p.test(origin));
-}
-
 app.use(cors({
   origin: (origin, cb) => {
-    if (isAllowedOrigin(origin)) return cb(null, true);
-    logger.warn(`CORS blocked: ${origin}`);
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(new Error("Not allowed by CORS"));
   },
   credentials: true,
@@ -243,16 +231,16 @@ app.use((req, res, next) => {
   const bodyBytes   = parseInt(req.headers["content-length"] || "0", 10);
 
   if (bodyBytes > LARGE_BYTES) {
-    logger.warn(`[obs] large payload  ${req.method} ${req.path} — ${(bodyBytes/1024).toFixed(1)}KB  user=${req.user?.id || "anon"}`);
+    console.warn(`[obs] large payload  ${req.method} ${req.path} — ${(bodyBytes/1024).toFixed(1)}KB  user=${req.user?.id || "anon"}`);
   }
 
   res.on("finish", () => {
     const ms = Date.now() - start;
     if (ms > SLOW_MS) {
-      logger.warn(`[obs] slow request   ${req.method} ${req.path} — ${ms}ms  status=${res.statusCode}  user=${req.user?.id || "anon"}`);
+      console.warn(`[obs] slow request   ${req.method} ${req.path} — ${ms}ms  status=${res.statusCode}  user=${req.user?.id || "anon"}`);
     }
     if (res.statusCode >= 500) {
-      logger.error(`[obs] server error   ${req.method} ${req.path} — ${ms}ms  status=${res.statusCode}  user=${req.user?.id || "anon"}`);
+      console.error(`[obs] server error   ${req.method} ${req.path} — ${ms}ms  status=${res.statusCode}  user=${req.user?.id || "anon"}`);
     }
   });
 
@@ -312,7 +300,6 @@ function requireOwner(req, res, next) {
    PUBLIC ROUTES
 ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Health & Admin ─────────────────────────────────────────── */
 app.get("/api/health", (_req, res) => res.json({ ok: true, env: PLAID_ENV, auth: !!JWT_SECRET }));
 
 // Owner-only health check that shows per-user transaction counts and flags large users
@@ -340,7 +327,6 @@ app.get("/api/health/users", async (_req, res) => {
 // POST /api/support — sends a support message from a logged-in user to the owner inbox.
 // Rate-limited to 5 messages per hour to prevent spam.
 const supportLimiter = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: "Too many support requests. Please try again later." } });
-/* ── Support ────────────────────────────────────────────────── */
 app.post("/api/support", supportLimiter, async (req, res) => {
   try {
     const uid = req.user.id;
@@ -364,12 +350,11 @@ app.post("/api/support", supportLimiter, async (req, res) => {
       </div>
     `;
     await sendEmail(OWNER_EMAIL, `[ledgr support] ${subjectLine}`, html);
-    logger.info(`[support] Message from ${user?.email} (${uid}): ${subjectLine}`);
+    console.log(`[support] Message from ${user?.email} (${uid}): ${subjectLine}`);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
 
-/* ── Authentication ─────────────────────────────────────────── */
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)  return res.status(400).json({ error: "Email and password required" });
@@ -383,7 +368,7 @@ app.post("/api/auth/register", authLimiter, async (req, res) => {
     if (user.role !== "owner") emailWelcome(user.email).catch(() => {});
     res.json({ token, user: { id: user.id, email: user.email, name: user.name || null, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
   } catch (err) {
-    logger.error("Register error:", err.message);
+    console.error("Register error:", err.message);
     res.status(500).json({ error: "Registration failed" });
   }
 });
@@ -425,7 +410,7 @@ app.post("/api/auth/login", authLimiter, async (req, res) => {
     const token = jwt.sign({ userId: user.id, email: user.email, role: user.role, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: "30d" });
     res.json({ token, user: { id: user.id, email: user.email, name: user.name || null, role: user.role, subscription_status: user.subscription_status, trial_ends_at: user.trial_ends_at } });
   } catch (err) {
-    logger.error("Login error:", err.message);
+    console.error("Login error:", err.message);
     res.status(500).json({ error: IS_PROD ? "Login failed" : err.message });
   }
 });
@@ -463,7 +448,7 @@ app.post("/api/auth/google", authLimiter, async (req, res) => {
     );
     res.json({ token, user: { id: user.id, email: user.email, role: user.role } });
   } catch(e) {
-    logger.error("[google-auth]", e.message);
+    console.error("[google-auth]", e.message);
     res.status(401).json({ error: "Google sign-in failed" });
   }
 });
@@ -496,7 +481,7 @@ app.post("/api/auth/forgot-password", authLimiter, async (req, res) => {
     );
     const resetUrl = `${FRONTEND_URL}?reset=${token}`;
     await emailPasswordReset(user.email, resetUrl);
-  } catch(e) { logger.error("[forgot-password]", e.message); }
+  } catch(e) { console.error("[forgot-password]", e.message); }
 });
 
 app.post("/api/auth/reset-password", async (req, res) => {
@@ -518,7 +503,6 @@ app.post("/api/auth/reset-password", async (req, res) => {
 });
 
 /* ── System messages (public — no auth required) ─────────────────── */
-/* ── System Messages ────────────────────────────────────────── */
 app.get("/api/status-messages/active", async (_req, res) => {
   try {
     const msg = await getActiveSystemMessage();
@@ -543,7 +527,7 @@ app.use((req, res, next) => {
   if (now - last > ACTIVITY_THROTTLE) {
     lastActivityCache.set(userId, now);
     pool.query("UPDATE users SET last_activity_at = $1 WHERE id = $2", [now, userId])
-      .catch(e => logger.warn("[activity] update failed:", e.message));
+      .catch(e => console.warn("[activity] update failed:", e.message));
   }
   next();
 });
@@ -585,7 +569,7 @@ app.post("/api/status-messages", async (req, res) => {
     const msg = await createSystemMessage(text.trim(), req.user.id);
     res.json({ message: msg });
   } catch(e) {
-    logger.error("[system-messages POST]", e.message);
+    console.error("[system-messages POST]", e.message);
     res.status(500).json({ error: e.message }); // expose real error temporarily
   }
 });
@@ -665,7 +649,7 @@ app.post("/api/billing/create-checkout", async (req, res) => {
     });
     res.json({ url: session.url });
   } catch (err) {
-    logger.error("Create checkout error:", err.message);
+    console.error("Create checkout error:", err.message);
     serverError(res, err, "Checkout failed");
   }
 });
@@ -681,7 +665,7 @@ app.post("/api/billing/portal", async (req, res) => {
     });
     res.json({ url: session.url });
   } catch (err) {
-    logger.error("Portal error:", err.message);
+    console.error("Portal error:", err.message);
     serverError(res, err, "Portal failed");
   }
 });
@@ -700,7 +684,6 @@ app.get("/api/billing/status", (req, res) => {
 
 // GET /api/data — core data only (fast, needed for first render).
 // Transactions, portfolio, AI, and analytics are loaded via their own endpoints.
-/* ── App Data ───────────────────────────────────────────────── */
 app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
@@ -765,7 +748,6 @@ app.get("/api/data", async (req, res) => {
 // GET /api/transactions — paginated transaction list.
 // Supports: ?limit=250&offset=0&sort=date_desc&search=&category=&account=&month=YYYY-MM&recurring=true
 // Defaults to all transactions sorted by date DESC.
-/* ── Transactions ───────────────────────────────────────────── */
 app.get("/api/transactions", async (req, res) => {
   try {
     const uid    = req.user.id;
@@ -776,6 +758,8 @@ app.get("/api/transactions", async (req, res) => {
     const category    = req.query.category  || null;
     const account     = req.query.account   || null;
     const month       = req.query.month     || null; // "YYYY-MM"
+    const fromDate    = req.query.fromDate   || null; // "YYYY-MM-DD"
+    const toDate      = req.query.toDate     || null; // "YYYY-MM-DD"
     const recurringOnly = req.query.recurring === "true";
 
     const orderBy = sort === "date_asc"    ? "date ASC,  created_at ASC"
@@ -789,6 +773,8 @@ app.get("/api/transactions", async (req, res) => {
     if (category) { vals.push(category); conditions.push(`category_id = $${vals.length}`); }
     if (account)  { vals.push(account);  conditions.push(`account_id = $${vals.length}`); }
     if (month)    { vals.push(month + "%"); conditions.push(`date LIKE $${vals.length}`); }
+    if (fromDate)  { vals.push(fromDate); conditions.push(`date >= $${vals.length}`); }
+    if (toDate)    { vals.push(toDate);   conditions.push(`date <  $${vals.length}`); }
     if (search)   { vals.push("%" + search.toLowerCase() + "%"); conditions.push(`(LOWER(merchant) LIKE $${vals.length} OR LOWER(name) LIKE $${vals.length})`); }
 
     const where = conditions.join(" AND ");
@@ -806,7 +792,7 @@ app.get("/api/transactions", async (req, res) => {
 
     // Guardrail: log when a user has a high transaction count
     if (total > 5000 && !recurringOnly) {
-      logger.warn(`[guardrail] high transaction count  user=${uid}  count=${total}`);
+      console.warn(`[guardrail] high transaction count  user=${uid}  count=${total}`);
     }
 
     res.json({
@@ -967,7 +953,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
       if (Array.isArray(categories) && categories.length === 0) {
         const existing = await getData(uid, "categories");
         if (Array.isArray(existing) && existing.length > 0) {
-          logger.warn(`BLOCKED empty categories save for user ${uid} — DB has ${existing.length}`);
+          console.warn(`BLOCKED empty categories save for user ${uid} — DB has ${existing.length}`);
           // Skip — do not push to ops
         } else {
           ops.push(setData(uid, "categories", categories));
@@ -981,7 +967,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
       if (Array.isArray(goals) && goals.length === 0) {
         const existing = await getData(uid, "goals");
         if (Array.isArray(existing) && existing.length > 0) {
-          logger.warn(`BLOCKED empty goals save for user ${uid} — DB has ${existing.length}`);
+          console.warn(`BLOCKED empty goals save for user ${uid} — DB has ${existing.length}`);
         } else {
           ops.push(setData(uid, "goals", goals));
         }
@@ -1021,7 +1007,6 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 // POST /api/accounts — create a manual account
-/* ── Accounts ───────────────────────────────────────────────── */
 app.post("/api/accounts", requireSubscription, async (req, res) => {
   try {
     const a = req.body;
@@ -1080,7 +1065,6 @@ app.delete("/api/accounts/:id", requireSubscription, async (req, res) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 // POST /api/rules — create or upsert a rule
-/* ── Rules ──────────────────────────────────────────────────── */
 app.post("/api/rules", requireSubscription, async (req, res) => {
   try {
     const r = req.body;
@@ -1128,7 +1112,6 @@ app.delete("/api/rules/:id", requireSubscription, async (req, res) => {
 /* ═══════════════════════════════════════════════════════════════════
    PLAID — requires subscription
 ═══════════════════════════════════════════════════════════════════ */
-/* ── Plaid ──────────────────────────────────────────────────── */
 app.use("/api/plaid", requireSubscription);
 
 app.post("/api/plaid/create_link_token", async (req, res) => {
@@ -1149,7 +1132,7 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
       client_name: "Ledgr Finance",
       country_codes: COUNTRY_CODES, language: "en",
       redirect_uri: process.env.FRONTEND_URL,
-      webhook: `${process.env.BACKEND_URL}/api/plaid/webhook`,
+      webhook: `${process.env.BACKEND_URL || "https://ledgr-production-9e35.up.railway.app"}/api/plaid/webhook`,
     };
 
     // Update mode — re-authenticate an existing item without creating a new one
@@ -1165,7 +1148,7 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
     const response = await plaidClient.linkTokenCreate(params);
     res.json({ link_token: response.data.link_token });
   } catch (err) {
-    logger.error("create_link_token error:", err.response?.data || err.message);
+    console.error("create_link_token error:", err.response?.data || err.message);
     serverError(res, err, "Failed to create link token");
   }
 });
@@ -1179,13 +1162,13 @@ app.post("/api/plaid/webhook", express.json(), async (req, res) => {
       try {
         await plaidClient.webhookVerificationKeyGet({ key_id: plaidVerificationHeader });
       } catch (verifyErr) {
-        logger.error("Plaid webhook verification failed:", verifyErr.message);
+        console.error("Plaid webhook verification failed:", verifyErr.message);
         return res.status(401).json({ error: "Webhook verification failed" });
       }
     }
 
     const { webhook_type, webhook_code, item_id, error: plaidError } = req.body;
-    logger.info("Plaid webhook:", webhook_type, webhook_code, item_id);
+    console.log("Plaid webhook:", webhook_type, webhook_code, item_id);
 
     // Auto-sync when Plaid signals new transactions are available
     if (webhook_type === "TRANSACTIONS" && [
@@ -1200,26 +1183,26 @@ app.post("/api/plaid/webhook", express.json(), async (req, res) => {
           const uid = rows[0].user_id;
           const result = await syncItemTransactions(uid, item_id);
           await applySyncResultsToDB(uid, result.added, result.modified, result.removed);
-          logger.info(`Webhook auto-sync ${item_id}: +${result.added.length} ~${result.modified.length} -${result.removed.length}`);
+          console.log(`Webhook auto-sync ${item_id}: +${result.added.length} ~${result.modified.length} -${result.removed.length}`);
         }
       } catch (e) {
-        logger.error(`Webhook auto-sync failed for ${item_id}:`, e.message);
+        console.error(`Webhook auto-sync failed for ${item_id}:`, e.message);
       }
     }
 
     if (webhook_type === "ITEM") {
       if (webhook_code === "ERROR" && plaidError?.error_code === "ITEM_LOGIN_REQUIRED") {
         await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item_id]);
-        logger.info(`Item ${item_id} marked needs_reauth via webhook`);
+        console.log(`Item ${item_id} marked needs_reauth via webhook`);
       }
       if (["PENDING_EXPIRATION", "USER_PERMISSION_REVOKED", "ACCESS_CONSENT_EXPIRING", "ACCESS_CONSENT_EXPIRED"].includes(webhook_code)) {
         await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item_id]);
-        logger.info(`Item ${item_id} ${webhook_code} — marked needs_reauth`);
+        console.log(`Item ${item_id} ${webhook_code} — marked needs_reauth`);
       }
     }
     res.json({ ok: true });
   } catch (err) {
-    logger.error("Plaid webhook error:", err.message);
+    console.error("Plaid webhook error:", err.message);
     res.json({ ok: true }); // Always 200 to Plaid
   }
 });
@@ -1234,7 +1217,7 @@ app.post("/api/plaid/exchange_public_token", async (req, res) => {
     await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [data.item_id]);
     res.json({ item_id: data.item_id, institution: institution_name });
   } catch (err) {
-    logger.error("exchange_public_token error:", err.response?.data || err.message);
+    console.error("exchange_public_token error:", err.response?.data || err.message);
     serverError(res, err, "Failed to connect bank");
   }
 });
@@ -1252,7 +1235,7 @@ app.delete("/api/plaid/items/:itemId", async (req, res) => {
     if (!item) return res.json({ ok: true }); // already gone, treat as success
     if (item.user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
     try { await plaidClient.itemRemove({ access_token: item.access_token }); }
-    catch (e) { logger.warn("Plaid itemRemove failed:", e.message); }
+    catch (e) { console.warn("Plaid itemRemove failed:", e.message); }
     await removeItem(req.params.itemId);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -1270,7 +1253,7 @@ app.get("/api/plaid/accounts", async (req, res) => {
           mask: a.mask,
           balance: a.balances.current, available: a.balances.available, currency: a.balances.iso_currency_code,
         })));
-      } catch (err) { logger.error(`accountsGet error for ${item.item_id}:`, err.response?.data || err.message); }
+      } catch (err) { console.error(`accountsGet error for ${item.item_id}:`, err.response?.data || err.message); }
     }
     // Deduplicate by account_id
     const seen = new Set();
@@ -1345,7 +1328,7 @@ app.post("/api/plaid/investments/sync", requirePremium, async (req, res) => {
         // Item may not have investment products — skip silently
         const code = err.response?.data?.error_code;
         if (code !== "PRODUCTS_NOT_SUPPORTED" && code !== "ITEM_NOT_SUPPORTED") {
-          logger.warn(`investments sync error for ${item.item_id}:`, code || err.message);
+          console.warn(`investments sync error for ${item.item_id}:`, code || err.message);
         }
       }
     }
@@ -1643,7 +1626,7 @@ ${lastMonthTransactions.slice(0, 30).map(t =>
 
     res.end();
   } catch (err) {
-    logger.error("AI chat error:", err.message);
+    console.error("AI chat error:", err.message);
     if (!res.headersSent) serverError(res, err);
     else res.end();
   }
@@ -1723,7 +1706,7 @@ Example: {"txn123": "cat456", "txn789": "cat101"}`;
 
     res.json({ assignments: validAssignments });
   } catch (err) {
-    logger.error("AI categorize error:", err.message);
+    console.error("AI categorize error:", err.message);
     serverError(res, err);
   }
 });
@@ -1796,7 +1779,7 @@ Rules:
 
     res.json({ suggestions: result.categories || [] });
   } catch (err) {
-    logger.error("AI suggest-categories error:", err.message);
+    console.error("AI suggest-categories error:", err.message);
     serverError(res, err);
   }
 });
@@ -1898,7 +1881,7 @@ Return ONLY valid JSON, no other text:
 
     res.json({ suggestions });
   } catch (err) {
-    logger.error("AI suggest-limits error:", err.message);
+    console.error("AI suggest-limits error:", err.message);
     serverError(res, err);
   }
 });
@@ -1966,7 +1949,7 @@ Include 3-5 insights. Be specific with dollar amounts. Only include suggestion f
 
     res.json(insights);
   } catch (err) {
-    logger.error("AI insights error:", err.message);
+    console.error("AI insights error:", err.message);
     serverError(res, err);
   }
 });
@@ -2033,14 +2016,14 @@ app.post("/api/admin/encrypt-tokens", requireOwner, async (_req, res) => {
 /* ── Start ────────────────────────────────────────────────────────── */
 initDB().then(() => {
   app.listen(PORT, () => {
-    logger.info(`\n  🏦  Ledgr backend (multi-user + Stripe)`);
-    logger.info(`  =>  http://localhost:${PORT}/api/health`);
-    logger.info(`  =>  Plaid:      ${PLAID_ENV}`);
-    logger.info(`  =>  Stripe:     ${process.env.STRIPE_SECRET_KEY ? "enabled" : "DISABLED"}`);
-    logger.info(`  =>  Auth:       ${JWT_SECRET ? "enabled" : "DISABLED"}`);
-    logger.info(`  =>  Owner:      ${OWNER_EMAIL || "(first registered user)"}\n`);
+    console.log(`\n  🏦  Ledgr backend (multi-user + Stripe)`);
+    console.log(`  =>  http://localhost:${PORT}/api/health`);
+    console.log(`  =>  Plaid:      ${PLAID_ENV}`);
+    console.log(`  =>  Stripe:     ${process.env.STRIPE_SECRET_KEY ? "enabled" : "DISABLED"}`);
+    console.log(`  =>  Auth:       ${JWT_SECRET ? "enabled" : "DISABLED"}`);
+    console.log(`  =>  Owner:      ${OWNER_EMAIL || "(first registered user)"}\n`);
   });
 }).catch(err => {
-  logger.error("DB init failed:", err.message);
+  console.error("DB init failed:", err.message);
   process.exit(1);
 });

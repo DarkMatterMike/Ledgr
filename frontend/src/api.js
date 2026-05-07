@@ -3,7 +3,7 @@
  * Multi-user edition
  */
 
-const BASE = import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app";
+const BASE      = "https://ledgr-production-9e35.up.railway.app";
 const TOKEN_KEY = "ledgr_token";
 const USER_KEY  = "ledgr_user";
 
@@ -156,6 +156,8 @@ export function loadTransactions(params = {}) {
   if (params.category != null) q.set("category",  params.category);
   if (params.account  != null) q.set("account",   params.account);
   if (params.month    != null) q.set("month",     params.month);
+  if (params.fromDate != null) q.set("fromDate",  params.fromDate);
+  if (params.toDate   != null) q.set("toDate",    params.toDate);
   if (params.recurring)        q.set("recurring", "true");
   const qs = q.toString();
   return request(`/api/transactions${qs ? "?" + qs : ""}`);

@@ -6380,72 +6380,75 @@ function AppInner({ isDemo = false }) {
           {/* RIGHT: summary panel */}
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
 
-            {/* Remaining card */}
-            <div style={{background:"var(--card)",borderRadius:10,padding:16}}>
+            {/* Remaining + by account — unified card matching mobile */}
+            <div style={{background:"var(--card)",borderRadius:10,padding:"14px 16px"}}>
+              {/* Header row: label + Split View */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                <div style={{fontSize:9,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:".8px"}}>{acctLabel}</div>
-                <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} compact/>
+                <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)"}}>{acctLabel}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{fmt(acctTotal)}</span>
+                  <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} compact/>
+                </div>
               </div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:800,color:"var(--red)",lineHeight:1}}>{fmt(acctTotal)}</div>
-              <div style={{fontSize:11,color:"var(--t3)",marginTop:4}}>{recurringItems.length} items · {fmt(recurringItems.filter(item=>{
-                const calY=parseInt(calendarMonth.split("-")[0]);
-                const calM=parseInt(calendarMonth.split("-")[1]);
-                return !(item.linkedTxnIds||[]).some(txnId=>{
-                  const t=transactions.find(x=>x.id===txnId);
-                  if(!t||!t.date) return false;
-                  const [ty,tm]=t.date.split("-").map(Number);
-                  return ty===calY&&tm===calM;
-                });
-              }).reduce((s,item)=>s+(item.amountMin||0),0))} not yet posted</div>
-            </div>
 
-            {/* By account */}
-            <div style={{background:"var(--card)",borderRadius:10,padding:16}}>
-              <div style={{fontSize:9,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:".8px",marginBottom:10}}>By Account</div>
               {calendarSplitView==="full" ? (
-                acctEntries.length===0
-                  ? <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
-                  : acctEntries.slice(0,4).map(acct=>(
-                    <div key={acct.id} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
-                      <div style={{width:7,height:7,borderRadius:"50%",background:acctMap[acct.id]?.color||"var(--cyan)",flexShrink:0}}/>
-                      <div style={{fontSize:12,color:"var(--t2)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
-                      <div style={{fontSize:12,fontWeight:700,fontFamily:"var(--font-mono)",color:"var(--red)"}}>{fmt(acct.total)}</div>
-                    </div>
-                  ))
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {acctEntries.length===0
+                    ? <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
+                    : acctEntries.slice(0,4).map(acct=>(
+                      <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
+                        style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
+                        <div style={{minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                          <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
+                      </button>
+                    ))
+                  }
+                </div>
               ) : (
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   <div>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                       <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px"}}>1st – 15th</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{fmt(firstTotal)}</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(firstTotal)}</div>
                     </div>
-                    {firstEntries.length>0
-                      ? firstEntries.map(acct=>(
-                        <div key={acct.id} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
-                          <div style={{width:6,height:6,borderRadius:"50%",background:acctMap[acct.id]?.color||"var(--cyan)",flexShrink:0}}/>
-                          <div style={{fontSize:12,color:"var(--t2)",flex:1}}>{acct.name}</div>
-                          <div style={{fontSize:12,fontWeight:700,fontFamily:"var(--font-mono)",color:"var(--red)"}}>{fmt(acct.total)}</div>
-                        </div>
-                      ))
-                      : <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
-                    }
+                    {firstEntries.length>0 ? (
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {firstEntries.map(acct=>(
+                          <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
+                            style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
+                            <div style={{minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                              <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
+                            </div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : <div style={{fontSize:12,color:"var(--t3)",padding:"4px 0"}}>No charges</div>}
                   </div>
-                  <div style={{height:1,background:"rgba(255,255,255,0.05)"}}/>
+                  <div style={{height:1,background:"var(--border)",margin:"4px 0"}}/>
                   <div>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                       <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px"}}>16th – End</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{fmt(secondTotal)}</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(secondTotal)}</div>
                     </div>
-                    {secondEntries.length>0
-                      ? secondEntries.map(acct=>(
-                        <div key={acct.id} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0"}}>
-                          <div style={{width:6,height:6,borderRadius:"50%",background:acctMap[acct.id]?.color||"var(--cyan)",flexShrink:0}}/>
-                          <div style={{fontSize:12,color:"var(--t2)",flex:1}}>{acct.name}</div>
-                          <div style={{fontSize:12,fontWeight:700,fontFamily:"var(--font-mono)",color:"var(--red)"}}>{fmt(acct.total)}</div>
-                        </div>
-                      ))
-                      : <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
-                    }
+                    {secondEntries.length>0 ? (
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {secondEntries.map(acct=>(
+                          <button key={acct.id} type="button" onClick={()=>setCalendarAcctPopup(acct)}
+                            style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"10px 12px",display:"flex",justifyContent:"space-between",gap:8,width:"100%",textAlign:"left",cursor:"pointer",border:"none",appearance:"none"}}>
+                            <div style={{minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
+                              <div style={{fontSize:11,color:"var(--t3)",marginTop:1}}>{acct.count} charge{acct.count!==1?"s":""}</div>
+                            </div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)",flexShrink:0,alignSelf:"center"}}>{fmt(acct.total)}</div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : <div style={{fontSize:12,color:"var(--t3)",padding:"4px 0"}}>No charges</div>}
                   </div>
                 </div>
               )}

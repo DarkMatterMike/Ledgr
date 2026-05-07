@@ -5395,7 +5395,7 @@ function AppInner({ isDemo = false }) {
 
   /* -- Rules -- */
   const [ruleSearch, setRuleSearch] = useState("");
-
+  const [collapsedSections, setCollapsedSections] = useState({});
 
   /* ── Rules ─────────────────────────────────── */
   const Rules = (() => {
@@ -5407,67 +5407,123 @@ function AppInner({ isDemo = false }) {
       r.typeOverride?.toLowerCase().includes(q)
     );
 
-    // Split into category rules and type rules
     const catRules  = filtered.filter(r => r.categoryId && !r.typeOverride);
     const typeRules = filtered.filter(r => r.typeOverride);
 
-    // Group category rules by category, type rules by typeOverride
     const byCat  = {};
     catRules.forEach(r => { const k = r.categoryId || "__none__"; (byCat[k] = byCat[k] || []).push(r); });
     const byType = {};
     typeRules.forEach(r => { const k = r.typeOverride || "other"; (byType[k] = byType[k] || []).push(r); });
 
     const TYPE_LABELS = { expense:"Expense", income:"Income", transfer:"Transfer", reimbursement:"Reimbursement", refund:"Refund" };
+    const TYPE_COLORS = { income:"var(--green)", transfer:"var(--t3)", reimbursement:"var(--amber)", refund:"var(--cyan)", expense:"var(--red)" };
 
-    function RuleRow({ rule }) {
-      const cat  = catMap[rule.categoryId];
-      const isAi = rule.source === "ai";
+    function toggleSection(key) {
+      setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
+    }
+
+    // Toggle switch component using CSS vars
+    function RuleToggle({ rule }) {
+      const on = rule.enabled;
       return (
-        <div style={{
-          display:"flex", alignItems:"center", gap:8,
-          padding:"7px 12px",
-          background:"var(--card)", border:"none",
-          borderRadius:"var(--radius)",
-          borderLeft:`2px solid ${rule.enabled ? (rule.typeOverride ? "var(--amber)" : cat?.color || "var(--cyan)") : "var(--border2)"}`,
-          opacity: rule.enabled ? 1 : 0.45,
-        }}>
-          {/* Pattern */}
-          <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>
-            "{rule.pattern}"
-          </span>
-          {/* Match type */}
-          <span style={{fontSize:10,color:"var(--t3)",flexShrink:0,whiteSpace:"nowrap"}}>
-            {rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts":"contains"}
-          </span>
-          {/* AI badge */}
-          {isAi && <span style={{fontSize:9,color:"var(--cyan)",background:"var(--cyan-dim)",padding:"1px 5px",borderRadius:4,flexShrink:0}}>AI</span>}
-          {/* Actions */}
-          <button style={rule.enabled?{...S.btn("primary",true)}:{...S.btn("ghost",true),color:"var(--t3)"}} onClick={()=>toggleRule(rule.id)}>{rule.enabled?"On":"Off"}</button>
-          <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}}>Edit</button>
-          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:13,padding:"2px 4px",flexShrink:0}} onClick={()=>deleteRule(rule.id)}>✕</button>
+        <div
+          onClick={e => { e.stopPropagation(); toggleRule(rule.id); }}
+          style={{
+            display:"inline-flex", alignItems:"center",
+            width:34, height:19, borderRadius:99,
+            background: on ? "var(--cyan-dim)" : "var(--surface)",
+            border: `1.5px solid ${on ? "var(--cyan)" : "var(--border2)"}`,
+            padding:"2px", cursor:"pointer", transition:"all .2s", flexShrink:0,
+          }}>
+          <div style={{
+            width:13, height:13, borderRadius:"50%",
+            background: on ? "var(--cyan)" : "var(--t3)",
+            transform: on ? "translateX(15px)" : "translateX(0px)",
+            transition:"all .2s", flexShrink:0,
+          }}/>
         </div>
       );
     }
 
-    function Section({ title, color, groups, labelFn }) {
-      if (!Object.keys(groups).length) return null;
+    // Table header (only shown once per section)
+    const TableHead = () => (
+      <thead>
+        <tr style={{borderBottom:"1px solid var(--border)"}}>
+          {["Pattern","Match","Source",""].map((h,i) => (
+            <th key={i} style={{
+              textAlign: i === 3 ? "right" : "left",
+              padding:"6px 12px", fontSize:10, fontWeight:700,
+              textTransform:"uppercase", letterSpacing:".8px",
+              color:"var(--t3)", background:"var(--bg)", whiteSpace:"nowrap",
+            }}>{h}</th>
+          ))}
+          <th style={{padding:"6px 12px",width:50}}></th>
+        </tr>
+      </thead>
+    );
+
+    function RuleRow({ rule }) {
+      const isAi = rule.source === "ai";
       return (
-        <div style={{marginBottom:20}}>
-          <div style={{fontSize:11,fontWeight:700,color,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>
-            {title}
+        <tr style={{ opacity: rule.enabled ? 1 : 0.4, transition:"opacity .2s" }}>
+          <td style={{padding:"8px 12px", fontSize:13, color:"var(--t1)", maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+            {rule.pattern}
+          </td>
+          <td style={{padding:"8px 12px"}}>
+            <span style={{fontSize:10, padding:"2px 6px", borderRadius:4, background:"var(--surface)", color:"var(--t3)", whiteSpace:"nowrap"}}>
+              {rule.matchType === "exact" ? "exact" : rule.matchType === "starts" ? "starts with" : "contains"}
+            </span>
+          </td>
+          <td style={{padding:"8px 12px"}}>
+            {isAi
+              ? <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--cyan-dim)",color:"var(--cyan)",border:"1px solid var(--cyan)33"}}>AI</span>
+              : <span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--surface)",color:"var(--t3)"}}>Manual</span>
+            }
+          </td>
+          <td style={{padding:"8px 12px"}}>
+            <RuleToggle rule={rule} />
+          </td>
+          <td style={{padding:"8px 12px", textAlign:"right", whiteSpace:"nowrap"}}>
+            <button
+              onClick={()=>{ setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled}); setEditTarget(rule); setModal("editRule"); }}
+              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 6px",borderRadius:4,transition:"color .15s"}}
+              onMouseEnter={e=>e.target.style.color="var(--t1)"} onMouseLeave={e=>e.target.style.color="var(--t3)"}>
+              Edit
+            </button>
+            <button
+              onClick={()=>deleteRule(rule.id)}
+              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 6px",borderRadius:4,transition:"color .15s"}}
+              onMouseEnter={e=>e.target.style.color="var(--red)"} onMouseLeave={e=>e.target.style.color="var(--t3)"}>
+              ✕
+            </button>
+          </td>
+        </tr>
+      );
+    }
+
+    function RuleSection({ sectionKey, dot, name, sectionRules }) {
+      const collapsed = collapsedSections[sectionKey];
+      return (
+        <div style={{marginBottom:4,borderRadius:10,overflow:"hidden",border:"1px solid var(--border)"}}>
+          {/* Section header */}
+          <div
+            onClick={() => toggleSection(sectionKey)}
+            style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",background:"var(--card)",cursor:"pointer",userSelect:"none"}}
+          >
+            <div style={{width:9,height:9,borderRadius:"50%",background:dot,flexShrink:0}}/>
+            <span style={{fontSize:12,fontWeight:600,color:"var(--t1)",flex:1}}>{name}</span>
+            <span style={{fontSize:10,color:"var(--t3)",background:"var(--bg)",padding:"2px 8px",borderRadius:99,border:"1px solid var(--border)"}}>{sectionRules.length}</span>
+            <span style={{fontSize:10,color:"var(--t3)",transition:"transform .2s",display:"inline-block",transform:collapsed?"rotate(-90deg)":"rotate(0deg)"}}>▼</span>
           </div>
-          <div style={isMobile ? {} : {columnCount:2,columnGap:12}}>
-            {Object.entries(groups).map(([key, groupRules]) => (
-              <div key={key} style={{breakInside:"avoid",marginBottom:12}}>
-                <div style={{fontSize:11,fontWeight:600,color:"var(--t2)",marginBottom:5,paddingLeft:2}}>
-                  {labelFn(key)}
-                </div>
-                <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                  {groupRules.map(r => <RuleRow key={r.id} rule={r} />)}
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Table */}
+          {!collapsed && (
+            <table style={{width:"100%",borderCollapse:"collapse",background:"var(--bg)"}}>
+              <TableHead />
+              <tbody>
+                {sectionRules.map(r => <RuleRow key={r.id} rule={r} />)}
+              </tbody>
+            </table>
+          )}
         </div>
       );
     }
@@ -5477,51 +5533,112 @@ function AppInner({ isDemo = false }) {
         isMobile={isMobile}
         left={
           <div>
-            <div style={{...S.sectionHdr,marginBottom:16}}>
+            {/* Header */}
+            <div style={{...S.sectionHdr, marginBottom:16}}>
               <div style={S.sectionTitle}>Auto-Categorization Rules</div>
               <button style={S.btn("primary",true)} onClick={()=>{setRuleForm({pattern:"",matchType:"contains",categoryId:"",enabled:true});setModal("addRule");}}>+ New Rule</button>
             </div>
 
-            {/* Stats + search on one row */}
+            {/* Toolbar */}
             {rules.length > 0 && (
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,gap:12}}>
-                <div style={{display:"flex",gap:10,fontSize:11,color:"var(--t3)",flexShrink:0}}>
-                  <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
-                  <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI-learned</span>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+                <div style={{position:"relative",flex:1,maxWidth:260}}>
+                  <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",color:"var(--t3)",fontSize:12,pointerEvents:"none"}}>🔍</span>
+                  <input
+                    style={{...S.input,paddingLeft:28,fontSize:12,width:"100%",boxSizing:"border-box"}}
+                    placeholder="Search patterns…"
+                    value={ruleSearch}
+                    onChange={e=>setRuleSearch(e.target.value)}
+                  />
                 </div>
-                <div style={{position:"relative",maxWidth:220,width:"100%"}}>
-                  
-                  <input style={{...S.input,paddingLeft:28,fontSize:12,width:"100%",boxSizing:"border-box",height:30}}
-                    placeholder="Search rules…" value={ruleSearch} onChange={e=>setRuleSearch(e.target.value)}/>
+                <div style={{fontSize:11,color:"var(--t3)",marginLeft:"auto",display:"flex",gap:12,flexShrink:0}}>
+                  <span>{rules.filter(r=>r.source!=="ai").length} manual</span>
+                  <span style={{color:"var(--cyan)"}}>{rules.filter(r=>r.source==="ai").length} AI</span>
                 </div>
               </div>
             )}
 
+            {/* Empty states */}
             {rules.length === 0 ? (
-              <div className="obsidian-card" style={{...S.card,textAlign:"center",padding:48}}>
+              <div style={{...S.card,textAlign:"center",padding:48}}>
                 <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
                 <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>No rules yet</div>
                 <div style={{fontSize:13,color:"var(--t3)"}}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="obsidian-card" style={{...S.card,textAlign:"center",padding:32}}>
+              <div style={{...S.card,textAlign:"center",padding:32}}>
                 <div style={{fontSize:13,color:"var(--t3)"}}>No rules match "{ruleSearch}"</div>
               </div>
             ) : (
-              <>
-                <Section
-                  title="Category Rules"
-                  color="var(--cyan)"
-                  groups={byCat}
-                  labelFn={key => key === "__none__" ? "No category" : catMap[key]?.name || "Unknown"}
-                />
-                <Section
-                  title="Type Rules"
-                  color="var(--amber)"
-                  groups={byType}
-                  labelFn={key => TYPE_LABELS[key] || key}
-                />
-              </>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {/* Category sections */}
+                {Object.entries(byCat).sort(([a],[b]) => {
+                  const na = a === "__none__" ? "" : catMap[a]?.name || "";
+                  const nb = b === "__none__" ? "" : catMap[b]?.name || "";
+                  return na.localeCompare(nb);
+                }).map(([catId, catRules]) => {
+                  const cat = catMap[catId];
+                  return (
+                    <RuleSection
+                      key={catId}
+                      sectionKey={catId}
+                      dot={cat?.color || "var(--t3)"}
+                      name={catId === "__none__" ? "Uncategorized" : cat?.name || "Unknown"}
+                      sectionRules={catRules}
+                    />
+                  );
+                })}
+
+                {/* Type override section */}
+                {Object.keys(byType).length > 0 && (
+                  <div style={{marginBottom:4,borderRadius:10,overflow:"hidden",border:"1px solid var(--border)"}}>
+                    <div
+                      onClick={() => toggleSection("__types__")}
+                      style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",background:"var(--card)",cursor:"pointer",userSelect:"none"}}
+                    >
+                      <div style={{width:9,height:9,borderRadius:3,background:"var(--amber)",flexShrink:0}}/>
+                      <span style={{fontSize:12,fontWeight:600,color:"var(--t2)",flex:1}}>Type overrides</span>
+                      <span style={{fontSize:10,color:"var(--t3)",background:"var(--bg)",padding:"2px 8px",borderRadius:99,border:"1px solid var(--border)"}}>{typeRules.length}</span>
+                      <span style={{fontSize:10,color:"var(--t3)",transition:"transform .2s",display:"inline-block",transform:collapsedSections["__types__"]?"rotate(-90deg)":"rotate(0deg)"}}>▼</span>
+                    </div>
+                    {!collapsedSections["__types__"] && (
+                      <table style={{width:"100%",borderCollapse:"collapse",background:"var(--bg)"}}>
+                        <thead>
+                          <tr style={{borderBottom:"1px solid var(--border)"}}>
+                            {["Pattern","Match","Type","Source",""].map((h,i) => (
+                              <th key={i} style={{textAlign:"left",padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",whiteSpace:"nowrap"}}>{h}</th>
+                            ))}
+                            <th style={{padding:"6px 12px",width:50}}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {typeRules.map(rule => {
+                            const isAi = rule.source === "ai";
+                            const typeColor = TYPE_COLORS[rule.typeOverride] || "var(--t2)";
+                            return (
+                              <tr key={rule.id} style={{opacity:rule.enabled?1:0.4,transition:"opacity .2s"}}>
+                                <td style={{padding:"8px 12px",fontSize:13,color:"var(--t1)",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rule.pattern}</td>
+                                <td style={{padding:"8px 12px"}}><span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:"var(--surface)",color:"var(--t3)",whiteSpace:"nowrap"}}>{rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts with":"contains"}</span></td>
+                                <td style={{padding:"8px 12px",fontSize:12,color:typeColor,whiteSpace:"nowrap"}}>{TYPE_LABELS[rule.typeOverride] || rule.typeOverride}</td>
+                                <td style={{padding:"8px 12px"}}>{isAi?<span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--cyan-dim)",color:"var(--cyan)",border:"1px solid var(--cyan)33"}}>AI</span>:<span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--surface)",color:"var(--t3)"}}>Manual</span>}</td>
+                                <td style={{padding:"8px 12px"}}>
+                                  <div onClick={e=>{e.stopPropagation();toggleRule(rule.id);}} style={{display:"inline-flex",alignItems:"center",width:34,height:19,borderRadius:99,background:rule.enabled?"var(--cyan-dim)":"var(--surface)",border:`1.5px solid ${rule.enabled?"var(--cyan)":"var(--border2)"}`,padding:"2px",cursor:"pointer",transition:"all .2s",flexShrink:0}}>
+                                    <div style={{width:13,height:13,borderRadius:"50%",background:rule.enabled?"var(--cyan)":"var(--t3)",transform:rule.enabled?"translateX(15px)":"translateX(0px)",transition:"all .2s",flexShrink:0}}/>
+                                  </div>
+                                </td>
+                                <td style={{padding:"8px 12px",textAlign:"right",whiteSpace:"nowrap"}}>
+                                  <button onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 6px",borderRadius:4}} onMouseEnter={e=>e.target.style.color="var(--t1)"} onMouseLeave={e=>e.target.style.color="var(--t3)"}>Edit</button>
+                                  <button onClick={()=>deleteRule(rule.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 6px",borderRadius:4}} onMouseEnter={e=>e.target.style.color="var(--red)"} onMouseLeave={e=>e.target.style.color="var(--t3)"}>✕</button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         }

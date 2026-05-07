@@ -1,5 +1,6 @@
 /**
  * src/App.jsx — Ledgr personal finance app
+ * @updated txn expanded fixes, budget arc, transparency slider
  */
 import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import { usePlaidLink } from "react-plaid-link";
@@ -799,7 +800,7 @@ function SecurityBadges({ compact = false }) {
 }
 
 function AuthGate({ onAuth }) {
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+  const GOOGLE_CLIENT_ID = "3297026544-9c609r8c4t156vpfnb4iggnrg2qgoo3d.apps.googleusercontent.com";
   const resetToken = new URLSearchParams(window.location.search).get("reset");
 
   // step: "email" | "password" | "register" | "forgot" | "reset"
@@ -880,7 +881,7 @@ function AuthGate({ onAuth }) {
       if (!email) return triggerShake("Email required");
       setLoading(true);
       try {
-        await fetch((import.meta.env.VITE_API_URL || "") + "/api/auth/forgot-password", {
+        await fetch("https://ledgr-production-9e35.up.railway.app/api/auth/forgot-password", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
@@ -896,7 +897,7 @@ function AuthGate({ onAuth }) {
       if (password !== confirm) return triggerShake("Passwords do not match");
       setLoading(true);
       try {
-        const r = await fetch((import.meta.env.VITE_API_URL || "") + "/api/auth/reset-password", {
+        const r = await fetch("https://ledgr-production-9e35.up.railway.app/api/auth/reset-password", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: resetToken, newPassword: password }),
         });
@@ -1179,7 +1180,7 @@ function AuthGate({ onAuth }) {
 export default function App() {
   // Wake up the Railway backend immediately on load to minimize cold start delay
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || "") + "/api/health").catch(() => {});
+    fetch((import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app") + "/api/health").catch(() => {});
   }, []);
 
 
@@ -1205,7 +1206,7 @@ export default function App() {
 ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
   const currentUser = api.getStoredUser();
-  const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
+  const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
   const [supportOpen,    setSupportOpen]    = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
@@ -3450,7 +3451,7 @@ function AppInner({ isDemo = false }) {
   /* -- Service worker + push notification subscription -- */
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
+    const VAPID_PUBLIC = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
     function urlBase64ToUint8Array(b64) {
       const pad = "=".repeat((4 - b64.length % 4) % 4);
       const raw = atob((b64 + pad).replace(/-/g,"+").replace(/_/g,"/"));
@@ -4044,7 +4045,9 @@ function AppInner({ isDemo = false }) {
             ...(byPlaidId[pa.account_id] || { id: "a" + pa.account_id }),
             plaidId: pa.account_id,
             plaidItemId: pa.item_id,
-            name: customAccountNames['a'+pa.account_id] || byPlaidId[pa.account_id]?.name || pa.name,
+            // Server name is source of truth (DB preserves renames) — only use
+            // customAccountNames as a local-write-ahead cache for unsaved renames
+            name: pa.name || customAccountNames['a'+pa.account_id] || byPlaidId[pa.account_id]?.name,
             balance: pa.balance,
             available: pa.available,
             type: cap(pa.subtype || pa.type),
@@ -4197,7 +4200,10 @@ function AppInner({ isDemo = false }) {
     } else {
       const patch = { name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type };
       setAccounts(p => p.map(a => a.id === editTarget.id ? {...a, ...patch} : a));
-      api.updateAccount(editTarget.id, patch).catch(e => console.warn("PATCH accounts failed:", e.message));
+      api.updateAccount(editTarget.id, patch).catch(e => {
+        console.warn("PATCH accounts failed:", e.message);
+        showToast("⚠ Rename may not have saved — check your connection");
+      });
       const updatedNames = { ...customAccountNames, [editTarget.id]: acctForm.name.trim() };
       setCustomAccountNames(updatedNames);
       scheduleSaveRef.current?.({ customAccountNames: updatedNames });

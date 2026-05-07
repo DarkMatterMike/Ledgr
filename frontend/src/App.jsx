@@ -6311,7 +6311,7 @@ function AppInner({ isDemo = false }) {
               {recurringItems.length===0 ? (
                 <div style={{padding:"16px 0",color:"var(--t3)",fontSize:13,textAlign:"center"}}>No recurring items yet</div>
               ) : (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:8}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                   {[...recurringItems].sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(item=>{
                     const cat=catMap[item.categoryId];
                     const calY=parseInt(calendarMonth.split("-")[0]);

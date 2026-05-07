@@ -5635,39 +5635,54 @@ function AppInner({ isDemo = false }) {
                     </div>
                     {!collapsedSections["__types__"] && (
                       <table style={{width:"100%",borderCollapse:"collapse",background:"var(--bg)",tableLayout:"fixed"}}>
-                        <colgroup>
-                          <col style={{width:"35%"}}/>
-                          <col style={{width:"110px"}}/>
-                          <col style={{width:"110px"}}/>
-                          <col style={{width:"90px"}}/>
-                          <col style={{width:"60px"}}/>
-                          <col style={{width:"90px"}}/>
-                        </colgroup>
-                        <TableHead hasType={true} />
-                        <tbody>
-                          {typeRules.map(rule => {
-                            const isAi = rule.source === "ai";
-                            const typeColor = TYPE_COLORS[rule.typeOverride] || "var(--t2)";
-                            return (
-                              <tr key={rule.id} style={{opacity:rule.enabled?1:0.4,transition:"opacity .2s"}}>
-                                <td style={{padding:"8px 12px",fontSize:13,color:"var(--t1)",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{rule.pattern}</td>
-                                <td style={{padding:"8px 12px"}}><span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:"var(--surface)",color:"var(--t3)",whiteSpace:"nowrap"}}>{rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts with":"contains"}</span></td>
-                                <td style={{padding:"8px 12px",fontSize:12,color:typeColor,whiteSpace:"nowrap"}}>{TYPE_LABELS[rule.typeOverride] || rule.typeOverride}</td>
-                                <td style={{padding:"8px 12px"}}>{isAi?<span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--cyan-dim)",color:"var(--cyan)",border:"1px solid var(--cyan)33"}}>AI</span>:<span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--surface)",color:"var(--t3)"}}>Manual</span>}</td>
-                                <td style={{padding:"8px 12px"}}>
-                                  <div onClick={e=>{e.stopPropagation();toggleRule(rule.id);}} style={{display:"inline-flex",alignItems:"center",width:34,height:19,borderRadius:99,background:rule.enabled?"var(--cyan-dim)":"var(--surface)",border:`1.5px solid ${rule.enabled?"var(--cyan)":"var(--border2)"}`,padding:"2px",cursor:"pointer",transition:"all .2s",flexShrink:0}}>
-                                    <div style={{width:13,height:13,borderRadius:"50%",background:rule.enabled?"var(--cyan)":"var(--t3)",transform:rule.enabled?"translateX(15px)":"translateX(0px)",transition:"all .2s",flexShrink:0}}/>
-                                  </div>
-                                </td>
-                                <td style={{padding:"8px 12px",textAlign:"right",whiteSpace:"nowrap"}}>
-                                  <button onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 6px",borderRadius:4}} onMouseEnter={e=>e.target.style.color="var(--t1)"} onMouseLeave={e=>e.target.style.color="var(--t3)"}>Edit</button>
-                                  <button onClick={()=>deleteRule(rule.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 6px",borderRadius:4}} onMouseEnter={e=>e.target.style.color="var(--red)"} onMouseLeave={e=>e.target.style.color="var(--t3)"}>✕</button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                          <colgroup>
+                            <col/>{/* Pattern - flex */}
+                            <col style={{width:68}}/>{/* Match */}
+                            <col style={{width:90}}/>{/* Type */}
+                            <col style={{width:34}}/>{/* Toggle */}
+                            <col style={{width:70}}/>{/* Edit/✕ */}
+                          </colgroup>
+                          <thead>
+                            <tr style={{borderBottom:"1px solid var(--border)"}}>
+                              <th style={{padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",textAlign:"left"}}>Pattern</th>
+                              <th style={{padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",textAlign:"left"}}>Match</th>
+                              <th style={{padding:"6px 12px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".8px",color:"var(--t3)",background:"var(--bg)",textAlign:"left"}}>Type</th>
+                              <th style={{padding:"6px 4px",width:34}}></th>
+                              <th style={{padding:"6px 12px",width:70}}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {typeRules.map(rule => {
+                              const isAi = rule.source === "ai";
+                              const typeColor = TYPE_COLORS[rule.typeOverride] || "var(--t2)";
+                              return (
+                                <tr key={rule.id} style={{opacity:rule.enabled?1:0.4,transition:"opacity .2s"}}>
+                                  <td style={{padding:"8px 12px",fontSize:13,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:0}}>
+                                    {rule.pattern}
+                                    {isAi&&<span style={{marginLeft:4,fontSize:9,padding:"1px 4px",borderRadius:3,background:"var(--cyan-dim)",color:"var(--cyan)",verticalAlign:"middle"}}>AI</span>}
+                                  </td>
+                                  <td style={{padding:"8px 6px"}}>
+                                    <span style={{fontSize:10,padding:"2px 5px",borderRadius:4,background:"var(--surface)",color:"var(--t3)",whiteSpace:"nowrap"}}>
+                                      {rule.matchType==="exact"?"exact":rule.matchType==="starts"?"starts":"contains"}
+                                    </span>
+                                  </td>
+                                  <td style={{padding:"8px 6px",fontSize:12,fontWeight:600,color:typeColor,whiteSpace:"nowrap"}}>
+                                    {TYPE_LABELS[rule.typeOverride]||rule.typeOverride}
+                                  </td>
+                                  <td style={{padding:"8px 4px"}}>
+                                    <div onClick={e=>{e.stopPropagation();toggleRule(rule.id);}} style={{display:"inline-flex",alignItems:"center",width:34,height:19,borderRadius:99,background:rule.enabled?"var(--cyan-dim)":"var(--surface)",border:`1.5px solid ${rule.enabled?"var(--cyan)":"var(--border2)"}`,padding:"2px",cursor:"pointer",transition:"all .2s",flexShrink:0}}>
+                                      <div style={{width:13,height:13,borderRadius:"50%",background:rule.enabled?"var(--cyan)":"var(--t3)",transform:rule.enabled?"translateX(15px)":"translateX(0px)",transition:"all .2s"}}/>
+                                    </div>
+                                  </td>
+                                  <td style={{padding:"8px 12px",textAlign:"right",whiteSpace:"nowrap"}}>
+                                    <button onClick={()=>{setRuleForm({pattern:rule.pattern,matchType:rule.matchType,categoryId:rule.categoryId||"",typeOverride:rule.typeOverride||"",enabled:rule.enabled});setEditTarget(rule);setModal("editRule");}} style={{...S.btn("ghost",true),color:"var(--cyan)",fontSize:11,padding:"2px 6px"}}>Edit</button>
+                                    <button onClick={()=>deleteRule(rule.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,padding:"2px 4px"}}>✕</button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                     )}
                   </div>
                 )}
@@ -6154,15 +6169,15 @@ function AppInner({ isDemo = false }) {
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{display:"flex",flexDirection:"column",gap:8,padding:"12px 16px"}}>
             {recurringItems.length === 0 ? (
-              <div style={{ padding: 20, color: "var(--t3)", textAlign: "center" }}>
+              <div style={{padding:20,color:"var(--t3)",textAlign:"center"}}>
                 No recurring items yet
               </div>
             ) : (
               [...recurringItems]
                 .sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0))
-                .map((item, idx) => {
+                .map((item) => {
                   const cat = catMap[item.categoryId];
                   const calY = parseInt(calendarMonth.split("-")[0]);
                   const calM = parseInt(calendarMonth.split("-")[1]);
@@ -6172,53 +6187,38 @@ function AppInner({ isDemo = false }) {
                     const [ty,tm] = t.date.split("-").map(Number);
                     return ty===calY && tm===calM;
                   });
+                  const amtLabel = item.amountMin!=null
+                    ? fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:"")
+                    : "";
                   return (
-                    <button
+                    <div
                       key={item.id}
-                      type="button"
                       onClick={()=>openEditRecurringItem(item)}
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "32px 1fr auto",
-                        gap: 10,
-                        alignItems: "center",
-                        padding: "12px 16px",
-                        borderTop: idx === 0 ? "none" : "1px solid rgba(255,255,255,0.08)",
-                        width: "100%",
-                        textAlign: "left",
-                        cursor: "pointer",
-                        background: "transparent",
-                        appearance: "none",
-                        WebkitAppearance: "none",
-                        touchAction: "manipulation",
-                        WebkitTapHighlightColor: "transparent",
+                        display:"flex",alignItems:"center",gap:12,
+                        background:"var(--card-hi)",border:"1px solid rgba(255,255,255,0.05)",
+                        borderRadius:10,padding:"12px 14px",cursor:"pointer",
+                        touchAction:"manipulation",WebkitTapHighlightColor:"transparent",
                       }}
                     >
-                      <div style={{width:28,height:28,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",background:"var(--surface)"}}>
-                        {postedThisMonth ? "✓" : (item.recurringDay || "—")}
+                      <div style={{width:36,height:36,borderRadius:9,background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:postedThisMonth?"var(--green)":"var(--cyan)",flexShrink:0}}>
+                        {postedThisMonth?"✓":(item.recurringDay||"—")}
                       </div>
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                           {item.name}
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 2 }}>
-                          {item.recurringFreq || "monthly"}
-                          {cat ? <span style={{ color: cat.color }}> · {cat.name}</span> : null}
-                          {(item.linkedTxnIds||[]).length>0&&<span style={{marginLeft:4}}>· {item.linkedTxnIds.length} linked</span>}
+                        <div style={{fontSize:11,color:"var(--t3)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          {item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"}`}
+                          {cat?<span style={{color:cat.color}}> · {cat.name}</span>:null}
+                          {(item.linkedTxnIds||[]).length>0&&<span> · {item.linkedTxnIds.length} linked</span>}
                         </div>
                       </div>
-                      <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,color:"var(--red)",whiteSpace:"nowrap"}}>
-                          {item.amountMin!=null?fmt(item.amountMin):""}
-                          {item.amountMin!=null&&item.amountMax!=null?"–":""}
-                          {item.amountMax!=null&&item.amountMax!==item.amountMin?fmt(item.amountMax):""}
-                        </span>
-                        <button
-                          onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}}
-                          style={{...S.btn("ghost",true),color:"var(--cyan)",flexShrink:0}}
-                        >Edit</button>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
+                        {amtLabel&&<div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>}
+                        <button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),color:"var(--cyan)",fontSize:11,padding:"2px 8px"}}>Edit</button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })
             )}

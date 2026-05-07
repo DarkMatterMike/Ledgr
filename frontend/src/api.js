@@ -3,7 +3,7 @@
  * Multi-user edition
  */
 
-const BASE      = "https://ledgr-production-9e35.up.railway.app";
+const BASE = import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app";
 const TOKEN_KEY = "ledgr_token";
 const USER_KEY  = "ledgr_user";
 

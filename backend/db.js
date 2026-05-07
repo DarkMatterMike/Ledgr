@@ -217,7 +217,7 @@ async function initDB() {
       expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
     );
   `);
-  console.log("  =>  Database ready");
+  console.info("  =>  Database ready");
 }
 
 /* ── User helpers ─────────────────────────────────────────────────── */
@@ -715,7 +715,7 @@ async function sendEmail(to, subject, html) {
   if (!process.env.RESEND_API_KEY) { console.warn("[email] RESEND_API_KEY not set, skipping:", subject); return; }
   try {
     await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
-    console.log(`[email] Sent "${subject}" to ${to}`);
+    console.info(`[email] Sent "${subject}" to ${to}`);
   } catch(e) { console.error("[email] Failed:", e.message); }
 }
 
@@ -847,7 +847,7 @@ async function syncItemTransactions(userId, targetItemId = null) {
           await updateCursor(item.item_id, null);
           console.warn(`Item ${item.item_id} cursor reset due to mutation during pagination`);
         } else if (code === "PRODUCT_NOT_READY") {
-          console.log(`Item ${item.item_id} transactions not ready yet`);
+          console.info(`Item ${item.item_id} transactions not ready yet`);
         } else {
           console.error(`sync error for item ${item.item_id}:`, err.response?.data || err.message);
         }

@@ -112,6 +112,7 @@ function serverError(res, err, fallback = "Internal server error") {
 }
 
 // Stripe webhook needs raw body — must be registered BEFORE express.json()
+/* ── Stripe Webhook ──────────────────────────────────────────── */
 app.post("/api/billing/webhook",
   express.raw({ type: "application/json" }),
   async (req, res) => {
@@ -307,6 +308,7 @@ function requireOwner(req, res, next) {
    PUBLIC ROUTES
 ═══════════════════════════════════════════════════════════════════ */
 
+/* ── Health & Admin ─────────────────────────────────────────── */
 app.get("/api/health", (_req, res) => res.json({ ok: true, env: PLAID_ENV, auth: !!JWT_SECRET }));
 
 // Owner-only health check that shows per-user transaction counts and flags large users
@@ -334,6 +336,7 @@ app.get("/api/health/users", async (_req, res) => {
 // POST /api/support — sends a support message from a logged-in user to the owner inbox.
 // Rate-limited to 5 messages per hour to prevent spam.
 const supportLimiter = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: "Too many support requests. Please try again later." } });
+/* ── Support ────────────────────────────────────────────────── */
 app.post("/api/support", supportLimiter, async (req, res) => {
   try {
     const uid = req.user.id;
@@ -362,6 +365,7 @@ app.post("/api/support", supportLimiter, async (req, res) => {
   } catch (err) { serverError(res, err); }
 });
 
+/* ── Authentication ─────────────────────────────────────────── */
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)  return res.status(400).json({ error: "Email and password required" });
@@ -510,6 +514,7 @@ app.post("/api/auth/reset-password", async (req, res) => {
 });
 
 /* ── System messages (public — no auth required) ─────────────────── */
+/* ── System Messages ────────────────────────────────────────── */
 app.get("/api/status-messages/active", async (_req, res) => {
   try {
     const msg = await getActiveSystemMessage();
@@ -691,6 +696,7 @@ app.get("/api/billing/status", (req, res) => {
 
 // GET /api/data — core data only (fast, needed for first render).
 // Transactions, portfolio, AI, and analytics are loaded via their own endpoints.
+/* ── App Data ───────────────────────────────────────────────── */
 app.get("/api/data", async (req, res) => {
   try {
     const uid = req.user.id;
@@ -755,6 +761,7 @@ app.get("/api/data", async (req, res) => {
 // GET /api/transactions — paginated transaction list.
 // Supports: ?limit=250&offset=0&sort=date_desc&search=&category=&account=&month=YYYY-MM&recurring=true
 // Defaults to all transactions sorted by date DESC.
+/* ── Transactions ───────────────────────────────────────────── */
 app.get("/api/transactions", async (req, res) => {
   try {
     const uid    = req.user.id;
@@ -1010,6 +1017,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 // POST /api/accounts — create a manual account
+/* ── Accounts ───────────────────────────────────────────────── */
 app.post("/api/accounts", requireSubscription, async (req, res) => {
   try {
     const a = req.body;
@@ -1068,6 +1076,7 @@ app.delete("/api/accounts/:id", requireSubscription, async (req, res) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 // POST /api/rules — create or upsert a rule
+/* ── Rules ──────────────────────────────────────────────────── */
 app.post("/api/rules", requireSubscription, async (req, res) => {
   try {
     const r = req.body;
@@ -1115,6 +1124,7 @@ app.delete("/api/rules/:id", requireSubscription, async (req, res) => {
 /* ═══════════════════════════════════════════════════════════════════
    PLAID — requires subscription
 ═══════════════════════════════════════════════════════════════════ */
+/* ── Plaid ──────────────────────────────────────────────────── */
 app.use("/api/plaid", requireSubscription);
 
 app.post("/api/plaid/create_link_token", async (req, res) => {

@@ -1,13 +1,21 @@
 /**
- * src/App.jsx — Ledgr personal finance app
- * @updated txn expanded fixes, budget arc, transparency slider
+ * App.jsx
+ *
+ * Root application component and main orchestrator.
+ * Holds shared application state and renders the appropriate view
+ * based on the current navigation state.
+ *
+ * Architecture:
+ *   - AppInner: stateful orchestrator, owns all shared data state
+ *   - Pages (Dashboard, Transactions, etc.) defined inline as they share
+ *     state via closure — see Phase 3 for context-based extraction
+ *   - Extracted standalone components: /components, /auth, /layout, /theme
  */
 import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 import { debounce } from "./api.js";
 import { useAppData } from "./hooks/useAppData.js";
-import { DEMO_CATEGORIES, DEMO_ACCOUNTS, DEMO_TRANSACTIONS, DEMO_RULES, DEMO_GOALS, DEMO_USER_PROFILE } from "./demoData.js";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
 import { useAiChat } from "./hooks/useAiChat.js";
@@ -15,6 +23,18 @@ import PortfolioView from "./PortfolioView.jsx";
 import AiChat from "./AiChat.jsx";
 import Analytics from "./Analytics.jsx";
 import DaniPage from "./DaniPage.jsx";
+import { DEMO_CATEGORIES, DEMO_ACCOUNTS, DEMO_TRANSACTIONS, DEMO_RULES, DEMO_GOALS, DEMO_USER_PROFILE } from "./demoData.js";
+
+// Extracted modules — see src/components, src/theme, src/constants
+import { S, applyTheme, applyGlobalOpacity } from "./theme/index.js";
+import { CAT_COLORS, DAYS_OF_WEEK, PAGE_RIGHT_COL_W, PAGE_COL_GAP, SHARED_LEFT_WIDTH, INSTALL_KEY, getDaysLeft, NAV } from "./constants.js";
+import { Modal, Toast, CustomSelect, PageLayout, CategoryBadge } from "./components/ui/index.jsx";
+import MerchantIcon from "./components/MerchantIcon.jsx";
+import { SidebarContent } from "./components/layout/Sidebar.jsx";
+import { BottomNav, BOTTOM_NAV } from "./components/layout/BottomNav.jsx";
+import { InstallPrompt } from "./components/layout/InstallPrompt.jsx";
+import { PrivacyPolicy, TermsOfService } from "./auth/Legal.jsx";
+import { SecurityBadges } from "./auth/SecurityBadges.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
@@ -360,6 +380,8 @@ function useIsMobile() {
 
 
 /* --- Styles ------------------------------------------------------- */
+// TODO Phase 3: S is now exported from ./theme/index.js
+// Kept here during transition — remove after verifying all imports resolve
 const S = {
   shell:        { display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"var(--font-body)", color:"var(--t1)", background:"var(--bg)" },
   card:         { background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"12px 14px", position:"relative" },
@@ -431,6 +453,7 @@ const NAV = [
   { id:"analytics",   icon:"◎", label:"Analytics"    },
 ];
 function daysInMonth(y,m) { return new Date(y,m,0).getDate(); }
+/** @deprecated Use getDaysLeft() from constants.js — kept during Phase 2 transition */
 function daysLeft()        { return daysInMonth(today.getFullYear(), today.getMonth()+1) - today.getDate(); }
 
 /* --- Sub-components ----------------------------------------------- */
@@ -800,7 +823,7 @@ function SecurityBadges({ compact = false }) {
 }
 
 function AuthGate({ onAuth }) {
-  const GOOGLE_CLIENT_ID = "3297026544-9c609r8c4t156vpfnb4iggnrg2qgoo3d.apps.googleusercontent.com";
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
   const resetToken = new URLSearchParams(window.location.search).get("reset");
 
   // step: "email" | "password" | "register" | "forgot" | "reset"
@@ -881,7 +904,7 @@ function AuthGate({ onAuth }) {
       if (!email) return triggerShake("Email required");
       setLoading(true);
       try {
-        await fetch("https://ledgr-production-9e35.up.railway.app/api/auth/forgot-password", {
+        await fetch((import.meta.env.VITE_API_URL || "") + "/api/auth/forgot-password", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
@@ -897,7 +920,7 @@ function AuthGate({ onAuth }) {
       if (password !== confirm) return triggerShake("Passwords do not match");
       setLoading(true);
       try {
-        const r = await fetch("https://ledgr-production-9e35.up.railway.app/api/auth/reset-password", {
+        const r = await fetch((import.meta.env.VITE_API_URL || "") + "/api/auth/reset-password", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: resetToken, newPassword: password }),
         });
@@ -1180,7 +1203,7 @@ function AuthGate({ onAuth }) {
 export default function App() {
   // Wake up the Railway backend immediately on load to minimize cold start delay
   useEffect(() => {
-    fetch((import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app") + "/api/health").catch(() => {});
+    fetch((import.meta.env.VITE_API_URL || "") + "/api/health").catch(() => {});
   }, []);
 
 
@@ -1206,7 +1229,7 @@ export default function App() {
 ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
 function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, avatarLetter }) {
   const currentUser = api.getStoredUser();
-  const VAPID = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+  const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
   const [supportOpen,    setSupportOpen]    = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
@@ -3451,7 +3474,7 @@ function AppInner({ isDemo = false }) {
   /* -- Service worker + push notification subscription -- */
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    const VAPID_PUBLIC = "BLvUSGg-ljPgLVTY-54gYJrJvPEEIIokB5C-QTCAnSYW9ghmpeYmKQeIfQMsHl_opqis_d5QeORvyjoS1pfXRnY";
+    const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
     function urlBase64ToUint8Array(b64) {
       const pad = "=".repeat((4 - b64.length % 4) % 4);
       const raw = atob((b64 + pad).replace(/-/g,"+").replace(/_/g,"/"));
@@ -4045,9 +4068,7 @@ function AppInner({ isDemo = false }) {
             ...(byPlaidId[pa.account_id] || { id: "a" + pa.account_id }),
             plaidId: pa.account_id,
             plaidItemId: pa.item_id,
-            // Server name is source of truth (DB preserves renames) — only use
-            // customAccountNames as a local-write-ahead cache for unsaved renames
-            name: pa.name || customAccountNames['a'+pa.account_id] || byPlaidId[pa.account_id]?.name,
+            name: customAccountNames['a'+pa.account_id] || byPlaidId[pa.account_id]?.name || pa.name,
             balance: pa.balance,
             available: pa.available,
             type: cap(pa.subtype || pa.type),
@@ -4200,10 +4221,7 @@ function AppInner({ isDemo = false }) {
     } else {
       const patch = { name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type };
       setAccounts(p => p.map(a => a.id === editTarget.id ? {...a, ...patch} : a));
-      api.updateAccount(editTarget.id, patch).catch(e => {
-        console.warn("PATCH accounts failed:", e.message);
-        showToast("⚠ Rename may not have saved — check your connection");
-      });
+      api.updateAccount(editTarget.id, patch).catch(e => console.warn("PATCH accounts failed:", e.message));
       const updatedNames = { ...customAccountNames, [editTarget.id]: acctForm.name.trim() };
       setCustomAccountNames(updatedNames);
       scheduleSaveRef.current?.({ customAccountNames: updatedNames });
@@ -4781,6 +4799,8 @@ function AppInner({ isDemo = false }) {
     };
   }, [categories, spentByCat, transactions, selectedMonth]);
 
+
+  /* ── BudgetSummaryCard ─────────────────────────────────── */
   const BudgetSummaryCard = (
     <div
       style={{
@@ -4831,6 +4851,8 @@ function AppInner({ isDemo = false }) {
     </div>
   );
 
+
+  /* ── SpendingBreakdownCard ─────────────────────────────────── */
   const SpendingBreakdownCard = (
     <div className="obsidian-card" style={{ ...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
@@ -4916,6 +4938,8 @@ function AppInner({ isDemo = false }) {
     </div>
   );
 
+
+  /* ── CashFlowCard ─────────────────────────────────── */
   const CashFlowCard = (
     <div className="obsidian-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
@@ -4987,6 +5011,8 @@ function AppInner({ isDemo = false }) {
     </div>
   );
 
+
+  /* ── OverspendingHighlightsCard ─────────────────────────────────── */
   const OverspendingHighlightsCard = (
     <div className="obsidian-card" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
@@ -5350,6 +5376,8 @@ function AppInner({ isDemo = false }) {
 
 
   /* -- Transactions -- */
+
+  /* ── Transactions ─────────────────────────────────── */
   const Transactions = (()=>{
     // Group filtered transactions by date
     const grouped = filteredTxns.reduce((acc, t) => {
@@ -5649,6 +5677,8 @@ function AppInner({ isDemo = false }) {
     }
   }
 
+
+  /* ── Budgets ─────────────────────────────────── */
   const Budgets = (
     <div>
       <div style={{ ...S.sectionHdr, marginBottom: 16 }}>
@@ -6176,6 +6206,8 @@ function AppInner({ isDemo = false }) {
     </div>
   );
   /* -- Accounts -- */
+
+  /* ── Accounts ─────────────────────────────────── */
   const Accounts = (
     <div>
       <div style={{...S.sectionHdr,marginBottom:16}}>
@@ -6341,6 +6373,8 @@ function AppInner({ isDemo = false }) {
   /* -- Rules -- */
   const [ruleSearch, setRuleSearch] = useState("");
 
+
+  /* ── Rules ─────────────────────────────────── */
   const Rules = (() => {
     const q = ruleSearch.toLowerCase().trim();
     const filtered = rules.filter(r =>
@@ -6480,6 +6514,8 @@ function AppInner({ isDemo = false }) {
   const daysInCal=daysInMonth(calYear,calMonthN);
   const totalCells=Math.ceil((firstDow+daysInCal)/7)*7;
 
+
+  /* ── Calendar ─────────────────────────────────── */
   const Calendar = (()=>{
     const isCurrentCalMonth = calYear===today.getFullYear()&&calMonthN===today.getMonth()+1;
     const isPastCalMonth    = calYear<today.getFullYear()||(calYear===today.getFullYear()&&calMonthN<today.getMonth()+1);
@@ -7963,6 +7999,8 @@ function AppInner({ isDemo = false }) {
     </Modal>
   ) : null;
 
+
+  /* ── RuleModal ─────────────────────────────────── */
   const RuleModal = (
     <Modal title={modal==="addRule"?"New Rule":"Edit Rule"} onClose={()=>setModal(null)}
       actions={<>
@@ -7997,6 +8035,8 @@ function AppInner({ isDemo = false }) {
     </Modal>
   );
 
+
+  /* ── CatModal ─────────────────────────────────── */
   const CatModal = (
     <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
@@ -8015,6 +8055,8 @@ function AppInner({ isDemo = false }) {
     </Modal>
   );
 
+
+  /* ── AcctModal ─────────────────────────────────── */
   const AcctModal = (
     <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
@@ -8028,6 +8070,8 @@ function AppInner({ isDemo = false }) {
     </Modal>
   );
 
+
+  /* ── TxnModal ─────────────────────────────────── */
   const TxnModal = (
     <Modal title="Add Transaction" onClose={()=>setModal(null)}
       actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
@@ -8066,6 +8110,8 @@ function AppInner({ isDemo = false }) {
   const avatarColor  = _avatarColors[(currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % _avatarColors.length];
   const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
 
+
+  /* ── SettingsPage ─────────────────────────────────── */
   const SettingsPage = (
     <SettingsView
       theme={theme}
@@ -8134,6 +8180,8 @@ function AppInner({ isDemo = false }) {
     } catch(e) { showToast("Connection failed: " + e.message); }
   }, []);
 
+
+  /* ── PortfolioPage ─────────────────────────────────── */
   const PortfolioPage = (
     <PortfolioView
       investmentAccounts={portfolio.investmentAccounts}
@@ -8156,6 +8204,8 @@ function AppInner({ isDemo = false }) {
     />
   );
 
+
+  /* ── AiChatPage ─────────────────────────────────── */
   const AiChatPage = (
     <AiChat
       messages={aiChat.messages}
@@ -8176,6 +8226,8 @@ function AppInner({ isDemo = false }) {
     />
   );
 
+
+  /* ── AnalyticsPage ─────────────────────────────────── */
   const AnalyticsPage = (
     <Analytics
       transactions={allTransactions ?? transactions}

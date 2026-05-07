@@ -20,7 +20,5 @@ function MerchantIcon({ name, size=24 }) {
     </div>
   );
 }
-const cap          = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : "";
-const currentMonth = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
 
 export default MerchantIcon;

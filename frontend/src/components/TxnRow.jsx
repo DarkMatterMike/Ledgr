@@ -4,21 +4,23 @@
  * Receives all data via props from AppInner.
  */
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { S } from '../theme/index.js';
 import MerchantIcon from './MerchantIcon.jsx';
-import { CategoryBadge, CustomSelect } from './ui/index.jsx';
+import { CustomSelect } from './ui/index.jsx';
 
 const fmt = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
 
-export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
+export default function TxnRow({
+  t, expandedTxnId, setExpandedTxnId, ellipsisId, setEllipsisId,
   editingId, editingName, setEditingName, setEditingId,
   catMap, acctMap, categories, accounts,
   needsReview, markReviewed, startRename, deleteTxn,
   updateTxnType, updateTxnCat, updateTxnAcct, updateTxnNotes,
   openAddCat, toggleRecurring, updateRecurringDay, saveRename, isMobile,
   isSelected, onToggleSelect, selectionActive,
-  goals, assignTxnToGoal }) {
-
+  goals, assignTxnToGoal,
+}) {
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
   const typeVal    = t.type||(t.amount<0?"expense":"income");
@@ -35,7 +37,7 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
           paddingLeft:t.recurring||needsReview(t)?10:0,
           background: isSelected ? "var(--cyan-dim)" : "transparent",
           transition:"background 0.1s"}}>
-        {/* Checkbox — always visible when selection active, hover otherwise */}
+        {/* Checkbox */}
         <div onClick={e=>{e.stopPropagation();onToggleSelect(t.id);}}
           style={{width:16,height:16,borderRadius:3,flexShrink:0,cursor:"pointer",
             border:`1.5px solid ${isSelected?"var(--cyan)":"var(--border2)"}`,
@@ -43,7 +45,6 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
             display:"flex",alignItems:"center",justifyContent:"center",
             opacity: selectionActive ? 1 : 0.3,
             transition:"all 0.12s",
-            marginLeft: t.recurring||needsReview(t) ? 0 : 0,
           }}>
           {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
         </div>
@@ -53,7 +54,7 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
           {t.recurringItemId && <span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
           {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>
-        {/* Inline category selector in collapsed row */}
+        {/* Inline category selector */}
         <div onClick={e=>e.stopPropagation()} style={{flexShrink:0,width:120,overflow:"hidden"}}>
           {(!noCategory) ? (
             <div style={{transform:"scale(0.8125)",transformOrigin:"left center",width:"123%"}}>
@@ -65,7 +66,7 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
                 fontSize:16, color:cat?cat.color:"var(--t3)",
                 fontWeight:400, cursor:"pointer", width:"100%",
                 appearance:"none", WebkitAppearance:"none",
-                fontFamily:"var(--font-body)", padding:"2px 6px 2px 6px",
+                fontFamily:"var(--font-body)", padding:"2px 6px",
                 borderRadius:20, colorScheme:"dark",
               }}>
               <option value="">— None —</option>
@@ -121,14 +122,12 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
 
       {expanded&&(
         <div className="ledgr-expand" style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
-          {/* Full transaction name when expanded */}
           {editingId!==t.id && (t.name||t.merchant) && (
             <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>
               {t.name||t.merchant}
               {t.pending && <span style={{fontSize:10,color:"var(--amber)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
             </div>
           )}
-
           {editingId===t.id&&(
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <input style={{...S.input,flex:1,fontSize:13}}
@@ -138,23 +137,24 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
               <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
             </div>
           )}
-
-          {/* Desktop: dropdowns left, notes right. Mobile: stacked */}
           <div style={{display:"flex", flexDirection: isMobile ? "column" : "row", gap:8}}>
-            {/* Left: dropdowns */}
             <div style={{display:"flex", flexDirection:"column", gap:8, flex:1}}>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)} options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)}
+                  options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]}
+                  style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
                 {noCategory ? (
                   <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
                 ) : (
-                  <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }} options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                  <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
+                    options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
+                    style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
                 )}
               </div>
-              <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)} options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+              <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)}
+                options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]}
+                style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
             </div>
-
-            {/* Right: notes textarea */}
             <textarea
               placeholder="Add a note…"
               value={t.notes||""}
@@ -170,7 +170,6 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
               }}
             />
           </div>
-
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             <button onClick={()=>setExpandedTxnId(null)} style={{...S.btn("ghost",true),marginLeft:"auto"}}>Done</button>
           </div>
@@ -179,3 +178,53 @@ export default function TxnRow({ t, expandedTxnId, setExpandedTxnId, ellipsisId,
     </div>
   );
 }
+
+// Transaction shape
+const txnShape = PropTypes.shape({
+  id:              PropTypes.string.isRequired,
+  name:            PropTypes.string,
+  merchant:        PropTypes.string,
+  amount:          PropTypes.number.isRequired,
+  date:            PropTypes.string,
+  type:            PropTypes.string,
+  categoryId:      PropTypes.string,
+  accountId:       PropTypes.string,
+  notes:           PropTypes.string,
+  recurring:       PropTypes.bool,
+  recurringItemId: PropTypes.string,
+  pending:         PropTypes.bool,
+});
+
+TxnRow.propTypes = {
+  t:                  txnShape.isRequired,
+  expandedTxnId:      PropTypes.string,
+  setExpandedTxnId:   PropTypes.func.isRequired,
+  ellipsisId:         PropTypes.string,
+  setEllipsisId:      PropTypes.func.isRequired,
+  editingId:          PropTypes.string,
+  editingName:        PropTypes.string,
+  setEditingName:     PropTypes.func.isRequired,
+  setEditingId:       PropTypes.func.isRequired,
+  catMap:             PropTypes.object.isRequired,
+  acctMap:            PropTypes.object.isRequired,
+  categories:         PropTypes.array.isRequired,
+  accounts:           PropTypes.array.isRequired,
+  needsReview:        PropTypes.func.isRequired,
+  markReviewed:       PropTypes.func.isRequired,
+  startRename:        PropTypes.func.isRequired,
+  deleteTxn:          PropTypes.func.isRequired,
+  updateTxnType:      PropTypes.func.isRequired,
+  updateTxnCat:       PropTypes.func.isRequired,
+  updateTxnAcct:      PropTypes.func.isRequired,
+  updateTxnNotes:     PropTypes.func.isRequired,
+  openAddCat:         PropTypes.func.isRequired,
+  toggleRecurring:    PropTypes.func.isRequired,
+  updateRecurringDay: PropTypes.func.isRequired,
+  saveRename:         PropTypes.func.isRequired,
+  isMobile:           PropTypes.bool,
+  isSelected:         PropTypes.bool,
+  onToggleSelect:     PropTypes.func.isRequired,
+  selectionActive:    PropTypes.bool,
+  goals:              PropTypes.array,
+  assignTxnToGoal:    PropTypes.func,
+};

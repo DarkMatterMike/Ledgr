@@ -3,7 +3,8 @@
  * Shared UI primitives used throughout the app.
  *   Modal, Toast, CustomSelect, CategoryBadge, PageLayout
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { S } from '../../theme/index.js';
 import { PAGE_RIGHT_COL_W, PAGE_COL_GAP, SHARED_LEFT_WIDTH } from '../../constants.js';
 
@@ -18,8 +19,19 @@ export function Modal({ title, onClose, children, actions }) {
     </div>
   );
 }
+Modal.propTypes = {
+  title:    PropTypes.string.isRequired,
+  onClose:  PropTypes.func.isRequired,
+  children: PropTypes.node,
+  actions:  PropTypes.node,
+};
 
-export function Toast({ msg }) { return msg ? <div style={S.toast} className="ledgr-toast-anim">✓ {msg}</div> : null; }
+export function Toast({ msg }) {
+  return msg ? <div style={S.toast} className="ledgr-toast-anim">✓ {msg}</div> : null;
+}
+Toast.propTypes = {
+  msg: PropTypes.string,
+};
 
 export function CustomSelect({ value, onChange, options, style = {}, compact = false }) {
   const isBlock = style.width === "100%" || style.flex;
@@ -43,13 +55,33 @@ export function CustomSelect({ value, onChange, options, style = {}, compact = f
     </select>
   );
 }
-
-/* --- DragCard — drag-to-reorder wrapper with handle ---------------- */
+CustomSelect.propTypes = {
+  value:    PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  onChange: PropTypes.func.isRequired,
+  options:  PropTypes.arrayOf(PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    label: PropTypes.string.isRequired,
+  })).isRequired,
+  style:   PropTypes.object,
+  compact: PropTypes.bool,
+};
 
 export function CategoryBadge({ cat }) {
   if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
-  return <span style={S.badge(cat.color)}><span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>{cat.name}</span>;
+  return (
+    <span style={S.badge(cat.color)}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>
+      {cat.name}
+    </span>
+  );
 }
+CategoryBadge.propTypes = {
+  cat: PropTypes.shape({
+    id:    PropTypes.string,
+    name:  PropTypes.string.isRequired,
+    color: PropTypes.string.isRequired,
+  }),
+};
 
 export function PageLayout({ left, right = null, isMobile = false, mobileRightFirst = false }) {
   if (isMobile) {
@@ -64,15 +96,13 @@ export function PageLayout({ left, right = null, isMobile = false, mobileRightFi
 
   if (right) {
     return (
-      <div
-        style={{
-          width: "100%",
-          display: "grid",
-          gridTemplateColumns: `minmax(0, 1fr) ${PAGE_RIGHT_COL_W}px`,
-          gap: PAGE_COL_GAP,
-          alignItems: "start",
-        }}
-      >
+      <div style={{
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: `minmax(0, 1fr) ${PAGE_RIGHT_COL_W}px`,
+        gap: PAGE_COL_GAP,
+        alignItems: "start",
+      }}>
         <div style={{ minWidth: 0 }}>{left}</div>
         <div style={{ minWidth: 0 }}>{right}</div>
       </div>
@@ -85,7 +115,9 @@ export function PageLayout({ left, right = null, isMobile = false, mobileRightFi
     </div>
   );
 }
-
-/* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
-   AUTH GATE  (email + password, multi-user)
-✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
+PageLayout.propTypes = {
+  left:             PropTypes.node.isRequired,
+  right:            PropTypes.node,
+  isMobile:         PropTypes.bool,
+  mobileRightFirst: PropTypes.bool,
+};

@@ -2179,7 +2179,7 @@ app.get("/api/admin/users", requireOwner, async (_req, res) => {
 
 app.patch("/api/admin/users/:userId", requireOwner, async (req, res) => {
   const { subscription_status, role, trial_ends_at } = req.body;
-  const validStatuses = ["active", "trialing", "canceled", "past_due", "expired"];
+  const validStatuses = ["active", "trialing", "canceled", "past_due", "expired", "pro", "family"];
   const validRoles    = ["owner", "subscriber", "free"];
   if (subscription_status && !validStatuses.includes(subscription_status))
     return res.status(400).json({ error: "Invalid subscription_status" });
@@ -2187,9 +2187,20 @@ app.patch("/api/admin/users/:userId", requireOwner, async (req, res) => {
     return res.status(400).json({ error: "Invalid role" });
   try {
     const fields = [], vals = [];
-    if (subscription_status) { fields.push(`subscription_status = $${fields.length+1}`); vals.push(subscription_status); }
-    if (role)                 { fields.push(`role = $${fields.length+1}`);                vals.push(role); }
-    if (trial_ends_at)        { fields.push(`trial_ends_at = $${fields.length+1}`);       vals.push(Number(trial_ends_at)); }
+    // "pro" and "family" are shorthand — set status to "active" and correct price_id
+    let resolvedStatus = subscription_status;
+    let resolvedPriceId = null;
+    if (subscription_status === "pro") {
+      resolvedStatus = "active";
+      resolvedPriceId = STRIPE_PRICE_ID;
+    } else if (subscription_status === "family") {
+      resolvedStatus = "active";
+      resolvedPriceId = STRIPE_FAMILY_PRICE_ID;
+    }
+    if (resolvedStatus)  { fields.push(`subscription_status = $${fields.length+1}`); vals.push(resolvedStatus); }
+    if (resolvedPriceId) { fields.push(`stripe_price_id = $${fields.length+1}`);     vals.push(resolvedPriceId); }
+    if (role)            { fields.push(`role = $${fields.length+1}`);                 vals.push(role); }
+    if (trial_ends_at)   { fields.push(`trial_ends_at = $${fields.length+1}`);        vals.push(Number(trial_ends_at)); }
     if (!fields.length) return res.status(400).json({ error: "Nothing to update" });
     vals.push(req.params.userId);
     await pool.query(`UPDATE users SET ${fields.join(", ")} WHERE id = $${vals.length}`, vals);

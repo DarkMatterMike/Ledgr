@@ -2247,6 +2247,8 @@ function AdminPanel() {
                         <select style={{...S.select,width:"100%",fontSize:12}} value={editForm.subscription_status || user.subscription_status}
                           onChange={e => setEditForm(p => ({...p, subscription_status: e.target.value}))}>
                           <option value="active">active</option>
+                          <option value="pro">pro ($4.99)</option>
+                          <option value="family">family ($9.99)</option>
                           <option value="trialing">trialing</option>
                           <option value="canceled">canceled</option>
                           <option value="past_due">past_due</option>
@@ -2302,6 +2304,8 @@ function AdminPanel() {
                         <select style={{...S.select,fontSize:12}} value={editForm.subscription_status || user.subscription_status}
                           onChange={e => setEditForm(p => ({...p, subscription_status: e.target.value}))}>
                           <option value="active">active</option>
+                          <option value="pro">pro ($4.99)</option>
+                          <option value="family">family ($9.99)</option>
                           <option value="trialing">trialing</option>
                           <option value="canceled">canceled</option>
                           <option value="past_due">past_due</option>

@@ -1201,13 +1201,14 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 
   return (
     <>
-    <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--surface)",borderRadius:"var(--radius)",padding:3,width:"fit-content"}}>
+    <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--surface)",borderRadius:"var(--radius)",padding:3,width:isMobile?"100%":"fit-content",overflowX:"auto",scrollbarWidth:"none"}}>
       {STABS.map(t => (
         <button key={t.id} onClick={()=>setSettingsTab(t.id)}
           style={{background:settingsTab===t.id?"var(--cyan)":"none",border:"none",
             color:settingsTab===t.id?"#000":"var(--t3)",
             padding:"6px 16px",borderRadius:"var(--radius)",cursor:"pointer",
-            fontSize:13,fontWeight:600,transition:"all 0.15s",whiteSpace:"nowrap"}}>
+            fontSize:13,fontWeight:600,transition:"all 0.15s",whiteSpace:"nowrap",
+            flex:isMobile?"1":"0 0 auto"}}>
           {t.label}
         </button>
       ))}
@@ -6560,6 +6561,87 @@ function AppInner({ isDemo = false }) {
             </div>
           </div>
         )}
+
+        {/* Remaining card — mobile */}
+        <div className="obsidian-card" style={{...S.card, padding:"14px 16px", marginBottom:0}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+            <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"1.2px",color:"var(--t3)",fontFamily:"var(--font-disp)"}}>{acctLabel}</div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(acctTotal)}</span>
+              <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} style={{backgroundColor:"var(--card-hi)"}} compact/>
+            </div>
+          </div>
+
+          {/* Income section */}
+          {incomeEntries.length > 0 && (
+            <div style={{marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:"var(--font-disp)"}}>Expected Income</div>
+                <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--green)"}}>+{fmt(incomeTotal)}</div>
+              </div>
+              {incomeEntries.map(item => {
+                const tFreq = item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"} of month`;
+                const remaining = itemRemainingOccurrences(item);
+                return (
+                  <button key={item.id} type="button" onClick={()=>openEditRecurringItem(item)}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",width:"100%",textAlign:"left",border:"none",cursor:"pointer",marginBottom:3}}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:"var(--green)",flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                      <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{tFreq}{remaining > 1 ? ` · ${remaining}× remaining` : ""}</div>
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--green)",flexShrink:0}}>+{fmt(getItemAmount(item))}</div>
+                  </button>
+                );
+              })}
+              <div style={{height:1,background:"var(--border)",margin:"8px 0 4px"}}/>
+            </div>
+          )}
+
+          {/* Expenses */}
+          {calendarSplitView==="full" ? (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {acctEntries.length > 0 && (
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:"var(--font-disp)"}}>Expected Expenses</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>-{fmt(acctTotal)}</div>
+                </div>
+              )}
+              {acctEntries.length===0
+                ? <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
+                : acctEntries.map(acct=>(
+                  <div key={acct.id||acct.name}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                      <div style={{fontSize:13,fontWeight:600,color:"var(--t1)"}}>{acct.name}</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(acct.total)}</div>
+                    </div>
+                    <div style={{fontSize:11,color:"var(--t3)",marginBottom:4}}>{acct.count} charge{acct.count!==1?"s":""}</div>
+                  </div>
+                ))
+              }
+            </div>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:"var(--font-disp)"}}>Expected Expenses</div>
+              {[{label:"1st – 15th",entries:firstEntries,total:firstTotal},{label:"16th – End",entries:secondEntries,total:secondTotal}].map(({label,entries,total})=>(
+                <div key={label}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px"}}>{label}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(total)}</div>
+                  </div>
+                  {entries.map(acct=>(
+                    <div key={acct.id||acct.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0"}}>
+                      <div style={{fontSize:12,color:"var(--t2)"}}>{acct.name} <span style={{color:"var(--t3)"}}>· {acct.count} charge{acct.count!==1?"s":""}</span></div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{fmt(acct.total)}</div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="obsidian-card" style={{ ...S.card, padding: 0, overflow: "hidden" }}>
           <div

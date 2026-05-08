@@ -519,9 +519,31 @@ function isAuthValid() {
   } catch { return false; }
 }
 
-function AuthGate({ onAuth }) {
+function AuthGate({ onAuth, inviteToken = null }) {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
   const resetToken = new URLSearchParams(window.location.search).get("reset");
+
+  // Invite flow state
+  const [inviteStatus, setInviteStatus] = useState(inviteToken ? "loading" : "none");
+  const [inviteEmail2, setInviteEmail2] = useState("");
+  useEffect(() => {
+    if (!inviteToken) return;
+    api.checkHouseholdInvite(inviteToken)
+      .then(d => {
+        if (!d || d.error) { setInviteStatus("error"); return; }
+        setInviteEmail2(d.email || "");
+        setEmail(d.email || "");
+        setInviteStatus("ready");
+      })
+      .catch(() => setInviteStatus("error"));
+  }, [inviteToken]);
+
+  async function acceptAfterAuth() {
+    try {
+      await api.acceptHouseholdInvite(inviteToken);
+      window.history.replaceState({}, "", window.location.pathname);
+    } catch(e) { console.error("Failed to accept invite:", e); }
+  }
 
   // step: "email" | "password" | "register" | "forgot" | "reset"
   const [step,          setStep]          = useState(resetToken ? "reset" : "email");
@@ -641,6 +663,7 @@ function AuthGate({ onAuth }) {
     try {
       if (step === "password") await api.login(email, password);
       else                     await api.register(email, password);
+      if (inviteToken && inviteStatus === "ready") await acceptAfterAuth();
       onAuth();
     } catch(err) {
       triggerShake(err.message || "Something went wrong");
@@ -694,6 +717,19 @@ function AuthGate({ onAuth }) {
         boxShadow:"0 8px 40px #00000060",
         display:"flex", flexDirection:"column", gap:0,
       }}>
+
+        {/* Invite banner */}
+        {inviteToken && inviteStatus === "ready" && (
+          <div style={{background:"var(--cyan-dim)",border:"1px solid var(--cyan)33",borderRadius:8,padding:"10px 12px",marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:600,color:"var(--cyan)",marginBottom:2}}>Household Invite</div>
+            <div style={{fontSize:12,color:"var(--t2)"}}>Sign in or create an account to join the household.</div>
+          </div>
+        )}
+        {inviteToken && inviteStatus === "error" && (
+          <div style={{background:"#ff4d6d11",border:"1px solid #ff4d6d33",borderRadius:8,padding:"10px 12px",marginBottom:16}}>
+            <div style={{fontSize:12,color:"var(--red)"}}>This invite link is invalid or has expired.</div>
+          </div>
+        )}
 
         {/* Tab switcher — email and password/register steps */}
         {!isForgotReset && (showEmailStep || showPassStep) && (
@@ -917,7 +953,13 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isDemo]);
 
-  if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
+  // Detect invite token at App level and pass to AuthGate
+  const appInviteToken = (() => {
+    const t = new URLSearchParams(window.location.search).get("invite");
+    return t && /^[a-f0-9]{64}$/.test(t) ? t : null;
+  })();
+
+  if (!authed) return <AuthGate onAuth={()=>setAuthed(true)} inviteToken={appInviteToken}/>;
 
   return <AppInner isDemo={isDemo}/>;
 }
@@ -7561,7 +7603,7 @@ function AppInner({ isDemo = false }) {
     )}
 
     {/* Beta banner */}
-    <div style={{flexShrink:0,background:"rgba(255,255,255,0.03)",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"5px 16px",textAlign:"center",fontSize:11,color:"var(--t3)"}}>
+    <div style={{flexShrink:0,background:"var(--cyan-dim)",border:"none",borderBottom:"1px solid var(--cyan)33",padding:"5px 16px",textAlign:"center",fontSize:11,color:"var(--t2)"}}>
       <span style={{color:"var(--cyan)",fontWeight:700,fontSize:9,letterSpacing:"1px",textTransform:"uppercase",marginRight:6}}>Beta</span>
       You may experience issues — report bugs via the{" "}
       <button onClick={()=>navigate("settings")} style={{background:"none",border:"none",color:"var(--cyan)",cursor:"pointer",fontSize:11,fontWeight:600,padding:0,textDecoration:"underline",opacity:0.7}}>Support</button>

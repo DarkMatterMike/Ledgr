@@ -1,4 +1,4 @@
-﻿/**
+/**
  * App.jsx
  *
  * Root application component and main orchestrator.
@@ -2273,6 +2273,47 @@ function AppInner({ isDemo = false }) {
   const isMobile = useIsMobile();
 
   /* -- State -- */
+  // Invite accept flow — detected from URL ?invite=token
+  const inviteToken = (() => {
+    const t = new URLSearchParams(window.location.search).get("invite");
+    return t && /^[a-f0-9]{64}$/.test(t) ? t : null;
+  })();
+  const [showInviteModal, setShowInviteModal] = useState(!!inviteToken);
+  const [inviteStatus, setInviteStatus]       = useState("idle"); // idle|loading|ready|accepting|done|error
+  const [inviteEmail,  setInviteEmail]        = useState("");
+  const [invitePw,     setInvitePw]           = useState("");
+  const [inviteIsNew,  setInviteIsNew]        = useState(false);
+  const [inviteError,  setInviteError]        = useState("");
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    setInviteStatus("loading");
+    api.checkHouseholdInvite(inviteToken)
+      .then(d => {
+        if (!d || d.error) { setInviteStatus("error"); return; }
+        setInviteEmail(d.email || "");
+        setInviteStatus("ready");
+      })
+      .catch(() => setInviteStatus("error"));
+  }, []);
+
+  async function acceptInvite() {
+    setInviteError(""); setInviteStatus("accepting");
+    try {
+      if (inviteIsNew) {
+        await api.register(inviteEmail, invitePw);
+      } else {
+        await api.login(inviteEmail, invitePw);
+      }
+      await api.acceptHouseholdInvite(inviteToken);
+      window.history.replaceState({}, "", window.location.pathname);
+      window.location.reload();
+    } catch(e) {
+      setInviteError(e.message || "Something went wrong");
+      setInviteStatus("ready");
+    }
+  }
+
   const [view,          setView]          = useState("dashboard");
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [dismissedNotifs, setDismissedNotifs] = useState(new Set()); // Set of notif ids dismissed this session
@@ -7959,6 +8000,33 @@ function AppInner({ isDemo = false }) {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+      {/* Invite Accept Modal */}
+      {showInviteModal && inviteToken && (
+        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"var(--card)",borderRadius:16,padding:"24px",width:"100%",maxWidth:380,display:"flex",flexDirection:"column",gap:14}}>
+            <div style={{fontFamily:"var(--font-disp)",fontSize:20,fontWeight:800,color:"var(--t1)"}}>ledgr.</div>
+            {inviteStatus==="loading" && <div style={{fontSize:13,color:"var(--t3)"}}>Checking invite…</div>}
+            {inviteStatus==="error"   && <div style={{fontSize:13,color:"var(--red)"}}>This invite link is invalid or has expired.</div>}
+            {(inviteStatus==="ready"||inviteStatus==="accepting") && (<>
+              <div style={{background:"var(--surface)",borderRadius:10,padding:"12px 14px"}}>
+                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:4}}>You've been invited to a Ledgr household</div>
+                <div style={{fontSize:12,color:"var(--t3)"}}>Sign in or create an account to accept.</div>
+              </div>
+              <input style={S.input} placeholder="Email" type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/>
+              <input style={S.input} placeholder="Password" type="password" value={invitePw} onChange={e=>setInvitePw(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&acceptInvite()}/>
+              {inviteError && <div style={{fontSize:12,color:"var(--red)"}}>{inviteError}</div>}
+              <button style={{...S.btn("primary"),width:"100%"}} onClick={acceptInvite} disabled={inviteStatus==="accepting"}>
+                {inviteStatus==="accepting"?"Please wait…":inviteIsNew?"Create account & Accept":"Sign in & Accept"}
+              </button>
+              <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,textAlign:"center"}}
+                onClick={()=>setInviteIsNew(p=>!p)}>
+                {inviteIsNew?"Already have an account? Sign in":"New to Ledgr? Create an account"}
+              </button>
+            </>)}
           </div>
         </div>
       )}

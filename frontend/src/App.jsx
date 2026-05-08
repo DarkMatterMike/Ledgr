@@ -897,7 +897,75 @@ function AuthGate({ onAuth }) {
 }
 
 
-export default function App() {
+export default /* ── Accept Invite Screen ─────────────────────────────────────────── */
+function AcceptInviteScreen({ token, onAccepted }) {
+  const [status, setStatus]   = useState("loading"); // loading | ready | error | authing
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [email, setEmail]     = useState("");
+  const [password, setPassword] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
+  const [error, setError]     = useState("");
+
+  useEffect(() => {
+    api.checkHouseholdInvite(token)
+      .then(d => {
+        if (!d || d.error) { setStatus("error"); return; }
+        setInviteEmail(d.email || "");
+        setEmail(d.email || "");
+        setStatus("ready");
+      })
+      .catch(() => setStatus("error"));
+  }, [token]);
+
+  async function handleSubmit() {
+    setError(""); setStatus("authing");
+    try {
+      if (isRegister) {
+        await api.register(email, password);
+      } else {
+        await api.login(email, password);
+      }
+      await api.acceptHouseholdInvite(token);
+      onAccepted();
+    } catch(e) {
+      setError(e.message || "Something went wrong");
+      setStatus("ready");
+    }
+  }
+
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)",padding:20}}>
+      <div style={{width:"100%",maxWidth:380,display:"flex",flexDirection:"column",gap:16}}>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800,letterSpacing:"-1px",color:"var(--t1)",textAlign:"center"}}>ledgr.</div>
+        {status === "loading" && <div style={{textAlign:"center",color:"var(--t3)",fontSize:13}}>Checking invite…</div>}
+        {status === "error"   && <div style={{textAlign:"center",color:"var(--red)",fontSize:13}}>This invite link is invalid or has expired.</div>}
+        {(status === "ready" || status === "authing") && (
+          <>
+            <div style={{background:"var(--card)",borderRadius:12,padding:"16px 18px"}}>
+              <div style={{fontSize:14,fontWeight:600,color:"var(--t1)",marginBottom:6}}>You've been invited to a Ledgr household</div>
+              <div style={{fontSize:12,color:"var(--t3)"}}>Sign in or create an account to accept.</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <input style={S.input} placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} type="email"/>
+              <input style={S.input} placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} type="password"
+                onKeyDown={e=>e.key==="Enter"&&handleSubmit()}/>
+            </div>
+            {error && <div style={{fontSize:12,color:"var(--red)"}}>{error}</div>}
+            <button style={{...S.btn("primary"),width:"100%"}} onClick={handleSubmit} disabled={status==="authing"}>
+              {status==="authing" ? "Please wait…" : isRegister ? "Create account & Accept" : "Sign in & Accept"}
+            </button>
+            <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:12,textAlign:"center"}}
+              onClick={()=>setIsRegister(p=>!p)}>
+              {isRegister ? "Already have an account? Sign in" : "New to Ledgr? Create an account"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function App() {
   // Wake up the Railway backend immediately on load to minimize cold start delay
   useEffect(() => {
     fetch((import.meta.env.VITE_API_URL || "") + "/api/health").catch(() => {});
@@ -905,6 +973,7 @@ export default function App() {
 
 
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
+  const inviteToken = new URLSearchParams(window.location.search).get("token");
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());
 
   // Periodically check if token has expired mid-session
@@ -917,6 +986,13 @@ export default function App() {
   }, [isDemo]);
 
   if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
+
+  if (inviteToken && !authed) {
+    return <AcceptInviteScreen token={inviteToken} onAccepted={() => {
+      window.history.replaceState({}, "", window.location.pathname);
+      window.location.reload();
+    }}/>;
+  }
 
   return <AppInner isDemo={isDemo}/>;
 }
@@ -1016,6 +1092,47 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   const [pwSuccess,  setPwSuccess]  = useState(false);
   const [savingPw,   setSavingPw]   = useState(false);
   const [legalDoc,   setLegalDoc]   = useState(null); // "privacy" | "terms" | null
+
+  // Household / Family Sharing
+  const [household,      setHousehold]      = useState(null);
+  const [householdLoaded, setHouseholdLoaded] = useState(false);
+  const [inviteEmail,    setInviteEmail]    = useState("");
+  const [inviting,       setInviting]       = useState(false);
+
+  useEffect(() => {
+    api.getHousehold().then(d => { setHousehold(d?.household || null); setHouseholdLoaded(true); }).catch(() => setHouseholdLoaded(true));
+  }, []);
+
+  async function sendInvite() {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    try {
+      await api.inviteToHousehold(inviteEmail.trim());
+      showToast("Invite sent!");
+      setInviteEmail("");
+      const d = await api.getHousehold();
+      setHousehold(d?.household || null);
+    } catch(e) {
+      showToast(e.message || "Failed to send invite");
+    } finally { setInviting(false); }
+  }
+
+  async function removeMember(memberId) {
+    try {
+      await api.removeHouseholdMember(memberId);
+      const d = await api.getHousehold();
+      setHousehold(d?.household || null);
+      showToast("Member removed");
+    } catch { showToast("Failed to remove member"); }
+  }
+
+  async function leaveHousehold() {
+    try {
+      await api.leaveHousehold();
+      setHousehold(null);
+      showToast("Left household");
+    } catch { showToast("Failed to leave"); }
+  }
 
   // Financial profile local state
   const [profileForm, setProfileForm] = useState(null); // null = not editing
@@ -1719,6 +1836,52 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </button>
           ))}
         </div>
+      </SettingsSection>
+
+      {/* Family Sharing */}
+      <SettingsSection title="Family Sharing">
+        {!householdLoaded ? (
+          <div style={{fontSize:12,color:"var(--t3)"}}>Loading…</div>
+        ) : household?.role === "member" ? (
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{fontSize:13,color:"var(--t2)"}}>
+              You're sharing data with <strong style={{color:"var(--t1)"}}>{household.owner_name || household.owner_email}</strong>.
+            </div>
+            <button style={{...S.btn("ghost"),color:"var(--red)"}} onClick={leaveHousehold}>Leave Household</button>
+          </div>
+        ) : (
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.5}}>
+              Invite your partner to share your transactions, accounts, categories, and recurring items. They'll have their own login and personal settings.
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <input
+                style={{...S.input,flex:1}}
+                placeholder="Partner's email"
+                value={inviteEmail}
+                onChange={e=>setInviteEmail(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&sendInvite()}
+              />
+              <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting}>
+                {inviting ? "Sending…" : "Invite"}
+              </button>
+            </div>
+            {household?.members?.length > 0 && (
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <div style={{fontSize:10,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>Members</div>
+                {household.members.map(m => (
+                  <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"var(--surface)",borderRadius:"var(--radius)"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name || m.invited_email}</div>
+                      <div style={{fontSize:10,color:m.status==="active"?"var(--green)":"var(--amber)",marginTop:1}}>{m.status==="active"?"Active":"Pending invite"}</div>
+                    </div>
+                    <button style={{...S.btn("ghost",true),color:"var(--red)",fontSize:11}} onClick={()=>removeMember(m.id)}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </SettingsSection>
 
       {/* Sign out */}
@@ -6661,6 +6824,11 @@ function AppInner({ isDemo = false }) {
               ) : (
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   <div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:"var(--font-disp)"}}>Expected Expenses</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>-{fmt(firstTotal+secondTotal)}</div>
+                    </div>
+                    <div style={{height:1,background:"var(--border)",margin:"0 0 10px"}}/>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                       <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px"}}>1st – 15th</div>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--red)"}}>{fmt(firstTotal)}</div>

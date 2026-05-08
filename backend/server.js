@@ -68,6 +68,9 @@ const {
   getActiveSystemMessage,
   deleteSystemMessage,
   deactivateSystemMessage,
+  resolveHouseholdUid,
+  getHousehold,
+  emailHouseholdInvite,
 } = require("./db");
 
 /* ── Config ──────────────────────────────────────────────────────── */
@@ -511,7 +514,37 @@ app.get("/api/status-messages/active", async (_req, res) => {
 });
 
 /* ── All routes below require auth ───────────────────────────────── */
+// GET /api/household/accept/:token — public, no auth needed
+// Called when invited user clicks the link in their email
+app.get("/api/household/accept/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const member = await pool.query(
+      `SELECT hm.*, h.owner_id FROM household_members hm
+       JOIN households h ON h.id = hm.household_id
+       WHERE hm.invite_token = $1`,
+      [token]
+    );
+    if (!member.rows.length) return res.status(404).json({ error: "Invalid or expired invite" });
+    const m = member.rows[0];
+    if (m.status === "active") return res.json({ ok: true, alreadyAccepted: true, email: m.invited_email });
+    res.json({ ok: true, email: m.invited_email, token });
+  } catch (err) { serverError(res, err); }
+});
+
 app.use(requireAuth);
+
+// Middleware: attach householdUid to req — the user_id to use for shared data queries
+// Members see the owner's data; owners see their own data.
+async function attachHouseholdUid(req, res, next) {
+  try {
+    req.householdUid = await resolveHouseholdUid(req.user.id);
+  } catch {
+    req.householdUid = req.user.id;
+  }
+  next();
+}
+app.use(attachHouseholdUid);
 
 // Track last activity — update at most once per 5 minutes to avoid a DB write on every request.
 // Uses a simple in-memory map since precision isn't critical — worst case we lose the
@@ -686,34 +719,35 @@ app.get("/api/billing/status", (req, res) => {
 // Transactions, portfolio, AI, and analytics are loaded via their own endpoints.
 app.get("/api/data", async (req, res) => {
   try {
-    const uid = req.user.id;
+    const uid  = req.user.id;          // personal data (theme, profile, prefs)
+    const huid = req.householdUid;     // shared data (transactions, accounts, categories, etc.)
     const [accts, ruleRows, categories, plaidItems, calendarAccounts, calendarSplitView,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
            dashboardCardOrder, aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData,
            recurringItemsData, deletedTransactionsData] = await Promise.all([
-      getAccounts(uid),
-      getRules(uid),
-      getData(uid, "categories"),
-      getData(uid, "plaidItems"),
-      getData(uid, "calendarAccounts"),
-      getData(uid, "calendarSplitView"),
-      getData(uid, "aiCatExamples"),
-      getData(uid, "userProfile"),
-      getData(uid, "dismissedPairs"),
-      getData(uid, "scanMemory"),
-      getData(uid, "goals"),
-      getData(uid, "dashboardCardOrder"),
-      getData(uid, "aiApiKey"),
+      getAccounts(huid),
+      getRules(huid),
+      getData(huid, "categories"),
+      getData(huid, "plaidItems"),
+      getData(uid,  "calendarAccounts"),   // personal pref
+      getData(uid,  "calendarSplitView"),  // personal pref
+      getData(uid,  "aiCatExamples"),      // personal
+      getData(uid,  "userProfile"),        // personal
+      getData(uid,  "dismissedPairs"),     // personal
+      getData(uid,  "scanMemory"),         // personal
+      getData(huid, "goals"),
+      getData(uid,  "dashboardCardOrder"), // personal pref
+      getData(uid,  "aiApiKey"),           // personal
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
         `SELECT item_id, institution, needs_reauth FROM plaid_items WHERE user_id = $1`,
-        [uid]
+        [huid]
       ),
-      getData(uid, "insightsTodos"),  // needed for dashboard Action Items card
-      getData(uid, "dani"),              // owner-only Dani page
-      getData(uid, "theme"),             // user theme preferences
-      getData(uid, "recurringItems"),
-      getData(uid, "deletedTransactions"),
+      getData(huid, "insightsTodos"),
+      getData(uid,  "dani"),              // owner-only Dani page
+      getData(uid,  "theme"),             // personal theme
+      getData(huid, "recurringItems"),
+      getData(huid, "deletedTransactions"),
     ]);
 
     const reauthItemIds = plaidItemRows.rows
@@ -750,7 +784,7 @@ app.get("/api/data", async (req, res) => {
 // Defaults to all transactions sorted by date DESC.
 app.get("/api/transactions", async (req, res) => {
   try {
-    const uid    = req.user.id;
+    const uid    = req.householdUid;
     const limit  = Math.min(parseInt(req.query.limit  || "1000", 10), 1000);
     const offset = parseInt(req.query.offset || "0", 10);
     const sort   = req.query.sort || "date_desc";
@@ -937,65 +971,60 @@ app.get("/api/data/summary", async (req, res) => {
 // Writes require subscription
 app.patch("/api/data", requireSubscription, async (req, res) => {
   try {
-    const uid = req.user.id;
+    const uid  = req.user.id;       // personal prefs
+    const huid = req.householdUid;  // shared household data
     const { categories, plaidItems, dani, theme, calendarAccounts, calendarSplitView,
             investmentAccounts, holdings, netWorthSnapshots, aiMessages, aiCatExamples,
             userProfile, insightsTodos, analyticsInsights, dismissedPairs, scanMemory,
             aiConversations, aiCurrentConvId, goals, customAccountNames, dashboardCardOrder,
             recurringItems, deletedTransactions } = req.body;
     const ops = [];
-    // accounts → POST/PATCH/DELETE /api/accounts/*
-    // rules    → POST/PATCH/DELETE /api/rules/*
-    // transactions → PATCH/DELETE /api/transactions/*
     if (categories !== undefined) {
-      // Guard: never overwrite existing categories with an empty array.
-      // Also block suspiciously small saves (1-2 items) when user has many more.
       if (Array.isArray(categories) && categories.length === 0) {
-        const existing = await getData(uid, "categories");
+        const existing = await getData(huid, "categories");
         if (Array.isArray(existing) && existing.length > 0) {
-          console.warn(`BLOCKED empty categories save for user ${uid} — DB has ${existing.length}`);
-          // Skip — do not push to ops
+          console.warn(`BLOCKED empty categories save for user ${huid} — DB has ${existing.length}`);
         } else {
-          ops.push(setData(uid, "categories", categories));
+          ops.push(setData(huid, "categories", categories));
         }
       } else {
-        ops.push(setData(uid, "categories", categories));
+        ops.push(setData(huid, "categories", categories));
       }
     }
     if (goals !== undefined) {
-      // Same guard for goals
       if (Array.isArray(goals) && goals.length === 0) {
-        const existing = await getData(uid, "goals");
+        const existing = await getData(huid, "goals");
         if (Array.isArray(existing) && existing.length > 0) {
-          console.warn(`BLOCKED empty goals save for user ${uid} — DB has ${existing.length}`);
+          console.warn(`BLOCKED empty goals save for user ${huid} — DB has ${existing.length}`);
         } else {
-          ops.push(setData(uid, "goals", goals));
+          ops.push(setData(huid, "goals", goals));
         }
       } else if (goals !== undefined) {
-        ops.push(setData(uid, "goals", goals));
+        ops.push(setData(huid, "goals", goals));
       }
     }
-    if (plaidItems         !== undefined) ops.push(setData(uid, "plaidItems",         plaidItems));
-    if (Array.isArray(calendarAccounts))   ops.push(setData(uid, "calendarAccounts",   calendarAccounts));
-    if (calendarSplitView)                  ops.push(setData(uid, "calendarSplitView", calendarSplitView));
-    if (Array.isArray(investmentAccounts)) ops.push(setData(uid, "investmentAccounts", investmentAccounts));
-    if (Array.isArray(holdings))           ops.push(setData(uid, "holdings",           holdings));
-    if (Array.isArray(netWorthSnapshots))  ops.push(setData(uid, "netWorthSnapshots",  netWorthSnapshots));
-    if (Array.isArray(aiMessages))         ops.push(setData(uid, "aiMessages",         aiMessages));
-    if (Array.isArray(aiCatExamples))      ops.push(setData(uid, "aiCatExamples",      aiCatExamples));
+    // Shared data → huid
+    if (plaidItems         !== undefined) ops.push(setData(huid, "plaidItems",         plaidItems));
+    if (Array.isArray(recurringItems))      ops.push(setData(huid, "recurringItems",      recurringItems));
+    if (Array.isArray(deletedTransactions)) ops.push(setData(huid, "deletedTransactions", deletedTransactions));
+    if (Array.isArray(insightsTodos))       ops.push(setData(huid, "insightsTodos",       insightsTodos));
+    // Personal prefs → uid
+    if (Array.isArray(calendarAccounts))    ops.push(setData(uid,  "calendarAccounts",    calendarAccounts));
+    if (calendarSplitView)                  ops.push(setData(uid,  "calendarSplitView",   calendarSplitView));
+    if (Array.isArray(investmentAccounts))  ops.push(setData(uid,  "investmentAccounts",  investmentAccounts));
+    if (Array.isArray(holdings))            ops.push(setData(uid,  "holdings",            holdings));
+    if (Array.isArray(netWorthSnapshots))   ops.push(setData(uid,  "netWorthSnapshots",   netWorthSnapshots));
+    if (Array.isArray(aiMessages))          ops.push(setData(uid,  "aiMessages",          aiMessages));
+    if (Array.isArray(aiCatExamples))       ops.push(setData(uid,  "aiCatExamples",       aiCatExamples));
     if (userProfile !== undefined && userProfile !== null) ops.push(setData(uid, "userProfile", userProfile));
-    if (Array.isArray(insightsTodos))      ops.push(setData(uid, "insightsTodos",      insightsTodos));
-    if (dani !== undefined)                ops.push(setData(uid, "dani",              dani));
-    if (theme !== undefined)               ops.push(setData(uid, "theme",             theme));
-    if (analyticsInsights !== undefined)   ops.push(setData(uid, "analyticsInsights",  analyticsInsights));
-    if (Array.isArray(dismissedPairs))     ops.push(setData(uid, "dismissedPairs",     dismissedPairs));
-    if (scanMemory !== undefined)          ops.push(setData(uid, "scanMemory",         scanMemory));
-    if (Array.isArray(aiConversations))    ops.push(setData(uid, "aiConversations",    aiConversations));
-    if (aiCurrentConvId !== undefined)     ops.push(setData(uid, "aiCurrentConvId",    aiCurrentConvId));
-    // goals handled by guard above
-    if (Array.isArray(dashboardCardOrder))  ops.push(setData(uid, "dashboardCardOrder", dashboardCardOrder));
-    if (Array.isArray(recurringItems))      ops.push(setData(uid, "recurringItems",      recurringItems));
-    if (Array.isArray(deletedTransactions)) ops.push(setData(uid, "deletedTransactions", deletedTransactions));
+    if (dani !== undefined)                 ops.push(setData(uid,  "dani",                dani));
+    if (theme !== undefined)                ops.push(setData(uid,  "theme",               theme));
+    if (analyticsInsights !== undefined)    ops.push(setData(uid,  "analyticsInsights",   analyticsInsights));
+    if (Array.isArray(dismissedPairs))      ops.push(setData(uid,  "dismissedPairs",      dismissedPairs));
+    if (scanMemory !== undefined)           ops.push(setData(uid,  "scanMemory",          scanMemory));
+    if (Array.isArray(aiConversations))     ops.push(setData(uid,  "aiConversations",     aiConversations));
+    if (aiCurrentConvId !== undefined)      ops.push(setData(uid,  "aiCurrentConvId",     aiCurrentConvId));
+    if (dashboardCardOrder !== undefined)   ops.push(setData(uid,  "dashboardCardOrder",  dashboardCardOrder));
     await Promise.all(ops);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
@@ -1011,7 +1040,7 @@ app.post("/api/accounts", requireSubscription, async (req, res) => {
   try {
     const a = req.body;
     if (!a?.id || !a?.name) return res.status(400).json({ error: "id and name required" });
-    await upsertAccount(req.user.id, { ...a, isManual: true });
+    await upsertAccount(req.householdUid, { ...a, isManual: true });
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
@@ -1019,7 +1048,7 @@ app.post("/api/accounts", requireSubscription, async (req, res) => {
 // DELETE /api/accounts/all — wipe all accounts for this user
 app.delete("/api/accounts/all", requireSubscription, async (req, res) => {
   try {
-    await deleteAllAccounts(req.user.id);
+    await deleteAllAccounts(req.householdUid);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
@@ -1442,7 +1471,7 @@ app.delete("/api/transactions/all", requireSubscription, async (req, res) => {
 app.patch("/api/transactions/:id", requireSubscription, async (req, res) => {
   try {
     const { id } = req.params;
-    const sets = [], vals = [req.user.id, id];
+    const sets = [], vals = [req.householdUid, id];
     for (const [camel, snake] of Object.entries(TXN_FIELD_MAP)) {
       if (req.body[camel] !== undefined) {
         vals.push(req.body[camel] === "" ? null : req.body[camel]);
@@ -1466,7 +1495,108 @@ app.delete("/api/transactions/:id", requireSubscription, async (req, res) => {
   try {
     await pool.query(
       `DELETE FROM transactions WHERE user_id = $1 AND id = $2`,
-      [req.user.id, req.params.id]
+      [req.householdUid, req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   HOUSEHOLD — family sharing
+═══════════════════════════════════════════════════════════════════ */
+
+// GET /api/household — get current user's household info
+app.get("/api/household", async (req, res) => {
+  try {
+    const h = await getHousehold(req.user.id);
+    res.json({ household: h });
+  } catch (err) { serverError(res, err); }
+});
+
+// POST /api/household/invite — owner invites a member by email
+app.post("/api/household/invite", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "email required" });
+    const inviteeEmail = email.toLowerCase().trim();
+
+    // Get or create this user's household
+    let h = await pool.query(`SELECT id FROM households WHERE owner_id = $1`, [req.user.id]);
+    let householdId;
+    if (h.rows.length) {
+      householdId = h.rows[0].id;
+    } else {
+      const newH = await pool.query(
+        `INSERT INTO households (owner_id) VALUES ($1) RETURNING id`,
+        [req.user.id]
+      );
+      householdId = newH.rows[0].id;
+    }
+
+    // Check if already invited
+    const existing = await pool.query(
+      `SELECT id FROM household_members WHERE household_id = $1 AND invited_email = $2`,
+      [householdId, inviteeEmail]
+    );
+    if (existing.rows.length) return res.status(409).json({ error: "Already invited" });
+
+    const token = require("crypto").randomBytes(32).toString("hex");
+    await pool.query(
+      `INSERT INTO household_members (household_id, invited_email, invite_token, status) VALUES ($1, $2, $3, 'pending')`,
+      [householdId, inviteeEmail, token]
+    );
+
+    const inviter = await pool.query(`SELECT name, email FROM users WHERE id = $1`, [req.user.id]);
+    const inviterName = inviter.rows[0]?.name || inviter.rows[0]?.email || "A Ledgr user";
+    await emailHouseholdInvite(inviteeEmail, inviterName, token);
+
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/household/member/:id — owner removes a member
+app.delete("/api/household/member/:id", async (req, res) => {
+  try {
+    // Verify the member belongs to a household owned by the requesting user
+    const { rowCount } = await pool.query(`
+      DELETE FROM household_members hm
+      USING households h
+      WHERE hm.id = $1 AND hm.household_id = h.id AND h.owner_id = $2
+    `, [req.params.id, req.user.id]);
+    if (!rowCount) return res.status(404).json({ error: "Member not found" });
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// POST /api/household/accept — authenticated user accepts an invite
+app.post("/api/household/accept", async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: "token required" });
+    const member = await pool.query(
+      `SELECT * FROM household_members WHERE invite_token = $1`,
+      [token]
+    );
+    if (!member.rows.length) return res.status(404).json({ error: "Invalid token" });
+    const m = member.rows[0];
+    // Verify the logged-in user's email matches the invite
+    if (m.invited_email !== req.user.email.toLowerCase().trim()) {
+      return res.status(403).json({ error: "This invite was sent to a different email address" });
+    }
+    await pool.query(
+      `UPDATE household_members SET status = 'active', user_id = $1, invite_token = NULL WHERE id = $2`,
+      [req.user.id, m.id]
+    );
+    res.json({ ok: true });
+  } catch (err) { serverError(res, err); }
+});
+
+// DELETE /api/household/leave — member leaves a household
+app.delete("/api/household/leave", async (req, res) => {
+  try {
+    await pool.query(
+      `DELETE FROM household_members WHERE user_id = $1 AND status = 'active'`,
+      [req.user.id]
     );
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }

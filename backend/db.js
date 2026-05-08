@@ -217,6 +217,30 @@ async function initDB() {
       expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
     );
   `);
+
+  // ── Households (family sharing) ──────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS households (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS household_members (
+      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      household_id   UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+      user_id        UUID REFERENCES users(id) ON DELETE CASCADE,
+      invited_email  TEXT NOT NULL,
+      invite_token   TEXT UNIQUE,
+      status         TEXT NOT NULL DEFAULT 'pending',
+      created_at     BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_household_owner  ON households(owner_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_household_member ON household_members(user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_household_token  ON household_members(invite_token)`);
+
   console.info("  =>  Database ready");
 }
 
@@ -1026,6 +1050,138 @@ async function deactivateSystemMessage(id) {
 }
 
 /* ── Exports ──────────────────────────────────────────────────────── */
+/* ── Household helpers ──────────────────────────────────────────── */
+
+/**
+ * Given a user_id, returns the household owner's user_id.
+ * If the user owns a household or is a member of one, returns the owner's id.
+ * Otherwise returns the user's own id (no household).
+ */
+async function resolveHouseholdUid(userId) {
+  // Check if this user owns a household
+  const owned = await pool.query(
+    `SELECT id FROM households WHERE owner_id = $1 LIMIT 1`,
+    [userId]
+  );
+  if (owned.rows.length) return userId;
+
+  // Check if this user is an active member of someone else's household
+  const membership = await pool.query(`
+    SELECT h.owner_id FROM household_members hm
+    JOIN households h ON h.id = hm.household_id
+    WHERE hm.user_id = $1 AND hm.status = 'active'
+    LIMIT 1
+  `, [userId]);
+  if (membership.rows.length) return membership.rows[0].owner_id;
+
+  return userId;
+}
+
+async function getHousehold(userId) {
+  // Get household this user owns or belongs to
+  const owned = await pool.query(`
+    SELECT h.id, h.owner_id, u.email as owner_email, u.name as owner_name
+    FROM households h JOIN users u ON u.id = h.owner_id
+    WHERE h.owner_id = $1 LIMIT 1
+  `, [userId]);
+  if (owned.rows.length) {
+    const h = owned.rows[0];
+    const members = await pool.query(`
+      SELECT hm.id, hm.invited_email, hm.status, hm.user_id, u.name
+      FROM household_members hm LEFT JOIN users u ON u.id = hm.user_id
+      WHERE hm.household_id = $1 ORDER BY hm.created_at
+    `, [h.id]);
+    return { ...h, role: "owner", members: members.rows };
+  }
+  const member = await pool.query(`
+    SELECT h.id, h.owner_id, u.email as owner_email, u.name as owner_name, hm.status
+    FROM household_members hm
+    JOIN households h ON h.id = hm.household_id
+    JOIN users u ON u.id = h.owner_id
+    WHERE hm.user_id = $1 AND hm.status = 'active' LIMIT 1
+  `, [userId]);
+  if (member.rows.length) return { ...member.rows[0], role: "member", members: [] };
+  return null;
+}
+
+async function emailHouseholdInvite(toEmail, inviterName, inviteToken) {
+  if (!resend) { console.warn("Resend not configured — skipping invite email"); return; }
+  const link = `${FRONTEND_URL}/accept-invite?token=${inviteToken}`;
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: toEmail,
+    subject: `${inviterName || "Someone"} invited you to join their Ledgr household`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <h2 style="color:#00d4ff">You've been invited to Ledgr</h2>
+        <p><strong>${inviterName || "A Ledgr user"}</strong> has invited you to share their financial data on Ledgr.</p>
+        <p>Once you accept, you'll see all their transactions, accounts, categories, and recurring items.</p>
+        <a href="${link}" style="display:inline-block;margin:20px 0;padding:12px 24px;background:#00d4ff;color:#000;border-radius:6px;text-decoration:none;font-weight:700">Accept Invite</a>
+        <p style="color:#888;font-size:12px">This link expires in 7 days. If you didn't expect this, you can ignore it.</p>
+      </div>
+    `,
+  });
+}
+
+/* ── Household helpers ──────────────────────────────────────────── */
+
+async function resolveHouseholdUid(userId) {
+  // If user owns a household, they are the data owner
+  const owned = await pool.query(`SELECT id FROM households WHERE owner_id = $1 LIMIT 1`, [userId]);
+  if (owned.rows.length) return userId;
+  // If user is an active member, return the owner's id
+  const membership = await pool.query(`
+    SELECT h.owner_id FROM household_members hm
+    JOIN households h ON h.id = hm.household_id
+    WHERE hm.user_id = $1 AND hm.status = 'active' LIMIT 1
+  `, [userId]);
+  if (membership.rows.length) return membership.rows[0].owner_id;
+  return userId;
+}
+
+async function getHousehold(userId) {
+  const owned = await pool.query(`
+    SELECT h.id, h.owner_id, u.email as owner_email, u.name as owner_name
+    FROM households h JOIN users u ON u.id = h.owner_id
+    WHERE h.owner_id = $1 LIMIT 1
+  `, [userId]);
+  if (owned.rows.length) {
+    const h = owned.rows[0];
+    const members = await pool.query(`
+      SELECT hm.id, hm.invited_email, hm.status, hm.user_id, u.name
+      FROM household_members hm LEFT JOIN users u ON u.id = hm.user_id
+      WHERE hm.household_id = $1 ORDER BY hm.created_at
+    `, [h.id]);
+    return { ...h, role: "owner", members: members.rows };
+  }
+  const member = await pool.query(`
+    SELECT h.id, h.owner_id, u.email as owner_email, u.name as owner_name, hm.status
+    FROM household_members hm
+    JOIN households h ON h.id = hm.household_id
+    JOIN users u ON u.id = h.owner_id
+    WHERE hm.user_id = $1 AND hm.status = 'active' LIMIT 1
+  `, [userId]);
+  if (member.rows.length) return { ...member.rows[0], role: "member", members: [] };
+  return null;
+}
+
+async function emailHouseholdInvite(toEmail, inviterName, inviteToken) {
+  if (!resend) { console.warn("Resend not configured"); return; }
+  const link = `${FRONTEND_URL}/accept-invite?token=${inviteToken}`;
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: toEmail,
+    subject: `${inviterName || "Someone"} invited you to join their Ledgr household`,
+    html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+      <h2 style="color:#00d4ff">You've been invited to Ledgr</h2>
+      <p><strong>${inviterName || "A Ledgr user"}</strong> has invited you to share their financial data on Ledgr.</p>
+      <p>Once you accept, you'll see all their transactions, accounts, categories, and recurring items.</p>
+      <a href="${link}" style="display:inline-block;margin:20px 0;padding:12px 24px;background:#00d4ff;color:#000;border-radius:6px;text-decoration:none;font-weight:700">Accept Invite</a>
+      <p style="color:#888;font-size:12px">This link expires in 7 days.</p>
+    </div>`,
+  });
+}
+
 module.exports = {
   pool,
   initDB,
@@ -1071,6 +1227,12 @@ module.exports = {
   sendEmail,
   emailWelcome,
   emailTrialExpiring,
+  resolveHouseholdUid,
+  getHousehold,
+  emailHouseholdInvite,
+  resolveHouseholdUid,
+  getHousehold,
+  emailHouseholdInvite,
   emailSubscriptionConfirmed,
   emailPasswordReset,
   // Plaid client + sync

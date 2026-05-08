@@ -2337,7 +2337,7 @@ function AppInner({ isDemo = false }) {
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
       if (data.userProfile)    setUserProfile(p => ({ ...p, ...data.userProfile }));
       if (data.goals)              setGoals(data.goals);
-      if (Array.isArray(data.dashboardCardOrder)) setDashboardCardOrder(data.dashboardCardOrder);
+      if (data.dashboardCardOrder) setDashboardCardOrder(data.dashboardCardOrder);
       if (data.customAccountNames && Object.keys(data.customAccountNames).length) {
         setCustomAccountNames(data.customAccountNames);
         setAccounts(prev => prev.map(a =>

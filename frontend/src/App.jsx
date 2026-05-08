@@ -442,11 +442,17 @@ function useDashboardColumns(defaultCols, scheduleSaveRef) {
   }
 
   const [cols, setCols] = useState(() => normalize(defaultCols));
+  const needsMigrationRef = useRef(Array.isArray(defaultCols));
   const prevRef = useRef(JSON.stringify(defaultCols));
   const key = JSON.stringify(defaultCols);
   if (key !== prevRef.current) {
     prevRef.current = key;
-    setCols(normalize(defaultCols));
+    const normalized = normalize(defaultCols);
+    setCols(normalized);
+    // If the incoming value was a flat array, immediately persist the normalized format
+    if (Array.isArray(defaultCols)) {
+      scheduleSaveRef?.current?.({ dashboardCardOrder: normalized });
+    }
   }
 
   function moveItem(colKey, idx, dir) {

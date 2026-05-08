@@ -973,6 +973,7 @@ function App() {
 
 
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
+  const _v = 6;
   const rawInvite = new URLSearchParams(window.location.search).get("invite");
   // Only treat as a valid invite token if it looks like a 64-char hex string (v5)
   const inviteToken = rawInvite && /^[a-f0-9]{64}$/.test(rawInvite) ? rawInvite : null;

@@ -6610,6 +6610,13 @@ function AppInner({ isDemo = false }) {
 
               {calendarSplitView==="full" ? (
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {/* Expected Expenses header */}
+                  {acctEntries.length > 0 && (
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                      <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:"var(--font-disp)"}}>Expected Expenses</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>-{fmt(acctTotal)}</div>
+                    </div>
+                  )}
                   {acctEntries.length===0
                     ? <div style={{fontSize:12,color:"var(--t3)"}}>No charges</div>
                     : acctEntries.slice(0,4).map(acct=>(

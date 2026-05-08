@@ -1,4 +1,4 @@
-/**
+﻿/**
  * App.jsx
  *
  * Root application component and main orchestrator.
@@ -7603,7 +7603,7 @@ function AppInner({ isDemo = false }) {
     )}
 
     {/* Beta banner */}
-    <div style={{flexShrink:0,background:"var(--cyan-dim)",border:"none",borderBottom:"1px solid var(--cyan)33",padding:"5px 16px",textAlign:"center",fontSize:11,color:"var(--t2)"}}>
+    <div style={{flexShrink:0,background:"var(--surface)",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"5px 16px",textAlign:"center",fontSize:11,color:"var(--t3)"}}>
       <span style={{color:"var(--cyan)",fontWeight:700,fontSize:9,letterSpacing:"1px",textTransform:"uppercase",marginRight:6}}>Beta</span>
       You may experience issues — report bugs via the{" "}
       <button onClick={()=>navigate("settings")} style={{background:"none",border:"none",color:"var(--cyan)",cursor:"pointer",fontSize:11,fontWeight:600,padding:0,textDecoration:"underline",opacity:0.7}}>Support</button>

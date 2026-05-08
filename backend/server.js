@@ -688,21 +688,45 @@ app.post("/api/billing/create-checkout", async (req, res) => {
   }
 });
 
-/* Create family plan checkout session ($9.99/mo) */
+/* Create/upgrade to family plan ($9.99/mo) */
 app.post("/api/billing/create-family-checkout", async (req, res) => {
   if (!STRIPE_FAMILY_PRICE_ID) return res.status(500).json({ error: "Family plan not configured" });
   try {
-    let customerId = req.user.stripe_customer_id;
-    if (!customerId) {
+    const customerId = req.user.stripe_customer_id;
+
+    // If user already has an active subscription, upgrade it in place (no new checkout)
+    if (customerId && req.user.subscription_status === "active") {
+      const subs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
+      if (subs.data.length > 0) {
+        const sub = subs.data[0];
+        const itemId = sub.items.data[0].id;
+        // Update subscription to family price — Stripe prorates automatically
+        await stripe.subscriptions.update(sub.id, {
+          items: [{ id: itemId, price: STRIPE_FAMILY_PRICE_ID }],
+          proration_behavior: "create_prorations",
+          metadata: { userId: req.user.id },
+        });
+        // Update DB immediately
+        await pool.query(
+          "UPDATE users SET stripe_price_id = $1 WHERE id = $2",
+          [STRIPE_FAMILY_PRICE_ID, req.user.id]
+        );
+        return res.json({ upgraded: true });
+      }
+    }
+
+    // No existing subscription — create new checkout session
+    let cid = customerId;
+    if (!cid) {
       const customer = await stripe.customers.create({
         email: req.user.email,
         metadata: { userId: req.user.id },
       });
-      customerId = customer.id;
-      await pool.query("UPDATE users SET stripe_customer_id = $1 WHERE id = $2", [customerId, req.user.id]);
+      cid = customer.id;
+      await pool.query("UPDATE users SET stripe_customer_id = $1 WHERE id = $2", [cid, req.user.id]);
     }
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+      customer: cid,
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: STRIPE_FAMILY_PRICE_ID, quantity: 1 }],

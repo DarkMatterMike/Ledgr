@@ -1266,10 +1266,18 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
               <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Active — $4.99/month</div>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>
+                  {isFamilyPlan ? "Family Plan — $9.99/month" : "Active — $4.99/month"}
+                </div>
                 <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>Your subscription is active</div>
               </div>
             </div>
+            {!isFamilyPlan && (
+              <button onClick={async () => { try { const res = await api.startFamilyCheckout(); if(res.upgraded){ showToast("Upgraded to Family plan!"); window.location.reload(); } else { window.location.href=res.url; } } catch(e) { showToast("Failed to start checkout"); } }}
+                style={{ ...S.btn("primary"), justifyContent:"center" }}>
+                Upgrade to Family — $9.99/mo
+              </button>
+            )}
             <button onClick={async () => { try { await api.openBillingPortal(); } catch(e) { showToast("Failed to open portal"); } }}
               style={{ ...S.btn("ghost"), justifyContent:"center" }}>
               Manage Subscription ←
@@ -1864,7 +1872,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               </div>
             </div>
             <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}}
-              onClick={async()=>{ try { const {url} = await api.startFamilyCheckout(); window.location.href=url; } catch(e) { showToast("Failed to start checkout"); } }}>
+              onClick={async()=>{ try { const res = await api.startFamilyCheckout(); if(res.upgraded){ showToast("Upgraded to Family plan!"); window.location.reload(); } else { window.location.href=res.url; } } catch(e) { showToast("Failed to start checkout"); } }}>
               Upgrade to Family — $9.99/mo
             </button>
             {user?.subscription_status === "active" && (

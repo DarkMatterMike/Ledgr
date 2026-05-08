@@ -2277,7 +2277,7 @@ function AppInner({ isDemo = false }) {
   const [daniData,      setDaniData]      = useState({ tab1:{ selectedAccountId:null, wishlist:[] }, tab2:{ selectedAccountId:null, wishlist:[] } });
   const [goals, setGoals] = useState([]);
   const [customAccountNames, setCustomAccountNames] = useState({});
-  const [dashboardCardOrder, setDashboardCardOrder] = useState(["spending","budget","action","goals","upcoming"]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
+  const [dashboardCardOrder, setDashboardCardOrder] = useState(["spending","balances","budget","action","goals","upcoming"]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* -- Demo mode: inject fake data once on mount -- */
   useEffect(() => {
@@ -3984,6 +3984,42 @@ function AppInner({ isDemo = false }) {
     </div>
   );
 
+  /* ── AccountBalanceStrip ──────────────────────────────────── */
+  const AccountBalanceStrip = accounts.length === 0 ? null : (
+    <div className="obsidian-card" style={{...S.card, padding:"0"}}>
+      <div style={{
+        display:"flex", overflow:"hidden", overflowX:"auto",
+        scrollbarWidth:"none", msOverflowStyle:"none",
+        alignItems:"center",
+      }}>
+        {accounts.map((acct, i) => {
+          const isCredit = acct.type === "credit" || acct.subtype === "credit card";
+          const isSavings = acct.type === "savings" || acct.subtype === "savings";
+          const color = isCredit ? "var(--red)" : isSavings ? "var(--green)" : "var(--cyan)";
+          return (
+            <div
+              key={acct.id}
+              onClick={() => navigate("accounts")}
+              style={{
+                flexShrink:0, display:"flex", alignItems:"center", gap:6,
+                padding:"9px 14px",
+                borderRight: i < accounts.length - 1 ? "1px solid var(--border2)" : "none",
+                cursor:"pointer",
+              }}
+            >
+              <div style={{width:6, height:6, borderRadius:"50%", background:color, flexShrink:0}}/>
+              <span style={{fontSize:11, color:"var(--t2)", whiteSpace:"nowrap"}}>
+                {acct.name?.replace(/^(stearns|capital one|cap1)\s*/i, "").trim() || acct.name}
+              </span>
+              <span style={{fontFamily:"var(--font-mono)", fontSize:12, fontWeight:700, color, whiteSpace:"nowrap"}}>
+                {acct.balance != null ? fmt(Math.abs(acct.balance)) : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   /* ── CashFlowCard ─────────────────────────────────── */
   const CashFlowCard = (
@@ -4192,6 +4228,7 @@ function AppInner({ isDemo = false }) {
 
     return {
       spending: SpendingBreakdownCard,
+      balances: AccountBalanceStrip,
       budget: (
         <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
@@ -7149,7 +7186,7 @@ function AppInner({ isDemo = false }) {
     : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView };
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"transparent",flexDirection:"column",gap:10}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
       <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</div>
       <div style={{position:"relative",display:"inline-block"}}>
         <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>

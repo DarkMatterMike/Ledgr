@@ -1106,7 +1106,7 @@ async function getHousehold(userId) {
 
 async function emailHouseholdInvite(toEmail, inviterName, inviteToken) {
   if (!resend) { console.warn("Resend not configured — skipping invite email"); return; }
-  const link = `${FRONTEND_URL}/accept-invite?token=${inviteToken}`;
+  const link = `${FRONTEND_URL}?invite=${inviteToken}`;
   await resend.emails.send({
     from: FROM_EMAIL,
     to: toEmail,

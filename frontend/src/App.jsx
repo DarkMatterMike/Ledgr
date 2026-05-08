@@ -973,7 +973,7 @@ function App() {
 
 
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
-  const inviteToken = new URLSearchParams(window.location.search).get("token");
+  const inviteToken = new URLSearchParams(window.location.search).get("invite");
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());
 
   // Periodically check if token has expired mid-session

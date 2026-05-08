@@ -4014,18 +4014,17 @@ function AppInner({ isDemo = false }) {
 
   /* ── AccountBalanceStrip ──────────────────────────────────── */
   const AccountBalanceStrip = accounts.length === 0 ? null : (
-    <div className="obsidian-card" style={{...S.card, padding:0}}>
-      <div style={{display:"flex",overflowX:"auto",scrollbarWidth:"none",alignItems:"center"}}>
+    <div className="obsidian-card" style={{...S.card, padding:0, overflow:"hidden"}}>
+      <div style={{display:"flex",overflowX:"auto",scrollbarWidth:"none",msOverflowStyle:"none",alignItems:"center",WebkitOverflowScrolling:"touch"}}>
         {accounts.map((acct, i) => {
           const t = (acct.type||"").toLowerCase();
           const color = t.includes("credit") ? "var(--red)" : t.includes("saving") ? "var(--green)" : "var(--cyan)";
-          const name = (acct.name||"").replace(/^(stearns bank|stearns|capital one|cap1)\s+/i,"").trim() || acct.name;
           return (
             <div key={acct.id} onClick={()=>navigate("accounts")}
               style={{flexShrink:0,display:"flex",alignItems:"center",gap:6,padding:"9px 14px",
                 borderRight:i<accounts.length-1?"1px solid var(--border2)":"none",cursor:"pointer"}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:color,flexShrink:0}}/>
-              <span style={{fontSize:11,color:"var(--t2)",whiteSpace:"nowrap"}}>{name}</span>
+              <span style={{fontSize:11,color:"var(--t2)",whiteSpace:"nowrap"}}>{acct.name}</span>
               <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color,whiteSpace:"nowrap"}}>
                 {acct.balance != null ? fmt(Math.abs(acct.balance)) : "—"}
               </span>

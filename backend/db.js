@@ -28,7 +28,7 @@ const PLAID_ENV     = process.env.PLAID_ENV    || "sandbox";
 const ENCRYPT_KEY   = process.env.ENCRYPT_KEY;
 const OWNER_EMAIL   = process.env.OWNER_EMAIL;
 const BCRYPT_ROUNDS = 12;
-const FROM_EMAIL    = "noreply@send.ledgrfinance.app";
+const FROM_EMAIL    = "noreply@ledgrfinance.app";
 
 /* ── Encryption ───────────────────────────────────────────────────── */
 function encrypt(text) {

@@ -4417,6 +4417,10 @@ function AppInner({ isDemo = false }) {
               <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Income</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--green)"}}>{fmt(totalIncome)}</div></div>
               <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</div></div>
             </div>
+            <button onClick={()=>setDashEditMode(p=>!p)}
+              style={{...S.btn("ghost",true),fontSize:11,color:dashEditMode?"var(--cyan)":"var(--t3)",marginLeft:"auto",flexShrink:0}}>
+              {dashEditMode?"✓ Done":"⇅ Reorder"}
+            </button>
           </div>
         </div>
       )}
@@ -4464,12 +4468,6 @@ function AppInner({ isDemo = false }) {
       ) : (
         /* Desktop: true 3-column layout, each column independently ordered */
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:-4}}>
-            <button onClick={()=>setDashEditMode(p=>!p)}
-              style={{...S.btn("ghost",true),fontSize:11,color:dashEditMode?"var(--cyan)":"var(--t3)"}}>
-              {dashEditMode?"✓ Done":"⇅ Reorder"}
-            </button>
-          </div>
           <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
             {["col1","col2","col3"].map(colKey => (
               <div key={colKey} style={{display:"flex",flexDirection:"column",gap:10}}>

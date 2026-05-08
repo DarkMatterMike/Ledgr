@@ -124,20 +124,6 @@ function DaniTab({ accounts, recurringTxns, recurringItems=[], tabData, onTabSav
   const account=accounts.find(a=>a.id===selectedAccountId)||accounts[0]||null;
   const balance=account?.balance??0;
 
-  const freeToSpend=useMemo(()=>{
-    if(!account) return 0;
-    const todayDay=today.getDate(),DEDUCTION=1100;
-    let expenses=0,income=0;
-    allRecurring.forEach(t=>{
-      if(account&&t.accountId&&t.accountId!==account.id) return;
-      const days=getOccurrenceDaysThisMonth(t).filter(d=>d>todayDay);
-      if(!days.length) return;
-      if(t.amount<0) expenses+=Math.abs(t.amount)*days.length;
-      else income+=Math.max(0,t.amount-DEDUCTION)*days.length;
-    });
-    return Math.max(0, (balance-100)-expenses+income);
-  },[account,allRecurring,balance]);
-
   // Merge recurringItems into recurring txn format for upcoming calculations
   const allRecurring = useMemo(() => {
     const fromItems = recurringItems.map(item => ({
@@ -155,6 +141,20 @@ function DaniTab({ accounts, recurringTxns, recurringItems=[], tabData, onTabSav
     }));
     return [...recurringTxns, ...fromItems];
   }, [recurringTxns, recurringItems]);
+
+  const freeToSpend=useMemo(()=>{
+    if(!account) return 0;
+    const todayDay=today.getDate(),DEDUCTION=1100;
+    let expenses=0,income=0;
+    allRecurring.forEach(t=>{
+      if(account&&t.accountId&&t.accountId!==account.id) return;
+      const days=getOccurrenceDaysThisMonth(t).filter(d=>d>todayDay);
+      if(!days.length) return;
+      if(t.amount<0) expenses+=Math.abs(t.amount)*days.length;
+      else income+=Math.max(0,t.amount-DEDUCTION)*days.length;
+    });
+    return Math.max(0, (balance-100)-expenses+income);
+  },[account,allRecurring,balance]);
 
   const upcomingBills=useMemo(()=>{
     if(!account) return[];

@@ -15,13 +15,10 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
-        hoistTransitiveImports: false,
-        chunkFileNames: "assets/[name]-[hash]-v2.js",
-        entryFileNames: "assets/[name]-[hash]-v2.js",
-        assetFileNames: "assets/[name]-[hash]-v2.[ext]",
+        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
       },
     },
   },

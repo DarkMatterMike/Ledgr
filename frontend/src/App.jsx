@@ -2277,7 +2277,7 @@ function AppInner({ isDemo = false }) {
   const [daniData,      setDaniData]      = useState({ tab1:{ selectedAccountId:null, wishlist:[] }, tab2:{ selectedAccountId:null, wishlist:[] } });
   const [goals, setGoals] = useState([]);
   const [customAccountNames, setCustomAccountNames] = useState({});
-  const [dashboardCardOrder, setDashboardCardOrder] = useState(["spending","budget","action","goals","upcoming"]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
+  const [dashboardCardOrder, setDashboardCardOrder] = useState(["spending","balances","budget","action","goals","upcoming"]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* -- Demo mode: inject fake data once on mount -- */
   useEffect(() => {
@@ -3985,6 +3985,30 @@ function AppInner({ isDemo = false }) {
   );
 
 
+  /* ── AccountBalanceStrip ──────────────────────────────────── */
+  const AccountBalanceStrip = accounts.length === 0 ? null : (
+    <div className="obsidian-card" style={{...S.card, padding:0}}>
+      <div style={{display:"flex",overflowX:"auto",scrollbarWidth:"none",alignItems:"center"}}>
+        {accounts.map((acct, i) => {
+          const t = (acct.type||"").toLowerCase();
+          const color = t.includes("credit") ? "var(--red)" : t.includes("saving") ? "var(--green)" : "var(--cyan)";
+          const name = (acct.name||"").replace(/^(stearns bank|stearns|capital one|cap1)\s+/i,"").trim() || acct.name;
+          return (
+            <div key={acct.id} onClick={()=>navigate("accounts")}
+              style={{flexShrink:0,display:"flex",alignItems:"center",gap:6,padding:"9px 14px",
+                borderRight:i<accounts.length-1?"1px solid var(--border2)":"none",cursor:"pointer"}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:color,flexShrink:0}}/>
+              <span style={{fontSize:11,color:"var(--t2)",whiteSpace:"nowrap"}}>{name}</span>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color,whiteSpace:"nowrap"}}>
+                {acct.balance != null ? fmt(Math.abs(acct.balance)) : "—"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   /* ── CashFlowCard ─────────────────────────────────── */
   const CashFlowCard = (
     <div className="obsidian-card" style={{ ...S.card }}>
@@ -4192,6 +4216,7 @@ function AppInner({ isDemo = false }) {
 
     return {
       spending: SpendingBreakdownCard,
+      balances: AccountBalanceStrip,
       budget: (
         <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>

@@ -86,6 +86,7 @@ const BCRYPT_ROUNDS = 12;
 const stripe                  = Stripe(process.env.STRIPE_SECRET_KEY || "");
 const STRIPE_PRICE_ID         = process.env.STRIPE_PRICE_ID          || "";
 const STRIPE_PREMIUM_PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID  || "";
+const STRIPE_FAMILY_PRICE_ID  = process.env.STRIPE_FAMILY_PRICE_ID   || "";
 const STRIPE_WEBHOOK_SECRET   = process.env.STRIPE_WEBHOOK_SECRET    || "";
 
 if (!JWT_SECRET)                    console.warn("⚠  JWT_SECRET not set");
@@ -683,6 +684,36 @@ app.post("/api/billing/create-checkout", async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error("Create checkout error:", err.message);
+    serverError(res, err, "Checkout failed");
+  }
+});
+
+/* Create family plan checkout session ($9.99/mo) */
+app.post("/api/billing/create-family-checkout", async (req, res) => {
+  if (!STRIPE_FAMILY_PRICE_ID) return res.status(500).json({ error: "Family plan not configured" });
+  try {
+    let customerId = req.user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: req.user.email,
+        metadata: { userId: req.user.id },
+      });
+      customerId = customer.id;
+      await pool.query("UPDATE users SET stripe_customer_id = $1 WHERE id = $2", [customerId, req.user.id]);
+    }
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: "subscription",
+      payment_method_types: ["card"],
+      line_items: [{ price: STRIPE_FAMILY_PRICE_ID, quantity: 1 }],
+      success_url: `${FRONTEND_URL}?subscribed=true`,
+      cancel_url:  `${FRONTEND_URL}?canceled=true`,
+      metadata: { userId: req.user.id },
+      subscription_data: { metadata: { userId: req.user.id } },
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("Family checkout error:", err.message);
     serverError(res, err, "Checkout failed");
   }
 });
@@ -1505,6 +1536,13 @@ app.delete("/api/transactions/:id", requireSubscription, async (req, res) => {
    HOUSEHOLD — family sharing
 ═══════════════════════════════════════════════════════════════════ */
 
+// Helper: check if user has family plan
+function isOnFamilyPlan(user) {
+  if (user.role === "owner") return true;
+  return STRIPE_FAMILY_PRICE_ID && user.stripe_price_id === STRIPE_FAMILY_PRICE_ID;
+}
+const FAMILY_MAX_MEMBERS = 2; // max members excluding owner = 3 total
+
 // GET /api/household — get current user's household info
 app.get("/api/household", async (req, res) => {
   try {
@@ -1520,6 +1558,11 @@ app.post("/api/household/invite", async (req, res) => {
     if (!email) return res.status(400).json({ error: "email required" });
     const inviteeEmail = email.toLowerCase().trim();
 
+    // Check family plan
+    if (!isOnFamilyPlan(req.user)) {
+      return res.status(403).json({ error: "family_plan_required" });
+    }
+
     // Get or create this user's household
     let h = await pool.query(`SELECT id FROM households WHERE owner_id = $1`, [req.user.id]);
     let householdId;
@@ -1531,6 +1574,15 @@ app.post("/api/household/invite", async (req, res) => {
         [req.user.id]
       );
       householdId = newH.rows[0].id;
+    }
+
+    // Check member limit (max 2 members excluding owner)
+    const memberCount = await pool.query(
+      `SELECT COUNT(*) FROM household_members WHERE household_id = $1 AND status IN ('active', 'pending')`,
+      [householdId]
+    );
+    if (parseInt(memberCount.rows[0].count) >= FAMILY_MAX_MEMBERS) {
+      return res.status(403).json({ error: "member_limit_reached" });
     }
 
     // Check if already invited

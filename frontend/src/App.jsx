@@ -2779,30 +2779,40 @@ function AppInner({ isDemo = false }) {
         if (calY < startY || (calY === startY && calM < startM)) return;
       }
 
-      // Check if a linked transaction has already posted this calendar month
-      const postedThisMonth = (item.linkedTxnIds||[]).some(txnId => {
-        const t = transactions.find(x => x.id === txnId);
-        if (!t || !t.date) return false;
-        const [ty, tm] = t.date.split("-").map(Number);
-        return ty === calY && tm === calM;
+      // Get linked transactions that posted this calendar month
+      const linkedThisMonth = (item.linkedTxnIds||[])
+        .map(txnId => transactions.find(x => x.id === txnId))
+        .filter(t => {
+          if (!t || !t.date) return false;
+          const [ty, tm] = t.date.split("-").map(Number);
+          return ty === calY && tm === calM;
+        });
+
+      // For biweekly/weekly, plot per-occurrence entries so each can independently show posted/upcoming
+      // A given occurrence is "posted" if a linked transaction fell within 4 days of that day
+      plotOccurrences(freq, start, item.recurringDay, d => {
+        const postedOnDay = linkedThisMonth.some(t => {
+          const txnDay = parseInt(t.date.split("-")[2]);
+          return Math.abs(txnDay - d) <= 4;
+        });
+        const entry = {
+          id: "ri_sched_" + item.id + "_" + d,
+          name: item.name,
+          merchant: item.name,
+          categoryId: item.categoryId,
+          accountId: item.accountId,
+          type: item.type,
+          amount: item.amountMin != null ? (item.type==="income" ? item.amountMin : -item.amountMin) : 0,
+          amountMin: item.amountMin,
+          amountMax: item.amountMax,
+          isRecurringItem: true,
+          recurringItemId: item.id,
+          postedThisMonth: postedOnDay,
+          recurringDay: d,
+          recurringFreq: item.recurringFreq,
+        };
+        addToDay(d, entry);
       });
-
-      // Build a synthetic calendar entry for this item
-      const syntheticEntry = {
-        id: "ri_sched_" + item.id,
-        name: item.name,
-        merchant: item.name,
-        categoryId: item.categoryId,
-        accountId: item.accountId,
-        amount: item.amountMin != null ? (item.type==="income" ? item.amountMin : -item.amountMin) : 0,
-        isRecurringItem: true,
-        recurringItemId: item.id,
-        postedThisMonth,
-        recurringDay: item.recurringDay,
-        recurringFreq: item.recurringFreq,
-      };
-
-      plotOccurrences(freq, start, item.recurringDay, d => addToDay(d, syntheticEntry));
     });
 
     return map;
@@ -5804,13 +5814,46 @@ function AppInner({ isDemo = false }) {
       if (item.amountMax != null) return item.amountMax;
       return 0;
     }
-    function itemPostedThisMonth(item) {
-      return (item.linkedTxnIds||[]).some(txnId => {
+    // Count how many occurrences an item should have this calendar month
+    function itemOccurrencesThisMonth(item) {
+      const freq = item.recurringFreq || "monthly";
+      if (freq === "monthly") return 1;
+      if (freq === "annual") return 1;
+      if (freq === "weekly" || freq === "biweekly") {
+        const start = item.recurringStart ? new Date(item.recurringStart + "T12:00:00") : null;
+        if (!start) return 1;
+        const intervalDays = freq === "weekly" ? 7 : 14;
+        let current = new Date(start);
+        while (current > new Date(calYear, calMonthN-1, 1)) {
+          current = new Date(current.getTime() - intervalDays*24*60*60*1000);
+        }
+        let count = 0;
+        for (let i = 0; i < 60; i++) {
+          if (current.getFullYear() === calYear && current.getMonth()+1 === calMonthN) count++;
+          if (current.getFullYear() > calYear || (current.getFullYear() === calYear && current.getMonth()+1 > calMonthN)) break;
+          current = new Date(current.getTime() + intervalDays*24*60*60*1000);
+        }
+        return count || 1;
+      }
+      return 1;
+    }
+    // Count how many linked transactions have posted this calendar month
+    function itemPostedCountThisMonth(item) {
+      return (item.linkedTxnIds||[]).filter(txnId => {
         const t = transactions.find(x => x.id === txnId);
         if (!t || !t.date) return false;
         const [ty, tm] = t.date.split("-").map(Number);
         return ty === calYear && tm === calMonthN;
-      });
+      }).length;
+    }
+    function itemPostedThisMonth(item) {
+      // Fully posted = all expected occurrences have a linked transaction
+      const expected = itemOccurrencesThisMonth(item);
+      const posted = itemPostedCountThisMonth(item);
+      return posted >= expected;
+    }
+    function itemRemainingOccurrences(item) {
+      return Math.max(0, itemOccurrencesThisMonth(item) - itemPostedCountThisMonth(item));
     }
     function itemPostedAmount(item) {
       return (item.linkedTxnIds||[]).reduce((sum, txnId) => {
@@ -5830,11 +5873,11 @@ function AppInner({ isDemo = false }) {
     const todayD = today.getDate();
 
     recurringItems.forEach(item => {
-      const posted = itemPostedThisMonth(item);
-      if (isPastCalMonth && !posted) return;
-      // For current month: only include items not yet charged this month
-      if (isCurrentCalMonth && posted) return;
-      const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item);
+      const fullyPosted = itemPostedThisMonth(item);
+      const remaining = itemRemainingOccurrences(item);
+      if (isPastCalMonth && !itemPostedCountThisMonth(item)) return;
+      if (isCurrentCalMonth && fullyPosted) return;
+      const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item) * (isCurrentCalMonth ? remaining : 1);
       if (amt <= 0) return;
       const acctKey = (item.accountId && byAccount[item.accountId]) ? item.accountId : "__unlinked__";
       byAccount[acctKey].total += amt;
@@ -5851,10 +5894,11 @@ function AppInner({ isDemo = false }) {
     byAccountFirst["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
     byAccountSecond["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
     recurringItems.forEach(item => {
-      const posted = itemPostedThisMonth(item);
-      if (isPastCalMonth && !posted) return;
-      if (isCurrentCalMonth && posted) return;
-      const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item);
+      const fullyPosted = itemPostedThisMonth(item);
+      const remaining = itemRemainingOccurrences(item);
+      if (isPastCalMonth && !itemPostedCountThisMonth(item)) return;
+      if (isCurrentCalMonth && fullyPosted) return;
+      const amt = isPastCalMonth ? itemPostedAmount(item) : getItemAmount(item) * (isCurrentCalMonth ? remaining : 1);
       if (amt <= 0) return;
       const acctKey = (item.accountId && byAccountFirst[item.accountId]) ? item.accountId : "__unlinked__";
       const day = parseInt(item.recurringDay)||0;
@@ -6434,20 +6478,23 @@ function AppInner({ isDemo = false }) {
                   return (
                     <div style={{borderRadius:12,overflow:"hidden",background:"linear-gradient(315deg,var(--card,#181511) 0%,var(--card-hi,#231f1a) 100%)"}}>
                       {/* Table header */}
-                      <div style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"10px 16px",background:"rgba(0,0,0,0.25)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                        {["Name","Category","Frequency","Day","Status","Amount",""].map((h,i)=>(
+                      <div style={{display:"grid",gridTemplateColumns:"0.4fr 2fr 1.2fr 0.9fr 0.9fr 90px 52px",gap:0,padding:"10px 16px",background:"var(--card-hi)",borderBottom:"1px solid var(--border)"}}>
+                        {["Day","Name","Category","Frequency","Status","Amount",""].map((h,i)=>(
                           <div key={i} style={{fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t3)",fontWeight:700,fontFamily:"var(--font-disp)"}}>{h}</div>
                         ))}
                       </div>
                       {/* Rows */}
                       {sorted.map(item=>{
                         const cat=catMap[item.categoryId];
-                        const posted=(item.linkedTxnIds||[]).some(txnId=>{
+                        const postedCount=(item.linkedTxnIds||[]).filter(txnId=>{
                           const t=transactions.find(x=>x.id===txnId);
                           if(!t||!t.date) return false;
                           const [ty,tm]=t.date.split("-").map(Number);
                           return ty===calY&&tm===calM;
-                        });
+                        }).length;
+                        const expectedCount=(item.recurringFreq==="biweekly"||item.recurringFreq==="weekly")&&item.recurringStart?(()=>{const iv=item.recurringFreq==="weekly"?7:14;let cur=new Date(item.recurringStart+"T12:00:00");while(cur>new Date(calY,calM-1,1))cur=new Date(cur.getTime()-iv*86400000);let cnt=0;for(let i=0;i<60;i++){if(cur.getFullYear()===calY&&cur.getMonth()+1===calM)cnt++;if(cur.getFullYear()>calY||(cur.getFullYear()===calY&&cur.getMonth()+1>calM))break;cur=new Date(cur.getTime()+iv*86400000);}return cnt||1;})():1;
+                        const posted=postedCount>=expectedCount;
+                        const partiallyPosted=postedCount>0&&!posted;
                         const freq=item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":"Monthly";
                         const amtLabel=item.amountMin!=null?(item.type==="income"?"+":"")+fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"—";
                         return (
@@ -6455,7 +6502,9 @@ function AppInner({ isDemo = false }) {
                             onClick={()=>openEditRecurringItem(item)}
                             onMouseEnter={e=>e.currentTarget.style.background="rgba(0,0,0,0.08)"}
                             onMouseLeave={e=>e.currentTarget.style.background="rgba(0,0,0,0.18)"}
-                            style={{display:"grid",gridTemplateColumns:"2fr 1.2fr 0.9fr 0.6fr 0.9fr 90px 52px",gap:0,padding:"11px 16px",alignItems:"center",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",background:"rgba(0,0,0,0.18)",transition:"background .15s"}}>
+                            style={{display:"grid",gridTemplateColumns:"0.4fr 2fr 1.2fr 0.9fr 0.9fr 90px 52px",gap:0,padding:"11px 16px",alignItems:"center",borderBottom:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",background:"rgba(0,0,0,0.18)",transition:"background .15s"}}>
+                            {/* Day */}
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--t2)"}}>{item.recurringDay||"—"}</div>
                             {/* Name */}
                             <div style={{display:"flex",alignItems:"flex-start",gap:10,minWidth:0}}>
                               <div style={{width:8,height:8,borderRadius:"50%",background:cat?.color||"var(--cyan)",flexShrink:0,marginTop:4}}/>
@@ -6468,12 +6517,10 @@ function AppInner({ isDemo = false }) {
                             <div style={{fontSize:11,color:cat?.color||"var(--t3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat?.name||"—"}</div>
                             {/* Frequency */}
                             <div><span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:99,background:"rgba(255,255,255,0.06)",color:"var(--t3)"}}>{freq}</span></div>
-                            {/* Day */}
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--t2)"}}>{item.recurringDay||"—"}</div>
                             {/* Status */}
                             <div style={{display:"flex",alignItems:"center",gap:5}}>
-                              <div style={{width:6,height:6,borderRadius:"50%",background:posted?"var(--green)":"rgba(201,149,106,0.7)",flexShrink:0}}/>
-                              <span style={{fontSize:11,color:posted?"var(--green)":"rgba(201,149,106,0.7)"}}>{posted?"Posted":"Upcoming"}</span>
+                              <div style={{width:6,height:6,borderRadius:"50%",background:posted?"var(--green)":partiallyPosted?"var(--cyan)":"rgba(201,149,106,0.7)",flexShrink:0}}/>
+                              <span style={{fontSize:11,color:posted?"var(--green)":"rgba(201,149,106,0.7)"}}>{posted?"Posted":partiallyPosted?`${postedCount}/${expectedCount} Posted`:"Upcoming"}</span>
                             </div>
                             {/* Amount */}
                             <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:item.type==="income"?"var(--green)":"var(--red)"}}>{amtLabel}</div>

@@ -1187,10 +1187,33 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   }
 
   const inputSt = { ...S.input, marginBottom:0 };
+  const [settingsTab, setSettingsTab] = useState("profile");
+
+  const STABS = [
+    { id:"profile",    label:"Profile"    },
+    { id:"appearance", label:"Appearance" },
+    { id:"household",  label:"Household"  },
+    { id:"data",       label:"Data"       },
+  ];
 
   return (
     <>
+    <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--surface)",borderRadius:"var(--radius)",padding:3,width:"fit-content"}}>
+      {STABS.map(t => (
+        <button key={t.id} onClick={()=>setSettingsTab(t.id)}
+          style={{background:settingsTab===t.id?"var(--card)":"none",border:"none",
+            color:settingsTab===t.id?"var(--t1)":"var(--t3)",
+            padding:"6px 16px",borderRadius:"var(--radius)",cursor:"pointer",
+            fontSize:13,fontWeight:600,transition:"all 0.15s",whiteSpace:"nowrap"}}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+
     <div style={{ maxWidth:560 }}>
+
+      {/* ── Profile tab ─────────────────────────────── */}
+      {settingsTab === "profile" && <>
 
       {/* Profile */}
       <SettingsSection title="Profile">
@@ -1422,6 +1445,11 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         )}
       </SettingsSection>
 
+
+      </>}
+
+      {/* ── Appearance tab ──────────────────────────── */}
+      {settingsTab === "appearance" && <>
 
       {/* -- Theme ------------------------------------------------ */}
       <SettingsSection title="Appearance">
@@ -1765,6 +1793,11 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         })()}
       </SettingsSection>
 
+      </>}
+
+      {/* ── Data tab ────────────────────────────────── */}
+      {settingsTab === "data" && <>
+
       {/* Data export */}
       <SettingsSection title="Your Data">
         <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
@@ -1804,6 +1837,11 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           ))}
         </div>
       </SettingsSection>
+
+      </>}
+
+      {/* ── Household tab ───────────────────────────── */}
+      {settingsTab === "household" && <>
 
       {/* Family Sharing */}
       <SettingsSection title="Family Sharing">
@@ -1851,13 +1889,15 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         )}
       </SettingsSection>
 
-      {/* Sign out */}
-      <SettingsSection title="Account">
+      </>}
+
+      {/* Sign out — profile tab */}
+      {settingsTab === "profile" && <SettingsSection title="Account">
         <button style={{ ...S.btn("danger"), width:"100%" }}
           onClick={() => { api.logout().then(() => window.location.reload()); }}>
           Sign Out
         </button>
-      </SettingsSection>
+      </SettingsSection>}
 
     </div>
 

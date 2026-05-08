@@ -5873,6 +5873,7 @@ function AppInner({ isDemo = false }) {
     const todayD = today.getDate();
 
     recurringItems.forEach(item => {
+      if (item.type === "income") return; // income doesn't count as a charge
       const fullyPosted = itemPostedThisMonth(item);
       const remaining = itemRemainingOccurrences(item);
       if (isPastCalMonth && !itemPostedCountThisMonth(item)) return;
@@ -5888,12 +5889,23 @@ function AppInner({ isDemo = false }) {
     const acctTotal   = acctEntries.reduce((a,e)=>a+e.total,0);
     const acctLabel   = isPastCalMonth?`Charged in ${monthLabel(calendarMonth)}`:isCurrentCalMonth?`Remaining in ${monthLabel(calendarMonth)}`:`Charges in ${monthLabel(calendarMonth)}`;
 
+    // Build income items list — shown separately, not counted in charges total
+    const incomeEntries = recurringItems.filter(item => {
+      if (item.type !== "income") return false;
+      const fullyPosted = itemPostedThisMonth(item);
+      if (isPastCalMonth && !itemPostedCountThisMonth(item)) return false;
+      if (isCurrentCalMonth && fullyPosted) return false;
+      return true;
+    });
+    const incomeTotal = incomeEntries.reduce((s, item) => s + (getItemAmount(item) * (isCurrentCalMonth ? itemRemainingOccurrences(item) : 1)), 0);
+
     // Half-month split — based on recurringDay
     const byAccountFirst = {}, byAccountSecond = {};
     shownIds.forEach(id=>{ const a=acctMap[id]; if(a){ byAccountFirst[id]={id,name:a.name,total:0,count:0,txns:[]}; byAccountSecond[id]={id,name:a.name,total:0,count:0,txns:[]}; } });
     byAccountFirst["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
     byAccountSecond["__unlinked__"]={id:"__unlinked__",name:"Unlinked",total:0,count:0,txns:[]};
     recurringItems.forEach(item => {
+      if (item.type === "income") return; // income doesn't count as a charge
       const fullyPosted = itemPostedThisMonth(item);
       const remaining = itemRemainingOccurrences(item);
       if (isPastCalMonth && !itemPostedCountThisMonth(item)) return;
@@ -6567,6 +6579,34 @@ function AppInner({ isDemo = false }) {
                   <CustomSelect value={calendarSplitView} onChange={v=>setCalendarSplitView(v)} options={[{value:"full",label:"Full"},{value:"split",label:"Split View"}]} style={{backgroundColor:"var(--card-hi)"}} compact/>
                 </div>
               </div>
+
+              {/* Income — shown separately, not in charges total */}
+              {incomeEntries.length > 0 && (
+                <div style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:700,fontFamily:"var(--font-disp)"}}>Expected Income</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--green)"}}>+{fmt(incomeTotal)}</div>
+                  </div>
+                  {incomeEntries.map(item => {
+                    const tFreq = item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="annual"?"Annual":`Day ${item.recurringDay||"?"} of month`;
+                    const remaining = itemRemainingOccurrences(item);
+                    return (
+                      <button key={item.id} type="button" onClick={()=>openEditRecurringItem(item)}
+                        style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",width:"100%",textAlign:"left",border:"none",cursor:"pointer",marginBottom:3}}
+                        onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"}>
+                        <div style={{width:8,height:8,borderRadius:"50%",background:"var(--green)",flexShrink:0}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</div>
+                          <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{tFreq}{remaining > 1 ? ` · ${remaining}× remaining` : ""}</div>
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--green)",flexShrink:0}}>+{fmt(getItemAmount(item))}</div>
+                      </button>
+                    );
+                  })}
+                  <div style={{height:1,background:"var(--border)",margin:"8px 0 4px"}}/>
+                </div>
+              )}
 
               {calendarSplitView==="full" ? (
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>

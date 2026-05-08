@@ -987,14 +987,15 @@ function App() {
     return () => clearInterval(interval);
   }, [isDemo]);
 
-  if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
-
-  if (inviteToken && !authed) {
+  // Invite token takes priority — show accept screen regardless of auth state
+  if (inviteToken) {
     return <AcceptInviteScreen token={inviteToken} onAccepted={() => {
       window.history.replaceState({}, "", window.location.pathname);
       window.location.reload();
     }}/>;
   }
+
+  if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
 
   return <AppInner isDemo={isDemo}/>;
 }

@@ -7418,6 +7418,7 @@ function AppInner({ isDemo = false }) {
       accounts={accounts}
       transactions={transactions}
       recurringTxns={recurringTxns}
+      recurringItems={recurringItems}
       daniData={daniData}
       isMobile={isMobile}
       onSave={(patch) => {

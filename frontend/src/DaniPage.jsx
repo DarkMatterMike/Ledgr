@@ -58,7 +58,7 @@ function getOccurrenceDaysThisMonth(t) {
 /* ════════════════════════════════════════════════════════════════════
    DaniTab — one full tab: account selector + wishlist + balance card
    ════════════════════════════════════════════════════════════════════ */
-function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey }) {
+function DaniTab({ accounts, recurringTxns, recurringItems=[], tabData, onTabSave, isMobile, tabKey }) {
   const [selectedAccountId, setSelectedAccountId] = useState(() => {
     try { const v = localStorage.getItem("dani_accountId_"+tabKey) || (tabKey==="tab1"?localStorage.getItem("dani_accountId"):null); if (v) return v; } catch {}
     return tabData.selectedAccountId || null;
@@ -128,7 +128,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
     if(!account) return 0;
     const todayDay=today.getDate(),DEDUCTION=1100;
     let expenses=0,income=0;
-    recurringTxns.forEach(t=>{
+    allRecurring.forEach(t=>{
       if(account&&t.accountId&&t.accountId!==account.id) return;
       const days=getOccurrenceDaysThisMonth(t).filter(d=>d>todayDay);
       if(!days.length) return;
@@ -136,17 +136,35 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
       else income+=Math.max(0,t.amount-DEDUCTION)*days.length;
     });
     return Math.max(0, (balance-100)-expenses+income);
-  },[account,recurringTxns,balance]);
+  },[account,allRecurring,balance]);
+
+  // Merge recurringItems into recurring txn format for upcoming calculations
+  const allRecurring = useMemo(() => {
+    const fromItems = recurringItems.map(item => ({
+      id: "ri_" + item.id,
+      name: item.name,
+      merchant: item.name,
+      accountId: item.accountId,
+      categoryId: item.categoryId,
+      recurringFreq: item.recurringFreq || "monthly",
+      recurringDay: item.recurringDay,
+      recurringStart: item.recurringStart,
+      amount: item.type === "income"
+        ? (item.amountMin || 0)
+        : -(item.amountMin || 0),
+    }));
+    return [...recurringTxns, ...fromItems];
+  }, [recurringTxns, recurringItems]);
 
   const upcomingBills=useMemo(()=>{
     if(!account) return[];
     const todayDay=today.getDate(),rows=[];
-    recurringTxns.forEach(t=>{
+    allRecurring.forEach(t=>{
       if(account&&t.accountId&&t.accountId!==account.id) return;
       getOccurrenceDaysThisMonth(t).filter(d=>d>todayDay).forEach(d=>rows.push({...t,_occurrenceDay:d}));
     });
     return rows.sort((a,b)=>a._occurrenceDay-b._occurrenceDay);
-  },[recurringTxns,account]);
+  },[allRecurring,account]);
 
   const{wishlistWithStatus,nextPayday}=useMemo(()=>{
     const todayDay=today.getDate(),yr=today.getFullYear(),mo=today.getMonth();
@@ -155,7 +173,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
     const baseBalance={};baseBalance[todayDay]=start;
     for(let d=todayDay+1;d<=daysInMo;d++){
       let delta=0;
-      recurringTxns.forEach(t=>{
+      allRecurring.forEach(t=>{
         if(account&&t.accountId&&t.accountId!==account.id) return;
         const days=getOccurrenceDaysThisMonth(t);
         if(!days.includes(d)) return;
@@ -167,7 +185,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
     let np=null;
     for(let d=todayDay+1;d<=daysInMo;d++){
       let found=null;
-      recurringTxns.forEach(t=>{
+      allRecurring.forEach(t=>{
         if(found||t.amount<=0) return;
         if(account&&t.accountId&&t.accountId!==account.id) return;
         if(getOccurrenceDaysThisMonth(t).includes(d)) found=t;
@@ -194,7 +212,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
       return{...item,status:"wait",availableDay:null,availableDate:null,balanceAfter:null};
     });
     return{wishlistWithStatus:enriched,nextPayday:np};
-  },[wishlist,balance,recurringTxns,account]);
+  },[wishlist,balance,allRecurring,account]);
 
   return(
     <div>
@@ -386,7 +404,7 @@ function DaniTab({ accounts, recurringTxns, tabData, onTabSave, isMobile, tabKey
 const TABS=["tab1","tab2"];
 const TAB_LABELS=["Stearns","Cap1 Child"];
 
-export default function DaniPage({accounts=[],transactions=[],recurringTxns=[],daniData={},isMobile=false,onSave}){
+export default function DaniPage({accounts=[],transactions=[],recurringTxns=[],recurringItems=[],daniData={},isMobile=false,onSave}){
   const[activeTab,setActiveTab]=useState("tab1");
 
   // Normalise old flat shape → { tab1, tab2 }
@@ -433,6 +451,7 @@ export default function DaniPage({accounts=[],transactions=[],recurringTxns=[],d
           <DaniTab
             accounts={accounts}
             recurringTxns={recurringTxns}
+            recurringItems={recurringItems}
             tabData={normalised[t]||{selectedAccountId:null,wishlist:[]}}
             onTabSave={patch=>handleTabSave(t,patch)}
             isMobile={isMobile}

@@ -1103,6 +1103,9 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 
   // Financial profile local state
   const [profileForm, setProfileForm] = useState(null); // null = not editing
+  // Appearance tab state (hoisted from IIFE to avoid conditional hook violation)
+  const [saveThemeName, setSaveThemeName] = useState("");
+  const [showSaveInput, setShowSaveInput] = useState(false);
 
   async function saveName() {
     if (!name.trim()) return;
@@ -1201,8 +1204,8 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--surface)",borderRadius:"var(--radius)",padding:3,width:"fit-content"}}>
       {STABS.map(t => (
         <button key={t.id} onClick={()=>setSettingsTab(t.id)}
-          style={{background:settingsTab===t.id?"var(--card)":"none",border:"none",
-            color:settingsTab===t.id?"var(--t1)":"var(--t3)",
+          style={{background:settingsTab===t.id?"var(--cyan)":"none",border:"none",
+            color:settingsTab===t.id?"#000":"var(--t3)",
             padding:"6px 16px",borderRadius:"var(--radius)",cursor:"pointer",
             fontSize:13,fontWeight:600,transition:"all 0.15s",whiteSpace:"nowrap"}}>
           {t.label}
@@ -1501,8 +1504,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           const gradAngle = current.gradAngle ?? 315;
           const globalOpacity = current.globalOpacity ?? 100;
           const savedThemes = current._savedThemes || [];
-          const [saveThemeName, setSaveThemeName] = useState("");
-          const [showSaveInput, setShowSaveInput] = useState(false);
+          // saveThemeName and showSaveInput hoisted to SettingsView top level
 
           function patch(k, v) {
             const next = { ...current, [k]: v };

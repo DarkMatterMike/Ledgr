@@ -421,7 +421,7 @@ function DragCard({ id, children, onMoveUp, onMoveDown, canMoveUp, canMoveDown, 
 }
 
 /* --- useDashboardColumns — 3-column layout with per-column reorder --- */
-function useDashboardColumns(defaultCols, scheduleSaveRef) {
+function useDashboardColumns(defaultCols, scheduleSaveRef, setDefaultCols) {
   const DEFAULT_COLS = { col1:["spending","balances"], col2:["budget","action"], col3:["goals","upcoming"] };
 
   // Normalize: accept old flat array or new col object
@@ -463,6 +463,7 @@ function useDashboardColumns(defaultCols, scheduleSaveRef) {
       [col[idx], col[swap]] = [col[swap], col[idx]];
       const next = { ...prev, [colKey]: col };
       scheduleSaveRef?.current?.({ dashboardCardOrder: next });
+      setDefaultCols?.(next);
       return next;
     });
   }
@@ -473,6 +474,7 @@ function useDashboardColumns(defaultCols, scheduleSaveRef) {
       const to = [...(prev[toCol]||[]), id];
       const next = { ...prev, [fromCol]: from, [toCol]: to };
       scheduleSaveRef?.current?.({ dashboardCardOrder: next });
+      setDefaultCols?.(next);
       return next;
     });
   }
@@ -4217,7 +4219,7 @@ function AppInner({ isDemo = false }) {
   const onboardingProgress = onboardingSteps.filter(s => s.done).length;
 
   /* -- useDashboardOrder hook -- */
-  const { cols: dashCols, moveItem: dashMoveItem, moveToCol: dashMoveToCol } = useDashboardColumns(dashboardCardOrder, scheduleSaveRef);
+  const { cols: dashCols, moveItem: dashMoveItem, moveToCol: dashMoveToCol } = useDashboardColumns(dashboardCardOrder, scheduleSaveRef, setDashboardCardOrder);
   const [dashEditMode, setDashEditMode] = useState(false);
 
   // dashOrder from useDashboardOrder is the source of truth for rendering

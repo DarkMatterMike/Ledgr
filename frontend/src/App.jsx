@@ -4015,7 +4015,10 @@ function AppInner({ isDemo = false }) {
   /* ── AccountBalanceStrip ──────────────────────────────────── */
   const AccountBalanceStrip = accounts.length === 0 ? null : (
     <div className="obsidian-card" style={{...S.card, padding:0, overflow:"hidden"}}>
-      <div style={{display:"flex",overflowX:"auto",scrollbarWidth:"none",msOverflowStyle:"none",alignItems:"center",WebkitOverflowScrolling:"touch"}}>
+      <div
+        style={{display:"flex",overflowX:"auto",scrollbarWidth:"thin",scrollbarColor:"var(--border2) transparent",alignItems:"center",WebkitOverflowScrolling:"touch"}}
+        onWheel={e=>{e.currentTarget.scrollLeft+=e.deltaY;}}
+      >
         {accounts.map((acct, i) => {
           const t = (acct.type||"").toLowerCase();
           const color = t.includes("credit") ? "var(--red)" : t.includes("saving") ? "var(--green)" : "var(--cyan)";

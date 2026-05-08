@@ -2240,7 +2240,7 @@ function AppInner({ isDemo = false }) {
   const [recurringItems, setRecurringItems] = useState([]);
   const [recurringItemModal, setRecurringItemModal] = useState(false);
   const [editingRecurringItem, setEditingRecurringItem] = useState(null);
-  const [riForm, setRiForm] = useState({ name:"", amountMin:"", amountMax:"", recurringDay:"", recurringFreq:"monthly", recurringStart:"", categoryId:"", accountId:"" });
+  const [riForm, setRiForm] = useState({ name:"", amountMin:"", amountMax:"", recurringDay:"", recurringFreq:"monthly", recurringStart:"", categoryId:"", accountId:"", type:"expense" });
   const [riSearch, setRiSearch] = useState("");
   const [riSearchResults, setRiSearchResults] = useState([]);
   const [riSearchLoading, setRiSearchLoading] = useState(false);
@@ -3628,7 +3628,7 @@ function AppInner({ isDemo = false }) {
   }
   function openNewRecurringItem() {
     setEditingRecurringItem(null);
-    setRiForm({ name:"", amountMin:"", amountMax:"", recurringDay:"", recurringFreq:"monthly", recurringStart:"", categoryId:"", accountId:"" });
+    setRiForm({ name:"", amountMin:"", amountMax:"", recurringDay:"", recurringFreq:"monthly", recurringStart:"", categoryId:"", accountId:"", type:"expense" });
     setRiSearch(""); setRiSearchResults([]);
     setRecurringItemModal(true);
   }
@@ -3643,7 +3643,7 @@ function AppInner({ isDemo = false }) {
       ? (linkedAmts.reduce((a,b) => a+b, 0) / linkedAmts.length).toFixed(2)
       : null;
     const prefilledAmount = item.amountMin != null ? String(item.amountMin) : (avg || "");
-    setRiForm({ name:item.name||"", amountMin:prefilledAmount, amountMax:prefilledAmount, recurringDay:item.recurringDay||"", recurringFreq:item.recurringFreq||"monthly", recurringStart:item.recurringStart||"", categoryId:item.categoryId||"", accountId:item.accountId||"" });
+    setRiForm({ name:item.name||"", amountMin:prefilledAmount, amountMax:prefilledAmount, recurringDay:item.recurringDay||"", recurringFreq:item.recurringFreq||"monthly", recurringStart:item.recurringStart||"", categoryId:item.categoryId||"", accountId:item.accountId||"", type:item.type||"expense" });
     setRiSearch(""); setRiSearchResults([]);
     setRecurringItemModal(true);
 
@@ -3706,6 +3706,7 @@ function AppInner({ isDemo = false }) {
       recurringStart: riForm.recurringStart||null,
       categoryId: riForm.categoryId||null,
       accountId: riForm.accountId||null,
+      type: riForm.type||"expense",
       linkedTxnIds: editingRecurringItem ? ((recurringItems.find(r=>r.id===editingRecurringItem.id)||editingRecurringItem).linkedTxnIds||[]) : [],
     };
     saveRecurringItem(item);
@@ -6798,6 +6799,13 @@ function AppInner({ isDemo = false }) {
         <div style={S.field}>
           <label style={S.label}>Name</label>
           <input style={S.input} placeholder="e.g. Netflix" value={riForm.name} onChange={e=>setRiForm(p=>({...p,name:e.target.value}))}/>
+        </div>
+        {/* Type */}
+        <div style={S.field}>
+          <label style={S.label}>Type</label>
+          <CustomSelect value={riForm.type||"expense"} onChange={v=>setRiForm(p=>({...p,type:v}))}
+            options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]}
+            style={{width:"100%",backgroundColor:"var(--card-hi)"}}/>
         </div>
         {/* Frequency + Day */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>

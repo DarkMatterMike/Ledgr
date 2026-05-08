@@ -973,7 +973,9 @@ function App() {
 
 
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
-  const inviteToken = new URLSearchParams(window.location.search).get("invite");
+  const rawInvite = new URLSearchParams(window.location.search).get("invite");
+  // Only treat as a valid invite token if it looks like a 64-char hex string
+  const inviteToken = rawInvite && /^[a-f0-9]{64}$/.test(rawInvite) ? rawInvite : null;
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());
 
   // Periodically check if token has expired mid-session

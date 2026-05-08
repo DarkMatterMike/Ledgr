@@ -7451,6 +7451,7 @@ function AppInner({ isDemo = false }) {
       showTrash={showTrash}
       setShowTrash={setShowTrash}
       scheduleSaveRef={scheduleSaveRef}
+      isFamilyPlan={isFamilyPlan}
     />
   );
 
@@ -7504,7 +7505,6 @@ function AppInner({ isDemo = false }) {
       PlaidButtonComponent={PlaidButton}
       onPlaidSuccess={handlePortfolioPlaidSuccess}
       isPremium={isPremium}
-          isFamilyPlan={isFamilyPlan}
     />
   );
 

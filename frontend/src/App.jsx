@@ -6296,7 +6296,7 @@ function AppInner({ isDemo = false }) {
                         </div>
                       </div>
                       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4,flexShrink:0}}>
-                        {amtLabel&&<div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>}
+                        {amtLabel&&<div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:item.type==="income"?"var(--green)":"var(--red)"}}>{amtLabel}</div>}
                         <button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),color:"var(--cyan)",fontSize:11,padding:"2px 8px"}}>Edit</button>
                       </div>
                     </div>
@@ -6411,7 +6411,7 @@ function AppInner({ isDemo = false }) {
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
                 <div>
                   <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>All Recurring Items</div>
-                  <div style={{fontSize:11,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:2}}>{recurringItems.length} items · {fmt(recurringItems.reduce((s,i)=>s+(i.amountMin||0),0))}/mo</div>
+                  <div style={{fontSize:11,color:"var(--t3)",fontFamily:"var(--font-mono)",marginTop:2}}>{recurringItems.length} items · {fmt(recurringItems.filter(i=>i.type!=="income").reduce((s,i)=>s+(i.amountMin||0),0))}/mo expenses</div>
                 </div>
                 <button style={S.btn("primary",true)} onClick={openNewRecurringItem}>+ New</button>
               </div>
@@ -6449,7 +6449,7 @@ function AppInner({ isDemo = false }) {
                           return ty===calY&&tm===calM;
                         });
                         const freq=item.recurringFreq==="weekly"?"Weekly":item.recurringFreq==="biweekly"?"Bi-weekly":item.recurringFreq==="annual"?"Annual":"Monthly";
-                        const amtLabel=item.amountMin!=null?fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"—";
+                        const amtLabel=item.amountMin!=null?(item.type==="income"?"+":"")+fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:""):"—";
                         return (
                           <div key={item.id}
                             onClick={()=>openEditRecurringItem(item)}
@@ -6476,7 +6476,7 @@ function AppInner({ isDemo = false }) {
                               <span style={{fontSize:11,color:posted?"var(--green)":"rgba(201,149,106,0.7)"}}>{posted?"Posted":"Upcoming"}</span>
                             </div>
                             {/* Amount */}
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)"}}>{amtLabel}</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:item.type==="income"?"var(--green)":"var(--red)"}}>{amtLabel}</div>
                             {/* Edit */}
                             <div><button onClick={e=>{e.stopPropagation();openEditRecurringItem(item);}} style={{...S.btn("ghost",true),fontSize:11,padding:"3px 8px",color:"var(--cyan)"}}>Edit</button></div>
                           </div>
@@ -6554,7 +6554,7 @@ function AppInner({ isDemo = false }) {
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.type==="income"?"var(--green)":"var(--red)",flexShrink:0}}>{t.type==="income"?"+":""}{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
                             </button>
                           );
                         })}
@@ -6602,7 +6602,7 @@ function AppInner({ isDemo = false }) {
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.type==="income"?"var(--green)":"var(--red)",flexShrink:0}}>{t.type==="income"?"+":""}{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
                             </button>
                           );
                         })}
@@ -6650,7 +6650,7 @@ function AppInner({ isDemo = false }) {
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.type==="income"?"var(--green)":"var(--red)",flexShrink:0}}>{t.type==="income"?"+":""}{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
                             </button>
                           );
                         })}

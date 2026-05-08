@@ -420,31 +420,58 @@ function DragCard({ id, children, onMoveUp, onMoveDown, canMoveUp, canMoveDown, 
   );
 }
 
-/* --- useDashboardOrder — live reorder preview during drag ----------- */
-function useDashboardOrder(defaultOrder, scheduleSaveRef) {
-  const [liveOrder, setLiveOrder] = useState(defaultOrder);
+/* --- useDashboardColumns — 3-column layout with per-column reorder --- */
+function useDashboardColumns(defaultCols, scheduleSaveRef) {
+  const DEFAULT_COLS = { col1:["spending","balances"], col2:["budget","action"], col3:["goals","upcoming"] };
 
-  const prevKeyRef = useRef(defaultOrder.join(','));
-  const key = defaultOrder.join(',');
-  if (key !== prevKeyRef.current) {
-    prevKeyRef.current = key;
-    setLiveOrder(defaultOrder);
+  // Normalize: accept old flat array or new col object
+  function normalize(val) {
+    if (!val) return DEFAULT_COLS;
+    if (Array.isArray(val)) {
+      // Migrate flat array into 3 columns
+      const all = val.filter(Boolean);
+      const third = Math.ceil(all.length / 3);
+      return {
+        col1: all.slice(0, third),
+        col2: all.slice(third, third * 2),
+        col3: all.slice(third * 2),
+      };
+    }
+    if (val.col1 || val.col2 || val.col3) return { col1:val.col1||[], col2:val.col2||[], col3:val.col3||[] };
+    return DEFAULT_COLS;
   }
 
-  function moveItem(id, dir) {
-    setLiveOrder(prev => {
-      const idx = prev.indexOf(id);
-      if (idx < 0) return prev;
-      const next = [...prev];
+  const [cols, setCols] = useState(() => normalize(defaultCols));
+  const prevRef = useRef(JSON.stringify(defaultCols));
+  const key = JSON.stringify(defaultCols);
+  if (key !== prevRef.current) {
+    prevRef.current = key;
+    setCols(normalize(defaultCols));
+  }
+
+  function moveItem(colKey, idx, dir) {
+    setCols(prev => {
+      const col = [...(prev[colKey]||[])];
       const swap = idx + dir;
-      if (swap < 0 || swap >= next.length) return prev;
-      [next[idx], next[swap]] = [next[swap], next[idx]];
+      if (swap < 0 || swap >= col.length) return prev;
+      [col[idx], col[swap]] = [col[swap], col[idx]];
+      const next = { ...prev, [colKey]: col };
       scheduleSaveRef?.current?.({ dashboardCardOrder: next });
       return next;
     });
   }
 
-  return { order: liveOrder, moveItem };
+  function moveToCol(id, fromCol, toCol) {
+    setCols(prev => {
+      const from = (prev[fromCol]||[]).filter(x => x !== id);
+      const to = [...(prev[toCol]||[]), id];
+      const next = { ...prev, [fromCol]: from, [toCol]: to };
+      scheduleSaveRef?.current?.({ dashboardCardOrder: next });
+      return next;
+    });
+  }
+
+  return { cols, moveItem, moveToCol };
 }
 
 function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={} }) {
@@ -2277,7 +2304,7 @@ function AppInner({ isDemo = false }) {
   const [daniData,      setDaniData]      = useState({ tab1:{ selectedAccountId:null, wishlist:[] }, tab2:{ selectedAccountId:null, wishlist:[] } });
   const [goals, setGoals] = useState([]);
   const [customAccountNames, setCustomAccountNames] = useState({});
-  const [dashboardCardOrder, setDashboardCardOrder] = useState(["spending","balances","budget","action","goals","upcoming"]); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
+  const [dashboardCardOrder, setDashboardCardOrder] = useState({ col1:["spending","balances"], col2:["budget","action"], col3:["goals","upcoming"] }); // [{id, title, targetAmount, deadline, periodAmount, period, savedAmount, assignedTxnIds, createdAt}]
 
   /* -- Demo mode: inject fake data once on mount -- */
   useEffect(() => {
@@ -4182,7 +4209,7 @@ function AppInner({ isDemo = false }) {
   const onboardingProgress = onboardingSteps.filter(s => s.done).length;
 
   /* -- useDashboardOrder hook -- */
-  const { order: dashOrder, moveItem: dashMoveItem } = useDashboardOrder(dashboardCardOrder, scheduleSaveRef);
+  const { cols: dashCols, moveItem: dashMoveItem, moveToCol: dashMoveToCol } = useDashboardColumns(dashboardCardOrder, scheduleSaveRef);
   const [dashEditMode, setDashEditMode] = useState(false);
 
   // dashOrder from useDashboardOrder is the source of truth for rendering
@@ -4406,7 +4433,7 @@ function AppInner({ isDemo = false }) {
 
       {/* Draggable cards */}
       {isMobile ? (
-        /* Mobile: single flex column, edit-order mode with up/down buttons */
+        /* Mobile: single flex column */
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           <div style={{display:"flex",justifyContent:"flex-end",marginBottom:-4}}>
             <button onClick={()=>setDashEditMode(p=>!p)}
@@ -4414,19 +4441,20 @@ function AppInner({ isDemo = false }) {
               {dashEditMode?"✓ Done":"⇅ Reorder"}
             </button>
           </div>
-          {dashOrder
-            .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
-            .map((id, idx, arr) => (
-              <DragCard key={id} id={id} editMode={dashEditMode}
-                canMoveUp={idx > 0} canMoveDown={idx < arr.length - 1}
-                onMoveUp={()=>dashMoveItem(id,-1)} onMoveDown={()=>dashMoveItem(id,1)}>
-                {dashCardDefs[id]}
-              </DragCard>
-            ))
-          }
+          {["col1","col2","col3"].flatMap(colKey =>
+            (dashCols[colKey]||[])
+              .filter(id => dashCardDefs[id] != null)
+              .map((id, idx, arr) => (
+                <DragCard key={id} id={id} editMode={dashEditMode}
+                  canMoveUp={idx > 0} canMoveDown={idx < arr.length - 1}
+                  onMoveUp={()=>dashMoveItem(colKey,idx,-1)} onMoveDown={()=>dashMoveItem(colKey,idx,1)}>
+                  {dashCardDefs[id]}
+                </DragCard>
+              ))
+          )}
         </div>
       ) : (
-        /* Desktop: CSS grid, 3 cols, cards flow naturally */
+        /* Desktop: true 3-column layout, each column independently ordered */
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           <div style={{display:"flex",justifyContent:"flex-end",marginBottom:-4}}>
             <button onClick={()=>setDashEditMode(p=>!p)}
@@ -4435,16 +4463,36 @@ function AppInner({ isDemo = false }) {
             </button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
-            {dashOrder
-              .filter(id => dashCardDefs[id] !== null && dashCardDefs[id] !== undefined)
-              .map((id, idx, arr) => (
-                <DragCard key={id} id={id} editMode={dashEditMode}
-                  canMoveUp={idx > 0} canMoveDown={idx < arr.length - 1}
-                  onMoveUp={()=>dashMoveItem(id,-1)} onMoveDown={()=>dashMoveItem(id,1)}>
-                  {dashCardDefs[id]}
-                </DragCard>
-              ))
-            }
+            {["col1","col2","col3"].map(colKey => (
+              <div key={colKey} style={{display:"flex",flexDirection:"column",gap:10}}>
+
+                {(dashCols[colKey]||[])
+                  .filter(id => dashCardDefs[id] != null)
+                  .map((id, idx, arr) => (
+                    <div key={id}>
+                      {dashEditMode && (
+                        <div style={{display:"flex",gap:4,marginBottom:4,alignItems:"center"}}>
+                          <span style={{fontSize:10,color:"var(--t3)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{id}</span>
+                          <button disabled={idx===0} onClick={()=>dashMoveItem(colKey,idx,-1)}
+                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px",opacity:idx===0?0.2:1}}>↑</button>
+                          <button disabled={idx===arr.length-1} onClick={()=>dashMoveItem(colKey,idx,1)}
+                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px",opacity:idx===arr.length-1?0.2:1}}>↓</button>
+                          {colKey!=="col1" && <button onClick={()=>dashMoveToCol(id,colKey,colKey==="col2"?"col1":"col2")}
+                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px"}}>←</button>}
+                          {colKey!=="col3" && <button onClick={()=>dashMoveToCol(id,colKey,colKey==="col1"?"col2":"col3")}
+                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px"}}>→</button>}
+                        </div>
+                      )}
+                      <DragCard id={id} editMode={false}
+                        canMoveUp={false} canMoveDown={false}
+                        onMoveUp={()=>{}} onMoveDown={()=>{}}>
+                        {dashCardDefs[id]}
+                      </DragCard>
+                    </div>
+                  ))
+                }
+              </div>
+            ))}
           </div>
         </div>
       )}

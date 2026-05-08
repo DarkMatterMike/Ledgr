@@ -2794,7 +2794,7 @@ function AppInner({ isDemo = false }) {
         merchant: item.name,
         categoryId: item.categoryId,
         accountId: item.accountId,
-        amount: item.amountMin != null ? -item.amountMin : 0,
+        amount: item.amountMin != null ? (item.type==="income" ? item.amountMin : -item.amountMin) : 0,
         isRecurringItem: true,
         recurringItemId: item.id,
         postedThisMonth,
@@ -4386,7 +4386,7 @@ function AppInner({ isDemo = false }) {
                       <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{catMap[t.categoryId]?.name||"Uncategorized"}</div>
                     </div>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0}}>
-                      {t.amountMin!=null?fmt(t.amountMin):"—"}
+                      {t.amountMin!=null?(t.type==="income"?"+":"")+fmt(t.amountMin):"—"}
                       {t.amountMin!=null&&t.amountMax!=null&&t.amountMax!==t.amountMin?`–${fmt(t.amountMax)}`:""}
                     </div>
                   </div>
@@ -6122,7 +6122,7 @@ function AppInner({ isDemo = false }) {
                                 <div style={{fontSize:12,fontWeight:600,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                                 <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{tFreq}{tCat&&<span style={{color:tCat.color}}> · {tCat.name}</span>}</div>
                               </div>
-                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0}}>{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.type==="income"?"var(--green)":"var(--red)",flexShrink:0}}>{t.type==="income"?"+":""}{fmt(Math.abs(t.amount||0)||Math.abs(t.amountMin||0)||0)}</div>
                             </button>
                           );
                         })}
@@ -6277,8 +6277,9 @@ function AppInner({ isDemo = false }) {
                     const [ty,tm] = t.date.split("-").map(Number);
                     return ty===calY && tm===calM;
                   });
+                  const isIncome = item.type==="income";
                   const amtLabel = item.amountMin!=null
-                    ? fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:"")
+                    ? (isIncome?"+":"")+fmt(item.amountMin)+(item.amountMax!=null&&item.amountMax!==item.amountMin?`–${fmt(item.amountMax)}`:"")
                     : "";
                   return (
                     <div key={item.id} onClick={()=>openEditRecurringItem(item)}

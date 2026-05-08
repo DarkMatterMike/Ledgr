@@ -1048,7 +1048,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -1847,7 +1847,33 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 
       {/* Family Sharing */}
       <SettingsSection title="Family Sharing">
-        {!householdLoaded ? (
+        {!isFamilyPlan ? (
+          /* Not on family plan — show upgrade prompt */
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div style={{background:"var(--surface)",borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",gap:8}}>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>Ledgr Family — $9.99/mo</div>
+              <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.6}}>
+                Invite up to 2 household members to share transactions, accounts, categories, and recurring items. Each member gets their own login and personal settings.
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:4}}>
+                {["Shared transactions & accounts","Shared budgets & recurring items","Up to 3 members total","Each member keeps personal theme & settings"].map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--t2)"}}>
+                    <span style={{color:"var(--cyan)",flexShrink:0}}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}}
+              onClick={async()=>{ try { const {url} = await api.startFamilyCheckout(); window.location.href=url; } catch(e) { showToast("Failed to start checkout"); } }}>
+              Upgrade to Family — $9.99/mo
+            </button>
+            {user?.subscription_status === "active" && (
+              <div style={{fontSize:11,color:"var(--t3)",textAlign:"center"}}>
+                You're currently on the $4.99 plan. Upgrading will switch your subscription.
+              </div>
+            )}
+          </div>
+        ) : !householdLoaded ? (
           <div style={{fontSize:12,color:"var(--t3)"}}>Loading…</div>
         ) : household?.role === "member" ? (
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -1858,21 +1884,33 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
           </div>
         ) : (
           <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.5}}>
-              Invite your partner to share your transactions, accounts, categories, and recurring items. They'll have their own login and personal settings.
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:2}}>
+              <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.5}}>
+                Invite household members to share your financial data.
+              </div>
+              <div style={{fontSize:11,color:"var(--t3)",flexShrink:0,marginLeft:10}}>
+                {(household?.members?.length||0)}/2 members
+              </div>
             </div>
-            <div style={{display:"flex",gap:8}}>
-              <input
-                style={{...S.input,flex:1}}
-                placeholder="Partner's email"
-                value={inviteEmail}
-                onChange={e=>setInviteEmail(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&sendInvite()}
-              />
-              <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting}>
-                {inviting ? "Sending…" : "Invite"}
-              </button>
-            </div>
+            {(household?.members?.length||0) < 2 && (
+              <div style={{display:"flex",gap:8}}>
+                <input
+                  style={{...S.input,flex:1}}
+                  placeholder="Member's email"
+                  value={inviteEmail}
+                  onChange={e=>setInviteEmail(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&sendInvite()}
+                />
+                <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting}>
+                  {inviting ? "Sending…" : "Invite"}
+                </button>
+              </div>
+            )}
+            {(household?.members?.length||0) >= 2 && (
+              <div style={{fontSize:12,color:"var(--amber)",padding:"8px 12px",background:"var(--amber-dim)",borderRadius:"var(--radius)"}}>
+                Member limit reached (2/2). Remove a member to invite someone new.
+              </div>
+            )}
             {household?.members?.length > 0 && (
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
                 <div style={{fontSize:10,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>Members</div>
@@ -7364,9 +7402,12 @@ function AppInner({ isDemo = false }) {
   /* -- Shared sidebar -- */
   const currentUser  = api.getStoredUser();
   const PREMIUM_PRICE_ID = import.meta.env.VITE_PREMIUM_PRICE_ID || "";
+  const FAMILY_PRICE_ID  = import.meta.env.VITE_FAMILY_PRICE_ID  || "";
   const isPremium = currentUser?.role === "owner" ||
     (currentUser?.isPremium === true) ||
     (PREMIUM_PRICE_ID && currentUser?.stripe_price_id === PREMIUM_PRICE_ID);
+  const isFamilyPlan = currentUser?.role === "owner" ||
+    (FAMILY_PRICE_ID && currentUser?.stripe_price_id === FAMILY_PRICE_ID);
   const _avatarColors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
   const avatarColor  = _avatarColors[(currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % _avatarColors.length];
   const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
@@ -7463,6 +7504,7 @@ function AppInner({ isDemo = false }) {
       PlaidButtonComponent={PlaidButton}
       onPlaidSuccess={handlePortfolioPlaidSuccess}
       isPremium={isPremium}
+          isFamilyPlan={isFamilyPlan}
     />
   );
 

@@ -235,6 +235,11 @@ export function subscribePush(subscription) {
 
 /* ── Billing ──────────────────────────────────────────────────────── */
 export function getBillingStatus()  { return request("/api/billing/status"); }
+export async function startFamilyCheckout() {
+  const { url } = await request("/api/billing/create-family-checkout", { method: "POST" });
+  return { url };
+}
+
 export async function startCheckout() {
   const { url } = await request("/api/billing/create-checkout", { method: "POST" });
   window.location.href = url;
@@ -321,24 +326,4 @@ export function getActiveMessage() {
   return fetch(`${BASE}/api/status-messages/active`)
     .then(r => r.ok ? r.json() : null)
     .catch(() => null);
-}
-
-// ── Household / Family Sharing ─────────────────────────────────────
-export function getHousehold() {
-  return request("/api/household");
-}
-export function inviteToHousehold(email) {
-  return request("/api/household/invite", { method: "POST", body: JSON.stringify({ email }) });
-}
-export function removeHouseholdMember(memberId) {
-  return request(`/api/household/member/${memberId}`, { method: "DELETE" });
-}
-export function leaveHousehold() {
-  return request("/api/household/leave", { method: "DELETE" });
-}
-export function acceptHouseholdInvite(token) {
-  return request("/api/household/accept", { method: "POST", body: JSON.stringify({ token }) });
-}
-export function checkHouseholdInvite(token) {
-  return fetch(`${BASE}/api/household/accept/${token}`).then(r => r.json()).catch(() => null);
 }

@@ -28,7 +28,7 @@ const PLAID_ENV     = process.env.PLAID_ENV    || "sandbox";
 const ENCRYPT_KEY   = process.env.ENCRYPT_KEY;
 const OWNER_EMAIL   = process.env.OWNER_EMAIL;
 const BCRYPT_ROUNDS = 12;
-const FROM_EMAIL    = "noreply@ledgrfinance.app";
+const FROM_EMAIL    = "noreply@send.ledgrfinance.app";
 
 /* ── Encryption ───────────────────────────────────────────────────── */
 function encrypt(text) {
@@ -1167,7 +1167,7 @@ async function getHousehold(userId) {
 
 async function emailHouseholdInvite(toEmail, inviterName, inviteToken) {
   if (!resend) { console.warn("Resend not configured"); return; }
-  const link = `${FRONTEND_URL}/accept-invite?token=${inviteToken}`;
+  const link = `${FRONTEND_URL}?invite=${inviteToken}`;
   await resend.emails.send({
     from: FROM_EMAIL,
     to: toEmail,

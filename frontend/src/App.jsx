@@ -973,10 +973,7 @@ function App() {
 
 
   const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
-  const _v = 6;
-  const rawInvite = new URLSearchParams(window.location.search).get("invite");
-  // Only treat as a valid invite token if it looks like a 64-char hex string (v5)
-  const inviteToken = rawInvite && /^[a-f0-9]{64}$/.test(rawInvite) ? rawInvite : null;
+
   const [authed, setAuthed] = useState(() => isDemo || isAuthValid());
 
   // Periodically check if token has expired mid-session
@@ -987,14 +984,6 @@ function App() {
     }, 60 * 1000);
     return () => clearInterval(interval);
   }, [isDemo]);
-
-  // Invite token takes priority — show accept screen regardless of auth state
-  if (inviteToken) {
-    return <AcceptInviteScreen token={inviteToken} onAccepted={() => {
-      window.history.replaceState({}, "", window.location.pathname);
-      window.location.reload();
-    }}/>;
-  }
 
   if (!authed) return <AuthGate onAuth={()=>setAuthed(true)}/>;
 

@@ -14,7 +14,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
-import { debounce } from "./api.js";
+const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";

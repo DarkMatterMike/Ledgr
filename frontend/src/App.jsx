@@ -1048,7 +1048,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false, isMobile = false }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -7516,6 +7516,7 @@ function AppInner({ isDemo = false }) {
       setShowTrash={setShowTrash}
       scheduleSaveRef={scheduleSaveRef}
       isFamilyPlan={isFamilyPlan}
+      isMobile={isMobile}
     />
   );
 

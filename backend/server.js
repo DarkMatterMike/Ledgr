@@ -1271,6 +1271,14 @@ app.post("/api/plaid/webhook", express.json(), async (req, res) => {
           const result = await syncItemTransactions(uid, item_id);
           await applySyncResultsToDB(uid, result.added, result.modified, result.removed);
           console.log(`Webhook auto-sync ${item_id}: +${result.added.length} ~${result.modified.length} -${result.removed.length}`);
+          if (result.added && result.added.length > 0) {
+            const count = result.added.length;
+            const body = count === 1
+              ? `${result.added[0].merchant_name || result.added[0].name || "A transaction"} was added`
+              : `${count} new transactions synced`;
+            sendPushToUser(uid, { title: "ledgr. — New Transactions", body, url: "/" })
+              .catch(e => console.warn("Webhook push failed:", e.message));
+          }
         }
       } catch (e) {
         console.error(`Webhook auto-sync failed for ${item_id}:`, e.message);
@@ -1446,6 +1454,20 @@ app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
   }
   try {
     const result = await syncItemTransactions(req.householdUid, targetItemId || null);
+
+    // Send push notification if new transactions were added
+    if (result.added && result.added.length > 0) {
+      const count = result.added.length;
+      const body = count === 1
+        ? `${result.added[0].merchant_name || result.added[0].name || "A transaction"} was added`
+        : `${count} new transactions synced`;
+      sendPushToUser(req.user.id, {
+        title: "ledgr. — New Transactions",
+        body,
+        url: "/",
+      }).catch(e => console.warn("Push failed:", e.message));
+    }
+
     res.json(result);
   } catch (err) { serverError(res, err); }
 });

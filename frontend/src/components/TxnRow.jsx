@@ -48,7 +48,7 @@ export default function TxnRow({
           }}>
           {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
         </div>
-        <MerchantIcon name={t.merchant||t.name} size={24}/>
+        <MerchantIcon name={t.merchant||t.name} logoUrl={t.logo_url} size={24}/>
         <span style={{fontSize:13,fontWeight:400,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
           {t.recurringItemId && <span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}

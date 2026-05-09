@@ -1114,7 +1114,7 @@ app.delete("/api/accounts/all", requireSubscription, async (req, res) => {
 // DELETE /api/accounts/plaid-item/:itemId — remove all accounts for a disconnected Plaid item
 app.delete("/api/accounts/plaid-item/:itemId", requireSubscription, async (req, res) => {
   try {
-    await deleteAccountsByPlaidItem(req.user.id, req.params.itemId);
+    await deleteAccountsByPlaidItem(req.householdUid, req.params.itemId);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
@@ -1123,7 +1123,7 @@ app.delete("/api/accounts/plaid-item/:itemId", requireSubscription, async (req, 
 app.patch("/api/accounts/:id", requireSubscription, async (req, res) => {
   try {
     const { name, balance, type } = req.body;
-    const sets = [], vals = [req.user.id, req.params.id];
+    const sets = [], vals = [req.householdUid, req.params.id];
     if (name    !== undefined) { vals.push(name);             sets.push(`name    = $${vals.length}`); }
     if (balance !== undefined) { vals.push(balance);          sets.push(`balance = $${vals.length}`); }
     if (type    !== undefined) { vals.push(type);             sets.push(`type    = $${vals.length}`); }
@@ -1141,7 +1141,7 @@ app.patch("/api/accounts/:id", requireSubscription, async (req, res) => {
 // DELETE /api/accounts/:id — delete one account
 app.delete("/api/accounts/:id", requireSubscription, async (req, res) => {
   try {
-    await deleteAccountById(req.user.id, req.params.id);
+    await deleteAccountById(req.householdUid, req.params.id);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
@@ -1156,7 +1156,7 @@ app.post("/api/rules", requireSubscription, async (req, res) => {
   try {
     const r = req.body;
     if (!r?.id || !r?.pattern) return res.status(400).json({ error: "id and pattern required" });
-    await upsertRule(req.user.id, r);
+    await upsertRule(req.householdUid, r);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
@@ -1164,7 +1164,7 @@ app.post("/api/rules", requireSubscription, async (req, res) => {
 // DELETE /api/rules/all — wipe all rules for this user
 app.delete("/api/rules/all", requireSubscription, async (req, res) => {
   try {
-    await deleteAllRules(req.user.id);
+    await deleteAllRules(req.householdUid);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
@@ -1173,7 +1173,7 @@ app.delete("/api/rules/all", requireSubscription, async (req, res) => {
 app.patch("/api/rules/:id", requireSubscription, async (req, res) => {
   try {
     const { pattern, matchType, categoryId, typeOverride, enabled } = req.body;
-    const sets = [], vals = [req.user.id, req.params.id];
+    const sets = [], vals = [req.householdUid, req.params.id];
     if (pattern      !== undefined) { vals.push(pattern);      sets.push(`pattern       = $${vals.length}`); }
     if (matchType    !== undefined) { vals.push(matchType);    sets.push(`match_type    = $${vals.length}`); }
     if (categoryId   !== undefined) { vals.push(categoryId);   sets.push(`category_id   = $${vals.length}`); }
@@ -1191,7 +1191,7 @@ app.patch("/api/rules/:id", requireSubscription, async (req, res) => {
 // DELETE /api/rules/:id — delete one rule
 app.delete("/api/rules/:id", requireSubscription, async (req, res) => {
   try {
-    await deleteRuleById(req.user.id, req.params.id);
+    await deleteRuleById(req.householdUid, req.params.id);
     res.json({ ok: true });
   } catch (err) { serverError(res, err); }
 });
@@ -1431,7 +1431,7 @@ app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
     if (!item || item.user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
   }
   try {
-    const result = await syncItemTransactions(req.user.id, targetItemId || null);
+    const result = await syncItemTransactions(req.householdUid, targetItemId || null);
     res.json(result);
   } catch (err) { serverError(res, err); }
 });

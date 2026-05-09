@@ -779,7 +779,7 @@ app.get("/api/data", async (req, res) => {
     const [accts, ruleRows, categories, plaidItems, calendarAccounts, calendarSplitView,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
            dashboardCardOrder, aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData,
-           recurringItemsData, deletedTransactionsData, customAccountNamesData] = await Promise.all([
+           recurringItemsData, deletedTransactionsData, customAccountNamesData, pendingDuplicatesData] = await Promise.all([
       getAccounts(huid),
       getRules(huid),
       getData(huid, "categories"),
@@ -792,6 +792,7 @@ app.get("/api/data", async (req, res) => {
       getData(uid,  "scanMemory"),         // personal
       getData(huid, "goals"),
       getData(uid,  "dashboardCardOrder"), // personal pref
+      getData(uid,  "pendingDuplicates"),   // duplicate alert from worker
       getData(uid,  "aiApiKey"),           // personal
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
@@ -826,6 +827,7 @@ app.get("/api/data", async (req, res) => {
       dashboardCardOrder: dashboardCardOrder || null,
       recurringItems:      recurringItemsData      || [],
       customAccountNames:   customAccountNamesData   || {},
+      pendingDuplicates:    pendingDuplicatesData    || null,
       deletedTransactions: deletedTransactionsData || [],
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],

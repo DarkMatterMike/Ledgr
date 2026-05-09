@@ -899,7 +899,8 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
        AND id = ANY($2::text[])
        AND user_categorized = false
        AND reviewed = false
-       AND notes IS NULL`,
+       AND notes IS NULL
+       AND (pending = false OR pending IS NULL)`,
       [userId, removeIds]
     );
     removeIds.forEach(id => existingIds.delete(id));

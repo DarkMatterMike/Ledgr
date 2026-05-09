@@ -21,6 +21,8 @@ dotenv.config();
 const {
   pool,
   initDB,
+  getData,
+  setData,
   getItemsForUser,
   syncItemTransactions,
   applySyncResultsToDB,
@@ -120,6 +122,53 @@ cron.schedule("0 */4 * * *", async () => {
             body:  examples || `${result.added} new transaction${result.added !== 1 ? "s" : ""} synced`,
             url:   "/",
           });
+        }
+
+        // ── Duplicate detection ──────────────────────────────────────
+        if (result.added > 0) {
+          try {
+            const { rows: txns } = await pool.query(
+              `SELECT id, amount, date, name, merchant_name, pending, fingerprint
+               FROM transactions WHERE user_id = $1 ORDER BY date DESC LIMIT 500`,
+              [userId]
+            );
+            // Detect duplicates: same amount + merchant within a 5-day window
+            let dupCount = 0;
+            const paired = new Set();
+            for (let i = 0; i < txns.length; i++) {
+              if (paired.has(txns[i].id)) continue;
+              const a = txns[i];
+              const amtA = Math.round(Math.abs(a.amount) * 100);
+              const nameA = (a.merchant_name || a.name || "").toLowerCase().trim();
+              const dateA = new Date(a.date).getTime();
+              for (let j = i + 1; j < txns.length; j++) {
+                if (paired.has(txns[j].id)) continue;
+                const b = txns[j];
+                const amtB = Math.round(Math.abs(b.amount) * 100);
+                const nameB = (b.merchant_name || b.name || "").toLowerCase().trim();
+                const dateB = new Date(b.date).getTime();
+                const daysDiff = Math.abs(dateA - dateB) / (1000 * 60 * 60 * 24);
+                if (amtA === amtB && nameA === nameB && daysDiff <= 5) {
+                  dupCount++;
+                  paired.add(a.id);
+                  paired.add(b.id);
+                  break;
+                }
+              }
+            }
+            if (dupCount > 0) {
+              await setData(userId, "pendingDuplicates", { count: dupCount, detectedAt: Date.now() });
+              await sendPushToUser(userId, {
+                title: `ledgr. — ${dupCount} possible duplicate${dupCount !== 1 ? "s" : ""} found`,
+                body:  "Tap to review your transactions",
+                url:   "/?openDuplicates=true",
+              });
+              console.log(\`[worker] \${userId}: \${dupCount} duplicate pairs detected\`);
+            } else {
+              // Clear any existing duplicate alert if none found
+              await setData(userId, "pendingDuplicates", null);
+            }
+          } catch (e) { console.error(\`[worker] Dup detection failed for \${userId}:\`, e.message); }
         }
       } catch (err) { console.error(`[worker] Failed for user ${userId}:`, err.message); }
     }

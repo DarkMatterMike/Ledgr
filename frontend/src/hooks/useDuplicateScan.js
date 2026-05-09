@@ -57,7 +57,7 @@ function makeMemoryKey(a, b) {
 
 /* ── Hook ────────────────────────────────────────────────────────── */
 
-export function useDuplicateScan(transactions, showToast, setTransactions) {
+export function useDuplicateScan(transactions, showToast, setTransactions, showUndoToast) {
   // Dismissed pair keys (individual pending id OR "aId__bId" from scan)
   const [dismissedPairs, setDismissedPairs] = useState([]);
 
@@ -73,6 +73,8 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
 
   // Whether to show pending duplicates inline in the transaction list
   const [showDuplicates, setShowDuplicates] = useState(false);
+  const [processingIds,  setProcessingIds]  = useState(new Set());
+  const pendingActionRef = useRef(null); // { timerId, execute, label }
 
   /* ── Memory helpers ─────────────────────────────────────────────── */
 
@@ -217,17 +219,47 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
 
   /* ── Confirm / dismiss actions ──────────────────────────────────── */
 
+  function executeWithUndo(id, label, execute) {
+    if (processingIds.has(id)) return;
+    setProcessingIds(prev => new Set([...prev, id]));
+
+    // Cancel any existing pending action
+    if (pendingActionRef.current) {
+      clearTimeout(pendingActionRef.current.timerId);
+      pendingActionRef.current.execute(); // commit the previous one
+    }
+
+    const timerId = setTimeout(() => {
+      execute();
+      pendingActionRef.current = null;
+      setProcessingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    }, 4000);
+
+    pendingActionRef.current = { timerId, execute, id };
+
+    if (showUndoToast) {
+      showUndoToast(label, () => {
+        clearTimeout(timerId);
+        pendingActionRef.current = null;
+        setProcessingIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+      });
+    } else {
+      showToast(`${label} · Undo`);
+    }
+  }
+
   function dismissPair(pendingId) {
     const pair = pendingPairs.find(pr => pr.pending.id === pendingId);
-    if (pair) recordDismissed(pair.pending, pair.posted);
-    setDismissedPairs(prev => [...prev, pendingId]);
+    executeWithUndo(pendingId, "Marked as not a match", () => {
+      if (pair) recordDismissed(pair.pending, pair.posted);
+      setDismissedPairs(prev => [...prev, pendingId]);
+    });
   }
 
   function confirmPair(pendingId, postedId) {
     const pending = transactions.find(t => t.id === pendingId);
     const posted  = transactions.find(t => t.id === postedId);
     if (!pending || !posted) return;
-    recordConfirmed(pending, posted);
     const mergedFields = {
       name:           pending.name           || posted.name,
       categoryId:     pending.categoryId     || posted.categoryId,
@@ -238,28 +270,32 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
       reviewed:       pending.reviewed       || posted.reviewed,
       type:           pending.type           || posted.type,
     };
-    setTransactions(p =>
-      p
-        .filter(t => t.id !== pendingId)
-        .map(t => t.id !== postedId ? t : { ...t, ...mergedFields })
-    );
-    api.deleteTransaction(pendingId).catch(console.error);
-    api.updateTransaction(postedId, mergedFields).catch(console.error);
-    showToast("Merged — metadata copied to posted transaction");
+    executeWithUndo(pendingId, "Merged — metadata copied to posted transaction", () => {
+      recordConfirmed(pending, posted);
+      setTransactions(p =>
+        p
+          .filter(t => t.id !== pendingId)
+          .map(t => t.id !== postedId ? t : { ...t, ...mergedFields })
+      );
+      api.deleteTransaction(pendingId).catch(console.error);
+      api.updateTransaction(postedId, mergedFields).catch(console.error);
+    });
   }
 
   function dismissDuplicatePair(aId, bId) {
+    const pairKey = [aId, bId].sort().join("__");
     const tA = transactions.find(t => t.id === aId);
     const tB = transactions.find(t => t.id === bId);
-    if (tA && tB) recordDismissed(tA, tB);
-    const pairKey = [aId, bId].sort().join("__");
-    setDismissedPairs(prev => [...prev, pairKey]);
-    setDuplicatePairs(prev => {
-      const remaining = prev.filter(
-        pair => [pair.pending.id, pair.posted.id].sort().join("__") !== pairKey
-      );
-      setShowReconcile(remaining.length > 0);
-      return remaining;
+    executeWithUndo(pairKey, "Marked as not a duplicate", () => {
+      if (tA && tB) recordDismissed(tA, tB);
+      setDismissedPairs(prev => [...prev, pairKey]);
+      setDuplicatePairs(prev => {
+        const remaining = prev.filter(
+          pair => [pair.pending.id, pair.posted.id].sort().join("__") !== pairKey
+        );
+        setShowReconcile(remaining.length > 0);
+        return remaining;
+      });
     });
   }
 
@@ -267,17 +303,17 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
     const removeTxn = transactions.find(t => t.id === removeId);
     const keepTxn   = transactions.find(t => t.id === keepId);
     if (!removeTxn || !keepTxn) return;
-    recordConfirmed(removeTxn, keepTxn);
-    setTransactions(prev => prev.filter(t => t.id !== removeId));
-    api.deleteTransaction(removeId).catch(console.error);
-    setDuplicatePairs(prev =>
-      prev.filter(
-        pair =>
-          !(pair.pending.id === removeId && pair.posted.id === keepId) &&
-          !(pair.pending.id === keepId   && pair.posted.id === removeId)
-      )
-    );
-    showToast("Duplicate removed");
+    executeWithUndo(removeId, "Duplicate removed", () => {
+      recordConfirmed(removeTxn, keepTxn);
+      setTransactions(prev => prev.filter(t => t.id !== removeId));
+      api.deleteTransaction(removeId).catch(console.error);
+      setDuplicatePairs(prev =>
+        prev.filter(
+          pair =>
+            !(pair.pending.id === removeId && pair.posted.id === keepId) &&
+            !(pair.pending.id === keepId   && pair.posted.id === removeId)
+        )
+      );
   }
 
   return {
@@ -302,6 +338,7 @@ export function useDuplicateScan(transactions, showToast, setTransactions) {
     confirmPair,
     dismissDuplicatePair,
     confirmDuplicateRemoval,
+    processingIds,
     // Exposed for UI (remove label)
     pickRemove,
     isPreauth,

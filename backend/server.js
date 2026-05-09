@@ -792,7 +792,6 @@ app.get("/api/data", async (req, res) => {
       getData(uid,  "scanMemory"),         // personal
       getData(huid, "goals"),
       getData(uid,  "dashboardCardOrder"), // personal pref
-      getData(uid,  "pendingDuplicates"),   // duplicate alert from worker
       getData(uid,  "aiApiKey"),           // personal
       // Live item health from plaid_items table — used to seed reauth warnings on load
       pool.query(
@@ -805,6 +804,7 @@ app.get("/api/data", async (req, res) => {
       getData(huid, "recurringItems"),
       getData(huid, "deletedTransactions"),
       getData(huid, "customAccountNames"),
+      getData(uid,  "pendingDuplicates"),  // duplicate alert from worker
     ]);
 
     const reauthItemIds = plaidItemRows.rows

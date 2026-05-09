@@ -9,7 +9,7 @@
  * it is used within the same module.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import * as api from "../api.js";
 
 /* ── Pure helpers (no state, defined first) ──────────────────────── */
@@ -314,6 +314,7 @@ export function useDuplicateScan(transactions, showToast, setTransactions, showU
             !(pair.pending.id === keepId   && pair.posted.id === removeId)
         )
       );
+    });
   }
 
   return {

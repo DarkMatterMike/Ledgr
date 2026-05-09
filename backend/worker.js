@@ -163,12 +163,12 @@ cron.schedule("0 */4 * * *", async () => {
                 body:  "Tap to review your transactions",
                 url:   "/?openDuplicates=true",
               });
-              console.log(\`[worker] \${userId}: \${dupCount} duplicate pairs detected\`);
+              console.log(`[worker] ${userId}: ${dupCount} duplicate pairs detected`);
             } else {
               // Clear any existing duplicate alert if none found
               await setData(userId, "pendingDuplicates", null);
             }
-          } catch (e) { console.error(\`[worker] Dup detection failed for \${userId}:\`, e.message); }
+          } catch (e) { console.error(`[worker] Dup detection failed for ${userId}:`, e.message); }
         }
       } catch (err) { console.error(`[worker] Failed for user ${userId}:`, err.message); }
     }

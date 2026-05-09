@@ -1,12 +1,14 @@
 /**
  * components/MerchantIcon.jsx
- * Merchant logo with three-tier fallback:
+ * Merchant logo with two-tier fallback:
  *   1. Plaid logo_url (accurate, hosted by Plaid)
- *   2. Google faviconV2 (guessed from merchant name)
- *   3. Initials avatar (always works)
+ *   2. Initials avatar (always works, no network request)
+ *
+ * Google favicon services are omitted — they 404 loudly on
+ * non-real domains constructed from transaction name strings.
  */
-import { useState } from 'react';
 import PropTypes from 'prop-types';
+import { useState } from 'react';
 
 function getInitials(name = '') {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -16,7 +18,6 @@ function getInitials(name = '') {
 }
 
 function getColor(name = '') {
-  // Deterministic pastel color from name so it's stable across renders
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   const hue = Math.abs(hash) % 360;
@@ -24,8 +25,7 @@ function getColor(name = '') {
 }
 
 function MerchantIcon({ name, logoUrl, size = 24 }) {
-  const [plaidErr, setPlaidErr]   = useState(false);
-  const [faviconErr, setFaviconErr] = useState(false);
+  const [logoErr, setLogoErr] = useState(false);
 
   const initials = getInitials(name);
   const color    = getColor(name || '');
@@ -36,15 +36,13 @@ function MerchantIcon({ name, logoUrl, size = 24 }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: Math.round(size * 0.42), fontWeight: 700,
       color: '#fff', backgroundColor: color,
-      borderRadius: '50%', userSelect: 'none',
-      lineHeight: 1,
+      borderRadius: '50%', userSelect: 'none', lineHeight: 1,
     }}>
       {initials}
     </span>
   );
 
-  // Tier 1: Plaid logo_url
-  if (logoUrl && !plaidErr) {
+  if (logoUrl && !logoErr) {
     return (
       <div style={{ width: size, height: size, flexShrink: 0, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -53,34 +51,13 @@ function MerchantIcon({ name, logoUrl, size = 24 }) {
           alt=""
           width={size}
           height={size}
-          onError={() => setPlaidErr(true)}
+          onError={() => setLogoErr(true)}
           style={{ objectFit: 'contain', borderRadius: 4 }}
         />
       </div>
     );
   }
 
-  // Tier 2: Google faviconV2 (silent 404 — returns blank pixel instead of erroring)
-  if (name && !faviconErr) {
-    const cleaned = name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '').slice(0, 30);
-    const domain  = cleaned + '.com';
-    const faviconUrl = `https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${domain}&size=${size * 2}`;
-    return (
-      <div style={{ width: size, height: size, flexShrink: 0, overflow: 'hidden',
-        display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img
-          src={faviconUrl}
-          alt=""
-          width={size}
-          height={size}
-          onError={() => setFaviconErr(true)}
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
-    );
-  }
-
-  // Tier 3: Initials avatar
   return initialsAvatar;
 }
 

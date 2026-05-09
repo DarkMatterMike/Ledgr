@@ -891,16 +891,22 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
 
   if (removed.length > 0) {
     const removeIds = removed.map(r => r.transaction_id);
-    // Only delete transactions the user hasn't touched — prevents Plaid cursor
-    // resets from wiping user-categorized or reviewed transactions
+    // Always remove pending transactions — Plaid removes them when they settle,
+    // replacing with a new posted transaction_id. Keeping the old pending row
+    // causes ghost transactions that reappear/disappear across syncs.
+    // For non-pending transactions, guard against wiping user edits on cursor resets.
     await pool.query(
       `DELETE FROM transactions
        WHERE user_id = $1
        AND id = ANY($2::text[])
-       AND user_categorized = false
-       AND reviewed = false
-       AND notes IS NULL
-       AND (pending = false OR pending IS NULL)`,
+       AND (
+         pending = true
+         OR (
+           user_categorized = false
+           AND reviewed = false
+           AND notes IS NULL
+         )
+       )`,
       [userId, removeIds]
     );
     removeIds.forEach(id => existingIds.delete(id));

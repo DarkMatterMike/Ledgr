@@ -2940,9 +2940,12 @@ function AppInner({ isDemo = false }) {
     if (hasData) scheduleSaveRef.current?.({ scanMemory });
   }, [scanMemory]);
 
+  const deletedTxnIds = useMemo(() => new Set(deletedTransactions.map(t => t.id)), [deletedTransactions]);
+
   const filteredTxns = useMemo(() =>
     transactions.filter(t => {
       const label = (t.name||t.merchant||"").toLowerCase();
+      if (deletedTxnIds.has(t.id)) return false;  // hide soft-deleted transactions
       if (!showDuplicates && pendingPairs.some(p=>p.pending.id===t.id)) return false;
       if (search && !label.includes(search.toLowerCase())) return false;
       if (filterCat    !== "all" && t.categoryId !== filterCat)  return false;
@@ -2951,7 +2954,7 @@ function AppInner({ isDemo = false }) {
       if (filterReview && !needsReview(t)) return false;
       return true;
     }).sort((a,b) => b.date?.localeCompare(a.date)),
-  [transactions, search, filterCat, filterAcct, filterReview, showDuplicates, pendingPairs]);
+  [transactions, deletedTxnIds, search, filterCat, filterAcct, filterReview, showDuplicates, pendingPairs]);
 
   // Auto-clear the review filter once the last transaction has been reviewed —
   // so the user lands back on the full unfiltered list rather than a blank screen.

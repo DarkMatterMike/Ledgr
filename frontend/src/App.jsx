@@ -2919,8 +2919,8 @@ function AppInner({ isDemo = false }) {
     scanForDuplicates,
     dismissPair, confirmPair,
     dismissDuplicatePair, confirmDuplicateRemoval,
-    pickRemove, isPreauth,
-  } = useDuplicateScan(transactions, showToast, setTransactions);
+    pickRemove, isPreauth, processingIds,
+  } = useDuplicateScan(transactions, showToast, setTransactions, showUndoToast);
 
   // Persist dismissed pairs + scan memory whenever they change
   useEffect(() => {
@@ -3843,12 +3843,26 @@ function AppInner({ isDemo = false }) {
   }
   function deleteTxn(id) {
     const txn = transactions.find(t=>t.id===id);
+    if (!txn) return;
+    // Move to trash immediately
+    const trashed = { ...txn, deletedAt: new Date().toISOString() };
     setTransactions(p=>p.filter(t=>t.id!==id));
-    api.deleteTransaction(id).catch(console.error);
-    showUndoToast("Transaction deleted", () => {
-      setTransactions(p=>[txn,...p]);
-      api.createTransaction(txn).catch(console.error);
+    setDeletedTransactions(p => {
+      const next = [trashed, ...p];
+      scheduleSaveRef.current?.({ deletedTransactions: next });
+      return next;
     });
+    showUndoToast("Moved to trash", () => {
+      // Undo — restore from trash
+      setTransactions(p=>[txn,...p]);
+      setDeletedTransactions(p => {
+        const next = p.filter(t=>t.id!==id);
+        scheduleSaveRef.current?.({ deletedTransactions: next });
+        return next;
+      });
+    });
+    // Actually delete on backend after undo window (4.2s)
+    setTimeout(() => api.deleteTransaction(id).catch(console.error), 4200);
   }
   // ── Recurring Item CRUD ───────────────────────────────────────────
   function saveRecurringItem(item) {
@@ -4887,9 +4901,9 @@ function AppInner({ isDemo = false }) {
                         )}
                         <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>{
                           if (isScannedDuplicate) {
-                            dismissDuplicatePair(p.id, po.id);
+                            if(!processingIds.has([p.id,po.id].sort().join('__'))) dismissDuplicatePair(p.id, po.id);
                           } else {
-                            dismissPair(p.id);
+                            if(!processingIds.has(p.id)) dismissPair(p.id);
                           }
                         }}>
                           Not a match
@@ -4922,7 +4936,7 @@ function AppInner({ isDemo = false }) {
                             } else {
                               // Save the pending txn so undo can restore it
                               const pendingTxn = transactions.find(t => t.id === p.id);
-                              confirmPair(p.id, po.id);
+                              if(!processingIds.has(p.id)) confirmPair(p.id, po.id);
                               setShowReconcile(pendingPairs.length>1);
                               if (pendingTxn) {
                                 showUndoToast("Merged — pending removed", () => {

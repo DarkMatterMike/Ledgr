@@ -779,7 +779,7 @@ app.get("/api/data", async (req, res) => {
     const [accts, ruleRows, categories, plaidItems, calendarAccounts, calendarSplitView,
            aiCatExamples, userProfile, dismissedPairs, scanMemory, goals,
            dashboardCardOrder, aiApiKey, plaidItemRows, insightsTodosData, daniData, themeData,
-           recurringItemsData, deletedTransactionsData] = await Promise.all([
+           recurringItemsData, deletedTransactionsData, customAccountNamesData] = await Promise.all([
       getAccounts(huid),
       getRules(huid),
       getData(huid, "categories"),
@@ -803,6 +803,7 @@ app.get("/api/data", async (req, res) => {
       getData(uid,  "theme"),             // personal theme
       getData(huid, "recurringItems"),
       getData(huid, "deletedTransactions"),
+      getData(huid, "customAccountNames"),
     ]);
 
     const reauthItemIds = plaidItemRows.rows
@@ -824,6 +825,7 @@ app.get("/api/data", async (req, res) => {
       goals:            goals            || [],
       dashboardCardOrder: dashboardCardOrder || null,
       recurringItems:      recurringItemsData      || [],
+      customAccountNames:   customAccountNamesData   || {},
       deletedTransactions: deletedTransactionsData || [],
       hasAiKey:         !!aiApiKey,
       insightsTodos:    insightsTodosData || [],
@@ -1061,6 +1063,7 @@ app.patch("/api/data", requireSubscription, async (req, res) => {
     // Shared data → huid
     if (plaidItems         !== undefined) ops.push(setData(huid, "plaidItems",         plaidItems));
     if (Array.isArray(recurringItems))      ops.push(setData(huid, "recurringItems",      recurringItems));
+    if (customAccountNames !== undefined)    ops.push(setData(huid, "customAccountNames",  customAccountNames));
     if (Array.isArray(deletedTransactions)) ops.push(setData(huid, "deletedTransactions", deletedTransactions));
     if (Array.isArray(insightsTodos))       ops.push(setData(huid, "insightsTodos",       insightsTodos));
     // Personal prefs → uid

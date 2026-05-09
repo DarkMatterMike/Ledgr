@@ -1329,17 +1329,31 @@ app.delete("/api/plaid/items/:itemId", async (req, res) => {
 });
 app.get("/api/plaid/accounts", async (req, res) => {
   try {
-    const items = await getItemsForUser(req.user.id);
+    const items = await getItemsForUser(req.householdUid);
     const allAccounts = [];
     for (const item of items) {
       try {
         const r = await plaidClient.accountsGet({ access_token: item.access_token });
-        allAccounts.push(...r.data.accounts.map(a => ({
+        const accts = r.data.accounts.map(a => ({
           account_id: a.account_id, item_id: item.item_id, institution: item.institution,
           name: a.name, official: a.official_name, type: a.type, subtype: a.subtype,
           mask: a.mask,
           balance: a.balances.current, available: a.balances.available, currency: a.balances.iso_currency_code,
-        })));
+        }));
+        // Persist accounts to DB so renames and balance data survive
+        for (const a of accts) {
+          await upsertAccount(req.householdUid, {
+            id: "a" + a.account_id,
+            plaidId: a.account_id,
+            name: a.name,
+            type: a.type,
+            subtype: a.subtype,
+            balance: a.balance,
+            institution: a.institution,
+            mask: a.mask,
+          });
+        }
+        allAccounts.push(...accts);
       } catch (err) { console.error(`accountsGet error for ${item.item_id}:`, err.response?.data || err.message); }
     }
     // Deduplicate by account_id
@@ -1354,7 +1368,7 @@ app.get("/api/plaid/accounts", async (req, res) => {
     // (upsertAccountFromPlaid preserves custom names set via PATCH /api/accounts/:id)
     const { rows: dbAccounts } = await pool.query(
       `SELECT plaid_id, name FROM accounts WHERE user_id = $1 AND plaid_id IS NOT NULL`,
-      [req.user.id]
+      [req.householdUid]
     );
     const nameOverrides = {};
     dbAccounts.forEach(row => { nameOverrides[row.plaid_id] = row.name; });

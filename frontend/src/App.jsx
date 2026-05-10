@@ -91,7 +91,6 @@ function useIsMobile() {
       cursor: pointer;
       transition: color 0.18s ease, background 0.18s ease;
       background: transparent; border: none;
-      border-right: 2px solid transparent;
       width: 100%; text-align: left;
       font-family: var(--font-body);
       box-sizing: border-box;
@@ -104,7 +103,6 @@ function useIsMobile() {
     .obsidian-nav-item.active {
       color: #e8ddd0;
       background: var(--cyan-dim);
-      border-right: 2px solid transparent;
       font-weight: 500;
       border-radius: 0;
     }

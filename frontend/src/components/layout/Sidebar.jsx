@@ -73,7 +73,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
           <div style={{marginTop:8,borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:8,display:"flex",flexDirection:"column"}}>
             <button onClick={()=>onNav("dani")}
               className={`obsidian-nav-item${view==="dani"?" active":""}`}
-              style={view==="dani"?{borderRightColor:"#f9a8d4",background:"rgba(249,168,212,0.1)",color:"#f9a8d4"}:{}}>
+              style={view==="dani"?{background:"rgba(249,168,212,0.1)",color:"#f9a8d4"}:{}}>
               <div className="obsidian-nav-dot" style={view==="dani"?{background:"#f9a8d4",opacity:1,boxShadow:"0 0 8px #f9a8d4"}:{}}/>
               <span>Dani</span>
             </button>

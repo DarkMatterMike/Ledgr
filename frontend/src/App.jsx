@@ -103,7 +103,7 @@ function useIsMobile() {
     .obsidian-nav-item.active {
       color: #e8ddd0;
       background: var(--cyan-dim);
-      border-right: 2px solid var(--cyan);
+      border-right: none;
       font-weight: 500;
       border-radius: 0;
     }
@@ -1222,6 +1222,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     </div>
 
     <div style={{ maxWidth:560 }}>
+      <div key={settingsTab} className="ledgr-panel-in">
 
       {/* ── Profile tab ─────────────────────────────── */}
       {settingsTab === "profile" && <>
@@ -1980,6 +1981,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         </div>
       </div>
     )}
+      </div>
     </>
   );
 }

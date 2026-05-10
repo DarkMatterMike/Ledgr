@@ -88,8 +88,11 @@ function useIsMobile() {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 20px; font-size: 13px; font-weight: 400;
       color: rgba(232,221,208,0.35);
-      cursor: pointer; transition: all 0.15s;
+      cursor: pointer;
+      /* Only transition the properties we control — NOT border-right width/style */
+      transition: color 0.18s ease, background 0.18s ease, font-weight 0.18s ease;
       background: transparent; border: none;
+      /* Always keep 2px reserved so width never changes and causes a flash */
       border-right: 2px solid transparent;
       width: 100%; text-align: left;
       font-family: var(--font-body);
@@ -103,19 +106,25 @@ function useIsMobile() {
     .obsidian-nav-item.active {
       color: #e8ddd0;
       background: var(--cyan-dim);
-      border-right: none;
+      /* Transition border-color not border-right shorthand — no flash */
+      border-right-color: var(--cyan);
+      border-right-style: solid;
       font-weight: 500;
       border-radius: 0;
     }
     .obsidian-nav-dot {
       width: 5px; height: 5px; border-radius: 50%;
       background: currentColor; opacity: 0.4; flex-shrink: 0;
-      transition: all 0.15s;
+      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+                  opacity 0.18s ease,
+                  background 0.18s ease,
+                  box-shadow 0.18s ease;
     }
     .obsidian-nav-item.active .obsidian-nav-dot {
       background: var(--cyan);
       opacity: 1;
-      box-shadow: 0 0 6px var(--cyan);
+      transform: scale(1.5);
+      box-shadow: 0 0 7px var(--cyan);
     }
 
     /* ── Cards: solid warm surface, clean border ── */

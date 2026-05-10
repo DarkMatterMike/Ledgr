@@ -186,33 +186,4 @@ input, select, textarea, button { font-family: var(--font-body); }
   animation: ledgr-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ── Sidebar nav — animated active indicator ─────────────────────── */
-.obsidian-nav-item {
-  position: relative;
-}
-.obsidian-nav-item::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%) scaleY(0);
-  width: 2px;
-  height: 60%;
-  background: var(--cyan);
-  border-radius: 0 2px 2px 0;
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s;
-  opacity: 0;
-}
-.obsidian-nav-item.active::before {
-  transform: translateY(-50%) scaleY(1);
-  opacity: 1;
-}
-.obsidian-nav-dot {
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.15s,
-              background 0.15s,
-              box-shadow 0.15s;
-}
-.obsidian-nav-item.active .obsidian-nav-dot {
-  transform: scale(1.35);
-}
+

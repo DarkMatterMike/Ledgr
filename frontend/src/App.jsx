@@ -89,10 +89,8 @@ function useIsMobile() {
       padding: 9px 20px; font-size: 13px; font-weight: 400;
       color: rgba(232,221,208,0.35);
       cursor: pointer;
-      /* Only transition the properties we control — NOT border-right width/style */
-      transition: color 0.18s ease, background 0.18s ease, font-weight 0.18s ease;
+      transition: color 0.18s ease, background 0.18s ease;
       background: transparent; border: none;
-      /* Always keep 2px reserved so width never changes and causes a flash */
       border-right: 2px solid transparent;
       width: 100%; text-align: left;
       font-family: var(--font-body);
@@ -106,16 +104,14 @@ function useIsMobile() {
     .obsidian-nav-item.active {
       color: #e8ddd0;
       background: var(--cyan-dim);
-      /* Transition border-color not border-right shorthand — no flash */
-      border-right-color: var(--cyan);
-      border-right-style: solid;
+      border-right: 2px solid transparent;
       font-weight: 500;
       border-radius: 0;
     }
     .obsidian-nav-dot {
       width: 5px; height: 5px; border-radius: 50%;
       background: currentColor; opacity: 0.4; flex-shrink: 0;
-      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
                   opacity 0.18s ease,
                   background 0.18s ease,
                   box-shadow 0.18s ease;
@@ -125,6 +121,19 @@ function useIsMobile() {
       opacity: 1;
       transform: scale(1.5);
       box-shadow: 0 0 7px var(--cyan);
+    }
+    /* Sliding right-edge indicator */
+    .obsidian-nav-indicator {
+      position: absolute;
+      right: 0;
+      width: 2px;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan), -2px 0 12px var(--glow-color, rgba(0,210,190,0.3));
+      border-radius: 2px 0 0 2px;
+      pointer-events: none;
+      transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                  height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10;
     }
 
     /* ── Cards: solid warm surface, clean border ── */

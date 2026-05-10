@@ -2,7 +2,7 @@
  * components/layout/Sidebar.jsx
  * Desktop sidebar navigation with sync and support buttons.
  */
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { S } from '../../theme/index.js';
 import * as api from '../../api.js';
 import { NAV } from '../../App.jsx';
@@ -14,6 +14,32 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
   const [supportSending, setSupportSending] = useState(false);
+
+  const navRef       = useRef(null);
+  const indicatorRef = useRef(null);
+
+  // Slide the indicator to the active nav item
+  useEffect(() => {
+    const nav = navRef.current;
+    const ind = indicatorRef.current;
+    if (!nav || !ind) return;
+    const activeEl = nav.querySelector(".obsidian-nav-item.active");
+    if (!activeEl) return;
+    const navRect  = nav.getBoundingClientRect();
+    const itemRect = activeEl.getBoundingClientRect();
+    ind.style.top    = (itemRect.top  - navRect.top)  + "px";
+    ind.style.height = itemRect.height + "px";
+  }, [view]);
+
+  // Set initial position without transition to avoid slide-in on first render
+  useEffect(() => {
+    const ind = indicatorRef.current;
+    if (!ind) return;
+    ind.style.transition = "none";
+    requestAnimationFrame(() => {
+      ind.style.transition = "";
+    });
+  }, []);
 
   async function submitSupport() {
     if (!supportMessage.trim()) return;
@@ -33,7 +59,8 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
   return (
     <>
       <div style={{height:16,flexShrink:0}}/>
-      <nav style={{flex:1,display:"flex",flexDirection:"column",overflowY:"auto"}}>
+      <nav style={{flex:1,display:"flex",flexDirection:"column",overflowY:"auto",position:"relative"}} ref={navRef}>
+        <div className="obsidian-nav-indicator" ref={indicatorRef}/>
         {NAV.map(n=>(
           <button key={n.id} onClick={()=>onNav(n.id)}
             className={`obsidian-nav-item${view===n.id?" active":""}`}>

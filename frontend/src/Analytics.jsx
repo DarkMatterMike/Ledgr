@@ -1975,58 +1975,79 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   );
 
   /* ── Two-column layout on desktop, single on mobile ─────────────── */
-    function HealthScoreCard() { return (
-    <Card>
-      <SectionHead title="Financial Health Score" />
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
-        {/* Gauge — front and center */}
-        {(()=>{
-          const r=68,cx=80,cy=80,stroke=12;
-          const circ=2*Math.PI*r;
-          const filled=circ*(healthScore.score/100);
-          return (
+    function HealthScoreCard() {
+      const r = 68, cx = 80, cy = 80, stroke = 12;
+      const circ = 2 * Math.PI * r;
+      const targetFilled = circ * (healthScore.score / 100);
+
+      const [filled,       setFilled]       = useState(0);
+      const [displayScore, setDisplayScore] = useState(0);
+
+      useEffect(() => {
+        const t = setTimeout(() => setFilled(targetFilled), 80);
+        return () => clearTimeout(t);
+      }, [targetFilled]);
+
+      useEffect(() => {
+        const target = healthScore.score;
+        const dur    = 900;
+        const start  = performance.now();
+        let raf;
+        const tick = (now) => {
+          const progress = Math.min((now - start) / dur, 1);
+          const eased    = 1 - Math.pow(1 - progress, 3);
+          setDisplayScore(Math.round(eased * target));
+          if (progress < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+      }, [healthScore.score]);
+
+      return (
+        <Card>
+          <SectionHead title="Financial Health Score" />
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16 }}>
+            {/* Ring gauge */}
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
               <svg width={160} height={160} viewBox="0 0 160 160">
                 <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke}/>
                 <circle cx={cx} cy={cy} r={r} fill="none" stroke={healthScore.color} strokeWidth={stroke}
                   strokeDasharray={`${filled} ${circ}`} strokeLinecap="round"
                   transform={`rotate(-90 ${cx} ${cy})`}
-                  style={{ transition:"stroke-dasharray 0.8s ease" }}/>
+                  style={{ transition:"stroke-dasharray 1s cubic-bezier(0.22,1,0.36,1)" }}/>
                 <text x={cx} y={cy-10} textAnchor="middle" fill={healthScore.color}
-                  style={{ fontSize:36, fontWeight:800, fontFamily:"var(--font-mono)" }}>{healthScore.score}</text>
+                  style={{ fontSize:36, fontWeight:800, fontFamily:"var(--font-mono)" }}>{displayScore}</text>
                 <text x={cx} y={cy+16} textAnchor="middle" fill={healthScore.color}
                   style={{ fontSize:15, fontWeight:700, fontFamily:"var(--font-disp)" }}>{healthScore.grade}</text>
                 <text x={cx} y={cy+34} textAnchor="middle" fill="var(--t3)"
                   style={{ fontSize:10, fontFamily:"var(--font-body)" }}>{healthScore.label}</text>
               </svg>
             </div>
-          );
-        })()}
-        {/* Breakdown bars */}
-        <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:10 }}>
-          {healthScore.breakdown.map(item => (
-            <div key={item.label}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                <span style={{ fontSize:11, color:"var(--t2)", display:"flex", alignItems:"center", gap:6 }}>
-                  <span>{item.icon}</span>
-                  <span style={{ fontWeight:500 }}>{item.label}</span>
-                  {item.note && <span style={{ color:"var(--t3)", fontSize:10 }}>· {item.note}</span>}
-                </span>
-                <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t2)", fontWeight:600 }}>{item.pts}/{item.max}</span>
-              </div>
-              <div style={{ height:5, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
-                <div style={{ height:"100%", borderRadius:99,
-                  width:`${(item.pts/item.max)*100}%`,
-                  background: item.pts/item.max>=0.8?"var(--green)":item.pts/item.max>=0.5?"var(--cyan)":item.pts/item.max>=0.3?"var(--amber)":"var(--red)",
-                  transition:"width 0.6s ease" }}/>
-              </div>
+            {/* Breakdown bars */}
+            <div style={{ width:"100%", display:"flex", flexDirection:"column", gap:10 }}>
+              {healthScore.breakdown.map(item => (
+                <div key={item.label}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                    <span style={{ fontSize:11, color:"var(--t2)", display:"flex", alignItems:"center", gap:6 }}>
+                      <span>{item.icon}</span>
+                      <span style={{ fontWeight:500 }}>{item.label}</span>
+                      {item.note && <span style={{ color:"var(--t3)", fontSize:10 }}>· {item.note}</span>}
+                    </span>
+                    <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--t2)", fontWeight:600 }}>{item.pts}/{item.max}</span>
+                  </div>
+                  <div style={{ height:5, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
+                    <div style={{ height:"100%", borderRadius:99,
+                      width:`${(item.pts/item.max)*100}%`,
+                      background: item.pts/item.max>=0.8?"var(--green)":item.pts/item.max>=0.5?"var(--cyan)":item.pts/item.max>=0.3?"var(--amber)":"var(--red)",
+                      transition:"width 0.8s cubic-bezier(0.22,1,0.36,1)" }}/>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-    </Card>
-  );
-  }
+          </div>
+        </Card>
+      );
+    }
 
   return (
     <div style={{ width:"100%" }}

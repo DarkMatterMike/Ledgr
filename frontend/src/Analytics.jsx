@@ -896,7 +896,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       <Card>
         <SectionHead title="Overspending highlights" sub="Categories over budget recently" />
         {overCats.length === 0 ? (
-          <div style={{ color:"var(--green)", fontSize:13 }}>No categories over budget.</div>
+          <div className="ledgr-empty" style={{padding:"16px 0"}}><div className="ledgr-empty-icon">✨</div><div className="ledgr-empty-title">All clear</div><div>No categories over budget this period.</div></div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {overCats.slice(0, 5).map(row => (
@@ -931,10 +931,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           )}
         </div>
         {todos.length === 0 ? (
-          <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
-            Go to <strong style={{color:"var(--t1)"}}>Insights</strong>, generate AI analysis,<br/>
-            then tap <span style={{ color:"var(--cyan)" }}>+ Add to To-Do</span> on any suggestion.
-          </div>
+          <div className="ledgr-empty"><div className="ledgr-empty-icon">💡</div><div className="ledgr-empty-title">No action items yet</div><div>Generate insights, then tap <span style={{color:"var(--cyan)"}}>+ Add to To-Do</span> on any suggestion.</div></div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {todos.map(todo => (
@@ -1508,9 +1505,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             <Card>
               <SectionHead title="Action items" sub={todos.length > 0 ? `${todos.length} item${todos.length===1?"":"s"}` : "Add suggestions from insights above"} />
               {todos.length === 0 ? (
-                <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"20px 0" }}>
-                  Generate insights and tap "+ Add to To-Do" on any suggestion.
-                </div>
+                <div className="ledgr-empty" style={{padding:"16px 0"}}><div className="ledgr-empty-icon">💡</div><div className="ledgr-empty-title">No action items yet</div><div>Generate insights and tap + Add to To-Do.</div></div>
               ) : (
                 <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                   {todos.map(todo => (
@@ -1758,7 +1753,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   <div style={{ fontSize:15, fontWeight:600, color:"var(--t1)" }}>No goals yet</div>
                   <div style={{ fontSize:13, color:"var(--t3)", textAlign:"center", maxWidth:280 }}>Create a savings goal to track progress and assign transactions toward it.</div>
                   <button onClick={()=>setGoalForm({title:"",targetAmount:0,startDate:"",deadline:"",periodAmount:"",period:"month",_periodManual:false})}
-                    style={{ padding:"10px 20px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", marginTop:4 }}>
+                    style={{ padding:"10px 20px", borderRadius:"var(--radius)", border:"none", background:"var(--cyan)", color:"#000", fontSize:13, fontWeight:600, cursor:"pointer", marginTop:4 }} className="ledgr-btn-primary">
                     + Create first goal
                   </button>
                 </div>

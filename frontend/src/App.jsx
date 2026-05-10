@@ -1408,10 +1408,10 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     value={a.value || ""} onChange={e => setProfileForm(p => {
                       const assets = [...p.manualAssets]; assets[i] = { ...assets[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualAssets: assets };
                     })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>✕</button>
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} className="ledgr-btn" onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>✕</button>
                 </div>
               ))}
-              <button style={{ ...S.btn("ghost",true), width:"100%" }}
+              <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
                 onClick={() => setProfileForm(p => ({ ...p, manualAssets: [...(p.manualAssets||[]), { name:"", value:0 }] }))}>
                 + Add Asset
               </button>
@@ -1430,18 +1430,18 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                     value={l.value || ""} onChange={e => setProfileForm(p => {
                       const liabs = [...p.manualLiabilities]; liabs[i] = { ...liabs[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualLiabilities: liabs };
                     })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>✕</button>
+                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} className="ledgr-btn" onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>✕</button>
                 </div>
               ))}
-              <button style={{ ...S.btn("ghost",true), width:"100%" }}
+              <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
                 onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: [...(p.manualLiabilities||[]), { name:"", value:0 }] }))}>
                 + Add Liability
               </button>
             </div>
 
             <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-              <button style={S.btn("ghost")} onClick={() => setProfileForm(null)}>Cancel</button>
-              <button style={S.btn("primary")} onClick={() => { onSaveProfile(profileForm); setProfileForm(null); showToast("Profile saved"); }}>Save Profile</button>
+              <button style={S.btn("ghost")} className="ledgr-btn" onClick={() => setProfileForm(null)}>Cancel</button>
+              <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={() => { onSaveProfile(profileForm); setProfileForm(null); showToast("Profile saved"); }}>Save Profile</button>
             </div>
           </div>
         ) : (
@@ -1609,7 +1609,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               <div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                   <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>My Themes</div>
-                  <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>setShowSaveInput(p=>!p)}>
+                  <button style={{...S.btn("ghost",true),fontSize:11}} className="ledgr-btn" onClick={()=>setShowSaveInput(p=>!p)}>
                     {showSaveInput?"Cancel":"+ Save current"}
                   </button>
                 </div>
@@ -1802,7 +1802,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 
               {/* Reset */}
               <div style={{display:"flex",justifyContent:"flex-end"}}>
-                <button onClick={reset} style={{...S.btn("ghost",true),color:"var(--t3)"}}>
+                <button onClick={reset} style={{...S.btn("ghost",true),color:"var(--t3)"}} className="ledgr-btn">
                   Reset to defaults
                 </button>
               </div>
@@ -1826,9 +1826,9 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             <div style={{ fontSize:12, color:"var(--t3)" }}>
               {transactions.length} transactions · {accounts.length} accounts · {categories.length} categories
             </div>
-            <button style={S.btn("ghost",true)} onClick={exportCSV}>↓ Export CSV</button>
+            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={exportCSV}>↓ Export CSV</button>
           </div>
-          <button style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:6}} onClick={()=>setShowTrash(true)}>
+          <button style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:6}} className="ledgr-btn" onClick={()=>setShowTrash(true)}>
             🗑 Deleted Transactions {deletedTransactions.length > 0 && <span style={{fontSize:10,backgroundColor:"var(--card-hi)",borderRadius:20,padding:"1px 7px",color:"var(--t3)"}}>{deletedTransactions.length}</span>}
           </button>
           <button style={S.btn("danger",true)} onClick={deleteAllTransactions}>
@@ -1936,7 +1936,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                       <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name || m.invited_email}</div>
                       <div style={{fontSize:10,color:m.status==="active"?"var(--green)":"var(--amber)",marginTop:1}}>{m.status==="active"?"Active":"Pending invite"}</div>
                     </div>
-                    <button style={{...S.btn("ghost",true),color:"var(--red)",fontSize:11}} onClick={()=>removeMember(m.id)}>Remove</button>
+                    <button style={{...S.btn("ghost",true),color:"var(--red)",fontSize:11}} className="ledgr-btn" onClick={()=>removeMember(m.id)}>Remove</button>
                   </div>
                 ))}
               </div>
@@ -2175,7 +2175,7 @@ function AdminPanel() {
             <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:700,textTransform:"uppercase",letterSpacing:"1px",color:"var(--t3)"}}>
               Users ({search ? `${filteredUsers.length} of ${users.length}` : users.length})
             </div>
-            <button style={{...S.btn("ghost",true)}} onClick={loadUsers} disabled={loading}>
+            <button style={{...S.btn("ghost",true)}} className="ledgr-btn" onClick={loadUsers} disabled={loading}>
               {loading ? "Loading…" : "↻ Refresh"}
             </button>
           </div>
@@ -2232,7 +2232,7 @@ function AdminPanel() {
                         <span style={{fontSize:12,color:"var(--t3)"}}>{user.last_activity_at ? new Date(Number(user.last_activity_at)).toLocaleDateString("en-US") : "—"}</span>
                       </div>
                     </div>
-                    <button style={{...S.btn("ghost",true),width:"100%",justifyContent:"center"}} onClick={() => {
+                    <button style={{...S.btn("ghost",true),width:"100%",justifyContent:"center"}} className="ledgr-btn" onClick={() => {
                       setEditing(user.id);
                       setEditForm({ subscription_status: user.subscription_status, role: user.role });
                     }}>Edit</button>
@@ -2268,7 +2268,7 @@ function AdminPanel() {
                       <button style={{...S.btn("primary",true),flex:1,justifyContent:"center"}} onClick={() => saveEdit(user.id)} disabled={saving}>
                         {saving ? "Saving…" : "Save"}
                       </button>
-                      <button style={{...S.btn("ghost",true),flex:1,justifyContent:"center"}} onClick={() => setEditing(null)}>Cancel</button>
+                      <button style={{...S.btn("ghost",true),flex:1,justifyContent:"center"}} className="ledgr-btn" onClick={() => setEditing(null)}>Cancel</button>
                     </div>
                   </div>
                 )}
@@ -2346,11 +2346,11 @@ function AdminPanel() {
                           <button style={S.btn("primary",true)} onClick={() => saveEdit(user.id)} disabled={saving}>
                             {saving ? "…" : "Save"}
                           </button>
-                          <button style={S.btn("ghost",true)} onClick={() => setEditing(null)}>Cancel</button>
+                          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={() => setEditing(null)}>Cancel</button>
                         </div>
                       ) : (
                         <div style={{display:"flex",gap:6}}>
-                          <button style={S.btn("ghost",true)} onClick={() => {
+                          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={() => {
                             setEditing(user.id);
                             setEditForm({ subscription_status: user.subscription_status, role: user.role });
                           }}>Edit</button>
@@ -2372,7 +2372,7 @@ function AdminPanel() {
       {totalPages > 1 && (
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,gap:8}}>
           <button
-            style={{...S.btn("ghost",true)}}
+            style={{...S.btn("ghost",true)}} className="ledgr-btn"
             onClick={() => setPage(p => Math.max(1, p-1))}
             disabled={page === 1}>
             → Prev
@@ -2381,7 +2381,7 @@ function AdminPanel() {
             Page {page} of {totalPages}
           </span>
           <button
-            style={{...S.btn("ghost",true)}}
+            style={{...S.btn("ghost",true)}} className="ledgr-btn"
             onClick={() => setPage(p => Math.min(totalPages, p+1))}
             disabled={page === totalPages}>
             Next ←
@@ -2398,8 +2398,8 @@ function AdminPanel() {
               This will permanently delete the user and all their data. This cannot be undone.
             </div>
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              <button style={S.btn("ghost")} onClick={() => setConfirm(null)}>Cancel</button>
-              <button style={S.btn("danger")} onClick={() => deleteUser(confirm)}>Delete User</button>
+              <button style={S.btn("ghost")} className="ledgr-btn" onClick={() => setConfirm(null)}>Cancel</button>
+              <button style={S.btn("danger")} className="ledgr-btn-danger" onClick={() => deleteUser(confirm)}>Delete User</button>
             </div>
           </div>
         </div>
@@ -4107,7 +4107,7 @@ function AppInner({ isDemo = false }) {
           }
         </div>
         <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"flex-end",flexShrink:0}}>
-          <button style={S.btn("ghost")} onClick={()=>setDrillCat(null)}>Close</button>
+          <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setDrillCat(null)}>Close</button>
         </div>
       </div>
     </div>
@@ -4459,7 +4459,7 @@ function AppInner({ isDemo = false }) {
                   +{fmt(cat.overBy)}
                 </span>
               </div>
-              <div style={{ fontSize: 12, color: "var(--t3)" }}>Spent {fmt(cat.spent)} of {fmt(cat.limit)}</div>
+              <div style={{ fontSize: 12, color: "var(--t3)" }}>Spent <span className="ledgr-amt">{fmt(cat.spent)}</span> of <span className="ledgr-amt">{fmt(cat.limit)}</span></div>
             </div>
           ))}
         </div>
@@ -4580,10 +4580,10 @@ function AppInner({ isDemo = false }) {
         <div className="obsidian-card ledgr-budget-gradient" style={{...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden"}}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Budget Progress</div>
-            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("budgets")}>All →</button>
+            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} className="ledgr-btn" onClick={()=>navigate("budgets")}>All →</button>
           </div>
           {categories.length===0
-            ? <div style={{textAlign:"center",padding:"24px 0",color:"var(--t3)"}}>No categories yet</div>
+            ? <div className="ledgr-empty"><div className="ledgr-empty-icon">🏷️</div><div className="ledgr-empty-title">No categories yet</div><div>Add a category to start tracking budgets</div></div>
             : <div style={{overflow:"hidden"}}>
                 <div style={{display:"grid",gridTemplateColumns:"6px auto 1fr auto",alignItems:"center",columnGap:8,rowGap:7}}>
                 {(isMobile ? sortedCategories.slice(0,5) : [...sortedCategories].sort((a,b) => {
@@ -4653,7 +4653,7 @@ function AppInner({ isDemo = false }) {
         <div className="obsidian-card" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
-            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
+            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} className="ledgr-btn" onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>
           </div>
           {atRisk.length === 0 ? (
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0"}}>
@@ -4692,7 +4692,7 @@ function AppInner({ isDemo = false }) {
         <div className="obsidian-card ledgr-txn-gradient" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Upcoming</div>
-            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} onClick={()=>navigate("transactions")}>All →</button>
+            <button style={{...S.btn("ghost",true),color:"var(--cyan)"}} className="ledgr-btn" onClick={()=>navigate("transactions")}>All →</button>
           </div>
           {upcoming.length === 0
             ? <div style={{fontSize:12,color:"var(--t3)",padding:"4px 0 2px"}}>No upcoming transactions this month.</div>
@@ -4916,7 +4916,7 @@ function AppInner({ isDemo = false }) {
                         {wasConfirmed && (
                           <span style={{fontSize:11,color:"var(--cyan)",marginRight:"auto"}}>✦ previously confirmed</span>
                         )}
-                        <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>{
+                        <button style={{...S.btn("ghost",true),fontSize:12}} className="ledgr-btn" onClick={()=>{
                           if (isScannedDuplicate) {
                             if(!processingIds.has([p.id,po.id].sort().join('__'))) dismissDuplicatePair(p.id, po.id);
                           } else {
@@ -4977,10 +4977,10 @@ function AppInner({ isDemo = false }) {
         {/* Action bar */}
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
           <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
-          <button style={S.btn("ghost",true)} onClick={scanForDuplicates}>Scan Duplicates</button>
-          {plaidItems.length>0&&<button style={S.btn("ghost",true)} onClick={()=>doSync()} disabled={syncing}>{syncing?"↻ Syncing…":"↻ Sync"}</button>}
+          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={scanForDuplicates}>Scan Duplicates</button>
+          {plaidItems.length>0&&<button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>doSync()} disabled={syncing}>{syncing?"↻ Syncing…":"↻ Sync"}</button>}
           {aiChat.hasApiKey&&(
-            <button style={S.btn("ghost",true)} disabled={autoCatRunning}
+            <button style={S.btn("ghost",true)} className="ledgr-btn" disabled={autoCatRunning}
               onClick={async()=>{
                 const count = await runAutoCategorize();
                 showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");
@@ -5002,7 +5002,7 @@ function AppInner({ isDemo = false }) {
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)} options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:0}} compact/>
             <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)} options={[{value:"all",label:"All Accounts"},{value:"__unlinked__",label:"Unlinked"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:0}} compact/>
-            <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}}
+            <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}} className="ledgr-btn"
               onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
               {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
             </button>
@@ -5011,7 +5011,7 @@ function AppInner({ isDemo = false }) {
 
         {/* Grouped transaction list */}
         {filteredTxns.length===0 ? (
-          <div style={{textAlign:"center",padding:"48px 0",color:"var(--t3)"}}>No transactions found</div>
+          <div className="ledgr-empty"><div className="ledgr-empty-icon">🔍</div><div className="ledgr-empty-title">No transactions found</div><div>Try adjusting your filters or search</div></div>
         ) : (
           <div className="ledgr-txn-gradient" style={{background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)",border:"none",borderRadius:"var(--radius)"}}>
             {dates.map((date,di)=>{
@@ -5065,7 +5065,7 @@ function AppInner({ isDemo = false }) {
         {transactions.length < txnTotal && (
           <div style={{textAlign:"center", padding:"16px 0"}}>
             <button
-              style={S.btn("ghost", true)}
+              style={S.btn("ghost", true)} className="ledgr-btn"
               onClick={loadMoreTransactions}
               disabled={txnLoading}
             >
@@ -5142,7 +5142,7 @@ function AppInner({ isDemo = false }) {
         <div style={S.sectionTitle}>Budget Categories</div>
         <div style={{ display:"flex", gap:8 }}>
           {aiChat.hasApiKey && (
-            <button style={S.btn("ghost", true)} disabled={suggestingLimits}
+            <button style={S.btn("ghost", true)} className="ledgr-btn" disabled={suggestingLimits}
               onClick={runSuggestLimits}>
               {suggestingLimits ? "✦ Analyzing…" : "✦ Optimize Limits"}
             </button>
@@ -5165,7 +5165,7 @@ function AppInner({ isDemo = false }) {
                 Based on your last 3 months of spending. Accept or dismiss each suggestion.
               </div>
             </div>
-            <button style={{ ...S.btn("ghost",true), fontSize:11 }}
+            <button style={{ ...S.btn("ghost",true), fontSize:11 }} className="ledgr-btn"
               onClick={() => setLimitSuggestions([])}>Dismiss all</button>
           </div>
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -5215,7 +5215,7 @@ function AppInner({ isDemo = false }) {
                         }}>
                         Accept
                       </button>
-                      <button style={{ ...S.btn("ghost", true), fontSize:12 }}
+                      <button style={{ ...S.btn("ghost", true), fontSize:12 }} className="ledgr-btn"
                         onClick={() => setLimitSuggestions(p => p.filter(x => x.categoryId !== s.categoryId))}>
                         ✕
                       </button>
@@ -5265,7 +5265,7 @@ function AppInner({ isDemo = false }) {
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
                       <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>{displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}</div>
                       <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(totalSpent)}</div>
-                      <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of {fmt(totalBudget)} budgeted</div>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of <span className="ledgr-amt">{fmt(totalBudget)}</span> budgeted</div>
                     </div>
                   </div>
                 );
@@ -5524,7 +5524,7 @@ function AppInner({ isDemo = false }) {
                       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
                         <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>{displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}</div>
                         <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(totalSpent)}</div>
-                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of {fmt(totalBudget)} budgeted</div>
+                        <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of <span className="ledgr-amt">{fmt(totalBudget)}</span> budgeted</div>
                       </div>
                     </div>
                   );
@@ -5673,7 +5673,7 @@ function AppInner({ isDemo = false }) {
           <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Projections through end of {today.toLocaleString("default",{month:"long"})}</div>
         </div>
         <div style={{display:"flex",gap:8}}>
-          <button style={S.btn("ghost",true)} onClick={openAddAcct}>+ Manual</button>
+          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={openAddAcct}>+ Manual</button>
           <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" style={{}}/>
         </div>
       </div>
@@ -5719,7 +5719,7 @@ function AppInner({ isDemo = false }) {
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                          <button style={S.btn("ghost",true)} onClick={()=>openEditAcct(acct)}>Edit</button>
+                          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>openEditAcct(acct)}>Edit</button>
                           <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
                         </div>
                       </div>
@@ -5804,7 +5804,7 @@ function AppInner({ isDemo = false }) {
                             </>
                           ) : (
                             <>
-                              <button style={{...S.btn("ghost",true),fontSize:11}} onClick={()=>doSync(item.item_id)} disabled={syncing}>{syncing?"…":"↻ Sync"}</button>
+                              <button style={{...S.btn("ghost",true),fontSize:11}} className="ledgr-btn" onClick={()=>doSync(item.item_id)} disabled={syncing}>{syncing?"…":"↻ Sync"}</button>
                               <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Disconnect</button>
                             </>
                           )}
@@ -6733,9 +6733,9 @@ function AppInner({ isDemo = false }) {
 
               {/* Month nav */}
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                <button onClick={prevCalMonth} style={{...S.btn("ghost",true),width:32,height:32,padding:0,justifyContent:"center",fontSize:14}}>‹</button>
+                <button onClick={prevCalMonth} style={{...S.btn("ghost",true),width:32,height:32,padding:0,justifyContent:"center",fontSize:14}} className="ledgr-btn">‹</button>
                 <div style={{fontSize:15,fontWeight:700,color:"var(--t1)"}}>{monthLabel(calendarMonth)}</div>
-                <button onClick={nextCalMonth} style={{...S.btn("ghost",true),width:32,height:32,padding:0,justifyContent:"center",fontSize:14}}>›</button>
+                <button onClick={nextCalMonth} style={{...S.btn("ghost",true),width:32,height:32,padding:0,justifyContent:"center",fontSize:14}} className="ledgr-btn">›</button>
               </div>
 
               {/* Day of week headers */}
@@ -7181,8 +7181,8 @@ function AppInner({ isDemo = false }) {
           toggleRecurring(editTarget.id);
           setModal(null);setEditTarget(null);showToast("Removed from recurring");
         }}>Remove Recurring</button>
-        <button style={S.btn("ghost")} onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
-        <button style={S.btn("primary")} onClick={()=>{
+        <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>{setModal(null);setEditTarget(null);}}>Cancel</button>
+        <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={()=>{
           const patch = { name: editTarget.name, recurringDay: editTarget.recurringDay, recurringFreq: editTarget.recurringFreq||"monthly", recurringStart: editTarget.recurringStart||null, categoryId: editTarget.categoryId||null, accountId: editTarget.accountId||null };
           setTransactions(p=>p.map(t=>t.id===editTarget.id?{...t,...patch}:t));
           api.updateTransaction(editTarget.id, patch).catch(console.error);
@@ -7236,8 +7236,8 @@ function AppInner({ isDemo = false }) {
             setRecurringItemModal(false); setEditingRecurringItem(null);
           }}>Delete</button>
         )}
-        <button style={S.btn("ghost")} onClick={()=>{ setRecurringItemModal(false); setEditingRecurringItem(null); }}>Cancel</button>
-        <button style={S.btn("primary")} onClick={saveRecurringItemForm}>Save</button>
+        <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>{ setRecurringItemModal(false); setEditingRecurringItem(null); }}>Cancel</button>
+        <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveRecurringItemForm}>Save</button>
       </>}
     >
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -7348,7 +7348,7 @@ function AppInner({ isDemo = false }) {
               onChange={e=>setRiSearch(e.target.value)}
               onKeyDown={e=>e.key==="Enter"&&searchTxnsForRI()}
             />
-            <button style={S.btn("ghost",true)} onClick={searchTxnsForRI} disabled={riSearchLoading}>
+            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={searchTxnsForRI} disabled={riSearchLoading}>
               {riSearchLoading?"…":"Search"}
             </button>
           </div>
@@ -7398,8 +7398,8 @@ function AppInner({ isDemo = false }) {
   const RuleModal = (
     <Modal title={modal==="addRule"?"New Rule":"Edit Rule"} onClose={()=>setModal(null)}
       actions={<>
-        <button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button>
-        <button style={S.btn("primary")} onClick={()=>{
+        <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button>
+        <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={()=>{
           if(!ruleForm.pattern.trim()||(!ruleForm.categoryId&&!ruleForm.typeOverride)) return;
           saveRule({id:modal==="editRule"?editTarget.id:"r"+Date.now(),...ruleForm,pattern:ruleForm.pattern.trim(),createdAt:modal==="editRule"?editTarget.createdAt:Date.now()});
           setModal(null);
@@ -7433,7 +7433,7 @@ function AppInner({ isDemo = false }) {
   /* ── CatModal ─────────────────────────────────── */
   const CatModal = (
     <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
-      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveCat}>Save</button></>}>
+      actions={<><button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveCat}>Save</button></>}>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Groceries" value={catForm.name} onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}/></div>
         <div style={S.field}><label style={S.label}>Monthly Limit ($)</label><input style={S.input} type="number" placeholder="500" value={catForm.limit} onChange={e=>setCatForm(p=>({...p,limit:e.target.value}))}/></div>
@@ -7453,7 +7453,7 @@ function AppInner({ isDemo = false }) {
   /* ── AcctModal ─────────────────────────────────── */
   const AcctModal = (
     <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
-      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveAcct}>Save</button></>}>
+      actions={<><button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveAcct}>Save</button></>}>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
         <div style={S.field}><label style={S.label}>Type</label>
@@ -7468,7 +7468,7 @@ function AppInner({ isDemo = false }) {
   /* ── TxnModal ─────────────────────────────────── */
   const TxnModal = (
     <Modal title="Add Transaction" onClose={()=>setModal(null)}
-      actions={<><button style={S.btn("ghost")} onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} onClick={saveManualTxn}>Save</button></>}>
+      actions={<><button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveManualTxn}>Save</button></>}>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -7767,7 +7767,7 @@ function AppInner({ isDemo = false }) {
             {systemMsg.text}
           </div>
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:4}}>
-            <button style={S.btn("ghost",true)} onClick={()=>{
+            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>{
               // Remember dismissal so it doesn't show again
               try {
                 const key = "ledgr_dismissed_msgs";
@@ -8080,7 +8080,7 @@ function AppInner({ isDemo = false }) {
               ))}
             </div>
             <div style={{padding:"14px 20px",borderTop:"1px solid var(--border)",display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button style={S.btn("ghost",true)} onClick={()=>setCatSuggestions(null)}>Cancel</button>
+              <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setCatSuggestions(null)}>Cancel</button>
               <button style={S.btn("primary",true)} onClick={()=>confirmCatSuggestions(catSuggestions)}>
                 Create {catSuggestions.length} Categories
               </button>
@@ -8098,7 +8098,7 @@ function AppInner({ isDemo = false }) {
               <div style={{fontSize:12,color:"var(--t2)"}}>&quot;{rulePrompt.merchant}&quot; ← <strong style={{color:"var(--cyan)"}}>{catMap[rulePrompt.categoryId]?.name}</strong></div>
             </div>
             <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
-            <button style={S.btn("ghost",true)} onClick={()=>setRulePrompt(null)}>✕</button>
+            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setRulePrompt(null)}>✕</button>
           </div>
         </div>
       )}
@@ -8112,7 +8112,7 @@ function AppInner({ isDemo = false }) {
               <div style={{fontSize:12,color:"var(--t2)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{color:"#fbbf24",textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
             </div>
             <button style={{...S.btn("primary",true),background:"#fbbf24",borderColor:"#fbbf24",color:"#000"}} onClick={confirmTypeRule}>Save Rule</button>
-            <button style={S.btn("ghost",true)} onClick={()=>setTypeRulePrompt(null)}>✕</button>
+            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setTypeRulePrompt(null)}>✕</button>
           </div>
         </div>
       )}
@@ -8130,9 +8130,9 @@ function AppInner({ isDemo = false }) {
           {/* Type */}
           <CustomSelect value="" onChange={v=>{ if(v) bulkSetType(v); }} options={[{value:"",label:"Set type…"},{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{flex:1,minWidth:120}} compact/>
           <CustomSelect value="" onChange={v=>{ if(v) bulkSetAccount(v==="__none__"?"":v); }} options={[{value:"",label:"Set account…"},{value:"__none__",label:"— Remove —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:130}} compact/>
-          <button style={{...S.btn("ghost",true),fontSize:12}} onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
+          <button style={{...S.btn("ghost",true),fontSize:12}} className="ledgr-btn" onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
           <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
-          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} onClick={clearSelection}>✕</button>
+          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} className="ledgr-btn" onClick={clearSelection}>✕</button>
         </div>
       )}
 
@@ -8202,7 +8202,7 @@ function AppInner({ isDemo = false }) {
                         <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0}}>
                           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
                         </span>
-                        <button style={{...S.btn("ghost",true),fontSize:11,flexShrink:0}} onClick={()=>{
+                        <button style={{...S.btn("ghost",true),fontSize:11,flexShrink:0}} className="ledgr-btn" onClick={()=>{
                           const { deletedAt, ...restored } = t;
                           setTransactions(p=>[restored,...p]);
                           setDeletedTransactions(p=>{ const next=p.filter(x=>x.id!==t.id); scheduleSaveRef.current?.({ deletedTransactions: next }); return next; });
@@ -8219,7 +8219,7 @@ function AppInner({ isDemo = false }) {
                     setDeletedTransactions([]);
                     scheduleSaveRef.current?.({ deletedTransactions: [] });
                   }}>Empty Trash</button>
-                  <button style={S.btn("ghost")} onClick={()=>setShowTrash(false)}>Close</button>
+                  <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setShowTrash(false)}>Close</button>
                 </div>
               </>
             )}

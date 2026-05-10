@@ -70,7 +70,7 @@ export function CategoryBadge({ cat }) {
   if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
   return (
     <span style={S.badge(cat.color)}>
-      <span style={{width:5,height:5,borderRadius:"50%",background:cat.color,display:"inline-block",opacity:0.85}}/>
+      <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block"}}/>
       {cat.name}
     </span>
   );

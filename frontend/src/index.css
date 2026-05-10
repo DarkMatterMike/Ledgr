@@ -56,3 +56,65 @@ input, select, textarea, button { font-family: var(--font-body); }
 @media (max-width: 768px) {
   input, textarea, select { font-size: 16px !important; }
 }
+
+/* ── Button states ──────────────────────────────────────────────── */
+.ledgr-btn { transition: all 0.15s; }
+.ledgr-btn:hover  { filter: brightness(1.12); transform: translateY(-1px); }
+.ledgr-btn:active { filter: brightness(0.92); transform: translateY(0px); }
+.ledgr-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; filter: none; }
+
+.ledgr-btn-primary { transition: all 0.15s; }
+.ledgr-btn-primary:hover  { box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.35); transform: translateY(-1px); filter: brightness(1.08); }
+.ledgr-btn-primary:active { transform: translateY(0); filter: brightness(0.94); box-shadow: none; }
+
+.ledgr-btn-danger { transition: all 0.15s; }
+.ledgr-btn-danger:hover  { filter: brightness(1.15); transform: translateY(-1px); }
+.ledgr-btn-danger:active { filter: brightness(0.9); transform: translateY(0); }
+
+/* ── Modal & overlay animations ─────────────────────────────────── */
+@keyframes ledgr-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ledgr-modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+.ledgr-overlay-anim { animation: ledgr-overlay-in 0.18s ease both; }
+.ledgr-modal-anim   { animation: ledgr-modal-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ── Toast animation ─────────────────────────────────────────────── */
+@keyframes ledgr-toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.ledgr-toast-anim { animation: ledgr-toast-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ── Inline monospace amounts ────────────────────────────────────── */
+.ledgr-amt { font-family: var(--font-mono); }
+
+/* ── Empty states ────────────────────────────────────────────────── */
+.ledgr-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: var(--t3);
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.6;
+}
+.ledgr-empty-icon {
+  font-size: 28px;
+  opacity: 0.4;
+  margin-bottom: 4px;
+}
+.ledgr-empty-title {
+  font-family: var(--font-disp);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t2);
+  letter-spacing: -0.1px;
+}

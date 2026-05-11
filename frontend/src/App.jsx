@@ -1071,7 +1071,7 @@ function SettingsSection({ title, children }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false, isMobile = false }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false, isMobile = false, settingsTab = "profile", setSettingsTab = () => {} }) {
   const user = api.getStoredUser();
   const [name,       setName]       = useState(user?.name || "");
   const [savingName, setSavingName] = useState(false);
@@ -1213,8 +1213,6 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   }
 
   const inputSt = { ...S.input, marginBottom:0 };
-  const [settingsTab, setSettingsTab] = useState("profile");
-
   const STABS = [
     { id:"profile",      label:"Profile"      },
     { id:"appearance",   label:"Appearance"   },
@@ -2602,6 +2600,7 @@ function AppInner({ isDemo = false }) {
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
   const [newTxnIds,     setNewTxnIds]     = useState(new Set());
+  const [settingsTab,   setSettingsTab]   = useState("profile");
   const navKeyRef = useRef(0);
   const prevViewRef = useRef(null);
   if (prevViewRef.current !== view) { navKeyRef.current += 1; prevViewRef.current = view; }
@@ -7696,6 +7695,8 @@ function AppInner({ isDemo = false }) {
       scheduleSaveRef={scheduleSaveRef}
       isFamilyPlan={isFamilyPlan}
       isMobile={isMobile}
+      settingsTab={settingsTab}
+      setSettingsTab={setSettingsTab}
     />
   );
 
@@ -7960,14 +7961,14 @@ function AppInner({ isDemo = false }) {
           </span>
         </div>
         <button
-          onClick={async () => { try { await api.startCheckout(); } catch {} }}
+          onClick={() => { setSettingsTab("subscription"); navigate("settings"); }}
           style={{
             background: trialDaysLeft <= 1 ? "var(--red)" : "var(--amber)",
             color:"#000", border:"none", borderRadius:"var(--radius)",
             padding:"5px 12px", fontSize:12, fontWeight:700, cursor:"pointer",
             flexShrink:0, whiteSpace:"nowrap",
           }}>
-          Subscribe — $4.99/mo
+          View plans
         </button>
       </div>
     )}

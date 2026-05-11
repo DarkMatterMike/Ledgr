@@ -3,7 +3,7 @@
  * Shared UI primitives used throughout the app.
  *   Modal, Toast, CustomSelect, CategoryBadge, PageLayout
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { S } from '../../theme/index.js';
 import { PAGE_RIGHT_COL_W, PAGE_COL_GAP, SHARED_LEFT_WIDTH } from '../../constants.js';
@@ -27,7 +27,28 @@ Modal.propTypes = {
 };
 
 export function Toast({ msg }) {
-  return msg ? <div style={S.toast} className="ledgr-toast-anim">✓ {msg}</div> : null;
+  const [visible, setVisible] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const prevMsg = useRef(null);
+
+  useEffect(() => {
+    if (msg && msg !== prevMsg.current) {
+      prevMsg.current = msg;
+      setExiting(false);
+      setVisible(true);
+    } else if (!msg && visible) {
+      setExiting(true);
+      const t = setTimeout(() => { setVisible(false); setExiting(false); }, 180);
+      return () => clearTimeout(t);
+    }
+  }, [msg, visible]);
+
+  if (!visible && !msg) return null;
+  return (
+    <div style={S.toast} className={exiting ? "ledgr-toast-exit" : "ledgr-toast-anim"}>
+      ✓ {prevMsg.current || msg}
+    </div>
+  );
 }
 Toast.propTypes = {
   msg: PropTypes.string,

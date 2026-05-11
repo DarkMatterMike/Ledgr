@@ -159,3 +159,21 @@ input, select, textarea, button { font-family: var(--font-body); }
 }
 
 
+
+/* ── New transaction row stagger ────────────────────────────────────── */
+@keyframes ledgr-txn-in {
+  from { opacity: 0; transform: translateX(-6px); background: rgba(0,210,190,0.06); }
+  to   { opacity: 1; transform: translateX(0);    background: transparent; }
+}
+.ledgr-txn-new {
+  animation: ledgr-txn-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Toast slide-out ─────────────────────────────────────────────────── */
+@keyframes ledgr-toast-out {
+  from { opacity: 1; transform: translateY(0)    scale(1);    }
+  to   { opacity: 0; transform: translateY(8px)  scale(0.97); }
+}
+.ledgr-toast-exit {
+  animation: ledgr-toast-out 0.18s ease both;
+}

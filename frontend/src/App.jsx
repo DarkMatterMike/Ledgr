@@ -2005,6 +2005,32 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
 /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
    MAIN APP
 ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
+/* ── useCountUp — animates a number from its previous value to the new one ── */
+function useCountUp(value, duration = 650) {
+  const [display, setDisplay] = useState(value);
+  const prev    = useRef(value);
+  const rafRef  = useRef(null);
+
+  useEffect(() => {
+    const from = prev.current;
+    const to   = value;
+    prev.current = value;
+    if (from === to) return;
+    const startTime = performance.now();
+    const tick = (now) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased    = 1 - Math.pow(1 - progress, 3);
+      setDisplay(from + (to - from) * eased);
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value, duration]);
+
+  return display;
+}
+
+
 /* -- Theme application helper ------------------------------------ */
 function AdminPanel() {
   const isMobile = useIsMobile();
@@ -2502,6 +2528,7 @@ function AppInner({ isDemo = false }) {
   const [modal,         setModal]         = useState(null);
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
+  const [newTxnIds,     setNewTxnIds]     = useState(new Set());
   const [newTxnCount,   setNewTxnCount]   = useState(0);
   const [undoAction,    setUndoAction]    = useState(null); // {label, fn}
   const undoTimer = useRef(null);
@@ -2929,6 +2956,9 @@ function AppInner({ isDemo = false }) {
 
   const totalSpent  = summaryMonth === selectedMonth ? summary.totalSpent  : Object.values(spentByCat).reduce((a,b)=>a+b,0);
   const totalIncome = summaryMonth === selectedMonth ? summary.totalIncome : monthTxns.filter(t=>t.amount>0&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
+  const displaySpent  = useCountUp(totalSpent);
+  const displayIncome = useCountUp(totalIncome);
+  const displayNet    = useCountUp(totalIncome - totalSpent);
   const totalBudget = categories.reduce((a,c)=>a+c.limit,0);
   const catMap      = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c])), [categories]);
   const acctMap     = useMemo(()=>Object.fromEntries(accounts.map(a=>[a.id,a])),   [accounts]);
@@ -3412,7 +3442,12 @@ function AppInner({ isDemo = false }) {
             fingerprints.add(f);
             return true;
           });
-        return [...applyRules(rawNew, rules, { onlyUncategorized: true }),...next];
+        const finalNew = applyRules(rawNew, rules, { onlyUncategorized: true });
+        if (finalNew.length > 0) {
+          setNewTxnIds(new Set(finalNew.map(t => t.id)));
+          setTimeout(() => setNewTxnIds(new Set()), 1200);
+        }
+        return [...finalNew, ...next];
       });
       const {accounts:plaidAccts} = await api.getAccounts();
       // Fetch fresh items from server — don't trust stale React state
@@ -4755,9 +4790,9 @@ function AppInner({ isDemo = false }) {
             <div style={{width:1,alignSelf:"stretch",background:"var(--border2)",margin:"0 20px",flexShrink:0}}/>
             <div style={{display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
               {isCurrentMonth&&<div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Days left</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{daysLeft()}</div></div>}
-              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(totalSpent)}</div></div>
-              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Income</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--green)"}}>{fmt(totalIncome)}</div></div>
-              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</div></div>
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(displaySpent)}</div></div>
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Income</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--green)"}}>{fmt(displayIncome)}</div></div>
+              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(displayNet)}</div></div>
             </div>
             <button onClick={()=>setDashEditMode(p=>!p)}
               style={{...S.btn("ghost",true),fontSize:11,color:dashEditMode?"var(--cyan)":"var(--t3)",marginLeft:"auto",flexShrink:0}}>
@@ -4778,9 +4813,9 @@ function AppInner({ isDemo = false }) {
           </div>
           <div style={{display:"flex",gap:16,fontSize:12,color:"var(--t2)"}}>
             {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
-            <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(totalSpent)}</span></span>
-            <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(totalIncome)}</span></span>
-            <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(totalIncome-totalSpent)}</span></span>
+            <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(displaySpent)}</span></span>
+            <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(displayIncome)}</span></span>
+            <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(displayNet)}</span></span>
           </div>
         </div>
       )}
@@ -5071,6 +5106,7 @@ function AppInner({ isDemo = false }) {
                       onToggleSelect={toggleSelectTxn}
                       selectionActive={selectedTxns.size > 0}
                       goals={goals} assignTxnToGoal={assignTxnToGoal}
+                      isNew={newTxnIds.has(t.id)}
                     />)}
                   </div>
                 </div>
@@ -5282,7 +5318,7 @@ function AppInner({ isDemo = false }) {
                     </div>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
                       <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>{displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}</div>
-                      <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(totalSpent)}</div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(displaySpent)}</div>
                       <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of <span className="ledgr-amt">{fmt(totalBudget)}</span> budgeted</div>
                     </div>
                   </div>
@@ -5541,7 +5577,7 @@ function AppInner({ isDemo = false }) {
                       </div>
                       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, marginTop:4 }}>
                         <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:gaugeColor, fontWeight:700 }}>{displayPct}%{over ? " over budget" : onBudget ? " on budget" : " of budget"}</div>
-                        <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(totalSpent)}</div>
+                        <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", lineHeight:1.1 }}>{fmt(displaySpent)}</div>
                         <div style={{ fontSize:11, color:"var(--t3)", marginTop:1 }}>of <span className="ledgr-amt">{fmt(totalBudget)}</span> budgeted</div>
                       </div>
                     </div>

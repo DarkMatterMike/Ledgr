@@ -20,6 +20,7 @@ export default function TxnRow({
   openAddCat, toggleRecurring, updateRecurringDay, saveRename, isMobile,
   isSelected, onToggleSelect, selectionActive,
   goals, assignTxnToGoal,
+  isNew = false,
 }) {
   const expanded   = expandedTxnId === t.id;
   const reviewed   = !needsReview(t);
@@ -29,7 +30,7 @@ export default function TxnRow({
   const acct       = acctMap[t.accountId];
 
   return (
-    <div style={{borderBottom:"1px solid rgba(0,0,0,0.3)"}}>
+    <div style={{borderBottom:"1px solid rgba(0,0,0,0.3)"}} className={isNew ? "ledgr-txn-new" : undefined}>
       <div
         onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
         style={{padding:"7px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,

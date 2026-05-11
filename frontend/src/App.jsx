@@ -4812,7 +4812,7 @@ function AppInner({ isDemo = false }) {
             <button onClick={prevMonth} style={{
               display:"flex",alignItems:"center",justifyContent:"center",
               width:36,height:36,borderRadius:"var(--radius)",border:"none",
-              background:"var(--card-hi)",color:"var(--t1)",cursor:"pointer",
+              background:"var(--bg)",color:"var(--t1)",cursor:"pointer",
               fontSize:20,lineHeight:1,flexShrink:0,
             }}>‹</button>
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
@@ -4824,7 +4824,7 @@ function AppInner({ isDemo = false }) {
             <button onClick={nextMonth} disabled={isCurrentMonth} style={{
               display:"flex",alignItems:"center",justifyContent:"center",
               width:36,height:36,borderRadius:"var(--radius)",border:"none",
-              background:"var(--card-hi)",
+              background:"var(--bg)",
               color:isCurrentMonth?"var(--border2)":"var(--t1)",
               cursor:isCurrentMonth?"default":"pointer",
               fontSize:20,lineHeight:1,flexShrink:0,

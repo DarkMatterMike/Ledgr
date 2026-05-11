@@ -113,7 +113,7 @@ function OptionGrid({ options, value, onChange, multi = false }) {
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       {options.map(o => (
         <button key={o.id} onClick={() => toggle(o.id)} style={{
-          background: isSelected(o.id) ? "rgba(0,212,255,0.1)" : "var(--surface)",
+          background: isSelected(o.id) ? "rgba(0,212,255,0.1)" : "var(--card-hi)",
           border: `1px solid ${isSelected(o.id) ? "var(--cyan)" : "var(--border)"}`,
           borderRadius: 12, padding: "14px 8px",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
@@ -255,14 +255,14 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 10 }}>How do you usually get around?</div>
               <OptionGrid options={TRANSPORT_OPTIONS} value={answers.transport} onChange={v => set("transport", v)} />
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--card-hi)", borderRadius: 12, padding: "14px 16px" }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>Do you have pets?</div>
                 <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>We'll add a pet care category</div>
               </div>
               <button onClick={() => set("pets", !answers.pets)} style={{
                 width: 44, height: 26, borderRadius: 99, border: "none", cursor: "pointer",
-                background: answers.pets ? "var(--cyan)" : "var(--border)",
+                background: answers.pets ? "var(--cyan)" : "var(--card-hi)",
                 position: "relative", transition: "background 0.2s", flexShrink: 0,
               }}>
                 <div style={{
@@ -303,7 +303,7 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
                       const cur = answers.goals;
                       set("goals", sel ? cur.filter(x => x !== o.id) : [...cur, o.id]);
                     }} style={{
-                      background: sel ? "rgba(0,212,255,0.1)" : "var(--surface)",
+                      background: sel ? "rgba(0,212,255,0.1)" : "var(--card-hi)",
                       border: `1px solid ${sel ? "var(--cyan)" : "var(--border)"}`,
                       borderRadius: 12, padding: "14px 8px",
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 8,

@@ -1,6 +1,6 @@
 /**
  * components/index.js
- * Public barrel export for all shared components.
+ * Public barrel export for all shared components and other fun things.
  *
  * Usage:
  *   import { Modal, Toast, TxnRow } from '../components';

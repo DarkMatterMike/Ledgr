@@ -2529,6 +2529,10 @@ function AppInner({ isDemo = false }) {
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
   const [newTxnIds,     setNewTxnIds]     = useState(new Set());
+  const navKeyRef = useRef(0);
+  const prevViewRef = useRef(null);
+  if (prevViewRef.current !== view) { navKeyRef.current += 1; prevViewRef.current = view; }
+  const navKey = navKeyRef.current;
   const [newTxnCount,   setNewTxnCount]   = useState(0);
   const [undoAction,    setUndoAction]    = useState(null); // {label, fn}
   const undoTimer = useRef(null);
@@ -7682,7 +7686,7 @@ function AppInner({ isDemo = false }) {
 
 
   /* ── AnalyticsPage ─────────────────────────────────── */
-  const AnalyticsPage = (
+  const AnalyticsPage = useMemo(() => (
     <Analytics
       transactions={allTransactions ?? transactions}
       categories={categories}
@@ -7745,7 +7749,9 @@ function AppInner({ isDemo = false }) {
       }}
       defaultTab={analyticsTab}
     />
-  );
+  ), [allTransactions, transactions, categories, accounts, catMap, isMobile,
+       analyticsInsights, analyticsTab, insightsTodos, goals, userProfile,
+       aiChat.hasApiKey]);
 
   const VIEWS = access === "full"
     ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView }
@@ -7957,7 +7963,7 @@ function AppInner({ isDemo = false }) {
 
         {/* Content area */}
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
-          <div key={view} className="ledgr-view-enter">{VIEWS[view]}</div>
+          <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
         </div>
 
         {/* More sheet overlay */}
@@ -8090,7 +8096,7 @@ function AppInner({ isDemo = false }) {
           <div ref={contentRef} style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content">
             
             
-            <div key={view} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+            <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
           </div>
         </div>
       </>

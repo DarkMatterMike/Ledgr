@@ -4806,15 +4806,32 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
       {isMobile && (
-        <div className="obsidian-card" style={{...S.card,padding:"10px 14px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-            <button onClick={prevMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
-            <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"4px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
-            <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:15,color:"var(--t1)",marginLeft:6}}>
-              {monthLabel(selectedMonth)}
-              {isCurrentMonth&&<span style={{marginLeft:6,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)"}}>current</span>}
-            </span>
+        <div className="obsidian-card" style={{...S.card,padding:"12px 14px"}}>
+          {/* Month selector — centered with arrow on each side */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+            <button onClick={prevMonth} style={{
+              display:"flex",alignItems:"center",justifyContent:"center",
+              width:36,height:36,borderRadius:"var(--radius)",border:"none",
+              background:"var(--card-hi)",color:"var(--t1)",cursor:"pointer",
+              fontSize:20,lineHeight:1,flexShrink:0,
+            }}>‹</button>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:16,color:"var(--t1)",letterSpacing:"-0.3px"}}>
+                {monthLabel(selectedMonth)}
+              </span>
+              {isCurrentMonth&&<span style={{fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",letterSpacing:"0.3px"}}>current</span>}
+            </div>
+            <button onClick={nextMonth} disabled={isCurrentMonth} style={{
+              display:"flex",alignItems:"center",justifyContent:"center",
+              width:36,height:36,borderRadius:"var(--radius)",border:"none",
+              background:"var(--card-hi)",
+              color:isCurrentMonth?"var(--border2)":"var(--t1)",
+              cursor:isCurrentMonth?"default":"pointer",
+              fontSize:20,lineHeight:1,flexShrink:0,
+              opacity:isCurrentMonth?0.3:1,
+            }}>›</button>
           </div>
+          {/* Stats row */}
           <div style={{display:"flex",gap:16,fontSize:12,color:"var(--t2)"}}>
             {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
             <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(displaySpent)}</span></span>

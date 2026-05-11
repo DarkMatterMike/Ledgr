@@ -149,16 +149,6 @@ input, select, textarea, button { font-family: var(--font-body); }
 
 
 
-/* ── Tab panel fade + slide ──────────────────────────────────────── */
-@keyframes ledgr-panel-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0);   }
-}
-.ledgr-panel-in {
-  animation: ledgr-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-
 
 /* ── New transaction row stagger ────────────────────────────────────── */
 @keyframes ledgr-txn-in {

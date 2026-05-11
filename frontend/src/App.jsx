@@ -1216,10 +1216,11 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   const [settingsTab, setSettingsTab] = useState("profile");
 
   const STABS = [
-    { id:"profile",    label:"Profile"    },
-    { id:"appearance", label:"Appearance" },
-    { id:"household",  label:"Household"  },
-    { id:"data",       label:"Data"       },
+    { id:"profile",      label:"Profile"      },
+    { id:"appearance",   label:"Appearance"   },
+    { id:"household",    label:"Household"    },
+    { id:"data",         label:"Data"         },
+    { id:"subscription", label:"Subscription" },
   ];
 
   return (
@@ -1274,74 +1275,6 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             {savingName ? "…" : "Save"}
           </button>
         </div>
-      </SettingsSection>
-
-      {/* Subscription */}
-      <SettingsSection title="Subscription">
-        {user?.role === "owner" ? (
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
-            <div>
-              <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Owner — Lifetime Access</div>
-              <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>No subscription required</div>
-            </div>
-          </div>
-        ) : user?.subscription_status === "active" ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--green)", flexShrink:0 }}/>
-              <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>
-                  {isFamilyPlan ? "Family Plan — $9.99/month" : "Active — $4.99/month"}
-                </div>
-                <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>Your subscription is active</div>
-              </div>
-            </div>
-            {!isFamilyPlan && (
-              <button onClick={async () => { try { const res = await api.startFamilyCheckout(); if(res.upgraded){ showToast("Upgraded to Family plan!"); window.location.reload(); } else { window.location.href=res.url; } } catch(e) { showToast("Failed to start checkout"); } }}
-                style={{ ...S.btn("primary"), justifyContent:"center" }}>
-                Upgrade to Family — $9.99/mo
-              </button>
-            )}
-            <button onClick={async () => { try { await api.openBillingPortal(); } catch(e) { showToast("Failed to open portal"); } }}
-              style={{ ...S.btn("ghost"), justifyContent:"center" }}>
-              Manage Subscription ←
-            </button>
-          </div>
-        ) : user?.subscription_status === "trialing" ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--amber)", flexShrink:0 }}/>
-              <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>Free Trial</div>
-                {user?.trial_ends_at && (
-                  <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>
-                    {Math.max(0, Math.ceil((user.trial_ends_at - Date.now()) / (1000*60*60*24)))} days remaining in trial
-                  </div>
-                )}
-              </div>
-            </div>
-            <button onClick={async () => { try { await api.startCheckout(); } catch(e) { showToast("Failed to start checkout"); } }}
-              style={{ ...S.btn("primary"), justifyContent:"center" }}>
-              Subscribe — $4.99/mo
-            </button>
-          </div>
-        ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--red)", flexShrink:0 }}/>
-              <div>
-                <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", textTransform:"capitalize" }}>
-                  {user?.subscription_status || "Inactive"}
-                </div>
-              </div>
-            </div>
-            <button onClick={async () => { try { await api.startCheckout(); } catch(e) { showToast("Failed to start checkout"); } }}
-              style={{ ...S.btn("primary"), justifyContent:"center" }}>
-              Subscribe — $4.99/mo
-            </button>
-          </div>
-        )}
       </SettingsSection>
 
       {/* Security */}
@@ -1881,30 +1814,17 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       {/* Family Sharing */}
       <SettingsSection title="Family Sharing">
         {!isFamilyPlan ? (
-          /* Not on family plan — show upgrade prompt */
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            <div style={{background:"var(--surface)",borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",gap:8}}>
-              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>Ledgr Family — $9.99/mo</div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{background:"var(--surface)",borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",gap:6}}>
+              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)"}}>Family sharing requires the Family plan</div>
               <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.6}}>
-                Invite up to 2 household members to share transactions, accounts, categories, and recurring items. Each member gets their own login and personal settings.
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:4}}>
-                {["Shared transactions & accounts","Shared budgets & recurring items","Up to 3 members total","Each member keeps personal theme & settings"].map(f=>(
-                  <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--t2)"}}>
-                    <span style={{color:"var(--cyan)",flexShrink:0}}>✓</span>{f}
-                  </div>
-                ))}
+                Invite household members to share accounts, budgets, and transactions. Each member keeps their own settings and theme.
               </div>
             </div>
             <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}}
-              onClick={async()=>{ try { const res = await api.startFamilyCheckout(); if(res.upgraded){ showToast("Upgraded to Family plan!"); window.location.reload(); } else { window.location.href=res.url; } } catch(e) { showToast("Failed to start checkout"); } }}>
-              Upgrade to Family — $9.99/mo
+              onClick={()=>setSettingsTab("subscription")}>
+              View plans →
             </button>
-            {user?.subscription_status === "active" && (
-              <div style={{fontSize:11,color:"var(--t3)",textAlign:"center"}}>
-                You're currently on the $4.99 plan. Upgrading will switch your subscription.
-              </div>
-            )}
           </div>
         ) : !householdLoaded ? (
           <div style={{fontSize:12,color:"var(--t3)"}}>Loading…</div>
@@ -1997,7 +1917,160 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
         </div>
       </div>
     )}
-      </div>
+
+      {/* ── Subscription tab ─────────────────────────── */}
+      {settingsTab === "subscription" && <>
+
+      {/* Current status card */}
+      <SettingsSection title="Your Plan">
+        {user?.role === "owner" ? (
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--green)33"}}>
+            <div style={{width:9,height:9,borderRadius:"50%",background:"var(--green)",flexShrink:0,boxShadow:"0 0 6px var(--green)"}}/>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>Owner — Lifetime Access</div>
+              <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>No subscription required</div>
+            </div>
+          </div>
+        ) : user?.subscription_status === "active" ? (
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--green)33"}}>
+              <div style={{width:9,height:9,borderRadius:"50%",background:"var(--green)",flexShrink:0,boxShadow:"0 0 6px var(--green)"}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>
+                  {isFamilyPlan ? "Family Plan — $9.99/month" : "Personal Plan — $4.99/month"}
+                </div>
+                <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>Active — renews automatically</div>
+              </div>
+            </div>
+            <button onClick={async()=>{ try { await api.openBillingPortal(); } catch(e) { showToast("Failed to open portal"); } }}
+              style={{...S.btn("ghost"),justifyContent:"center"}} className="ledgr-btn">
+              Manage billing & invoices →
+            </button>
+          </div>
+        ) : user?.subscription_status === "trialing" ? (
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--amber)33"}}>
+            <div style={{width:9,height:9,borderRadius:"50%",background:"var(--amber)",flexShrink:0,boxShadow:"0 0 6px var(--amber)"}}/>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>Free Trial</div>
+              {user?.trial_ends_at && (
+                <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>
+                  {Math.max(0,Math.ceil((user.trial_ends_at-Date.now())/(1000*60*60*24)))} days remaining
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--red)33"}}>
+            <div style={{width:9,height:9,borderRadius:"50%",background:"var(--red)",flexShrink:0}}/>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",textTransform:"capitalize"}}>{user?.subscription_status||"No active plan"}</div>
+              <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>Subscribe below to unlock full access</div>
+            </div>
+          </div>
+        )}
+      </SettingsSection>
+
+      {/* Plan cards — only show if not owner and not already on family */}
+      {user?.role !== "owner" && (
+        <SettingsSection title="Plans">
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+
+            {/* Personal Plan */}
+            <div style={{
+              background:"var(--surface)",borderRadius:12,padding:"18px 16px",
+              border: !isFamilyPlan && user?.subscription_status==="active"
+                ? "1px solid var(--cyan)" : "1px solid var(--border)",
+              position:"relative",
+            }}>
+              {!isFamilyPlan && user?.subscription_status==="active" && (
+                <div style={{position:"absolute",top:-10,left:16,background:"var(--cyan)",color:"#000",fontSize:10,fontWeight:700,padding:"2px 10px",borderRadius:99,letterSpacing:"0.5px"}}>
+                  CURRENT PLAN
+                </div>
+              )}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Personal</div>
+                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Everything you need to take control</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <span style={{fontSize:22,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-mono)"}}>$4.99</span>
+                  <span style={{fontSize:11,color:"var(--t3)"}}>/mo</span>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
+                {["Bank sync via Plaid","Unlimited transactions & accounts","Budgets & goal tracking","Recurring items & calendar","AI-powered insights","Analytics & spending trends"].map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--t2)"}}>
+                    <span style={{color:"var(--cyan)",flexShrink:0,fontSize:11}}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+              {user?.subscription_status !== "active" && !isFamilyPlan ? (
+                <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}} className="ledgr-btn-primary"
+                  onClick={async()=>{ try { await api.startCheckout(); } catch(e) { showToast("Failed to start checkout"); } }}>
+                  Subscribe — $4.99/mo
+                </button>
+              ) : !isFamilyPlan ? (
+                <div style={{fontSize:12,color:"var(--cyan)",textAlign:"center",fontWeight:600}}>✓ Your current plan</div>
+              ) : null}
+            </div>
+
+            {/* Family Plan */}
+            <div style={{
+              background:"var(--surface)",borderRadius:12,padding:"18px 16px",
+              border: isFamilyPlan
+                ? "1px solid var(--cyan)" : "1px solid var(--border)",
+              position:"relative",
+            }}>
+              {!isFamilyPlan && (
+                <div style={{position:"absolute",top:-10,left:16,background:"var(--amber)",color:"#000",fontSize:10,fontWeight:700,padding:"2px 10px",borderRadius:99,letterSpacing:"0.5px"}}>
+                  MOST POPULAR
+                </div>
+              )}
+              {isFamilyPlan && (
+                <div style={{position:"absolute",top:-10,left:16,background:"var(--cyan)",color:"#000",fontSize:10,fontWeight:700,padding:"2px 10px",borderRadius:99,letterSpacing:"0.5px"}}>
+                  CURRENT PLAN
+                </div>
+              )}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Family</div>
+                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Everything in Personal, plus sharing</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <span style={{fontSize:22,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-mono)"}}>$9.99</span>
+                  <span style={{fontSize:11,color:"var(--t3)"}}>/mo</span>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
+                {["Everything in Personal","Invite up to 2 household members","Shared accounts, budgets & transactions","Each member keeps personal settings & theme","Household calendar & recurring items"].map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--t2)"}}>
+                    <span style={{color:"var(--cyan)",flexShrink:0,fontSize:11}}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+              {isFamilyPlan ? (
+                <div style={{fontSize:12,color:"var(--cyan)",textAlign:"center",fontWeight:600}}>✓ Your current plan</div>
+              ) : (
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}} className="ledgr-btn-primary"
+                    onClick={async()=>{ try { const res=await api.startFamilyCheckout(); if(res.upgraded){ showToast("Upgraded to Family plan!"); window.location.reload(); } else { window.location.href=res.url; } } catch(e) { showToast("Failed to start checkout"); } }}>
+                    {user?.subscription_status==="active" ? "Upgrade to Family — $9.99/mo" : "Subscribe — $9.99/mo"}
+                  </button>
+                  {user?.subscription_status==="active" && (
+                    <div style={{fontSize:11,color:"var(--t3)",textAlign:"center"}}>
+                      You're on the $4.99 plan. Upgrading switches your subscription immediately.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </SettingsSection>
+      )}
+
+      </>}
+
+    </div>
     </>
   );
 }

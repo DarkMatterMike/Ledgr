@@ -16,6 +16,7 @@ import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
+import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
 import { useAiChat } from "./hooks/useAiChat.js";
@@ -2601,6 +2602,7 @@ function AppInner({ isDemo = false }) {
   const [toast,         setToast]         = useState("");
   const [newTxnIds,     setNewTxnIds]     = useState(new Set());
   const [settingsTab,   setSettingsTab]   = useState("profile");
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const navKeyRef = useRef(0);
   const prevViewRef = useRef(null);
   if (prevViewRef.current !== view) { navKeyRef.current += 1; prevViewRef.current = view; }
@@ -2800,6 +2802,18 @@ function AppInner({ isDemo = false }) {
 
   // Wire the ref once scheduleSave is available
   scheduleSaveRef.current = scheduleSave;
+
+  // Show onboarding wizard for new users with no categories
+  useEffect(() => {
+    if (!initialized.current) return;
+    if (isDemo) return;
+    if (categories.length > 0) return;
+    if (localStorage.getItem(ONBOARDING_STORAGE_KEY)) return;
+    // Small delay so app finishes rendering first
+    const t = setTimeout(() => setShowOnboarding(true), 600);
+    return () => clearTimeout(t);
+  }, [initialized.current, isDemo]);
+
   rulesRef.current        = rules;
 
   /* -- Fetch active system message on mount -- */
@@ -8411,6 +8425,16 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
       <Toast msg={toast}/>
+      {showOnboarding && (
+        <OnboardingWizard
+          onComplete={cats => {
+            setCategories(cats);
+            setShowOnboarding(false);
+            showToast("Budget categories created!");
+          }}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      )}
     </div>
   );
 }

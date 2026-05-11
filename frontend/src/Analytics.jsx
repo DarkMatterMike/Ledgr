@@ -821,10 +821,40 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
   /* ── Main tab content ──────────────────────────────────────────── */
   /* ── Overview sub-components ─────────────────────────────────── */
+  // Goal progress bar — animates width when scrolled into view
+  function GoalBar({ pct, barColor }) {
+    const ref       = useRef(null);
+    const [w, setW] = useState(0);
+    useEffect(() => {
+      const el = ref.current;
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { setW(pct); obs.disconnect(); } },
+        { threshold: 0.3 }
+      );
+      obs.observe(el);
+      return () => obs.disconnect();
+    }, [pct]);
+    return (
+      <div ref={ref} style={{ height:8, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:6 }}>
+        <div style={{ height:"100%", borderRadius:99, width:`${w}%`, background:barColor,
+          transition:"width 0.8s cubic-bezier(0.22,1,0.36,1)" }} />
+      </div>
+    );
+  }
+
   function SpendingBreakdown({ catTrends }) {
     const totalSpent = catTrends.reduce((s, c) => s + c.avg, 0);
     if (!totalSpent) return <Card><SectionHead title="Spending breakdown" sub="No spending data yet" /></Card>;
     const size = 160, stroke = 16, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+
+    // Animate segments from 0 to real value on mount
+    const [animated, setAnimated] = useState(false);
+    useEffect(() => {
+      const t = setTimeout(() => setAnimated(true), 60);
+      return () => clearTimeout(t);
+    }, []);
+
     let offsetAcc = 0;
     return (
       <Card>
@@ -832,10 +862,22 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         <div style={{ display:"flex", justifyContent:"center", margin:"6px 0 12px" }}>
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} />
-            {catTrends.slice(0,6).map(c => {
+            {catTrends.slice(0,6).map((c, i) => {
               const frac = c.avg / totalSpent;
               const dash = frac * circ, gap = circ - dash;
-              const el = <circle key={c.id} cx={size/2} cy={size/2} r={r} fill="none" stroke={c.color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offsetAcc} transform={`rotate(-90 ${size/2} ${size/2})`} />;
+              const currentOffset = offsetAcc;
+              const el = (
+                <circle
+                  key={c.id}
+                  cx={size/2} cy={size/2} r={r}
+                  fill="none" stroke={c.color}
+                  strokeWidth={stroke} strokeLinecap="round"
+                  strokeDasharray={animated ? `${dash} ${gap}` : `0 ${circ}`}
+                  strokeDashoffset={-currentOffset}
+                  transform={`rotate(-90 ${size/2} ${size/2})`}
+                  style={{ transition: `stroke-dasharray 0.7s cubic-bezier(0.22,1,0.36,1) ${i * 80}ms` }}
+                />
+              );
               offsetAcc += dash;
               return el;
             })}
@@ -1093,7 +1135,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     </div>
                   </div>
                   <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden", marginLeft:24 }}>
-                    <div style={{ height:"100%", width:`${pct(s.total, incomeSources[0]?.total||1)}%`, background:"var(--green)", borderRadius:99, transition:"width 0.5s" }} className="ledgr-bar" />
+                    <div style={{ height:"100%", width:`${pct(s.total, incomeSources[0]?.total||1)}%`, background:"var(--green)", borderRadius:99 }} className="ledgr-bar" />
                   </div>
                 </div>
               ))}
@@ -1116,7 +1158,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   </div>
                 </div>
                 <div style={{ height:3, background:"var(--border)", borderRadius:99, overflow:"hidden", marginLeft:24 }}>
-                  <div style={{ height:"100%", width:`${pct(m.total, merchantTotals[0]?.total||1)}%`, background:"var(--cyan)", borderRadius:99, transition:"width 0.5s" }} className="ledgr-bar" />
+                  <div style={{ height:"100%", width:`${pct(m.total, merchantTotals[0]?.total||1)}%`, background:"var(--cyan)", borderRadius:99 }} className="ledgr-bar" />
                 </div>
               </div>
             ))}
@@ -1791,9 +1833,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                     <span style={{ fontFamily:"var(--font-mono)", fontWeight:700, color:barColor }}>{fmt(g.savedAmount||0)} saved</span>
                     <span style={{ color:"var(--t3)" }}>of {fmt(g.targetAmount)}</span>
                   </div>
-                  <div style={{ height:8, background:"var(--border)", borderRadius:99, overflow:"hidden", marginBottom:6 }}>
-                    <div style={{ height:"100%", borderRadius:99, width:`${pct}%`, background:barColor, transition:"width 0.5s" }} className="ledgr-bar" />
-                  </div>
+                  <GoalBar pct={pct} barColor={barColor} />
                   <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--t3)", marginBottom:assignedTxns.length>0?12:0 }}>
                     <span>{pct}% complete</span>
                     {pct<100 && <span>{fmt((g.targetAmount||0)-(g.savedAmount||0))} remaining</span>}

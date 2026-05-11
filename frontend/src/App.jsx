@@ -7963,7 +7963,10 @@ function AppInner({ isDemo = false }) {
 
         {/* Content area */}
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
-          <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
+          {view === "analytics"
+            ? <div className="ledgr-view-enter">{AnalyticsPage}</div>
+            : <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
+          }
         </div>
 
         {/* More sheet overlay */}
@@ -8096,7 +8099,10 @@ function AppInner({ isDemo = false }) {
           <div ref={contentRef} style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content">
             
             
-            <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+            {view === "analytics"
+              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{AnalyticsPage}</div>
+              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+            }
           </div>
         </div>
       </>

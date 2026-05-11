@@ -46,7 +46,11 @@ export function Toast({ msg }) {
   if (!visible && !msg) return null;
   return (
     <div style={S.toast} className={exiting ? "ledgr-toast-exit" : "ledgr-toast-anim"}>
-      ✓ {prevMsg.current || msg}
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" style={{flexShrink:0}}>
+        <circle cx="11" cy="11" r="10" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"/>
+        <path d="M7 11l3 3 5-5" stroke="var(--t1)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      {prevMsg.current || msg}
     </div>
   );
 }

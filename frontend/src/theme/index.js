@@ -30,7 +30,7 @@ export const S = {
   modal:        { background:"var(--surface)", borderRadius:16, padding:24, width:480, maxWidth:"95vw", maxHeight:"90vh", overflowY:"auto", border:"1px solid rgba(255,255,255,0.07)", boxShadow:"0 24px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)" },
   modalTitle:   { fontFamily:"var(--font-disp)", fontSize:15, fontWeight:800, marginBottom:14, letterSpacing:"-0.3px" },
   badge:        (color) => ({ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 9px", borderRadius:99, fontSize:11, fontWeight:600, fontFamily:"var(--font-disp)", background:color+"1a", color, border:`1px solid ${color}2e`, whiteSpace:"nowrap" }),
-  toast:        { position:"fixed", bottom:16, right:12, zIndex:999, background:"var(--surface)", borderRadius:12, padding:"10px 16px", fontSize:12, color:"var(--t1)" },
+  toast:        { position:"fixed", bottom:88, left:"50%", transform:"translateX(-50%)", zIndex:999, background:"var(--card-hi)", borderRadius:16, padding:"14px 18px", fontSize:14, fontWeight:600, color:"var(--t1)", display:"flex", alignItems:"center", gap:12, width:"calc(100% - 32px)", maxWidth:480, boxShadow:"0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.07)" },
   monthBar:     { background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)", borderRadius:12, padding:"10px 14px", display:"flex", alignItems:"center", gap:10, fontSize:11, color:"var(--t2)", marginBottom:12, flexWrap:"wrap" },
   sectionHdr:   { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 },
   sectionTitle: { fontFamily:"var(--font-disp)", fontSize:14, fontWeight:700, letterSpacing:"-0.2px" },

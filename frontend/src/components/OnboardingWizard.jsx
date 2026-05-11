@@ -262,7 +262,7 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
               </div>
               <button onClick={() => set("pets", !answers.pets)} style={{
                 width: 44, height: 26, borderRadius: 99, border: "none", cursor: "pointer",
-                background: answers.pets ? "var(--cyan)" : "var(--card-hi)",
+                background: answers.pets ? "var(--cyan)" : "var(--bg)",
                 position: "relative", transition: "background 0.2s", flexShrink: 0,
               }}>
                 <div style={{

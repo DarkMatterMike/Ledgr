@@ -2608,6 +2608,7 @@ function AppInner({ isDemo = false }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const navKeyRef = useRef(0);
   const prevViewRef = useRef(null);
+  const budgetBarsAnimated = useRef(false);
   if (prevViewRef.current !== view) { navKeyRef.current += 1; prevViewRef.current = view; }
   const navKey = navKeyRef.current;
   const [newTxnCount,   setNewTxnCount]   = useState(0);
@@ -5391,7 +5392,6 @@ function AppInner({ isDemo = false }) {
   /* ── Budgets ─────────────────────────────────── */
   const Budgets = (() => {
     /* ── Fire bar animation only on first render ──────── */
-    const budgetBarsAnimated = useRef(false);
     useEffect(() => {
       if (!budgetBarsAnimated.current) {
         // After first paint, mark as animated so re-renders don't retrigger

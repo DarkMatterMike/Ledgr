@@ -110,7 +110,7 @@ body.ink-open .ink-gem-label { color: var(--cyan); }
 }
 body.ink-open .ink-panel {
   clip-path: circle(150% at 100% 36px);
-  right: 33px;
+  right: 28px;
   pointer-events: all;
 }
 
@@ -299,12 +299,7 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
 
       {/* Ink bleed panel */}
       <nav className="ink-panel">
-        {/* Close button */}
-        <div style={{ padding: '20px 20px 8px', display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
-          <div className="ink-close" onClick={close}>
-            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-          </div>
-        </div>
+
 
         {/* Nav items */}
         <div className="ink-nav-items" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '4px 0 16px' }}>

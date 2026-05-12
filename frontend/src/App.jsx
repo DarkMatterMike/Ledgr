@@ -2645,6 +2645,9 @@ function AppInner({ isDemo = false }) {
   const [deletedTransactions, setDeletedTransactions] = useState([]);
   const [showTrash, setShowTrash] = useState(false);
   const [filterReview,  setFilterReview]  = useState(false);
+  const [txnSortCol,    setTxnSortCol]    = useState("date");
+  const [txnSortDir,    setTxnSortDir]    = useState("desc");
+  const [txnTypeFilter, setTxnTypeFilter] = useState("all"); // "all" | "expense" | "income"
   const [editingId,     setEditingId]     = useState(null);
   const [ellipsisId,    setEllipsisId]    = useState(null);
   const [expandedTxnId, setExpandedTxnId] = useState(null);
@@ -4893,19 +4896,58 @@ function AppInner({ isDemo = false }) {
 
   /* -- Transactions -- */
 
-  /* ── Transactions ─────────────────────────────────── */
+  /* ── Transactions — Clarity flat table ─────────────── */
   const Transactions = (()=>{
-    // Group filtered transactions by date
-    const grouped = filteredTxns.reduce((acc, t) => {
-      const d = t.date || "Unknown";
-      if (!acc[d]) acc[d] = [];
-      acc[d].push(t);
-      return acc;
-    }, {});
-    const dates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
-
-    const toReview = transactions.filter(t=>needsReview(t)).length;
+    const toReview    = transactions.filter(t=>needsReview(t)).length;
     const totalBalance = accounts.reduce((a,b)=>a+(b.balance||0),0);
+
+    // ── type filter applied on top of filteredTxns
+    const typeFiltered = txnTypeFilter === "all" ? filteredTxns
+      : txnTypeFilter === "income"
+        ? filteredTxns.filter(t => t.amount > 0)
+        : filteredTxns.filter(t => t.amount < 0);
+
+    // ── sort
+    const sortedTxns = [...typeFiltered].sort((a, b) => {
+      let av, bv;
+      switch (txnSortCol) {
+        case "date":     av = a.date||""; bv = b.date||""; break;
+        case "merchant": av = (a.name||a.merchant||"").toLowerCase(); bv = (b.name||b.merchant||"").toLowerCase(); break;
+        case "category": av = (catMap[a.categoryId]?.name||"").toLowerCase(); bv = (catMap[b.categoryId]?.name||"").toLowerCase(); break;
+        case "account":  av = (acctMap[a.accountId]?.name||"").toLowerCase(); bv = (acctMap[b.accountId]?.name||"").toLowerCase(); break;
+        case "amount":   av = Math.abs(a.amount); bv = Math.abs(b.amount); break;
+        default:         av = a.date||""; bv = b.date||"";
+      }
+      if (av < bv) return txnSortDir === "asc" ? -1 : 1;
+      if (av > bv) return txnSortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    function toggleSort(col) {
+      if (txnSortCol === col) setTxnSortDir(d => d === "asc" ? "desc" : "asc");
+      else { setTxnSortCol(col); setTxnSortDir(col === "amount" ? "desc" : col === "date" ? "desc" : "asc"); }
+    }
+
+    // ── summary strip values
+    const totalSpent  = typeFiltered.filter(t=>t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0);
+    const totalIncome = typeFiltered.filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0);
+    const netAmt      = totalIncome - totalSpent;
+
+    const colHdr = (col, label) => {
+      const active = txnSortCol === col;
+      const arrow  = active ? (txnSortDir === "asc" ? " ↑" : " ↓") : "";
+      return (
+        <th onClick={()=>toggleSort(col)} style={{
+          fontFamily:"var(--font-mono)", fontSize:9, fontWeight:600,
+          textTransform:"uppercase", letterSpacing:"1px",
+          color: active ? "var(--cyan)" : "var(--t3)",
+          padding:"8px 10px 10px", textAlign:"left",
+          borderBottom:"1px solid var(--border)",
+          cursor:"pointer", userSelect:"none", whiteSpace:"nowrap",
+          transition:"color .12s",
+        }}>{label}{arrow}</th>
+      );
+    };
 
     return (
       <PageLayout
@@ -5068,56 +5110,227 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
-        {/* Grouped transaction list */}
-        {filteredTxns.length===0 ? (
+        {/* ── Clarity: summary strip ── */}
+        <div style={{display:"flex",gap:0,marginBottom:14,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border)"}}>
+          {[
+            { label:"Spent",      val: fmt(totalSpent),   color:"var(--red)"   },
+            { label:"Income",     val: fmt(totalIncome),  color:"var(--green)" },
+            { label:"Net",        val:(netAmt>=0?"+":"")+fmt(netAmt), color:netAmt>=0?"var(--green)":"var(--red)" },
+            { label:"Unreviewed", val: String(toReview),  color:"var(--amber)" },
+          ].map((c,i,arr)=>(
+            <div key={c.label} style={{flex:1,padding:"9px 14px",borderRight:i<arr.length-1?"1px solid var(--border)":"none",background:"var(--surface)"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:3}}>{c.label}</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:600,color:c.color}}>{c.val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Clarity: type filter chips ── */}
+        <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+          {[["all","All"],["expense","Expenses"],["income","Income"]].map(([v,label])=>(
+            <button key={v} onClick={()=>setTxnTypeFilter(v)}
+              style={{padding:"5px 13px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",
+                background: txnTypeFilter===v ? "var(--cyan-dim)" : "var(--card-hi)",
+                color:       txnTypeFilter===v ? "var(--cyan)"    : "var(--t2)",
+                border:      txnTypeFilter===v ? "1px solid rgba(201,149,106,0.3)" : "1px solid var(--border)",
+                transition:"all .12s",
+              }}>{label}</button>
+          ))}
+          {selectedTxns.size > 0 && (
+            <button style={{...S.btn("ghost",true),fontSize:11,marginLeft:"auto"}} className="ledgr-btn"
+              onClick={clearSelection}>✕ {selectedTxns.size} selected</button>
+          )}
+        </div>
+
+        {/* ── Clarity: flat table ── */}
+        {sortedTxns.length===0 ? (
           <div className="ledgr-empty"><div className="ledgr-empty-icon">🔍</div><div className="ledgr-empty-title">No transactions found</div><div>Try adjusting your filters or search</div></div>
         ) : (
-          <div className="ledgr-txn-gradient" style={{background:"linear-gradient(var(--grad-angle, 315deg), var(--card, #181511) 0%, var(--card-hi, #1e1b17) 100%)",border:"none",borderRadius:"var(--radius)"}}>
-            {dates.map((date,di)=>{
-              const txns    = grouped[date];
-              const dayTotal = txns.reduce((a,t)=>a+t.amount,0);
-              return (
-                <div key={date}>
-                  {/* Date header */}
-                  <div style={{
-                    display:"flex",alignItems:"center",justifyContent:"space-between",
-                    padding:"8px 16px",
-                    background:"var(--surface)",
-                    borderTop: di>0?"1px solid var(--border)":"none",
-                  }}>
-                    <span style={{fontSize:11,fontWeight:700,color:"var(--t3)",fontFamily:"var(--font-disp)",textTransform:"uppercase",letterSpacing:"0.8px"}}>
-                      {new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
-                    </span>
-                    <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:dayTotal>=0?"var(--green)":"var(--t3)"}}>
-                      {dayTotal>=0?"+":""}{fmt(dayTotal)}
-                    </span>
-                  </div>
-                  {/* Transactions for this date */}
-                  <div style={{padding:"0 16px"}}>
-                    {txns.map(t=><TxnRow key={t.id} t={t}
-                      expandedTxnId={expandedTxnId} setExpandedTxnId={setExpandedTxnId}
-                      ellipsisId={ellipsisId} setEllipsisId={setEllipsisId}
-                      editingId={editingId} editingName={editingName}
-                      setEditingName={setEditingName} setEditingId={setEditingId}
-                      catMap={catMap} acctMap={acctMap}
-                      categories={categories} accounts={accounts}
-                      needsReview={needsReview} markReviewed={markReviewed}
-                      startRename={startRename} deleteTxn={deleteTxn}
-                      updateTxnType={updateTxnType} updateTxnCat={updateTxnCat}
-                      updateTxnAcct={updateTxnAcct} updateTxnNotes={updateTxnNotes}
-                      openAddCat={openAddCat}
-                      toggleRecurring={toggleRecurring} updateRecurringDay={updateRecurringDay}
-                      saveRename={saveRename} isMobile={isMobile}
-                      isSelected={selectedTxns.has(t.id)}
-                      onToggleSelect={toggleSelectTxn}
-                      selectionActive={selectedTxns.size > 0}
-                      goals={goals} assignTxnToGoal={assignTxnToGoal}
-                      isNew={newTxnIds.has(t.id)}
-                    />)}
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border)"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:"var(--surface)"}}>
+                  {/* checkbox col */}
+                  <th style={{width:32,padding:"8px 0 10px 12px",borderBottom:"1px solid var(--border)"}}/>
+                  {colHdr("date","Date")}
+                  {colHdr("merchant","Merchant")}
+                  {!isMobile && colHdr("category","Category")}
+                  {!isMobile && colHdr("account","Account")}
+                  <th onClick={()=>toggleSort("amount")} style={{
+                    fontFamily:"var(--font-mono)",fontSize:9,fontWeight:600,
+                    textTransform:"uppercase",letterSpacing:"1px",
+                    color:txnSortCol==="amount"?"var(--cyan)":"var(--t3)",
+                    padding:"8px 12px 10px 10px",textAlign:"right",
+                    borderBottom:"1px solid var(--border)",cursor:"pointer",userSelect:"none",
+                  }}>Amount{txnSortCol==="amount"?(txnSortDir==="asc"?" ↑":" ↓"):""}</th>
+                  <th style={{width:32,borderBottom:"1px solid var(--border)"}}/>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedTxns.map((t,ri)=>{
+                  const cat      = catMap[t.categoryId];
+                  const acct     = acctMap[t.accountId];
+                  const reviewed = !needsReview(t);
+                  const typeVal  = t.type||(t.amount<0?"expense":"income");
+                  const noCat    = ["income","transfer","reimbursement"].includes(typeVal);
+                  const expanded = expandedTxnId === t.id;
+                  const selected = selectedTxns.has(t.id);
+                  const isNew    = newTxnIds.has(t.id);
+                  const dateStr  = t.date
+                    ? new Date(t.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})
+                    : "—";
+
+                  return (
+                    <>
+                      <tr key={t.id}
+                        className={isNew ? "ledgr-txn-new" : undefined}
+                        onClick={()=>{ if(selectedTxns.size>0){toggleSelectTxn(t.id);}else{setExpandedTxnId(expanded?null:t.id); }}}
+                        style={{
+                          background: selected ? "var(--cyan-dim)" : ri%2===0 ? "transparent" : "rgba(255,255,255,0.012)",
+                          cursor:"pointer",
+                          transition:"background .1s",
+                          borderLeft: t.recurring ? "3px solid var(--recurring-color, #fbbf24)" : needsReview(t) ? "3px solid var(--review-color, var(--cyan))" : "3px solid transparent",
+                        }}
+                        onMouseEnter={e=>{ if(!selected) e.currentTarget.style.background="rgba(255,255,255,0.025)"; }}
+                        onMouseLeave={e=>{ e.currentTarget.style.background = selected ? "var(--cyan-dim)" : ri%2===0 ? "transparent" : "rgba(255,255,255,0.012)"; }}
+                      >
+                        {/* Checkbox */}
+                        <td style={{padding:"0 0 0 12px",width:32}} onClick={e=>{e.stopPropagation();toggleSelectTxn(t.id);}}>
+                          <div style={{width:15,height:15,borderRadius:3,cursor:"pointer",
+                            border:`1.5px solid ${selected?"var(--cyan)":"var(--border2)"}`,
+                            background:selected?"var(--cyan)":"transparent",
+                            display:"flex",alignItems:"center",justifyContent:"center",
+                            opacity:selectedTxns.size>0?1:0.3,transition:"all .12s",
+                          }}>{selected&&<span style={{fontSize:9,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}</div>
+                        </td>
+                        {/* Date */}
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap"}}>
+                          {dateStr}
+                          {t.pending && <span style={{fontSize:9,color:"var(--amber)",marginLeft:5,fontWeight:700}}>PENDING</span>}
+                        </td>
+                        {/* Merchant */}
+                        <td style={{padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",maxWidth:isMobile?140:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                          <span style={{fontSize:13,fontWeight:500,color:"var(--t1)"}}>
+                            {t.name||t.merchant}
+                            {t.recurringItemId && <span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
+                            {t.notes && !isMobile && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
+                          </span>
+                        </td>
+                        {/* Category */}
+                        {!isMobile && (
+                          <td style={{padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                            {!noCat ? (
+                              <div style={{transform:"scale(0.875)",transformOrigin:"left center",width:"114%"}}>
+                                <select value={t.categoryId||""} onChange={e=>{const v=e.target.value;if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
+                                  style={{backgroundColor:"transparent",border:"none",outline:"none",fontSize:14,color:cat?cat.color:"var(--t3)",fontWeight:400,cursor:"pointer",width:"100%",appearance:"none",WebkitAppearance:"none",fontFamily:"var(--font-body)",padding:"2px 4px",borderRadius:20,colorScheme:"dark"}}>
+                                  <option value="">— None —</option>
+                                  {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                  <option value="__new__">+ New category</option>
+                                </select>
+                              </div>
+                            ) : (
+                              <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 8px",borderRadius:99,background:"rgba(255,255,255,0.05)",color:"var(--t3)",textTransform:"capitalize"}}>{typeVal}</span>
+                            )}
+                          </td>
+                        )}
+                        {/* Account */}
+                        {!isMobile && (
+                          <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:130}}>
+                            {acct?.name||"—"}
+                          </td>
+                        )}
+                        {/* Amount */}
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",padding:"9px 12px 9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",textAlign:"right",whiteSpace:"nowrap"}}>
+                          {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+                        </td>
+                        {/* Ellipsis menu */}
+                        <td style={{width:32,padding:"9px 8px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                          <div style={{position:"relative"}}>
+                            <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
+                              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"1px 4px",lineHeight:1,opacity:0.6}}>⋯</button>
+                            {ellipsisId===t.id&&(
+                              <>
+                                <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
+                                <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
+                                  <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
+                                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
+                                    {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}</button>
+                                  <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
+                                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+                                  {goals&&goals.length>0&&(
+                                    <div style={{borderTop:"1px solid var(--border)",paddingTop:4,paddingBottom:4}}>
+                                      <div style={{padding:"6px 14px 4px",fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Add to goal</div>
+                                      {goals.map(g=>{
+                                        const assigned=(g.assignedTxnIds||[]).includes(t.id);
+                                        return(<button key={g.id} onClick={()=>{assignTxnToGoal(t.id,g.id);setEllipsisId(null);}}
+                                          style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:assigned?"var(--cyan)":"var(--t2)"}}>
+                                          {assigned?"✓ ":""}{g.title}</button>);
+                                      })}
+                                    </div>
+                                  )}
+                                  <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
+                                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* ── Expanded detail panel ── */}
+                      {expanded&&(
+                        <tr key={t.id+"_exp"}>
+                          <td colSpan={isMobile?5:7} style={{padding:"0 16px 12px",background:"var(--surface)"}}>
+                            <div className="ledgr-expand" style={{padding:"12px",display:"flex",flexDirection:"column",gap:10,borderRadius:"var(--radius)",marginTop:4}}>
+                              {editingId!==t.id&&(t.name||t.merchant)&&(
+                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>
+                                  {t.name||t.merchant}
+                                  {t.pending&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
+                                </div>
+                              )}
+                              {editingId===t.id&&(
+                                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                                  <input style={{...S.input,flex:1,fontSize:13}} value={editingName} onChange={e=>setEditingName(e.target.value)}
+                                    onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
+                                  <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
+                                  <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
+                                </div>
+                              )}
+                              <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8}}>
+                                <div style={{display:"flex",flexDirection:"column",gap:8,flex:1}}>
+                                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                                    <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)}
+                                      options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]}
+                                      style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                                    {noCat?(
+                                      <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
+                                    ):(
+                                      <CustomSelect value={t.categoryId||""} onChange={v=>{if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
+                                        options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
+                                        style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                                    )}
+                                  </div>
+                                  <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)}
+                                    options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]}
+                                    style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                                </div>
+                                <textarea placeholder="Add a note…" value={t.notes||""} onChange={e=>updateTxnNotes(t.id,e.target.value)} rows={2}
+                                  style={{...S.input,flex:isMobile?undefined:"0 0 38%",width:isMobile?"100%":undefined,resize:"none",fontSize:12,padding:"7px 10px",lineHeight:1.5,fontFamily:"var(--font-body)"}}/>
+                              </div>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <button onClick={()=>setExpandedTxnId(null)} style={{...S.btn("ghost",true),marginLeft:"auto"}}>Done</button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 

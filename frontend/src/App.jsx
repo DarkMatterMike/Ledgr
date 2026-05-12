@@ -5146,10 +5146,10 @@ function AppInner({ isDemo = false }) {
                             {selected&&<span style={{fontSize:9,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
                           </div>
                         </td>
-                        <td style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap"}}>
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap"}}>
                           {dateStr}{t.pending&&<span style={{fontSize:9,color:"var(--amber)",marginLeft:5,fontWeight:700}}>PENDING</span>}
                         </td>
-                        <td style={{padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)",maxWidth:isMobile?130:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",maxWidth:isMobile?130:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                           <span style={{fontSize:13,fontWeight:500,color:"var(--t1)"}}>
                             {t.name||t.merchant}
                             {t.recurringItemId&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
@@ -5157,32 +5157,34 @@ function AppInner({ isDemo = false }) {
                           {t.notes&&!isMobile&&<span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
                         </td>
                         {!isMobile&&(
-                          <td style={{padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                          <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
                             {!noCat?(
-                              <div style={{transform:"scale(0.875)",transformOrigin:"left center",width:"114%"}}>
-                                <select value={t.categoryId||""} onChange={e=>{const v=e.target.value;if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
-                                  style={{backgroundColor:"transparent",border:"none",outline:"none",fontSize:14,color:cat?cat.color:"var(--t3)",fontWeight:400,cursor:"pointer",width:"100%",appearance:"none",WebkitAppearance:"none",fontFamily:"var(--font-body)",padding:"2px 4px",borderRadius:20,colorScheme:"dark"}}>
-                                  <option value="">— None —</option>
-                                  {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                  ))}
-                                  <option value="__new__">+ New category</option>
-                                </select>
-                              </div>
+                              cat ? (
+                                <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 7px",borderRadius:99,background:`${cat.color}1a`,color:cat.color,cursor:"pointer",whiteSpace:"nowrap"}}
+                                  onClick={()=>setExpandedTxnId(expanded?null:t.id)}>
+                                  <span style={{width:5,height:5,borderRadius:"50%",background:cat.color,flexShrink:0,display:"inline-block"}}/>
+                                  {cat.name}
+                                </span>
+                              ) : (
+                                <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 7px",borderRadius:99,background:"rgba(255,255,255,0.04)",color:"var(--t3)",cursor:"pointer"}}
+                                  onClick={()=>setExpandedTxnId(expanded?null:t.id)}>
+                                  — None —
+                                </span>
+                              )
                             ):(
-                              <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 8px",borderRadius:99,background:"rgba(255,255,255,0.05)",color:"var(--t3)",textTransform:"capitalize"}}>{typeVal}</span>
+                              <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 7px",borderRadius:99,background:"rgba(255,255,255,0.04)",color:"var(--t3)",textTransform:"capitalize"}}>{typeVal}</span>
                             )}
                           </td>
                         )}
                         {!isMobile&&(
-                          <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>
+                          <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>
                             {acct?.name||"—"}
                           </td>
                         )}
                         <td style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",padding:"10px 12px 10px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",textAlign:"right",whiteSpace:"nowrap"}}>
                           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
                         </td>
-                        <td style={{width:36,padding:"10px 8px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                        <td style={{width:36,padding:"7px 6px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
                           <div style={{position:"relative"}}>
                             <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
                               style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"1px 4px",lineHeight:1,opacity:0.5}}>⋯</button>

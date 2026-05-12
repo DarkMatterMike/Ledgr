@@ -6871,6 +6871,8 @@ function AppInner({ isDemo = false }) {
             ? <div className="ledgr-view-enter ledgr-view-padded">{AnalyticsPage}</div>
             : view === "dashboard"
             ? <div key={navKey} className="ledgr-view-enter" style={{maxWidth:600,margin:"0 auto"}}>{VIEWS[view]}</div>
+            : view === "calendar"
+            ? <div key={navKey} className="ledgr-view-enter" style={{padding:"12px"}}>{VIEWS[view]}</div>
             : <div key={navKey} className="ledgr-view-enter ledgr-view-padded">{VIEWS[view]}</div>
           }
         </div>
@@ -6933,6 +6935,8 @@ function AppInner({ isDemo = false }) {
               ? <div className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{AnalyticsPage}</div>
               : view === "dashboard"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto"}}>{VIEWS[view]}</div>
+              : view === "calendar"
+              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,padding:"20px"}}>{VIEWS[view]}</div>
               : <div key={navKey} className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
             }
           </div>

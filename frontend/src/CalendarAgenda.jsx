@@ -1,526 +1,327 @@
 /**
- * CalendarAgenda.jsx
+ * CalendarAgenda.jsx — Concept 05: Agenda + Mini Cal
  *
- * Agenda View — replaces the Calendar page.
- * Layout: 260px mini-cal + stats on the left, chronological agenda on the right.
- * Exactly matches Concept 05 from ledgr-calendar-concepts.html.
+ * Left 260px: mini calendar with dot indicators + month stats + add button
+ * Right: scrollable agenda, one day-block per day that has entries
+ *
+ * CSS is injected once via a <style> tag using the same tokens as the rest of the app.
+ * All class names are prefixed `ag-` to avoid collisions.
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 
-/* ─── helpers ─────────────────────────────────────────────── */
-const pad = n => String(n).padStart(2, '0');
-const fmt = n =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
-
+/* ─── tiny helpers ──────────────────────────────────────────── */
 function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
 
-const DOW_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DOW_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-/* ─── Inject scoped CSS once ───────────────────────────────── */
-function injectAgendaCSS() {
-  if (document.getElementById('ledgr-agenda-css')) return;
-  const el = document.createElement('style');
-  el.id = 'ledgr-agenda-css';
-  el.textContent = `
-    /* ── Agenda layout ── */
-    .ag-wrap {
-      background: var(--card, #0d0c0a);
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.06);
-      font-family: var(--font-body, 'DM Sans', sans-serif);
-    }
-    .ag-layout {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      min-height: 640px;
-    }
-    @media (max-width: 767px) {
-      .ag-layout { grid-template-columns: 1fr; }
-      .ag-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    }
+/* ─── CSS injection ─────────────────────────────────────────── */
+function injectCSS() {
+  if (document.getElementById('ag-css')) return;
+  const s = document.createElement('style');
+  s.id = 'ag-css';
+  /* Pixel-perfect match to ledgr-calendar-concepts.html Concept 05 */
+  s.textContent = `
+  /* ── Outer shell ── */
+  .ag { background: #0d0c0a; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); font-family: var(--font-body,'DM Sans',sans-serif); color: var(--t1,#e8ddd0); display: flex; flex-direction: column; }
 
-    /* ── Left panel ── */
-    .ag-left {
-      background: var(--bg, #0b0a08);
-      border-right: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      flex-direction: column;
-    }
-    .ag-mini-header {
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .ag-mini-month {
-      font-family: var(--font-disp, 'Syne', sans-serif);
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--t1, #e8ddd0);
-    }
-    .ag-mini-nav { display: flex; gap: 4px; }
-    .ag-mini-nav-btn {
-      background: none;
-      border: none;
-      color: rgba(232,221,208,0.4);
-      cursor: pointer;
-      font-size: 13px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      transition: color 0.15s, background 0.15s;
-      line-height: 1.2;
-    }
-    .ag-mini-nav-btn:hover { background: rgba(255,255,255,0.06); color: var(--t1, #e8ddd0); }
+  /* ── Two-column layout ── */
+  .ag-layout { display: grid; grid-template-columns: 260px 1fr; flex: 1; overflow: hidden; }
 
-    /* Mini calendar grid */
-    .ag-mini-dow {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      padding: 0 8px;
-      margin-bottom: 4px;
-    }
-    .ag-mini-dow-c {
-      text-align: center;
-      font-size: 9px;
-      font-weight: 700;
-      color: rgba(232,221,208,0.25);
-      text-transform: uppercase;
-      padding: 4px 0;
-      font-family: var(--font-disp, 'Syne', sans-serif);
-    }
-    .ag-mini-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 1px;
-      padding: 0 8px;
-    }
-    .ag-mini-day {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 4px 2px;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background 0.1s;
-      min-height: 32px;
-    }
-    .ag-mini-day:hover { background: rgba(255,255,255,0.04); }
-    .ag-mini-day.today { background: rgba(201,149,106,0.15); }
-    .ag-mini-day.selected { background: rgba(201,149,106,0.22); outline: 1px solid rgba(201,149,106,0.4); outline-offset: -1px; }
-    .ag-mini-day.inactive { opacity: 0.2; cursor: default; pointer-events: none; }
-    .ag-mini-dn {
-      font-size: 11px;
-      font-weight: 500;
-      color: rgba(232,221,208,0.4);
-      line-height: 1.4;
-    }
-    .ag-mini-day.today .ag-mini-dn { color: var(--cyan, #c9956a); font-weight: 700; }
-    .ag-mini-day.selected .ag-mini-dn { color: var(--cyan, #c9956a); }
-    .ag-mini-dots { display: flex; gap: 2px; margin-top: 2px; }
-    .ag-mini-dot { width: 3px; height: 3px; border-radius: 50%; }
+  /* ── Left panel ── */
+  .ag-left { background: var(--bg,#0b0a08); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; overflow: hidden; }
 
-    /* Divider + stats */
-    .ag-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 16px; }
-    .ag-stats { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 6px; }
-    .ag-stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      background: rgba(255,255,255,0.02);
-      border-radius: 7px;
-    }
-    .ag-stat-name { font-size: 11px; color: rgba(232,221,208,0.5); }
-    .ag-stat-val {
-      font-family: var(--font-mono, 'JetBrains Mono', monospace);
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .ag-new-btn {
-      margin: 0 16px 16px;
-      padding: 9px;
-      background: rgba(201,149,106,0.1);
-      border: 1px solid rgba(201,149,106,0.2);
-      border-radius: 8px;
-      color: var(--cyan, #c9956a);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: var(--font-body, 'DM Sans', sans-serif);
-      text-align: center;
-      transition: background 0.15s;
-    }
-    .ag-new-btn:hover { background: rgba(201,149,106,0.18); }
+  .ag-mini-header { padding: 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .ag-mini-month  { font-family: var(--font-disp,'Syne',sans-serif); font-size: 15px; font-weight: 700; color: var(--t1,#e8ddd0); }
+  .ag-mini-nav    { display: flex; gap: 4px; }
+  .ag-mini-nav-btn { background: none; border: none; color: rgba(232,221,208,0.4); cursor: pointer; font-size: 13px; padding: 2px 5px; border-radius: 4px; transition: color .15s; }
+  .ag-mini-nav-btn:hover { color: var(--t1,#e8ddd0); background: rgba(255,255,255,0.05); }
 
-    /* ── Right panel ── */
-    .ag-right { display: flex; flex-direction: column; overflow: hidden; }
-    .ag-agenda-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-shrink: 0;
-    }
-    .ag-agenda-title {
-      font-family: var(--font-disp, 'Syne', sans-serif);
-      font-size: 13px;
-      font-weight: 700;
-      color: rgba(232,221,208,0.5);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .ag-filter-btns { display: flex; gap: 4px; }
-    .ag-filter-btn {
-      padding: 4px 10px;
-      border-radius: 99px;
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s;
-      font-family: var(--font-body, 'DM Sans', sans-serif);
-    }
-    .ag-filter-btn.active { background: rgba(201,149,106,0.18); color: var(--cyan, #c9956a); }
-    .ag-filter-btn.inactive { background: rgba(255,255,255,0.04); color: rgba(232,221,208,0.4); }
-    .ag-filter-btn:hover.inactive { background: rgba(255,255,255,0.08); color: rgba(232,221,208,0.6); }
+  .ag-mini-dow   { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 8px; margin-bottom: 4px; flex-shrink: 0; }
+  .ag-mini-dow-c { text-align: center; font-size: 9px; font-weight: 700; color: rgba(232,221,208,0.25); text-transform: uppercase; padding: 4px 0; font-family: var(--font-disp,'Syne',sans-serif); }
 
-    /* Agenda scroll area */
-    .ag-agenda {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px 0;
-      scroll-behavior: smooth;
-    }
-    .ag-agenda::-webkit-scrollbar { width: 3px; }
-    .ag-agenda::-webkit-scrollbar-track { background: transparent; }
-    .ag-agenda::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+  .ag-mini-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; padding: 0 8px; flex-shrink: 0; }
+  .ag-mini-day  { display: flex; flex-direction: column; align-items: center; padding: 4px 2px; border-radius: 5px; cursor: pointer; transition: background .1s; min-height: 32px; }
+  .ag-mini-day:hover       { background: rgba(255,255,255,0.04); }
+  .ag-mini-day.today       { background: rgba(201,149,106,0.15); }
+  .ag-mini-day.selected    { background: rgba(201,149,106,0.2); outline: 1px solid rgba(201,149,106,0.4); outline-offset: -1px; }
+  .ag-mini-day.inactive    { opacity: .2; pointer-events: none; }
+  .ag-mini-dn { font-size: 11px; font-weight: 500; color: rgba(232,221,208,0.4); line-height: 1.4; }
+  .ag-mini-day.today    .ag-mini-dn { color: #c9956a; font-weight: 700; }
+  .ag-mini-day.selected .ag-mini-dn { color: #c9956a; }
+  .ag-mini-dots { display: flex; gap: 1px; margin-top: 2px; }
+  .ag-mini-dot  { width: 3px; height: 3px; border-radius: 50%; }
 
-    /* Day block */
-    .ag-day-block { margin-bottom: 2px; }
-    .ag-day-head {
-      padding: 10px 20px 6px;
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
-    .ag-day-num {
-      font-family: var(--font-mono, 'JetBrains Mono', monospace);
-      font-size: 22px;
-      font-weight: 700;
-      color: rgba(232,221,208,0.2);
-      line-height: 1;
-    }
-    .ag-day-weekday {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: rgba(232,221,208,0.3);
-      font-family: var(--font-disp, 'Syne', sans-serif);
-    }
-    .ag-day-head.is-today .ag-day-num { color: var(--cyan, #c9956a); }
-    .ag-day-head.is-today .ag-day-weekday { color: var(--cyan, #c9956a); }
-    .ag-day-head.is-selected .ag-day-num { color: var(--cyan, #c9956a); opacity: 0.7; }
+  .ag-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 16px; flex-shrink: 0; }
 
-    /* Entry row */
-    .ag-entry {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 9px 20px;
-      cursor: pointer;
-      transition: background 0.1s;
-      position: relative;
-    }
-    .ag-entry::before {
-      content: '';
-      position: absolute;
-      left: 28px;
-      top: 0;
-      bottom: 0;
-      width: 1px;
-      background: rgba(255,255,255,0.04);
-    }
-    .ag-entry:hover { background: rgba(255,255,255,0.025); }
-    .ag-entry-time {
-      font-family: var(--font-mono, 'JetBrains Mono', monospace);
-      font-size: 10px;
-      color: rgba(232,221,208,0.25);
-      width: 28px;
-      flex-shrink: 0;
-      position: relative;
-      z-index: 1;
-    }
-    .ag-entry-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      font-size: 11px;
-    }
-    .ag-entry-content { flex: 1; min-width: 0; }
-    .ag-entry-name {
-      font-size: 13px;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--t1, #e8ddd0);
-    }
-    .ag-entry-sub {
-      font-size: 10px;
-      color: rgba(232,221,208,0.35);
-      margin-top: 2px;
-    }
-    .ag-entry-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 3px;
-      flex-shrink: 0;
-    }
-    .ag-entry-amt {
-      font-family: var(--font-mono, 'JetBrains Mono', monospace);
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .ag-entry-tag {
-      font-size: 9px;
-      padding: 1px 6px;
-      border-radius: 99px;
-      font-weight: 600;
-    }
-    .ag-entry-tag.posted  { background: rgba(109,184,138,0.18); color: var(--green, #6db88a); }
-    .ag-entry-tag.sched   { background: rgba(201,149,106,0.15); color: var(--cyan, #c9956a); }
-    .ag-entry-tag.income  { background: rgba(109,184,138,0.15); color: var(--green, #6db88a); }
-    .ag-empty-day {
-      padding: 6px 20px 10px;
-      font-size: 11px;
-      color: rgba(232,221,208,0.2);
-    }
-    .ag-empty-month {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      color: rgba(232,221,208,0.25);
-      font-size: 13px;
-      gap: 8px;
-    }
+  .ag-stats    { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .ag-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.02); border-radius: 7px; }
+  .ag-stat-name { font-size: 11px; color: rgba(232,221,208,0.5); }
+  .ag-stat-val  { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 13px; font-weight: 700; }
+
+  .ag-spacer  { flex: 1; }
+  .ag-new-btn { margin: 0 16px 16px; padding: 9px; background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.2); border-radius: 8px; color: #c9956a; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-body,'DM Sans',sans-serif); text-align: center; transition: background .15s; flex-shrink: 0; }
+  .ag-new-btn:hover { background: rgba(201,149,106,0.18); }
+
+  /* ── Right panel ── */
+  .ag-right  { display: flex; flex-direction: column; overflow: hidden; }
+
+  .ag-agenda-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .ag-agenda-title  { font-family: var(--font-disp,'Syne',sans-serif); font-size: 13px; font-weight: 700; color: rgba(232,221,208,0.5); text-transform: uppercase; letter-spacing: 1px; }
+  .ag-filter-btns   { display: flex; gap: 4px; }
+  .ag-filter-btn    { padding: 4px 10px; border-radius: 99px; font-size: 10px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: var(--font-body,'DM Sans',sans-serif); }
+  .ag-filter-btn.active   { background: rgba(201,149,106,0.18); color: #c9956a; }
+  .ag-filter-btn.inactive { background: rgba(255,255,255,0.04); color: rgba(232,221,208,0.4); }
+  .ag-filter-btn.inactive:hover { background: rgba(255,255,255,0.08); color: rgba(232,221,208,0.6); }
+
+  .ag-agenda { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .ag-agenda::-webkit-scrollbar       { width: 3px; }
+  .ag-agenda::-webkit-scrollbar-track { background: transparent; }
+  .ag-agenda::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+
+  /* ── Day block ── */
+  .ag-day-block  { margin-bottom: 2px; }
+  .ag-day-head   { padding: 10px 20px 6px; display: flex; align-items: baseline; gap: 10px; }
+  .ag-day-num    { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 22px; font-weight: 700; color: rgba(232,221,208,0.2); line-height: 1; }
+  .ag-day-weekday { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: rgba(232,221,208,0.3); font-family: var(--font-disp,'Syne',sans-serif); }
+  .ag-day-head.is-today .ag-day-num     { color: #c9956a; }
+  .ag-day-head.is-today .ag-day-weekday { color: #c9956a; }
+
+  /* ── Entry row ── */
+  .ag-entry { display: flex; align-items: center; gap: 12px; padding: 9px 20px; cursor: pointer; transition: background .1s; position: relative; }
+  .ag-entry::before { content: ''; position: absolute; left: 28px; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.04); }
+  .ag-entry:hover { background: rgba(255,255,255,0.025) !important; }
+
+  .ag-entry-time    { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 10px; color: rgba(232,221,208,0.25); width: 28px; flex-shrink: 0; position: relative; z-index: 1; }
+  .ag-entry-icon    { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; }
+  .ag-entry-content { flex: 1; min-width: 0; }
+  .ag-entry-name    { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--t1,#e8ddd0); }
+  .ag-entry-sub     { font-size: 10px; color: rgba(232,221,208,0.35); margin-top: 2px; }
+  .ag-entry-right   { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+  .ag-entry-amt     { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 13px; font-weight: 700; }
+  .ag-entry-tag     { font-size: 9px; padding: 1px 6px; border-radius: 99px; font-weight: 600; }
+  .ag-entry-tag.posted { background: rgba(109,184,138,0.18); color: #6db88a; }
+  .ag-entry-tag.sched  { background: rgba(201,149,106,0.15); color: #c9956a; }
+  .ag-entry-tag.income { background: rgba(109,184,138,0.15); color: #6db88a; }
+
+  /* ── Empty state ── */
+  .ag-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 8px; color: rgba(232,221,208,0.25); font-size: 13px; }
+  .ag-empty-add { background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.2); border-radius: 8px; color: #c9956a; font-size: 12px; font-weight: 600; padding: 7px 14px; cursor: pointer; margin-top: 8px; font-family: var(--font-body,'DM Sans',sans-serif); transition: background .15s; }
+  .ag-empty-add:hover { background: rgba(201,149,106,0.18); }
+
+  /* ── Mobile ── */
+  @media (max-width: 767px) {
+    .ag-layout { grid-template-columns: 1fr; }
+    .ag-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  }
   `;
-  document.head.appendChild(el);
+  document.head.appendChild(s);
 }
 
-/* ─── Emoji icons per category ─────────────────────────────── */
-function getCategoryIcon(cat) {
-  if (!cat) return '💳';
-  const name = (cat.name || '').toLowerCase();
-  if (name.includes('stream') || name.includes('netflix') || name.includes('hulu') || name.includes('disney')) return '📺';
-  if (name.includes('music') || name.includes('spotify')) return '🎵';
-  if (name.includes('rent') || name.includes('housing') || name.includes('mortgage')) return '🏠';
-  if (name.includes('electric') || name.includes('util')) return '⚡';
-  if (name.includes('gym') || name.includes('health') || name.includes('fitness')) return '💪';
-  if (name.includes('car') || name.includes('auto') || name.includes('insur')) return '🚗';
-  if (name.includes('food') || name.includes('grocer') || name.includes('restaurant')) return '🍔';
-  if (name.includes('income') || name.includes('paycheck') || name.includes('salary')) return '💵';
-  if (name.includes('transfer')) return '🔄';
+/* ─── icon mapping — tested against item name + category name ── */
+const ICON_MAP = [
+  [/stream|netflix|hulu|disney|paramount|hbo|peacock|apple.?tv/i, '📺'],
+  [/music|spotify|apple.?music|tidal|pandora/i,                   '🎵'],
+  [/rent|mortgage|housing/i,                                       '🏠'],
+  [/electric|gas|water|util|pge|comed|xcel/i,                     '⚡'],
+  [/gym|fitness|health|planet.?fitness|equinox/i,                  '💪'],
+  [/car|auto|vehicle|insur|geico|state.?farm|progressive/i,        '🚗'],
+  [/phone|mobile|cell|verizon|at&t|t.?mobile/i,                   '📱'],
+  [/internet|cable|comcast|cox|spectrum|xfinity/i,                 '📡'],
+  [/grocery|grocer|safeway|kroger|whole.?food|trader/i,            '🛒'],
+  [/restaurant|food|eat|pizza|mcdonald|chipotle|doordash|grubhub/i,'🍔'],
+  [/coffee|starbucks|dunkin/i,                                     '☕'],
+  [/amazon|shop|retail|target|walmart|costco/i,                    '📦'],
+  [/travel|flight|hotel|airbnb|uber|lyft|transit/i,                '✈️'],
+  [/income|salary|paycheck|payroll|deposit|gig|freelance/i,        '💵'],
+  [/transfer|zelle|venmo|paypal/i,                                  '🔄'],
+  [/invest|robinhood|fidelity|vanguard|schwab/i,                   '📈'],
+  [/medical|doctor|dental|prescr|pharmacy/i,                       '🏥'],
+  [/pet|vet|animal/i,                                              '🐾'],
+  [/child|school|tuition|daycare/i,                                '🎓'],
+  [/charity|donate/i,                                              '❤️'],
+];
+
+function getIcon(name, catName, isIncome) {
+  if (isIncome) return '💰';
+  const text = `${name || ''} ${catName || ''}`;
+  for (const [re, emoji] of ICON_MAP) {
+    if (re.test(text)) return emoji;
+  }
   return '💳';
 }
 
-function getEntryIcon(item, cat, isIncome) {
-  if (isIncome) return '💰';
-  return getCategoryIcon(cat);
+function getIconBg(catColor, isIncome) {
+  if (isIncome) return 'rgba(109,184,138,0.15)';
+  if (catColor) {
+    const c = catColor.replace('#', '');
+    if (c.length === 6) {
+      const r = parseInt(c.slice(0,2),16);
+      const g = parseInt(c.slice(2,4),16);
+      const b = parseInt(c.slice(4,6),16);
+      return `rgba(${r},${g},${b},0.15)`;
+    }
+  }
+  return 'rgba(201,149,106,0.15)';
 }
 
-/* ─── Main component ───────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   Component
+══════════════════════════════════════════════════════════════ */
 export default function CalendarAgenda({
-  /* data */
-  calendarMonth,          // "YYYY-MM"
-  calendarTxnsByDay,      // { [day]: Array<txn|recurringItem> }
+  calendarMonth,
+  calendarTxnsByDay,
   recurringItems,
   transactions,
   catMap,
   acctMap,
-  /* actions */
   prevCalMonth,
   nextCalMonth,
   openNewRecurringItem,
   openEditRecurringItem,
-  /* layout */
   isMobile,
-  /* misc */
   today,
-  fmt: fmtProp,
+  fmt,
 }) {
-  // Allow consumer to pass their own fmt or fall back
-  const fmtAmt = fmtProp || fmt;
+  useEffect(() => { injectCSS(); }, []);
 
-  useEffect(() => { injectAgendaCSS(); }, []);
+  const [calY, calM] = calendarMonth.split('-').map(Number);
+  const totalDays   = daysInMonth(calY, calM);
+  const firstDow    = new Date(calY, calM - 1, 1).getDay();
+  const totalCells  = Math.ceil((firstDow + totalDays) / 7) * 7;
+  const isCurrentMonth = calY === today.getFullYear() && calM === today.getMonth() + 1;
 
-  const calYear  = parseInt(calendarMonth.split('-')[0]);
-  const calMonthN = parseInt(calendarMonth.split('-')[1]);
-  const firstDow = new Date(calYear, calMonthN - 1, 1).getDay();
-  const totalDays = daysInMonth(calYear, calMonthN);
-  const totalCells = Math.ceil((firstDow + totalDays) / 7) * 7;
+  const monthLabel = new Date(calY, calM - 1, 1)
+    .toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  const monthName = new Date(calYear, calMonthN - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
-  const isCurrentMonth = calYear === today.getFullYear() && calMonthN === today.getMonth() + 1;
-
-  // Selected day — default to today if current month, else null
-  const [selectedDay, setSelectedDay] = useState(() =>
-    isCurrentMonth ? today.getDate() : null
+  const [selectedDay, setSelectedDay] = useState(
+    () => isCurrentMonth ? today.getDate() : null
   );
-  const [filter, setFilter] = useState('all'); // 'all' | 'expenses' | 'income'
+  const [filter, setFilter] = useState('all');
 
-  // Reset selected day when month changes
   useEffect(() => {
-    const nowIsThisMonth = calYear === today.getFullYear() && calMonthN === today.getMonth() + 1;
-    setSelectedDay(nowIsThisMonth ? today.getDate() : null);
-  }, [calendarMonth]);
+    const now = calY === today.getFullYear() && calM === today.getMonth() + 1;
+    setSelectedDay(now ? today.getDate() : null);
+  }, [calendarMonth]); // eslint-disable-line
 
-  // Ref map for scrolling agenda to a day
   const dayRefs = useRef({});
-
-  function scrollToDay(day) {
-    const el = dayRefs.current[day];
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
 
   function handleMiniDayClick(day) {
     setSelectedDay(day);
-    scrollToDay(day);
+    const el = dayRefs.current[day];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  /* ── Aggregate stats ─────────────────────────── */
-  const stats = useMemo(() => {
-    let monthExpenses = 0, monthIncome = 0, postedSoFar = 0;
-
-    recurringItems.forEach(item => {
-      const isIncome = item.type === 'income';
-      const postedCount = (item.linkedTxnIds || []).filter(txnId => {
-        const t = transactions.find(x => x.id === txnId);
-        if (!t || !t.date) return false;
-        const [ty, tm] = t.date.split('-').map(Number);
-        return ty === calYear && tm === calMonthN;
-      }).length;
-
-      const amt = item.amountMin != null ? item.amountMin : 0;
-      if (isIncome) {
-        monthIncome += amt;
-        if (postedCount > 0) postedSoFar += amt;
-      } else {
-        monthExpenses += amt;
-        if (postedCount > 0) postedSoFar += amt;
-      }
-    });
-
-    // Also count actual posted transactions this month that aren't recurring
-    transactions.forEach(t => {
-      if (!t.date) return;
-      const [ty, tm] = t.date.split('-').map(Number);
-      if (ty !== calYear || tm !== calMonthN) return;
-      if (!t.recurringItemId) {
-        if (t.amount < 0) postedSoFar += Math.abs(t.amount);
-      }
-    });
-
-    const remaining = monthExpenses - postedSoFar;
-    return { monthExpenses, monthIncome, postedSoFar, remaining };
-  }, [recurringItems, transactions, calYear, calMonthN]);
-
-  /* ── Build days that have entries ───────────────── */
-  const daysWithEntries = useMemo(() => {
-    const result = [];
-    for (let d = 1; d <= totalDays; d++) {
-      const entries = calendarTxnsByDay[d] || [];
-      if (entries.length > 0) result.push(d);
+  /* dot colors for mini-cal */
+  function dotsForDay(day) {
+    const entries = calendarTxnsByDay[day] || [];
+    const seen = new Set();
+    const out  = [];
+    for (const t of entries) {
+      const isIncome = t.type === 'income' || (t.amount != null && t.amount > 0);
+      const cat = catMap[t.categoryId];
+      const color = isIncome ? '#6db88a' : (cat?.color || '#c9956a');
+      if (!seen.has(color)) { seen.add(color); out.push(color); }
+      if (out.length >= 3) break;
     }
-    return result;
-  }, [calendarTxnsByDay, totalDays]);
+    return out;
+  }
 
-  /* ── Filter entries ─────────────────────────────── */
-  function filterEntries(entries) {
+  /* stats */
+  const stats = useMemo(() => {
+    let expenses = 0, income = 0, posted = 0;
+    recurringItems.forEach(item => {
+      const amt = item.amountMin != null ? item.amountMin : 0;
+      const isIncome = item.type === 'income';
+      const postedThisMonth = (item.linkedTxnIds || []).some(id => {
+        const t = transactions.find(x => x.id === id);
+        if (!t?.date) return false;
+        const [ty, tm] = t.date.split('-').map(Number);
+        return ty === calY && tm === calM;
+      });
+      if (isIncome) { income += amt; if (postedThisMonth) posted += amt; }
+      else          { expenses += amt; if (postedThisMonth) posted += amt; }
+    });
+    transactions.forEach(t => {
+      if (!t.date || t.recurringItemId) return;
+      const [ty, tm] = t.date.split('-').map(Number);
+      if (ty === calY && tm === calM && t.amount < 0) posted += Math.abs(t.amount);
+    });
+    return { expenses, income, posted, remaining: Math.max(0, expenses - posted) };
+  }, [recurringItems, transactions, calY, calM]);
+
+  /* filter */
+  function applyFilter(entries) {
     if (filter === 'all') return entries;
     return entries.filter(t => {
-      const isIncome = t.type === 'income' || t.amount > 0;
+      const isIncome = t.type === 'income' || (t.amount != null && t.amount > 0);
       return filter === 'income' ? isIncome : !isIncome;
     });
   }
 
-  /* ── Mini-cal dot colors for a day ─────────────── */
-  function getDotColors(day) {
-    const entries = calendarTxnsByDay[day] || [];
-    const colors = new Set();
-    entries.slice(0, 3).forEach(t => {
-      const cat = catMap[t.categoryId];
-      if (t.type === 'income' || t.amount > 0) colors.add('var(--green, #6db88a)');
-      else if (cat?.color) colors.add(cat.color);
-      else colors.add('var(--cyan, #c9956a)');
-    });
-    return [...colors];
+  /* agenda day list */
+  const agendaDays = useMemo(() => {
+    const days = [];
+    for (let d = 1; d <= totalDays; d++) {
+      const entries = applyFilter(calendarTxnsByDay[d] || []);
+      if (entries.length > 0) days.push({ day: d, entries });
+    }
+    return days;
+  }, [calendarTxnsByDay, filter, totalDays]); // eslint-disable-line
+
+  /* weekday label */
+  function dayWeekday(day) {
+    const d = new Date(calY, calM - 1, day);
+    const name = d.toLocaleDateString('en-US', { weekday: 'long' });
+    const isToday = isCurrentMonth && day === today.getDate();
+    return isToday ? `${name} · Today` : name;
   }
 
-  /* ── Weekday label ─────────────────────────────── */
-  function weekdayLabel(day) {
-    const d = new Date(calYear, calMonthN - 1, day);
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
-    const isToday = calYear === today.getFullYear() && calMonthN === today.getMonth() + 1 && day === today.getDate();
-    return isToday ? `${dayName} · Today` : dayName;
-  }
+  /* render one entry */
+  function renderEntry(t, dayIsToday) {
+    const cat      = catMap[t.categoryId];
+    const isIncome = t.type === 'income' || (t.amount != null && t.amount > 0);
+    const isPosted = t.isRecurringItem ? !!t.postedThisMonth : true;
 
-  /* ── Entry rendering ───────────────────────────── */
-  function renderEntry(t, idx) {
-    const cat        = catMap[t.categoryId];
-    const isIncome   = t.type === 'income' || (t.amount != null && t.amount > 0);
-    const isPosted   = t.isRecurringItem ? t.postedThisMonth : true; // actual txns are always "posted"
-    const isScheduled = t.isRecurringItem && !t.postedThisMonth;
+    const icon   = getIcon(t.name || t.merchant || '', cat?.name || '', isIncome);
+    const iconBg = getIconBg(cat?.color, isIncome);
 
-    const amtValue = t.amount != null
-      ? Math.abs(t.amount)
-      : (t.amountMin != null ? t.amountMin : 0);
-
-    const amtColor  = isIncome ? 'var(--green, #6db88a)' : 'var(--red, #e07070)';
-    const amtPrefix = isIncome ? '+' : '';
-
-    const iconBg  = isIncome
-      ? 'rgba(109,184,138,0.15)'
-      : cat?.color ? `${cat.color}22` : 'rgba(201,149,106,0.15)';
-    const icon = getEntryIcon(t, cat, isIncome);
+    const amtRaw = t.amount != null ? Math.abs(t.amount)
+                 : t.amountMin != null ? t.amountMin : 0;
+    const amtColor  = isIncome ? '#6db88a' : '#e07070';
+    const isVariable = t.amountMin != null && t.amountMax != null && t.amountMax !== t.amountMin;
+    const amtText = isVariable
+      ? `~${fmt(t.amountMin)}`
+      : isIncome ? `+${fmt(amtRaw)}` : fmt(amtRaw);
 
     const subParts = [];
     if (cat) subParts.push(cat.name);
     const freq = t.recurringFreq;
-    if (freq) {
-      subParts.push(freq === 'weekly' ? 'Weekly' : freq === 'biweekly' ? 'Bi-weekly' : freq === 'annual' ? 'Annual' : 'Monthly');
-    }
-    if (t.isRecurringItem && (t.linkedTxnIds || []).length > 0) {
-      subParts.push(`Linked to ${t.linkedTxnIds.length} txn${t.linkedTxnIds.length !== 1 ? 's' : ''}`);
-    }
+    if (freq === 'weekly')    subParts.push('Weekly');
+    else if (freq === 'biweekly') subParts.push('Bi-weekly');
+    else if (freq === 'annual')   subParts.push('Annual');
+    else if (freq === 'monthly')  subParts.push('Monthly');
+    if (t.recurringDay && !subParts.some(p => p.includes('Day')))
+      subParts.push(`Day ${t.recurringDay}`);
+    const linkedCount = (t.linkedTxnIds || []).length;
+    if (linkedCount > 0) subParts.push(`Linked to ${linkedCount} txn${linkedCount !== 1 ? 's' : ''}`);
 
     const tagClass = isIncome ? 'income' : isPosted ? 'posted' : 'sched';
     const tagLabel = isIncome ? 'Income ✓' : isPosted ? 'Posted ✓' : 'Upcoming';
 
-    const bgStyle = isIncome
-      ? { background: 'rgba(109,184,138,0.04)' }
-      : isPosted && !isScheduled
-      ? {}
-      : {};
+    // Concept tinting: today-expense = warm amber tint, income = green tint, else transparent
+    const rowBg = dayIsToday && !isIncome ? 'rgba(201,149,106,0.04)'
+                : isIncome               ? 'rgba(109,184,138,0.04)'
+                : 'transparent';
 
     return (
       <div
-        key={t.id + '_' + idx}
+        key={t.id}
         className="ag-entry"
-        style={bgStyle}
+        style={{ background: rowBg }}
         onClick={() => {
           if (t.isRecurringItem) {
-            const ri = recurringItems.find(r => r.id === t.recurringItemId || r.id === t.id);
+            const ri = recurringItems.find(r => r.id === (t.recurringItemId || t.id));
             if (ri) openEditRecurringItem(ri);
           }
         }}
@@ -534,80 +335,51 @@ export default function CalendarAgenda({
           )}
         </div>
         <div className="ag-entry-right">
-          <div className="ag-entry-amt" style={{ color: amtColor }}>
-            {amtPrefix}{fmtAmt(amtValue)}
-            {t.amountMax != null && t.amountMin != null && t.amountMax !== t.amountMin
-              ? `–${fmtAmt(t.amountMax)}`
-              : ''}
-          </div>
+          <div className="ag-entry-amt" style={{ color: amtColor }}>{amtText}</div>
           <span className={`ag-entry-tag ${tagClass}`}>{tagLabel}</span>
         </div>
       </div>
     );
   }
 
-  /* ── Agenda days list ──────────────────────────── */
-  const agendaDays = useMemo(() => {
-    const days = [];
-    for (let d = 1; d <= totalDays; d++) {
-      const entries = filterEntries(calendarTxnsByDay[d] || []);
-      if (entries.length > 0) days.push({ day: d, entries });
-    }
-    return days;
-  }, [calendarTxnsByDay, filter, totalDays]);
-
-  /* ── Render ─────────────────────────────────────── */
+  /* ── render ── */
   return (
-    <div className="ag-wrap">
-      <div className="ag-layout">
+    <div className="ag" style={{ height: isMobile ? 'auto' : 'calc(100vh - 80px)', minHeight: 640 }}>
+      <div className="ag-layout" style={{ height: '100%' }}>
 
-        {/* ── LEFT: Mini calendar + stats ── */}
+        {/* LEFT */}
         <div className="ag-left">
-
-          {/* Month nav */}
           <div className="ag-mini-header">
-            <div className="ag-mini-month">{monthName}</div>
+            <div className="ag-mini-month">{monthLabel}</div>
             <div className="ag-mini-nav">
               <button className="ag-mini-nav-btn" onClick={prevCalMonth}>‹</button>
               <button className="ag-mini-nav-btn" onClick={nextCalMonth}>›</button>
             </div>
           </div>
 
-          {/* Day-of-week headers */}
           <div className="ag-mini-dow">
-            {DOW_SHORT.map((d, i) => (
-              <div key={i} className="ag-mini-dow-c">{d}</div>
-            ))}
+            {DOW_LABELS.map((d, i) => <div key={i} className="ag-mini-dow-c">{d}</div>)}
           </div>
 
-          {/* Mini calendar grid */}
           <div className="ag-mini-grid">
             {Array.from({ length: totalCells }).map((_, i) => {
-              const day = i - firstDow + 1;
-              const isValid = day >= 1 && day <= totalDays;
-              const isToday = isValid && isCurrentMonth && day === today.getDate();
-              const isSelected = isValid && day === selectedDay;
-              const dots = isValid ? getDotColors(day) : [];
+              const day   = i - firstDow + 1;
+              const valid = day >= 1 && day <= totalDays;
+              const isToday = valid && isCurrentMonth && day === today.getDate();
+              const isSel   = valid && day === selectedDay;
+              const dots    = valid ? dotsForDay(day) : [];
 
-              let cls = 'ag-mini-day';
-              if (!isValid) cls += ' inactive';
-              if (isToday) cls += ' today';
-              if (isSelected) cls += ' selected';
+              const cls = ['ag-mini-day', !valid && 'inactive', isToday && 'today', isSel && 'selected']
+                .filter(Boolean).join(' ');
 
               return (
-                <div
-                  key={i}
-                  className={cls}
-                  onClick={() => isValid && handleMiniDayClick(day)}
-                >
-                  {isValid && (
+                <div key={i} className={cls} onClick={() => valid && handleMiniDayClick(day)}>
+                  {valid && (
                     <>
                       <div className="ag-mini-dn">{day}</div>
                       {dots.length > 0 && (
                         <div className="ag-mini-dots">
-                          {dots.map((color, di) => (
-                            <div key={di} className="ag-mini-dot" style={{ background: color }} />
-                          ))}
+                          {dots.map((c, di) => <div key={di} className="ag-mini-dot" style={{ background: c }} />)}
                         </div>
                       )}
                     </>
@@ -617,108 +389,67 @@ export default function CalendarAgenda({
             })}
           </div>
 
-          {/* Divider */}
           <div className="ag-divider" />
 
-          {/* Stats */}
           <div className="ag-stats">
-            <div className="ag-stat-row">
-              <div className="ag-stat-name">Monthly expenses</div>
-              <div className="ag-stat-val" style={{ color: 'var(--red, #e07070)' }}>
-                {fmtAmt(stats.monthExpenses)}
+            {[
+              ['Monthly expenses', fmt(stats.expenses),          '#e07070'],
+              ['Expected income',  '+' + fmt(stats.income),      '#6db88a'],
+              ['Posted so far',    fmt(stats.posted),            'rgba(232,221,208,0.6)'],
+              ['Remaining',        fmt(stats.remaining),          '#c9956a'],
+            ].map(([name, val, color]) => (
+              <div key={name} className="ag-stat-row">
+                <div className="ag-stat-name">{name}</div>
+                <div className="ag-stat-val" style={{ color }}>{val}</div>
               </div>
-            </div>
-            <div className="ag-stat-row">
-              <div className="ag-stat-name">Expected income</div>
-              <div className="ag-stat-val" style={{ color: 'var(--green, #6db88a)' }}>
-                +{fmtAmt(stats.monthIncome)}
-              </div>
-            </div>
-            <div className="ag-stat-row">
-              <div className="ag-stat-name">Posted so far</div>
-              <div className="ag-stat-val" style={{ color: 'rgba(232,221,208,0.6)' }}>
-                {fmtAmt(stats.postedSoFar)}
-              </div>
-            </div>
-            <div className="ag-stat-row">
-              <div className="ag-stat-name">Remaining</div>
-              <div className="ag-stat-val" style={{ color: 'var(--cyan, #c9956a)' }}>
-                {fmtAmt(Math.max(0, stats.remaining))}
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Spacer */}
-          <div style={{ flex: 1 }} />
+          <div className="ag-spacer" />
 
-          {/* Add recurring button */}
           <button className="ag-new-btn" onClick={openNewRecurringItem}>
             + Add Recurring Item
           </button>
         </div>
 
-        {/* ── RIGHT: Agenda ── */}
+        {/* RIGHT */}
         <div className="ag-right">
-
-          {/* Header */}
           <div className="ag-agenda-header">
-            <div className="ag-agenda-title">{monthName} Schedule</div>
+            <div className="ag-agenda-title">{monthLabel} Schedule</div>
             <div className="ag-filter-btns">
-              {['all', 'expenses', 'income'].map(f => (
+              {[['all','All'],['expenses','Expenses'],['income','Income']].map(([val, label]) => (
                 <button
-                  key={f}
-                  className={`ag-filter-btn ${filter === f ? 'active' : 'inactive'}`}
-                  onClick={() => setFilter(f)}
+                  key={val}
+                  className={`ag-filter-btn ${filter === val ? 'active' : 'inactive'}`}
+                  onClick={() => setFilter(val)}
                 >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Agenda scroll */}
           <div className="ag-agenda">
             {agendaDays.length === 0 ? (
-              <div className="ag-empty-month">
-                <div style={{ fontSize: 28, opacity: 0.3 }}>▦</div>
-                <div>No recurring items for {monthName}</div>
-                <button
-                  onClick={openNewRecurringItem}
-                  style={{
-                    background: 'rgba(201,149,106,0.1)',
-                    border: '1px solid rgba(201,149,106,0.2)',
-                    borderRadius: 8,
-                    color: 'var(--cyan, #c9956a)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    padding: '7px 14px',
-                    cursor: 'pointer',
-                    marginTop: 8,
-                  }}
-                >
+              <div className="ag-empty">
+                <div style={{ fontSize: 28, opacity: 0.25 }}>▦</div>
+                <div>No items for {monthLabel}</div>
+                <button className="ag-empty-add" onClick={openNewRecurringItem}>
                   + Add Recurring Item
                 </button>
               </div>
             ) : (
               agendaDays.map(({ day, entries }) => {
                 const isToday = isCurrentMonth && day === today.getDate();
-                const isSelected = day === selectedDay;
-
-                let headCls = 'ag-day-head';
-                if (isToday) headCls += ' is-today';
-                else if (isSelected) headCls += ' is-selected';
+                const headCls = ['ag-day-head', isToday && 'is-today'].filter(Boolean).join(' ');
 
                 return (
-                  <div
-                    key={day}
-                    className="ag-day-block"
-                    ref={el => { dayRefs.current[day] = el; }}
-                  >
+                  <div key={day} className="ag-day-block" ref={el => { dayRefs.current[day] = el; }}>
                     <div className={headCls}>
                       <div className="ag-day-num">{day}</div>
-                      <div className="ag-day-weekday">{weekdayLabel(day)}</div>
+                      <div className="ag-day-weekday">{dayWeekday(day)}</div>
                     </div>
-                    {entries.map((t, idx) => renderEntry(t, idx))}
+                    {entries.map(t => renderEntry(t, isToday))}
                   </div>
                 );
               })

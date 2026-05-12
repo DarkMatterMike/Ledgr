@@ -5134,7 +5134,7 @@ function AppInner({ isDemo = false }) {
                   const isNew=newTxnIds.has(t.id);
                   const dateStr=t.date?new Date(t.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—";
                   return(
-                    <React.Fragment key={t.id}>
+                    <Fragment key={t.id}>
                       <tr className={isNew?"ledgr-txn-new":undefined}
                         onClick={()=>{if(selectedTxns.size>0){toggleSelectTxn(t.id);}else{setExpandedTxnId(expanded?null:t.id);}}}
                         style={{background:selected?"var(--cyan-dim)":ri%2===0?"transparent":"rgba(255,255,255,0.012)",cursor:"pointer",
@@ -5255,7 +5255,7 @@ function AppInner({ isDemo = false }) {
                           </td>
                         </tr>
                       )}
-                    </React.Fragment>
+                    </Fragment>
                   );
                 })}
               </tbody>

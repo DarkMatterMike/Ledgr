@@ -2,6 +2,7 @@
  * OnboardingWizard.jsx
  * First-time category setup — shown once when user has no categories.
  * Generates a tailored category set from lifestyle questions.
+ * adding a comment line to push this file anew.
  */
 import { useState } from "react";
 import { CAT_COLORS } from "../constants.js";

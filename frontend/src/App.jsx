@@ -16,6 +16,7 @@ import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
+import DashboardNew from "./components/DashboardNew.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -4864,131 +4865,28 @@ function AppInner({ isDemo = false }) {
       insightsTodos, isMobile, catMap]);
 
   const Dashboard = (
-    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-      {/* Month bar */}
-      {!isMobile && (
-        <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10}}>
-          <div className="obsidian-card" style={{...S.card,gridColumn:"1 / -1",padding:"10px 16px",display:"flex",alignItems:"center",gap:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-              <button onClick={prevMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:"var(--t2)",cursor:"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"‹"}</button>
-              <button onClick={nextMonth} disabled={isCurrentMonth} style={{background:"none",border:"none",borderRadius:"var(--radius)",color:isCurrentMonth?"var(--border2)":"var(--t2)",cursor:isCurrentMonth?"default":"pointer",padding:"5px 10px",fontSize:14,lineHeight:1}}>{"›"}</button>
-              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:16,color:"var(--t1)",marginLeft:10,whiteSpace:"nowrap"}}>
-                {monthLabel(selectedMonth)}
-                {isCurrentMonth&&<span style={{marginLeft:8,fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",fontWeight:400}}>current</span>}
-              </span>
-            </div>
-            <div style={{width:1,alignSelf:"stretch",background:"var(--border2)",margin:"0 20px",flexShrink:0}}/>
-            <div style={{display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
-              {isCurrentMonth&&<div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Days left</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{daysLeft()}</div></div>}
-              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Spent</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--t1)"}}>{fmt(displaySpent)}</div></div>
-              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Income</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:"var(--green)"}}>{fmt(displayIncome)}</div></div>
-              <div><div style={{fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Net</div><div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(displayNet)}</div></div>
-            </div>
-            <button onClick={()=>setDashEditMode(p=>!p)}
-              style={{...S.btn("ghost",true),fontSize:11,color:dashEditMode?"var(--cyan)":"var(--t3)",marginLeft:"auto",flexShrink:0}}>
-              {dashEditMode?"✓ Done":"⇅ Reorder"}
-            </button>
-          </div>
-        </div>
-      )}
-      {isMobile && (
-        <div className="obsidian-card" style={{...S.card,padding:"12px 14px"}}>
-          {/* Month selector — centered with arrow on each side */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <button onClick={prevMonth} style={{
-              display:"flex",alignItems:"center",justifyContent:"center",
-              width:36,height:36,borderRadius:"var(--radius)",border:"none",
-              background:"var(--bg)",color:"var(--t1)",cursor:"pointer",
-              fontSize:20,lineHeight:1,flexShrink:0,
-            }}>‹</button>
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-              <span style={{fontFamily:"var(--font-disp)",fontWeight:700,fontSize:16,color:"var(--t1)",letterSpacing:"-0.3px"}}>
-                {monthLabel(selectedMonth)}
-              </span>
-              {isCurrentMonth&&<span style={{fontSize:10,color:"var(--cyan)",fontFamily:"var(--font-body)",letterSpacing:"0.3px"}}>current</span>}
-            </div>
-            <button onClick={nextMonth} disabled={isCurrentMonth} style={{
-              display:"flex",alignItems:"center",justifyContent:"center",
-              width:36,height:36,borderRadius:"var(--radius)",border:"none",
-              background:"var(--bg)",
-              color:isCurrentMonth?"var(--border2)":"var(--t1)",
-              cursor:isCurrentMonth?"default":"pointer",
-              fontSize:20,lineHeight:1,flexShrink:0,
-              opacity:isCurrentMonth?0.3:1,
-            }}>›</button>
-          </div>
-          {/* Stats row */}
-          <div style={{display:"flex",gap:16,fontSize:12,color:"var(--t2)"}}>
-            {isCurrentMonth&&<span><span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{daysLeft()}</span> days left</span>}
-            <span>Spent: <span style={{fontFamily:"var(--font-mono)",color:"var(--t1)"}}>{fmt(displaySpent)}</span></span>
-            <span>Income: <span style={{fontFamily:"var(--font-mono)",color:"var(--green)"}}>{fmt(displayIncome)}</span></span>
-            <span>Net: <span style={{fontFamily:"var(--font-mono)",color:totalIncome-totalSpent>=0?"var(--green)":"var(--red)"}}>{fmt(displayNet)}</span></span>
-          </div>
-        </div>
-      )}
-
-      {/* Draggable cards */}
-      {isMobile ? (
-        /* Mobile: single flex column */
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:-4}}>
-            <button onClick={()=>setDashEditMode(p=>!p)}
-              style={{...S.btn("ghost",true),fontSize:11,color:dashEditMode?"var(--cyan)":"var(--t3)"}}>
-              {dashEditMode?"✓ Done":"⇅ Reorder"}
-            </button>
-          </div>
-          {["col1","col2","col3"].flatMap(colKey =>
-            (dashCols[colKey]||[])
-              .filter(id => dashCardDefs[id] != null)
-              .map((id, idx, arr) => (
-                <DragCard key={id} id={id} editMode={dashEditMode}
-                  canMoveUp={idx > 0} canMoveDown={idx < arr.length - 1}
-                  onMoveUp={()=>dashMoveItem(colKey,idx,-1)} onMoveDown={()=>dashMoveItem(colKey,idx,1)}>
-                  {dashCardDefs[id]}
-                </DragCard>
-              ))
-          )}
-        </div>
-      ) : (
-        /* Desktop: true 3-column layout, each column independently ordered */
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr) 300px",gap:10,alignItems:"start"}}>
-            {["col1","col2","col3"].map(colKey => (
-              <div key={colKey} style={{display:"flex",flexDirection:"column",gap:10}}>
-
-                {(dashCols[colKey]||[])
-                  .filter(id => dashCardDefs[id] != null)
-                  .map((id, idx, arr) => (
-                    <div key={id}>
-                      {dashEditMode && (
-                        <div style={{display:"flex",gap:4,marginBottom:4,alignItems:"center"}}>
-                          <span style={{fontSize:10,color:"var(--t3)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{id}</span>
-                          <button disabled={idx===0} onClick={()=>dashMoveItem(colKey,idx,-1)}
-                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px",opacity:idx===0?0.2:1}}>↑</button>
-                          <button disabled={idx===arr.length-1} onClick={()=>dashMoveItem(colKey,idx,1)}
-                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px",opacity:idx===arr.length-1?0.2:1}}>↓</button>
-                          {colKey!=="col1" && <button onClick={()=>dashMoveToCol(id,colKey,colKey==="col2"?"col1":"col2")}
-                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px"}}>←</button>}
-                          {colKey!=="col3" && <button onClick={()=>dashMoveToCol(id,colKey,colKey==="col1"?"col2":"col3")}
-                            style={{...S.btn("ghost",true),fontSize:11,padding:"1px 6px"}}>→</button>}
-                        </div>
-                      )}
-                      <DragCard id={id} editMode={false}
-                        canMoveUp={false} canMoveDown={false}
-                        onMoveUp={()=>{}} onMoveDown={()=>{}}>
-                        {dashCardDefs[id]}
-                      </DragCard>
-                    </div>
-                  ))
-                }
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {DrillDownModal}
-    </div>
+    <DashboardNew
+      isMobile={isMobile}
+      selectedMonth={selectedMonth}
+      isCurrentMonth={isCurrentMonth}
+      prevMonth={prevMonth}
+      nextMonth={nextMonth}
+      monthLabel={monthLabel}
+      totalSpent={totalSpent}
+      totalIncome={totalIncome}
+      totalBudget={totalBudget}
+      displaySpent={displaySpent}
+      spentByCat={spentByCat}
+      sortedCategories={sortedCategories}
+      categories={categories}
+      catMap={catMap}
+      monthTxns={monthTxns}
+      recurringItems={recurringItems}
+      goals={goals}
+      navigate={navigate}
+      fmt={fmt}
+      today={today}
+    />
   );
 
 

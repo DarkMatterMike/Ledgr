@@ -4954,118 +4954,94 @@ function AppInner({ isDemo = false }) {
         isMobile={isMobile}
         left={(
           <div>
-        {/* Header */}
-        <div style={{...S.sectionHdr, marginBottom:16}}>
-          <div style={S.sectionTitle}>All Transactions</div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:15,fontWeight:700,color:"var(--green)"}}>{fmt(totalBalance)}</div>
-              <div style={{fontSize:10,color:"var(--t3)"}}>Total Balance</div>
-            </div>
+
+        {/* Clarity header */}
+        <div style={{paddingBottom:20,marginBottom:20,borderBottom:"1px solid rgba(201,149,106,0.15)"}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.5)",letterSpacing:"1px"}}>01 ·</span>
+            <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:28,color:"var(--t1)"}}>Transactions</span>
+            <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.2),transparent)",alignSelf:"center",marginLeft:4}}/>
+          </div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--t3)"}}>
+            All transactions · {new Date().toLocaleString("en-US",{month:"short",year:"numeric"})} · {typeFiltered.length} {typeFiltered.length===1?"entry":"entries"}
           </div>
         </div>
 
-
+        {/* Summary strip */}
+        <div style={{display:"flex",gap:0,marginBottom:18,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border)"}}>
+          {[
+            {label:"Spent",      val:fmt(totalSpent),   color:"var(--red)"},
+            {label:"Income",     val:fmt(totalIncome),  color:"var(--green)"},
+            {label:"Net",        val:(netAmt>=0?"+":"")+fmt(netAmt), color:netAmt>=0?"var(--green)":"var(--red)"},
+            {label:"Unreviewed", val:String(toReview),  color:"var(--amber)"},
+          ].map((c,i,arr)=>(
+            <div key={c.label} style={{flex:1,padding:"9px 14px",borderRight:i<arr.length-1?"1px solid var(--border)":"none",background:"var(--surface)"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:3}}>{c.label}</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:600,color:c.color}}>{c.val}</div>
+            </div>
+          ))}
+        </div>
 
         {/* Pending reconciliation banner */}
         {(activeDuplicatePairs.length>0)&&(
-          <div style={{background:"rgba(251,191,36,0.08)",borderLeft:"3px solid #fbbf24",
-            borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:8}}>
+          <div style={{background:"rgba(251,191,36,0.08)",borderLeft:"3px solid #fbbf24",borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-                <span style={{color:"#fbbf24",fontWeight:700}}>{activeDuplicatePairs.length}</span> possible duplicate transaction{activeDuplicatePairs.length!==1?"s":""} found
+                <span style={{color:"#fbbf24",fontWeight:700}}>{activeDuplicatePairs.length}</span> possible duplicate{activeDuplicatePairs.length!==1?"s":""} found
               </span>
-              <button onClick={()=>{
-                if (showReconcile && duplicateScanActive) setDuplicateScanActive(false);
-                setShowReconcile(p=>!p);
-              }}
+              <button onClick={()=>{if(showReconcile&&duplicateScanActive)setDuplicateScanActive(false);setShowReconcile(p=>!p);}}
                 style={{background:showReconcile?"#fbbf24":"none",color:showReconcile?"#000":"#fbbf24",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
                 {showReconcile?"✕ Close":"Review ›"}
               </button>
             </div>
             {showReconcile&&(
               <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-{activeDuplicatePairs.map(({pending:p, posted:po, wasConfirmed})=>{
-                  const isScannedDuplicate = duplicateScanActive;
-                  const pCat = catMap[p.categoryId];
-                  const removeCandidate = (p && po) ? pickRemove(p, po) : p;
-                  const removeLabel = removeCandidate?.pending ? "pending" : isPreauth(removeCandidate) ? "preauth" : "earlier";
-                  return (
-                    <div key={p.id} style={{background:"var(--card)",border:"none",borderRadius:"var(--radius)",padding:"12px 14px"}}>
-                      {/* Pending row */}
+                {activeDuplicatePairs.map(({pending:p,posted:po,wasConfirmed})=>{
+                  const isScannedDuplicate=duplicateScanActive;
+                  const pCat=catMap[p.categoryId];
+                  const removeCandidate=(p&&po)?pickRemove(p,po):p;
+                  const removeLabel=removeCandidate?.pending?"pending":isPreauth(removeCandidate)?"preauth":"earlier";
+                  return(
+                    <div key={p.id} style={{background:"var(--card)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"#fbbf24",fontWeight:600,marginBottom:2}}>{isScannedDuplicate ? (p.pending ? "PENDING / CANDIDATE" : "CANDIDATE A") : "PENDING"}</div>
+                          <div style={{fontSize:12,color:"#fbbf24",fontWeight:600,marginBottom:2}}>{isScannedDuplicate?(p.pending?"PENDING / CANDIDATE":"CANDIDATE A"):"PENDING"}</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name||p.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{p.date}{pCat&&<span style={{color:pCat.color}}> · {pCat.name}</span>}{p.recurring&&<span style={{color:"var(--amber)"}}> · ↻</span>}</div>
                         </div>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t3)",flexShrink:0,marginLeft:10}}>{fmt(Math.abs(p.amount))}</span>
                       </div>
-                      {/* Arrow */}
-                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>{isScannedDuplicate ? "↓ possible duplicate match" : "↓ matches posted transaction"}</div>
-                      {/* Posted row */}
+                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>{isScannedDuplicate?"↓ possible duplicate match":"↓ matches posted transaction"}</div>
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>{isScannedDuplicate ? (po.pending ? "PENDING / CANDIDATE" : "CANDIDATE B") : "POSTED"}</div>
+                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>{isScannedDuplicate?(po.pending?"PENDING / CANDIDATE":"CANDIDATE B"):"POSTED"}</div>
                           <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{po.name||po.merchant}</div>
                           <div style={{fontSize:11,color:"var(--t3)"}}>{po.date}</div>
                         </div>
                         <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:po.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:10}}>{po.amount<0?"-":"+"}{fmt(Math.abs(po.amount))}</span>
                       </div>
-                      {/* Actions */}
                       <div style={{display:"flex",gap:8,justifyContent:"flex-end",alignItems:"center"}}>
-                        {wasConfirmed && (
-                          <span style={{fontSize:11,color:"var(--cyan)",marginRight:"auto"}}>✦ previously confirmed</span>
-                        )}
-                        <button style={{...S.btn("ghost",true),fontSize:12}} className="ledgr-btn" onClick={()=>{
-                          if (isScannedDuplicate) {
-                            if(!processingIds.has([p.id,po.id].sort().join('__'))) dismissDuplicatePair(p.id, po.id);
-                          } else {
-                            if(!processingIds.has(p.id)) dismissPair(p.id);
+                        {wasConfirmed&&<span style={{fontSize:11,color:"var(--cyan)",marginRight:"auto"}}>✦ previously confirmed</span>}
+                        <button style={{...S.btn("ghost",true),fontSize:12}} className="ledgr-btn" onClick={()=>{if(isScannedDuplicate){if(!processingIds.has([p.id,po.id].sort().join('__')))dismissDuplicatePair(p.id,po.id);}else{if(!processingIds.has(p.id))dismissPair(p.id);}}}>Not a match</button>
+                        <button style={{...S.btn("primary",true),fontSize:12}} onClick={()=>{
+                          if(isScannedDuplicate){
+                            const remove=removeCandidate;
+                            setTransactions(prev=>prev.filter(t=>t.id!==remove.id));
+                            setDuplicatePairs(prev=>prev.filter(pair=>!((pair.pending.id===p.id&&pair.posted.id===po.id)||(pair.pending.id===po.id&&pair.posted.id===p.id))));
+                            const remaining=duplicatePairs.filter(pair=>!((pair.pending.id===p.id&&pair.posted.id===po.id)||(pair.pending.id===po.id&&pair.posted.id===p.id)));
+                            if(remaining.length===0)setDuplicateScanActive(false);
+                            setShowReconcile(remaining.length>0);
+                            const trashedDup={...remove,deletedAt:new Date().toISOString()};
+                            setDeletedTransactions(px=>{const next=[trashedDup,...px];scheduleSaveRef.current?.({deletedTransactions:next});return next;});
+                            showUndoToast("Duplicate removed",()=>{setTransactions(prev=>[remove,...prev]);setDeletedTransactions(px=>{const next=px.filter(t=>t.id!==remove.id);scheduleSaveRef.current?.({deletedTransactions:next});return next;});});
+                            setTimeout(()=>api.deleteTransaction(remove.id).catch(console.error),4200);
+                          }else{
+                            const pendingTxn=transactions.find(t=>t.id===p.id);
+                            if(!processingIds.has(p.id))confirmPair(p.id,po.id);
+                            setShowReconcile(pendingPairs.length>1);
+                            if(pendingTxn){showUndoToast("Merged — pending removed",()=>{setTransactions(prev=>[pendingTxn,...prev]);api.createTransaction(pendingTxn).catch(console.error);});}
                           }
-                        }}>
-                          Not a match
-                        </button>
-                        <button style={{...S.btn("primary",true),fontSize:12}}
-                          onClick={()=>{
-                            if (isScannedDuplicate) {
-                              const remove = removeCandidate;
-                              const keep   = remove.id === p.id ? po : p;
-                              // Remove from UI immediately but hold DB delete until undo window passes
-                              setTransactions(prev => prev.filter(t => t.id !== remove.id));
-                              setDuplicatePairs(prev => prev.filter(pair => !(
-                                (pair.pending.id===p.id && pair.posted.id===po.id) ||
-                                (pair.pending.id===po.id && pair.posted.id===p.id)
-                              )));
-                              const remaining = duplicatePairs.filter(pair => !(
-                                (pair.pending.id===p.id && pair.posted.id===po.id) ||
-                                (pair.pending.id===po.id && pair.posted.id===p.id)
-                              ));
-                              if (remaining.length === 0) setDuplicateScanActive(false);
-                              setShowReconcile(remaining.length > 0);
-                              const trashedDup = { ...remove, deletedAt: new Date().toISOString() };
-                              setDeletedTransactions(p=>{ const next=[trashedDup,...p]; scheduleSaveRef.current?.({ deletedTransactions: next }); return next; });
-                              showUndoToast("Duplicate removed", () => {
-                                setTransactions(prev => [remove, ...prev]);
-                                setDeletedTransactions(p=>{ const next=p.filter(t=>t.id!==remove.id); scheduleSaveRef.current?.({ deletedTransactions: next }); return next; });
-                              });
-                              // Delay DB delete until after undo window
-                              setTimeout(() => api.deleteTransaction(remove.id).catch(console.error), 4200);
-                            } else {
-                              // Save the pending txn so undo can restore it
-                              const pendingTxn = transactions.find(t => t.id === p.id);
-                              if(!processingIds.has(p.id)) confirmPair(p.id, po.id);
-                              setShowReconcile(pendingPairs.length>1);
-                              if (pendingTxn) {
-                                showUndoToast("Merged — pending removed", () => {
-                                  setTransactions(prev => [pendingTxn, ...prev]);
-                                  api.createTransaction(pendingTxn).catch(console.error);
-                                });
-                              }
-                            }
-                          }}>
-                          ✓ Confirm & remove {removeLabel}
-                        </button>
+                        }}>✓ Confirm & remove {removeLabel}</button>
                       </div>
                     </div>
                   );
@@ -5075,74 +5051,51 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
-        {/* Action bar */}
-        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
-          <button style={S.btn("primary",true)} onClick={openAddTxn}>+ Add</button>
-          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={scanForDuplicates}>Scan Duplicates</button>
-          {plaidItems.length>0&&<button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>doSync()} disabled={syncing}>{syncing?"↻ Syncing…":"↻ Sync"}</button>}
-          {aiChat.hasApiKey&&(
-            <button style={S.btn("ghost",true)} className="ledgr-btn" disabled={autoCatRunning}
-              onClick={async()=>{
-                const count = await runAutoCategorize();
-                showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");
-              }}>
-              {autoCatRunning?"✦ Categorizing…":"✦ Auto-categorize"}
-            </button>
-          )}
-        </div>
-
-        {/* Filter row */}
-        {/* Filter bar — desktop: single row / mobile: search full-width, then dropdowns + select in one row */}
-        <div style={{marginBottom:14,display:"flex",flexDirection:"column",gap:6}}>
-          {/* Row 1: Search (always full width) */}
-          <div style={{position:"relative"}}>
-            
-            <input ref={txnSearchInputRef} onFocus={()=>{txnSearchHadFocusRef.current=true;}} onBlur={()=>{txnSearchHadFocusRef.current=false;}} style={{...S.input,paddingLeft:32,fontSize:13,width:"100%",boxSizing:"border-box"}} placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
+        {/* Unified filter + action bar */}
+        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
+          <div style={{position:"relative",flex:1,minWidth:160}}>
+            <input ref={txnSearchInputRef}
+              onFocus={()=>{txnSearchHadFocusRef.current=true;}}
+              onBlur={()=>{txnSearchHadFocusRef.current=false;}}
+              style={{...S.input,fontSize:13,width:"100%",boxSizing:"border-box"}}
+              placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
           </div>
-          {/* Row 2: Dropdowns + Select All — side by side on both mobile and desktop */}
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)} options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:0}} compact/>
-            <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)} options={[{value:"all",label:"All Accounts"},{value:"__unlinked__",label:"Unlinked"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:0}} compact/>
-            <button style={{...S.btn("ghost",true),fontSize:12,padding:"7px 10px",flexShrink:0,whiteSpace:"nowrap"}} className="ledgr-btn"
-              onClick={()=>{ selectedTxns.size > 0 ? clearSelection() : selectAllVisible(); }}>
-              {selectedTxns.size > 0 ? `✕ ${selectedTxns.size}` : "Select All"}
-            </button>
-          </div>
-        </div>
-
-        {/* ── Clarity: summary strip ── */}
-        <div style={{display:"flex",gap:0,marginBottom:14,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border)"}}>
-          {[
-            { label:"Spent",      val: fmt(totalSpent),   color:"var(--red)"   },
-            { label:"Income",     val: fmt(totalIncome),  color:"var(--green)" },
-            { label:"Net",        val:(netAmt>=0?"+":"")+fmt(netAmt), color:netAmt>=0?"var(--green)":"var(--red)" },
-            { label:"Unreviewed", val: String(toReview),  color:"var(--amber)" },
-          ].map((c,i,arr)=>(
-            <div key={c.label} style={{flex:1,padding:"9px 14px",borderRight:i<arr.length-1?"1px solid var(--border)":"none",background:"var(--surface)"}}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:3}}>{c.label}</div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:600,color:c.color}}>{c.val}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Clarity: type filter chips ── */}
-        <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+          <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)}
+            options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
+            style={{minWidth:0}} compact/>
+          <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)}
+            options={[{value:"all",label:"All Accounts"},{value:"__unlinked__",label:"Unlinked"},...accounts.map(a=>({value:a.id,label:a.name}))]}
+            style={{minWidth:0}} compact/>
           {[["all","All"],["expense","Expenses"],["income","Income"]].map(([v,label])=>(
-            <button key={v} onClick={()=>setTxnTypeFilter(v)}
-              style={{padding:"5px 13px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",
-                background: txnTypeFilter===v ? "var(--cyan-dim)" : "var(--card-hi)",
-                color:       txnTypeFilter===v ? "var(--cyan)"    : "var(--t2)",
-                border:      txnTypeFilter===v ? "1px solid rgba(201,149,106,0.3)" : "1px solid var(--border)",
-                transition:"all .12s",
-              }}>{label}</button>
+            <button key={v} onClick={()=>setTxnTypeFilter(v)} style={{
+              padding:"6px 12px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",whiteSpace:"nowrap",
+              background:txnTypeFilter===v?"var(--cyan-dim)":"var(--card-hi)",
+              color:txnTypeFilter===v?"var(--cyan)":"var(--t2)",
+              border:txnTypeFilter===v?"1px solid rgba(201,149,106,0.3)":"1px solid var(--border)",
+            }}>{label}</button>
           ))}
-          {selectedTxns.size > 0 && (
-            <button style={{...S.btn("ghost",true),fontSize:11,marginLeft:"auto"}} className="ledgr-btn"
-              onClick={clearSelection}>✕ {selectedTxns.size} selected</button>
-          )}
+          <button style={{...S.btn("primary",true),flexShrink:0}} onClick={openAddTxn}>+ Add</button>
+          <div style={{position:"relative"}}>
+            <button style={{...S.btn("ghost",true),fontSize:12,padding:"6px 10px"}} className="ledgr-btn"
+              onClick={()=>setEllipsisId(ellipsisId==="__toolbar__"?null:"__toolbar__")}>⋯</button>
+            {ellipsisId==="__toolbar__"&&(
+              <>
+                <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
+                <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:180,overflow:"hidden",marginTop:4}}>
+                  <button className="ledgr-btn" onClick={()=>{scanForDuplicates();setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Scan Duplicates</button>
+                  {plaidItems.length>0&&<button className="ledgr-btn" onClick={()=>{doSync();setEllipsisId(null);}} disabled={syncing} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>{syncing?"↻ Syncing…":"↻ Sync"}</button>}
+                  {aiChat.hasApiKey&&<button className="ledgr-btn" disabled={autoCatRunning} onClick={async()=>{setEllipsisId(null);const count=await runAutoCategorize();showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--cyan)"}}>{autoCatRunning?"✦ Categorizing…":"✦ Auto-categorize"}</button>}
+                  <div style={{borderTop:"1px solid var(--border)",padding:"4px 0"}}>
+                    <button className="ledgr-btn" onClick={()=>{selectedTxns.size>0?clearSelection():selectAllVisible();setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>
+                      {selectedTxns.size>0?`✕ Deselect ${selectedTxns.size}`:"Select All Visible"}</button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* ── Clarity: flat table ── */}
+        {/* Clarity flat table */}
         {sortedTxns.length===0 ? (
           <div className="ledgr-empty"><div className="ledgr-empty-icon">🔍</div><div className="ledgr-empty-title">No transactions found</div><div>Try adjusting your filters or search</div></div>
         ) : (
@@ -5150,76 +5103,64 @@ function AppInner({ isDemo = false }) {
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr style={{background:"var(--surface)"}}>
-                  {/* checkbox col */}
-                  <th style={{width:32,padding:"8px 0 10px 12px",borderBottom:"1px solid var(--border)"}}/>
-                  {colHdr("date","Date")}
-                  {colHdr("merchant","Merchant")}
-                  {!isMobile && colHdr("category","Category")}
-                  {!isMobile && colHdr("account","Account")}
-                  <th onClick={()=>toggleSort("amount")} style={{
-                    fontFamily:"var(--font-mono)",fontSize:9,fontWeight:600,
-                    textTransform:"uppercase",letterSpacing:"1px",
-                    color:txnSortCol==="amount"?"var(--cyan)":"var(--t3)",
-                    padding:"8px 12px 10px 10px",textAlign:"right",
-                    borderBottom:"1px solid var(--border)",cursor:"pointer",userSelect:"none",
-                  }}>Amount{txnSortCol==="amount"?(txnSortDir==="asc"?" ↑":" ↓"):""}</th>
-                  <th style={{width:32,borderBottom:"1px solid var(--border)"}}/>
+                  <th style={{width:36,padding:"8px 0 10px 14px",borderBottom:"1px solid var(--border)"}}/>
+                  {[
+                    {k:"date",    label:"Date"},
+                    {k:"merchant",label:"Merchant"},
+                    ...(!isMobile?[{k:"category",label:"Category"},{k:"account",label:"Account"}]:[]),
+                    {k:"amount",  label:"Amount",right:true},
+                  ].map(({k,label,right})=>(
+                    <th key={k} onClick={()=>toggleSort(k)} style={{
+                      fontFamily:"var(--font-mono)",fontSize:9,fontWeight:600,
+                      textTransform:"uppercase",letterSpacing:"1px",
+                      color:txnSortCol===k?"var(--cyan)":"var(--t3)",
+                      padding:"8px 10px 10px",textAlign:right?"right":"left",
+                      borderBottom:"1px solid var(--border)",
+                      cursor:"pointer",userSelect:"none",whiteSpace:"nowrap",
+                    }}>{label}{txnSortCol===k?(txnSortDir==="asc"?" ↑":" ↓"):""}</th>
+                  ))}
+                  <th style={{width:36,borderBottom:"1px solid var(--border)",padding:"8px 8px 10px"}}/>
                 </tr>
               </thead>
               <tbody>
                 {sortedTxns.map((t,ri)=>{
-                  const cat      = catMap[t.categoryId];
-                  const acct     = acctMap[t.accountId];
-                  const reviewed = !needsReview(t);
-                  const typeVal  = t.type||(t.amount<0?"expense":"income");
-                  const noCat    = ["income","transfer","reimbursement"].includes(typeVal);
-                  const expanded = expandedTxnId === t.id;
-                  const selected = selectedTxns.has(t.id);
-                  const isNew    = newTxnIds.has(t.id);
-                  const dateStr  = t.date
-                    ? new Date(t.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})
-                    : "—";
-
-                  return (
-                    <>
-                      <tr key={t.id}
-                        className={isNew ? "ledgr-txn-new" : undefined}
-                        onClick={()=>{ if(selectedTxns.size>0){toggleSelectTxn(t.id);}else{setExpandedTxnId(expanded?null:t.id); }}}
-                        style={{
-                          background: selected ? "var(--cyan-dim)" : ri%2===0 ? "transparent" : "rgba(255,255,255,0.012)",
-                          cursor:"pointer",
-                          transition:"background .1s",
-                          borderLeft: t.recurring ? "3px solid var(--recurring-color, #fbbf24)" : needsReview(t) ? "3px solid var(--review-color, var(--cyan))" : "3px solid transparent",
-                        }}
-                        onMouseEnter={e=>{ if(!selected) e.currentTarget.style.background="rgba(255,255,255,0.025)"; }}
-                        onMouseLeave={e=>{ e.currentTarget.style.background = selected ? "var(--cyan-dim)" : ri%2===0 ? "transparent" : "rgba(255,255,255,0.012)"; }}
-                      >
-                        {/* Checkbox */}
-                        <td style={{padding:"0 0 0 12px",width:32}} onClick={e=>{e.stopPropagation();toggleSelectTxn(t.id);}}>
+                  const cat=catMap[t.categoryId];
+                  const acct=acctMap[t.accountId];
+                  const reviewed=!needsReview(t);
+                  const typeVal=t.type||(t.amount<0?"expense":"income");
+                  const noCat=["income","transfer","reimbursement"].includes(typeVal);
+                  const expanded=expandedTxnId===t.id;
+                  const selected=selectedTxns.has(t.id);
+                  const isNew=newTxnIds.has(t.id);
+                  const dateStr=t.date?new Date(t.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—";
+                  return(
+                    <React.Fragment key={t.id}>
+                      <tr className={isNew?"ledgr-txn-new":undefined}
+                        onClick={()=>{if(selectedTxns.size>0){toggleSelectTxn(t.id);}else{setExpandedTxnId(expanded?null:t.id);}}}
+                        style={{background:selected?"var(--cyan-dim)":ri%2===0?"transparent":"rgba(255,255,255,0.012)",cursor:"pointer",
+                          borderLeft:t.recurring?"3px solid var(--recurring-color,#fbbf24)":needsReview(t)?"3px solid var(--review-color,var(--cyan))":"3px solid transparent"}}>
+                        <td style={{padding:"0 0 0 12px",width:36}} onClick={e=>{e.stopPropagation();toggleSelectTxn(t.id);}}>
                           <div style={{width:15,height:15,borderRadius:3,cursor:"pointer",
                             border:`1.5px solid ${selected?"var(--cyan)":"var(--border2)"}`,
                             background:selected?"var(--cyan)":"transparent",
                             display:"flex",alignItems:"center",justifyContent:"center",
-                            opacity:selectedTxns.size>0?1:0.3,transition:"all .12s",
-                          }}>{selected&&<span style={{fontSize:9,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}</div>
+                            opacity:selectedTxns.size>0?1:0.3,transition:"all .12s"}}>
+                            {selected&&<span style={{fontSize:9,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
+                          </div>
                         </td>
-                        {/* Date */}
-                        <td style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap"}}>
-                          {dateStr}
-                          {t.pending && <span style={{fontSize:9,color:"var(--amber)",marginLeft:5,fontWeight:700}}>PENDING</span>}
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap"}}>
+                          {dateStr}{t.pending&&<span style={{fontSize:9,color:"var(--amber)",marginLeft:5,fontWeight:700}}>PENDING</span>}
                         </td>
-                        {/* Merchant */}
-                        <td style={{padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",maxWidth:isMobile?140:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        <td style={{padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)",maxWidth:isMobile?130:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                           <span style={{fontSize:13,fontWeight:500,color:"var(--t1)"}}>
                             {t.name||t.merchant}
-                            {t.recurringItemId && <span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
-                            {t.notes && !isMobile && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
+                            {t.recurringItemId&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
                           </span>
+                          {t.notes&&!isMobile&&<span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
                         </td>
-                        {/* Category */}
-                        {!isMobile && (
-                          <td style={{padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
-                            {!noCat ? (
+                        {!isMobile&&(
+                          <td style={{padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                            {!noCat?(
                               <div style={{transform:"scale(0.875)",transformOrigin:"left center",width:"114%"}}>
                                 <select value={t.categoryId||""} onChange={e=>{const v=e.target.value;if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
                                   style={{backgroundColor:"transparent",border:"none",outline:"none",fontSize:14,color:cat?cat.color:"var(--t3)",fontWeight:400,cursor:"pointer",width:"100%",appearance:"none",WebkitAppearance:"none",fontFamily:"var(--font-body)",padding:"2px 4px",borderRadius:20,colorScheme:"dark"}}>
@@ -5230,64 +5171,54 @@ function AppInner({ isDemo = false }) {
                                   <option value="__new__">+ New category</option>
                                 </select>
                               </div>
-                            ) : (
+                            ):(
                               <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 8px",borderRadius:99,background:"rgba(255,255,255,0.05)",color:"var(--t3)",textTransform:"capitalize"}}>{typeVal}</span>
                             )}
                           </td>
                         )}
-                        {/* Account */}
-                        {!isMobile && (
-                          <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:130}}>
+                        {!isMobile&&(
+                          <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>
                             {acct?.name||"—"}
                           </td>
                         )}
-                        {/* Amount */}
-                        <td style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",padding:"9px 12px 9px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",textAlign:"right",whiteSpace:"nowrap"}}>
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",padding:"10px 12px 10px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",textAlign:"right",whiteSpace:"nowrap"}}>
                           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
                         </td>
-                        {/* Ellipsis menu */}
-                        <td style={{width:32,padding:"9px 8px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                        <td style={{width:36,padding:"10px 8px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
                           <div style={{position:"relative"}}>
                             <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
-                              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"1px 4px",lineHeight:1,opacity:0.6}}>⋯</button>
+                              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"1px 4px",lineHeight:1,opacity:0.5}}>⋯</button>
                             {ellipsisId===t.id&&(
                               <>
                                 <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
                                 <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
-                                  <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
-                                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
+                                  <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
                                     {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}</button>
-                                  <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
-                                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+                                  <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
                                   {goals&&goals.length>0&&(
                                     <div style={{borderTop:"1px solid var(--border)",paddingTop:4,paddingBottom:4}}>
                                       <div style={{padding:"6px 14px 4px",fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Add to goal</div>
                                       {goals.map(g=>{
                                         const assigned=(g.assignedTxnIds||[]).includes(t.id);
-                                        return(<button key={g.id} onClick={()=>{assignTxnToGoal(t.id,g.id);setEllipsisId(null);}}
-                                          style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:assigned?"var(--cyan)":"var(--t2)"}}>
+                                        return(<button key={g.id} onClick={()=>{assignTxnToGoal(t.id,g.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:assigned?"var(--cyan)":"var(--t2)"}}>
                                           {assigned?"✓ ":""}{g.title}</button>);
                                       })}
                                     </div>
                                   )}
-                                  <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
-                                    style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+                                  <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
                                 </div>
                               </>
                             )}
                           </div>
                         </td>
                       </tr>
-
-                      {/* ── Expanded detail panel ── */}
                       {expanded&&(
                         <tr key={t.id+"_exp"}>
-                          <td colSpan={isMobile?5:7} style={{padding:"0 16px 12px",background:"var(--surface)"}}>
+                          <td colSpan={isMobile?4:7} style={{padding:"0 16px 12px",background:"var(--surface)"}}>
                             <div className="ledgr-expand" style={{padding:"12px",display:"flex",flexDirection:"column",gap:10,borderRadius:"var(--radius)",marginTop:4}}>
                               {editingId!==t.id&&(t.name||t.merchant)&&(
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>
-                                  {t.name||t.merchant}
-                                  {t.pending&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
+                                  {t.name||t.merchant}{t.pending&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
                                 </div>
                               )}
                               {editingId===t.id&&(
@@ -5304,9 +5235,7 @@ function AppInner({ isDemo = false }) {
                                     <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)}
                                       options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]}
                                       style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
-                                    {noCat?(
-                                      <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
-                                    ):(
+                                    {noCat?(<div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>):(
                                       <CustomSelect value={t.categoryId||""} onChange={v=>{if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
                                         options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
                                         style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
@@ -5326,7 +5255,7 @@ function AppInner({ isDemo = false }) {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -5334,15 +5263,11 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
-        {/* Load More — only shown when there are more transactions on the server */}
+        {/* Load more */}
         {transactions.length < txnTotal && (
-          <div style={{textAlign:"center", padding:"16px 0"}}>
-            <button
-              style={S.btn("ghost", true)} className="ledgr-btn"
-              onClick={loadMoreTransactions}
-              disabled={txnLoading}
-            >
-              {txnLoading ? "Loading…" : `Load more (${txnTotal - transactions.length} remaining)`}
+          <div style={{textAlign:"center",padding:"16px 0"}}>
+            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={loadMoreTransactions} disabled={txnLoading}>
+              {txnLoading?"Loading…":`Load more (${txnTotal-transactions.length} remaining)`}
             </button>
           </div>
         )}
@@ -5351,6 +5276,7 @@ function AppInner({ isDemo = false }) {
       />
     );
   })();
+
 
 
   /* -- Budgets -- */

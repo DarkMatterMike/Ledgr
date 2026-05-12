@@ -4,10 +4,7 @@
 html, body, #root { height: 100%; overscroll-behavior: none; }
 
 body {
-  background:
-    radial-gradient(ellipse 70% 50% at 100% 0%,   #2a1a0e 0%, transparent 55%),
-    radial-gradient(ellipse 55% 45% at 0%   100%,  #161008 0%, transparent 50%),
-    #0f0e0d;
+  background: #0f0e0d;
   background-attachment: scroll;
   min-height: 100%;
 }

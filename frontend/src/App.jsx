@@ -4950,9 +4950,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <PageLayout
-        isMobile={isMobile}
-        left={(
+      <div style={{width:"100%",maxWidth:900,margin:"0 auto",padding:"28px 28px"}}>
           <div>
 
         {/* Clarity header */}
@@ -5272,8 +5270,7 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
           </div>
-        )}
-      />
+      </div>
     );
   })();
 

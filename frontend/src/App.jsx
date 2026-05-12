@@ -67,7 +67,8 @@ function useIsMobile() {
     /* ─── OBSIDIAN DESIGN SYSTEM ──────────────────────────── */
 
     /* Layout */
-    .ledgr-content     { padding: 20px; }
+    .ledgr-content     { padding: 0; }
+    .ledgr-view-padded { padding: 20px; }
     .ledgr-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
     .ledgr-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
     .ledgr-acct-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -76,7 +77,7 @@ function useIsMobile() {
     .ledgr-monthbar-meta { display: flex; align-items: center; gap: 16px; }
 
     @media (max-width: 768px) {
-      .ledgr-content { padding: 14px !important; }
+      .ledgr-content { padding: 0 !important; }
       .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 8px !important; justify-content: center !important; }
     }
 
@@ -7846,14 +7847,6 @@ function AppInner({ isDemo = false }) {
       </div>
     )}
 
-    {/* Beta banner */}
-    <div style={{flexShrink:0,background:"var(--surface)",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"5px 16px",textAlign:"center",fontSize:11,color:"var(--t3)"}}>
-      <span style={{color:"var(--cyan)",fontWeight:700,fontSize:9,letterSpacing:"1px",textTransform:"uppercase",marginRight:6}}>Beta</span>
-      You may experience issues — report bugs via the{" "}
-      <button onClick={()=>navigate("settings")} style={{background:"none",border:"none",color:"var(--cyan)",cursor:"pointer",fontSize:11,fontWeight:600,padding:0,textDecoration:"underline",opacity:0.7}}>Support</button>
-      {" "}button.
-    </div>
-
     {/* Trial countdown banner */}
     {trialDaysLeft !== null && (
       <div style={{
@@ -7887,88 +7880,12 @@ function AppInner({ isDemo = false }) {
     {isMobile ? (
       /* ── MOBILE — bottom nav ── */
       <>
-        {/* Mobile top bar */}
-        <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"rgba(11,10,8,0.97)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.05)",position:"relative",overflow:"visible"}}>
-          {/* Glow orb — top right, theme-matched */}
-          <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle, var(--glow-color) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
-          <div style={{display:"flex",alignItems:"center",gap:6,position:"relative",zIndex:1}}>
-            <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,marginTop:2,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span>
-            <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>
-              ledgr<span style={{color:"var(--cyan)"}}>.</span>
-            </div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,position:"relative",zIndex:1}}>
-            {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>↻</span>}
-            <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)"}}>{daysLeft()}d left</div>
-            <div style={{position:"relative"}}>
-              <button onClick={()=>setNotifOpen(p=>!p)}
-                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                <span className={notifCount > 0 ? "ledgr-bell-ring" : ""} style={{display:"inline-flex"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={notifCount > 0 ? "var(--cyan)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
-                </span>
-                {notifCount > 0 && (
-                  <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
-                    {notifCount}
-                  </span>
-                )}
-              </button>
-              {notifOpen && (
-                <>
-                  <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
-                  <div className="ledgr-overlay-anim" style={{position:"fixed",top:52,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
-                    <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
-                      {visibleNotifs.length > 0 && (
-                        <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={S.btn("ghost",true)}>Dismiss all</button>
-                      )}
-                    </div>
-                    {visibleNotifs.length === 0 ? (
-                      <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
-                        <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>🔔</div>
-                        You're all caught up
-                      </div>
-                    ) : (
-                      <div style={{maxHeight:360,overflowY:"auto"}}>
-                        {visibleNotifs.map((n,i) => (
-                          <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
-                            <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"||n.type==="duplicates"?"var(--cyan-dim)":n.type==="newtxn"?"rgba(0,212,255,0.1)":"var(--amber-dim)",border:`1px solid ${n.type==="review"||n.type==="duplicates"?"var(--cyan)44":n.type==="newtxn"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                              {n.type==="review"?"◎":n.type==="reauth"?"◈":n.type==="newtxn"?"$":n.type==="duplicates"?"⊕":"›"}
-                            </div>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
-                                {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : n.type==="newtxn" ? n.merchant : n.type==="duplicates" ? `${n.count} possible duplicate${n.count!==1?"s":""} found` : "Goal contribution due today"}
-                              </div>
-                              <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
-                                {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : n.type==="newtxn" ? `${n.amount < 0 ? "-" : "+"}${fmt(Math.abs(n.amount||0))} · ${n.date||""}` : n.type==="duplicates" ? "Tap to review and merge duplicates" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
-                              </div>
-                              <button
-                                onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else if(n.type==="newtxn"){ navigate("transactions"); } else if(n.type==="duplicates"){ setDuplicateScanActive(true); navigate("transactions"); setPendingDuplicates(null); scheduleSaveRef.current?.({ pendingDuplicates: null }); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
-                                style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"||n.type==="newtxn"||n.type==="duplicates"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
-                                {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":n.type==="newtxn"?"View transactions ←":n.type==="duplicates"?"Review duplicates ←":"View goals ←"}
-                              </button>
-                            </div>
-                            <button
-                              onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
-                              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Content area */}
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
           {view === "analytics"
-            ? <div className="ledgr-view-enter">{AnalyticsPage}</div>
-            : <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
+            ? <div className="ledgr-view-enter ledgr-view-padded">{AnalyticsPage}</div>
+            : view === "dashboard"
+            ? <div key={navKey} className="ledgr-view-enter" style={{maxWidth:600,margin:"0 auto"}}>{VIEWS[view]}</div>
+            : <div key={navKey} className="ledgr-view-enter ledgr-view-padded">{VIEWS[view]}</div>
           }
         </div>
 
@@ -8011,94 +7928,12 @@ function AppInner({ isDemo = false }) {
          DESKTOP — persistent sidebar
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
-        {/* Desktop top bar — new */}
-        <div style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px 0 28px",background:"rgba(11,10,8,0.97)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-          <div style={{display:"flex",alignItems:"center",gap:16}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span>
-              <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
-            </div>
-            <div style={{width:1,height:16,background:"rgba(255,255,255,0.06)"}}/>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",letterSpacing:"0.3px"}}>
-              {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
-            </div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            {syncing&&<span style={{fontSize:12,color:"var(--cyan)"}}>↻ Syncing…</span>}
-            <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
-              {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} · {daysLeft()}d left
-            </div>
-            <div style={{position:"relative"}}>
-                <button
-                  onClick={()=>setNotifOpen(p=>!p)}
-                  style={{background:"none",border:"none",cursor:"pointer",color:"var(--t2)",padding:"4px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-                  <span className={notifCount > 0 ? "ledgr-bell-ring" : ""} style={{display:"inline-flex"}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={notifCount > 0 ? "var(--cyan)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                  </span>
-                  {notifCount > 0 && (
-                    <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,borderRadius:99,background:"var(--red)",color:"#fff",fontSize:9,fontWeight:800,fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",lineHeight:1}}>
-                      {notifCount}
-                    </span>
-                  )}
-                </button>
-                {notifOpen && (
-                  <>
-                    <div onClick={()=>setNotifOpen(false)} style={{position:"fixed",inset:0,zIndex:149}}/>
-                    <div className="ledgr-overlay-anim" style={{position:"fixed",top:isMobile?52:56,right:12,width:320,maxWidth:"calc(100vw - 24px)",background:"var(--card)",border:"none",borderRadius:"var(--radius-lg)",boxShadow:"0 8px 32px #00000070",zIndex:150,overflow:"hidden"}}>
-                      <div style={{padding:"12px 16px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                        <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Notifications</span>
-                        {visibleNotifs.length > 0 && (
-                          <button onClick={()=>{ setDismissedNotifs(new Set(notifList.map(n=>n.id))); setNotifOpen(false); }} style={S.btn("ghost",true)}>Dismiss all</button>
-                        )}
-                      </div>
-                      {visibleNotifs.length === 0 ? (
-                        <div style={{padding:"24px 16px",textAlign:"center",fontSize:12,color:"var(--t3)"}}>
-                          <div style={{fontSize:20,marginBottom:8,opacity:0.3}}>\U0001F514</div>
-                          You're all caught up
-                        </div>
-                      ) : (
-                        <div style={{maxHeight:360,overflowY:"auto"}}>
-                          {visibleNotifs.map((n,i) => (
-                            <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 14px",borderBottom:i<visibleNotifs.length-1?"1px solid var(--border)":"none",background:"var(--card)"}}>
-                              <div style={{width:32,height:32,borderRadius:"50%",flexShrink:0,background:n.type==="review"?"var(--cyan-dim)":"var(--amber-dim)",border:`1px solid ${n.type==="review"?"var(--cyan)44":"var(--amber)44"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>
-                                {n.type==="review"?"◎":n.type==="reauth"?"◈":"›"}
-                              </div>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>
-                                  {n.type==="review" ? `${n.count} transaction${n.count!==1?"s":""} need review` : n.type==="reauth" ? `${n.institution} needs reconnecting` : "Goal contribution due today"}
-                                </div>
-                                <div style={{fontSize:11,color:"var(--t3)",lineHeight:1.4}}>
-                                  {n.type==="review" ? "Categorize and mark transactions as reviewed" : n.type==="reauth" ? "Your login credentials have changed — reconnect to resume syncing" : `Contribute ${fmt(n.goal.periodAmount)} toward ${n.goal.title}`}
-                                </div>
-                                <button
-                                  onClick={()=>{ setDismissedNotifs(p=>new Set([...p,n.id])); setNotifOpen(false); if(n.type==="review"){ setFilterReview(true); navigate("transactions"); } else if(n.type==="reauth"){ navigate("accounts"); } else { setAnalyticsTab("goals"); navigate("analytics"); } }}
-                                  style={{marginTop:6,fontSize:11,fontWeight:600,color:n.type==="review"?"var(--cyan)":"var(--amber)",background:"none",border:"none",cursor:"pointer",padding:0}}>
-                                  {n.type==="review"?"Review now ←":n.type==="reauth"?"Reconnect ←":"View goals ←"}
-                                </button>
-                              </div>
-                              <button
-                                onClick={e=>{e.stopPropagation(); const next=new Set([...dismissedNotifs,n.id]); setDismissedNotifs(next); if(next.size>=notifList.length)setNotifOpen(false);}}
-                                style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"0 2px",flexShrink:0,lineHeight:1}}>✕</button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-          </div>
-        </div>
-
         {/* Desktop body */}
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
           <aside style={{
             width:72,flexShrink:0,display:"flex",flexDirection:"column",
-            position:"sticky",top:0,height:"calc(100vh - 56px)",overflow:"visible",
+            position:"sticky",top:0,height:"100vh",overflow:"visible",
           }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
@@ -8107,8 +7942,10 @@ function AppInner({ isDemo = false }) {
             
             
             {view === "analytics"
-              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{AnalyticsPage}</div>
-              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+              ? <div className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{AnalyticsPage}</div>
+              : view === "dashboard"
+              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto"}}>{VIEWS[view]}</div>
+              : <div key={navKey} className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
             }
           </div>
         </div>

@@ -168,7 +168,6 @@ input, select, textarea, button { font-family: var(--font-body); }
   animation: ledgr-toast-out 0.18s ease both;
 }
 
-/* ── DashboardNew — signal dot pulse ────────────────── */
 @keyframes sigpulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(224,112,112,0.5); }
   50%     { box-shadow: 0 0 0 5px rgba(224,112,112,0); }

@@ -2614,6 +2614,13 @@ function AppInner({ isDemo = false }) {
   const [newTxnCount,   setNewTxnCount]   = useState(0);
   const [undoAction,    setUndoAction]    = useState(null); // {label, fn}
   const undoTimer = useRef(null);
+  const budgetBarsAnimated = useRef(false);
+  useEffect(() => {
+    if (!budgetBarsAnimated.current) {
+      const t = setTimeout(() => { budgetBarsAnimated.current = true; }, 1200);
+      return () => clearTimeout(t);
+    }
+  }, []);
   const [syncing,       setSyncing]       = useState(false);
   const [rulePrompt,    setRulePrompt]    = useState(null);
   const [typeRulePrompt, setTypeRulePrompt] = useState(null); // {merchant, type}
@@ -5391,15 +5398,6 @@ function AppInner({ isDemo = false }) {
 
   /* ── Budgets ─────────────────────────────────── */
   const Budgets = (() => {
-    /* ── Fire bar animation only on first render ──────── */
-    const budgetBarsAnimated = useRef(false);
-    useEffect(() => {
-      if (!budgetBarsAnimated.current) {
-        // After first paint, mark as animated so re-renders don't retrigger
-        const t = setTimeout(() => { budgetBarsAnimated.current = true; }, 1200);
-        return () => clearTimeout(t);
-      }
-    }, []);
 
     /* ── Compute category groups ─────────────────────── */
     const overCats     = sortedCategories.filter(c => (spentByCat[c.id]||0) > c.limit);

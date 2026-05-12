@@ -139,7 +139,7 @@ export default function DashboardNew({
         {!isMobile && (
           <div style={{
             position: "absolute", top: "50%", transform: "translateY(-60%)",
-            left: -14, fontFamily: "'Playfair Display', serif",
+            left: 4, fontFamily: "'Playfair Display', serif",
             fontStyle: "italic", fontSize: 96, fontWeight: 500,
             color: "rgba(201,149,106,0.07)", pointerEvents: "none",
             userSelect: "none", lineHeight: 1,
@@ -204,7 +204,7 @@ export default function DashboardNew({
           <button onClick={nextMonth} disabled={isCurrentMonth} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, color: isCurrentMonth ? "var(--border2)" : "var(--t2)", cursor: isCurrentMonth ? "default" : "pointer", padding: "5px 10px", fontSize: 16, lineHeight: 1, opacity: isCurrentMonth ? 0.3 : 1 }}>›</button>
         </div>
 
-        <SectionHdr ord="01" title="How much can I spend?" />
+        <SectionHdr ord="I" title="How much can I spend?" />
 
         {/* Hero number */}
         <div
@@ -294,7 +294,7 @@ export default function DashboardNew({
       <div style={tier}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, rgba(201,149,106,0.1) 0%, rgba(255,255,255,0.04) 35%, transparent 75%)", pointerEvents: "none" }} />
 
-        <SectionHdr ord="02" title="Where I'm at" sub="Current budget progress" />
+        <SectionHdr ord="II" title="Where I'm at" sub="Current budget progress" />
 
         {categories.length === 0 ? (
           <div className="ledgr-empty">
@@ -340,7 +340,7 @@ export default function DashboardNew({
       <div style={tier}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, rgba(201,149,106,0.08) 0%, rgba(255,255,255,0.03) 35%, transparent 75%)", pointerEvents: "none" }} />
 
-        <SectionHdr ord="03" title="What's happened" sub="Recent transactions" />
+        <SectionHdr ord="III" title="What's happened" sub="Recent transactions" />
 
         {monthTxns.length === 0 ? (
           <div className="ledgr-empty">
@@ -400,7 +400,7 @@ export default function DashboardNew({
       <div style={{ ...tier, borderBottom: "none" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg, rgba(201,149,106,0.06) 0%, rgba(255,255,255,0.02) 35%, transparent 75%)", pointerEvents: "none" }} />
 
-        <SectionHdr ord="04" title="What's coming up" sub="Upcoming transactions" />
+        <SectionHdr ord="IV" title="What's coming up" sub="Upcoming transactions" />
 
         {upcomingItems.length === 0 ? (
           <div style={{ fontSize: 12, color: "var(--t3)", padding: "4px 0 2px" }}>No upcoming transactions this month.</div>

@@ -4969,7 +4969,7 @@ function AppInner({ isDemo = false }) {
         <div style={{position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.12),rgba(255,255,255,0.04) 35%,transparent 75%)",pointerEvents:"none"}}/>
           {/* Ghost numeral */}
-          {!isMobile && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:96,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-55%)",left:-10,lineHeight:1}}>I</div>}
+          {!isMobile && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:96,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-55%)",left:8,lineHeight:1}}>I</div>}
           <div style={{paddingTop:40,paddingBottom:12,marginBottom:0,borderBottom:"1px solid rgba(201,149,106,0.12)",position:"relative",zIndex:1}}>
             <div style={{display:"flex",alignItems:"baseline",gap:12}}>
               <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>01 ·</span>
@@ -5414,7 +5414,7 @@ function AppInner({ isDemo = false }) {
     const SectionHdr = ({ord, title, sub, count, accentColor="rgba(201,149,106,0.45)", ruleColor="rgba(201,149,106,0.14)", ghost}) => (
       <div style={{marginBottom:18,position:"relative"}}>
         {ghost && !isMobile && (
-          <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:88,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-60%)",left:-10,lineHeight:1}}>
+          <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:88,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-60%)",left:8,lineHeight:1}}>
             {ghost}
           </div>
         )}

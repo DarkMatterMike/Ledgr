@@ -4969,14 +4969,14 @@ function AppInner({ isDemo = false }) {
         <div style={{position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.12),rgba(255,255,255,0.04) 35%,transparent 75%)",pointerEvents:"none"}}/>
           <div style={{paddingTop:40,paddingBottom:12,marginBottom:0,borderBottom:"1px solid rgba(201,149,106,0.12)"}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:12}}>
               <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>01 ·</span>
               <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:22,color:"var(--t1)"}}>Transactions</span>
               <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.15),transparent)",alignSelf:"center",marginLeft:4}}/>
             </div>
-            <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--t3)",marginTop:5,marginBottom:18}}>
-              All transactions · {new Date().toLocaleString("en-US",{month:"short",year:"numeric"})} · {typeFiltered.length} {typeFiltered.length===1?"entry":"entries"}
-            </div>
+          </div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--t3)",marginTop:5,marginBottom:18}}>
+            All transactions · {new Date().toLocaleString("en-US",{month:"short",year:"numeric"})} · {typeFiltered.length} {typeFiltered.length===1?"entry":"entries"}
           </div>
         </div>
 
@@ -4988,7 +4988,7 @@ function AppInner({ isDemo = false }) {
             {label:"Net",        val:(netAmt>=0?"+":"")+fmt(netAmt), color:netAmt>=0?"var(--green)":"var(--red)"},
             {label:"Unreviewed", val:String(toReview),  color:"var(--amber)"},
           ].map((c,i,arr)=>(
-            <div key={c.label} style={{flex:1,padding:"9px 14px",borderRight:i<arr.length-1?"1px solid var(--border)":"none",background:"var(--surface)"}}>
+            <div key={c.label} style={{flex:1,padding:"9px 14px",borderRight:i<arr.length-1?"1px solid rgba(255,255,255,0.06)":"none",background:"transparent"}}>
               <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:3}}>{c.label}</div>
               <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:600,color:c.color}}>{c.val}</div>
             </div>
@@ -5073,10 +5073,10 @@ function AppInner({ isDemo = false }) {
             placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
           <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)}
             options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
-            style={{minWidth:0}} compact/>
+            style={{minWidth:0,backgroundColor:"var(--card-hi)",borderRadius:8}} compact/>
           <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)}
             options={[{value:"all",label:"All Accounts"},{value:"__unlinked__",label:"Unlinked"},...accounts.map(a=>({value:a.id,label:a.name}))]}
-            style={{minWidth:0}} compact/>
+            style={{minWidth:0,backgroundColor:"var(--card-hi)",borderRadius:8}} compact/>
           {[["all","All"],["expense","Expenses"],["income","Income"]].map(([v,label])=>(
             <button key={v} onClick={()=>setTxnTypeFilter(v)} style={{
               padding:"6px 12px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",whiteSpace:"nowrap",
@@ -5114,6 +5114,7 @@ function AppInner({ isDemo = false }) {
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr>
+                  <th style={{width:28,padding:"8px 0 10px 10px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}/>
                   {[
                     {k:"date",    label:"Date"},
                     {k:"merchant",label:"Merchant"},
@@ -5147,9 +5148,26 @@ function AppInner({ isDemo = false }) {
                     <Fragment key={t.id}>
                       <tr className={isNew?"ledgr-txn-new":undefined}
                         onClick={()=>{if(selectedTxns.size>0){toggleSelectTxn(t.id);}else{setExpandedTxnId(expanded?null:t.id);}}}
-                        style={{background:selected?"var(--cyan-dim)":ri%2===0?"transparent":"rgba(255,255,255,0.012)",cursor:"pointer",
-                          borderLeft:t.recurring?"3px solid var(--recurring-color,#fbbf24)":needsReview(t)?"3px solid var(--review-color,var(--cyan))":"3px solid transparent"}}>
+                        style={{background:selected?"var(--cyan-dim)":ri%2===0?"transparent":"rgba(255,255,255,0.012)",cursor:"pointer"}}>
 
+                        {/* Checkbox + status dot */}
+                        <td style={{padding:"0 0 0 10px",width:28,borderBottom:"1px solid rgba(255,255,255,0.02)"}} onClick={e=>{e.stopPropagation();toggleSelectTxn(t.id);}}>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            {selectedTxns.size>0 ? (
+                              <div style={{width:14,height:14,borderRadius:3,cursor:"pointer",flexShrink:0,
+                                border:`1.5px solid ${selected?"var(--cyan)":"var(--border2)"}`,
+                                background:selected?"var(--cyan)":"transparent",
+                                display:"flex",alignItems:"center",justifyContent:"center",transition:"all .12s"}}>
+                                {selected&&<span style={{fontSize:9,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
+                              </div>
+                            ) : (
+                              <div style={{width:7,height:7,borderRadius:"50%",flexShrink:0,
+                                background:t.recurring?"var(--recurring-color,#fbbf24)":needsReview(t)?"var(--review-color,var(--cyan))":"transparent",
+                                boxShadow:t.recurring?"0 0 5px rgba(251,191,36,0.6)":needsReview(t)?"0 0 5px rgba(201,149,106,0.6)":"none",
+                                transition:"all .15s"}}/>
+                            )}
+                          </div>
+                        </td>
                         <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",whiteSpace:"nowrap"}}>
                           {dateStr}{t.pending&&<span style={{fontSize:9,color:"var(--amber)",marginLeft:5,fontWeight:700}}>PENDING</span>}
                         </td>

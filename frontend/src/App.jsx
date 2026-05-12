@@ -1425,7 +1425,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
       <SettingsSection title="Appearance">
         {(()=>{
           const PRESETS = [
-            { name:"Obsidian",    bg:"#0f0e0d", surface:"#161412", card:"#161412", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
+            { name:"Obsidian",    bg:"#0b0a08", surface:"#1a1612", card:"#181511", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
             { name:"Midnight",    bg:"#09090f", surface:"#111120", card:"#18181e", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)",  t3:"rgba(232,232,255,0.3)" },
             { name:"Ledgr Dark",  bg:"#060a0f", surface:"#0d1520", card:"#111a28", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)",  t3:"rgba(218,234,248,0.3)" },
             { name:"Deep Green",  bg:"#050f08", surface:"#0a1c0e", card:"#0e2414", accent:"#4ade80", t1:"#d4f0df", t2:"rgba(212,240,223,0.5)",  t3:"rgba(212,240,223,0.3)" },

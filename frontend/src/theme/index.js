@@ -124,7 +124,7 @@ export function applyTheme(theme) {
   if (theme.reviewColor)    root.style.setProperty("--review-color",    theme.reviewColor);
   if (theme.recurringColor) root.style.setProperty("--recurring-color", theme.recurringColor);
   root.style.setProperty("--card-border", "transparent");
-  root.style.setProperty("--surface-solid", theme.surface || "#161412");
+  root.style.setProperty("--surface-solid", theme.surface || "#1a1612");
 
   // Global opacity — affects surface/card/nav backgrounds only, not text or bg image
   // Must run after card-hi is derived above
@@ -154,8 +154,8 @@ export function applyTheme(theme) {
   if (theme.bgImage) {
     const bg = theme.bg || "#0b0a08";
     root.style.setProperty("--bg",      bg + "cc");
-    root.style.setProperty("--surface", (theme.surface || "#161412") + "dd");
-    root.style.setProperty("--card",    (theme.card    || "#161412") + "ee");
+    root.style.setProperty("--surface", (theme.surface || "#1a1612") + "dd");
+    root.style.setProperty("--card",    (theme.card    || "#1a1612") + "ee");
     document.body.style.background = "transparent";
     document.documentElement.classList.add("ledgr-has-bgimage");
   } else {
@@ -174,5 +174,10 @@ export function applyTheme(theme) {
 // Apply stored theme immediately on page load to prevent flash
 try {
   const stored = localStorage.getItem("ledgr_theme");
-  if (stored) applyTheme(JSON.parse(stored));
+  if (stored) {
+    const t = JSON.parse(stored);
+    // Migrate old Obsidian bg to darker value
+    if (t.bg === "#0f0e0d") { t.bg = "#0b0a08"; t.surface = t.surface || "#1a1612"; t.card = t.card || "#181511"; }
+    applyTheme(t);
+  }
 } catch { /* ignore — theme will use defaults */ }

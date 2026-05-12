@@ -7929,16 +7929,18 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Desktop body */}
-        <div style={{flex:1,display:"flex",overflow:"hidden"}}>
-          {/* Persistent sidebar */}
+        <div style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content" ref={contentRef}>
+          <div style={{display:"flex",maxWidth:1080,margin:"0 auto",minHeight:"100%"}}>
+          {/* Rail */}
           <aside style={{
             width:72,flexShrink:0,display:"flex",flexDirection:"column",
             position:"sticky",top:0,height:"100vh",overflow:"visible",
+            alignSelf:"flex-start",
           }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>
-          {/* Content with Aurora glow blobs */}
-          <div ref={contentRef} style={{flex:1,overflowY:"auto",position:"relative"}} className="ledgr-content">
+          {/* Content */}
+          <div style={{flex:1,minWidth:0,position:"relative"}}>
             
             
             {view === "analytics"
@@ -7948,6 +7950,7 @@ function AppInner({ isDemo = false }) {
               : <div key={navKey} className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
             }
           </div>
+          </div>{/* /max-width wrapper */}
         </div>
       </>
     )}

@@ -5509,24 +5509,7 @@ function AppInner({ isDemo = false }) {
           </div>
           {/* Expanded drill-down — Ledger Inline */}
           {expanded && (
-            <div className="ledgr-expand" style={{margin:"0 0 4px 8px",padding:"14px 14px 14px 16px",background:"var(--bg)",borderRadius:"var(--radius)",borderLeft:`2px solid ${cat.color}`}} onClick={e=>e.stopPropagation()}>
-
-              {/* Summary strip */}
-              <div style={{display:"flex",gap:0,marginBottom:14,border:"1px solid rgba(255,255,255,0.07)",borderRadius:"var(--radius)",overflow:"hidden"}}>
-                {[
-                  {label:"Spent",     val:fmt(spent),          color:over?"var(--red)":"var(--t1)"},
-                  {label:"Limit",     val:editingLimitId===cat.id
-                    ? <input type="number" autoFocus onClick={e=>e.stopPropagation()} style={{background:"none",border:"none",borderBottom:"1px solid var(--cyan)",fontSize:13,color:"var(--t1)",outline:"none",width:60,fontFamily:"var(--font-mono)",fontWeight:600}} value={editingLimitVal} onChange={e=>setEditingLimitVal(e.target.value)} onBlur={()=>saveLimit(cat.id)} onKeyDown={e=>{if(e.key==="Enter")saveLimit(cat.id);if(e.key==="Escape")setEditingLimitId(null);}}/>
-                    : <span onClick={e=>startEditLimit(cat,e)} style={{cursor:"text",textDecoration:"underline dotted",textUnderlineOffset:2}}>{fmt(cat.limit)}</span>,
-                    color:"var(--t1)"},
-                  {label:"Remaining", val:over?`−${fmt(Math.abs(remaining))}`:complete?"✓ done":fmt(remaining), color:over?"var(--red)":complete?"var(--t3)":"var(--green)"},
-                ].map((c,i,arr)=>(
-                  <div key={c.label} style={{flex:1,padding:"8px 12px",borderRight:i<arr.length-1?"1px solid rgba(255,255,255,0.06)":"none"}}>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:2}}>{c.label}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:c.color}}>{c.val}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="ledgr-expand" style={{margin:"0 0 4px 8px",padding:"14px 14px 14px 16px",background:"var(--bg)",borderRadius:0,borderLeft:`2px solid ${cat.color}`}} onClick={e=>e.stopPropagation()}>
 
               {/* Assigned transactions */}
               {(()=>{
@@ -5558,23 +5541,23 @@ function AppInner({ isDemo = false }) {
 
               {/* Assign section */}
               <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:8}}>Manually assign a transaction</div>
-              <input placeholder="Search by name or merchant…" value={budgetExpandedCatId===cat.id?budgetTxnSearch:""} onChange={e=>setBudgetTxnSearch(e.target.value)} onClick={e=>e.stopPropagation()} style={{...S.input,width:"100%",fontSize:12,padding:"7px 10px",marginBottom:8,boxSizing:"border-box"}}/>
+              <input placeholder="Search by name or merchant…" value={budgetExpandedCatId===cat.id?budgetTxnSearch:""} onChange={e=>setBudgetTxnSearch(e.target.value)} onClick={e=>e.stopPropagation()} style={{...S.input,width:"100%",fontSize:12,padding:"7px 10px",marginBottom:8,boxSizing:"border-box",border:"1px solid rgba(255,255,255,0.1)",borderRadius:6,background:"rgba(255,255,255,0.04)"}}/>
               {(()=>{
                 const q=budgetTxnSearch.toLowerCase().trim();
-                const candidates=monthTxns.filter(t=>t.amount<0&&t.categoryId!==cat.id).filter(t=>!q||(t.name||t.merchant||"").toLowerCase().includes(q)||(t.date||"").includes(q)).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,q?20:5);
+                const candidates=monthTxns.filter(t=>t.amount<0&&t.categoryId!==cat.id).filter(t=>!q||(t.name||t.merchant||"").toLowerCase().includes(q)||(t.date||"").includes(q)).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,q?20:2);
                 if(!q&&candidates.length===0) return <div style={{fontSize:12,color:"var(--t3)"}}>All transactions in this month are already assigned here.</div>;
                 return (
                   <div style={{display:"flex",flexDirection:"column",gap:2,maxHeight:240,overflowY:"auto"}}>
                     {candidates.length===0&&q&&<div style={{fontSize:12,color:"var(--t3)"}}>No matching transactions found.</div>}
                     {candidates.map(t=>(
-                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+                      <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",marginBottom:3,borderRadius:6,background:"rgba(255,255,255,0.04)"}}>
                         <div style={{width:2,height:24,borderRadius:1,flexShrink:0,background:"rgba(255,255,255,0.07)"}}/>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
                           <div style={{fontSize:10,color:"var(--t3)",marginTop:1}}>{t.date}{t.categoryId&&catMap[t.categoryId]&&<span style={{marginLeft:6,color:catMap[t.categoryId].color}}>· {catMap[t.categoryId].name}</span>}{!t.categoryId&&<span style={{marginLeft:6,color:"var(--t3)"}}>· Uncategorized</span>}</div>
                         </div>
                         <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:"var(--red)",flexShrink:0,whiteSpace:"nowrap"}}>{fmt(Math.abs(t.amount))}</div>
-                        <button onClick={()=>{updateTxnCat(t.id,cat.id);setBudgetTxnSearch("");showToast("Assigned to "+cat.name);}} style={{...S.btn("primary",true),padding:"4px 10px",fontSize:11,flexShrink:0}}>+ Assign</button>
+                        <button onClick={()=>{updateTxnCat(t.id,cat.id);setBudgetTxnSearch("");showToast("Assigned to "+cat.name);}} style={{background:"rgba(201,149,106,0.1)",border:"1px solid rgba(201,149,106,0.25)",borderRadius:6,color:"var(--cyan)",fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 10px",flexShrink:0,whiteSpace:"nowrap",fontFamily:"var(--fb)"}}>+ Assign</button>
                       </div>
                     ))}
                     {!q&&<div style={{fontSize:11,color:"var(--t3)",textAlign:"center",paddingTop:4}}>Showing 5 most recent · search to find more</div>}

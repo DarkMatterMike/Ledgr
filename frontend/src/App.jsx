@@ -178,13 +178,14 @@ function useIsMobile() {
     .ledgr-card-anim:nth-child(n+6){ animation-delay: 250ms; }
 
     @keyframes ledgr-bar-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-    .ledgr-bar { transform-origin: left center; animation: ledgr-bar-fill 1s cubic-bezier(0.22,1,0.36,1) both; }
-    .ledgr-bar:nth-child(1)  { animation-delay: 60ms; }
-    .ledgr-bar:nth-child(2)  { animation-delay: 150ms; }
-    .ledgr-bar:nth-child(3)  { animation-delay: 240ms; }
-    .ledgr-bar:nth-child(4)  { animation-delay: 330ms; }
-    .ledgr-bar:nth-child(5)  { animation-delay: 420ms; }
-    .ledgr-bar:nth-child(n+6){ animation-delay: 500ms; }
+    .ledgr-bar-anim { transform-origin: left center; animation: ledgr-bar-fill 1s cubic-bezier(0.22,1,0.36,1) both; }
+    .ledgr-bar-anim:nth-child(1)  { animation-delay: 60ms; }
+    .ledgr-bar-anim:nth-child(2)  { animation-delay: 150ms; }
+    .ledgr-bar-anim:nth-child(3)  { animation-delay: 240ms; }
+    .ledgr-bar-anim:nth-child(4)  { animation-delay: 330ms; }
+    .ledgr-bar-anim:nth-child(5)  { animation-delay: 420ms; }
+    .ledgr-bar-anim:nth-child(n+6){ animation-delay: 500ms; }
+    .ledgr-bar { }
 
     @keyframes ledgr-donut-seg-in { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
     .ledgr-donut-seg { transform-origin: center; transform-box: fill-box; animation: ledgr-donut-seg-in 0.45s cubic-bezier(0.22,1,0.36,1) both; }
@@ -4250,7 +4251,7 @@ function AppInner({ isDemo = false }) {
           <div style={{height:5,background:"var(--border)",borderRadius:99,overflow:"hidden"}}>
             <div style={{height:"100%",borderRadius:99,
               background:(spentByCat[drillCat.id]||0)>=drillCat.limit?"var(--red)":(spentByCat[drillCat.id]||0)/drillCat.limit>=0.8?"var(--amber)":drillCat.color,
-              width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s"}} className="ledgr-bar"/>
+              width:`${Math.min(((spentByCat[drillCat.id]||0)/drillCat.limit)*100,100)}%`,transition:"width 0.5s"}} className={budgetBarsAnimated.current?"ledgr-bar":"ledgr-bar ledgr-bar-anim"}/>
           </div>
         </div>
         <div style={{overflowY:"auto",flex:1}}>
@@ -4766,7 +4767,7 @@ function AppInner({ isDemo = false }) {
                       <span style={{width:6,height:6,borderRadius:"50%",background:cat.color,display:"inline-block",justifySelf:"center"}}/>
                       <span style={{fontSize:12,fontWeight:500,color:"var(--t1)",whiteSpace:"nowrap",opacity:complete?0.6:1}}>{cat.name}</span>
                       <div style={{height:3,background:"rgba(255,255,255,0.07)",borderRadius:99,overflow:"hidden",cursor:"pointer",minWidth:0}} onClick={()=>setDrillCat(cat)}>
-                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className="ledgr-bar"/>
+                        <div style={{height:"100%",borderRadius:99,width:`${complete?100:pct}%`,background:barC}} className={budgetBarsAnimated.current?"ledgr-bar":"ledgr-bar ledgr-bar-anim"}/>
                       </div>
                       <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:valColor,whiteSpace:"nowrap",textAlign:"right"}}>{valLabel}</span>
                     </Fragment>
@@ -4834,7 +4835,7 @@ function AppInner({ isDemo = false }) {
                       <span style={{fontSize:11,fontFamily:"var(--font-mono)",color:pct<50?"var(--red)":"var(--amber)",flexShrink:0}}>{pct}%</span>
                     </div>
                     <div style={{height:3,background:"var(--border)",borderRadius:99,overflow:"hidden",marginBottom:2}}>
-                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className="ledgr-bar"/>
+                      <div style={{height:"100%",borderRadius:99,width:`${pct}%`,background:pct<50?"var(--red)":"var(--amber)",transition:"width 0.5s"}} className={budgetBarsAnimated.current?"ledgr-bar":"ledgr-bar ledgr-bar-anim"}/>
                     </div>
                     <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
                       <span>{fmt(g.savedAmount||0)} saved</span>
@@ -5389,6 +5390,16 @@ function AppInner({ isDemo = false }) {
 
   /* ── Budgets ─────────────────────────────────── */
   const Budgets = (() => {
+    /* ── Fire bar animation only on first render ──────── */
+    const budgetBarsAnimated = useRef(false);
+    useEffect(() => {
+      if (!budgetBarsAnimated.current) {
+        // After first paint, mark as animated so re-renders don't retrigger
+        const t = setTimeout(() => { budgetBarsAnimated.current = true; }, 1200);
+        return () => clearTimeout(t);
+      }
+    }, []);
+
     /* ── Compute category groups ─────────────────────── */
     const overCats     = sortedCategories.filter(c => (spentByCat[c.id]||0) > c.limit);
     const completedCats= sortedCategories.filter(c => !overCats.includes(c) && (c.completedMonths||[]).includes(selectedMonth));
@@ -5461,7 +5472,7 @@ function AppInner({ isDemo = false }) {
             {/* Bar */}
             {!isMobile && (
               <div style={{flex:1.5,height:2,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden"}}>
-                <div style={{height:"100%",borderRadius:99,background:barColor,width:`${complete?100:pct}%`,transition:"width 0.5s"}} className="ledgr-bar"/>
+                <div style={{height:"100%",borderRadius:99,background:barColor,width:`${complete?100:pct}%`,transition:"width 0.5s"}} className={budgetBarsAnimated.current?"ledgr-bar":"ledgr-bar ledgr-bar-anim"}/>
               </div>
             )}
             {/* Spent / limit */}
@@ -5482,7 +5493,7 @@ function AppInner({ isDemo = false }) {
             {/* Mobile bar */}
             {isMobile && (
               <div style={{width:60,height:2,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden",flexShrink:0}}>
-                <div style={{height:"100%",borderRadius:99,background:barColor,width:`${complete?100:pct}%`}} className="ledgr-bar"/>
+                <div style={{height:"100%",borderRadius:99,background:barColor,width:`${complete?100:pct}%`}} className={budgetBarsAnimated.current?"ledgr-bar":"ledgr-bar ledgr-bar-anim"}/>
               </div>
             )}
             {/* Chevron + kebab */}
@@ -5715,167 +5726,192 @@ function AppInner({ isDemo = false }) {
   /* -- Accounts -- */
 
   /* ── Accounts ─────────────────────────────────── */
-  const Accounts = (
-    <div>
-      <div style={{...S.sectionHdr,marginBottom:16}}>
-        <div>
-          <div style={S.sectionTitle}>Accounts</div>
-          <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Projections through end of {today.toLocaleString("default",{month:"long"})}</div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={openAddAcct}>+ Manual</button>
-          <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" style={{}}/>
-        </div>
-      </div>
-    <PageLayout
-      isMobile={isMobile}
-      mobileRightFirst={true}
-      left={
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {accounts.length===0
-            ? <div className="obsidian-card" style={{...S.card,textAlign:"center",padding:48,color:"var(--t3)"}}>No accounts yet.</div>
-            : (()=>{
-                // Group by Plaid connection (plaidItemId) so separate logins to the
-                // same bank appear as separate groups. Manual accounts go under "Manual".
-                const groups = {};
-                accounts.forEach(acct => {
-                  const key = acct.plaidItemId || "__manual__";
-                  if (!groups[key]) {
-                    // Find the plaidItem to get institution name; fall back to acct.institution
-                    const item = plaidItems.find(i => i.item_id === acct.plaidItemId);
-                    groups[key] = {
-                      label: item?.institution || acct.institution || "Manual",
-                      accts: [],
-                    };
-                  }
-                  groups[key].accts.push(acct);
-                });
-                // Sort: Plaid connections first (by institution name), manual last
-                const groupEntries = Object.entries(groups).sort(([ka, a], [kb, b]) => {
-                  if (ka === "__manual__") return 1;
-                  if (kb === "__manual__") return -1;
-                  return a.label.localeCompare(b.label);
-                });
+  const Accounts = (() => {
+    const totalBalance  = accounts.reduce((s, a) => s + (a.balance || 0), 0);
+    const totalSpentAcct= accounts.reduce((s, a) => s + (spentByAcct[a.id] || 0), 0);
+    const totalIncome   = monthTxns.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
 
-                function AcctRow({ acct, isLast }) {
-                  const spent=spentByAcct[acct.id]||0;
-                  const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id&&(t.type==="income"||!t.type)).reduce((a,t)=>a+t.amount,0);
-                  const daily=today.getDate()>0?spent/today.getDate():0;
-                                    return (
-                    <div style={{padding:"11px 14px",borderTop:"1px solid var(--border)"}}>
-                      <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:3}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:700,fontFamily:"var(--font-disp)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{acct.name}</div>
-                        </div>
-                        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:700,color:"var(--cyan)"}}>{fmt(acct.balance)}</span>
-                          <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>openEditAcct(acct)}>Edit</button>
-                          <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:14,padding:"2px 4px"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
-                        </div>
-                      </div>
-                      <div style={{display:"flex",gap:8,flexWrap:"wrap",rowGap:2}}>
-                        <span style={{fontSize:11,color:"var(--t3)"}}>{acct.type}{acct.mask?" ····"+acct.mask:""}</span>
-                        {acct.available!=null&&<span style={{fontSize:11,color:"var(--t3)"}}>· Avail {fmt(acct.available)}</span>}
-                        <span style={{fontSize:11,color:"var(--t3)"}}>· Spent {fmt(spent)}</span>
-                        {income>0&&<span style={{fontSize:11,color:"var(--green)"}}>· +{fmt(income)}</span>}
-                        {!isMobile&&<span style={{fontSize:11,color:"var(--t3)"}}>· ~{fmt(daily)}/day · proj {fmt(daily*daysInMonth(today.getFullYear(),today.getMonth()+1))}</span>}
-                      </div>
+    /* Group by plaidItemId, manual last */
+    const groups = {};
+    accounts.forEach(acct => {
+      const key = acct.plaidItemId || "__manual__";
+      if (!groups[key]) {
+        const item = plaidItems.find(i => i.item_id === acct.plaidItemId);
+        groups[key] = { label: item?.institution || acct.institution || "Manual", accts: [] };
+      }
+      groups[key].accts.push(acct);
+    });
+    const groupEntries = Object.entries(groups).sort(([ka], [kb]) => {
+      if (ka === "__manual__") return 1;
+      if (kb === "__manual__") return -1;
+      return groups[ka].label.localeCompare(groups[kb].label);
+    });
+
+    /* Shared styles */
+    const pill = (bg, color, border) => ({
+      fontFamily: "var(--font-mono)", fontSize: 10,
+      padding: "2px 8px", borderRadius: 99,
+      border: `1px solid ${border}`, background: bg, color,
+      whiteSpace: "nowrap",
+    });
+
+    return (
+      <div style={{ width: "100%", maxWidth: 900, margin: "0 auto", padding: isMobile ? "20px 16px" : "28px 28px" }}>
+
+        {/* ── Page header ─────────────────────────── */}
+        <div style={{ position: "relative", overflow: "hidden", marginBottom: 0 }}>
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, background: "linear-gradient(90deg,rgba(201,149,106,0.12),rgba(255,255,255,0.04) 35%,transparent 75%)", pointerEvents: "none" }} />
+          {!isMobile && <div style={{ position: "absolute", fontFamily: "'Playfair Display',serif", fontStyle: "italic", fontSize: 96, fontWeight: 500, color: "rgba(201,149,106,0.07)", pointerEvents: "none", userSelect: "none", top: "50%", transform: "translateY(-55%)", left: 8, lineHeight: 1 }}>I</div>}
+          <div style={{ paddingTop: 36, paddingBottom: 12, borderBottom: "1px solid rgba(201,149,106,0.12)", position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, color: "rgba(201,149,106,0.45)", letterSpacing: "1px" }}>01 ·</span>
+              <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: "italic", fontWeight: 400, fontSize: isMobile ? 18 : 22, color: "var(--t1)" }}>Accounts</span>
+              <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,rgba(201,149,106,0.15),transparent)", alignSelf: "center", marginLeft: 4 }} />
+            </div>
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.7px", color: "var(--t3)", marginTop: 5, marginBottom: 20 }}>
+            {accounts.length} account{accounts.length !== 1 ? "s" : ""} · Projections through end of {today.toLocaleString("default", { month: "long" })}
+          </div>
+        </div>
+
+        {/* ── Net worth hero ───────────────────────── */}
+        <div style={{ paddingBottom: 24, marginBottom: 24, borderBottom: "1px solid rgba(201,149,106,0.1)", position: "relative" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--t3)", marginBottom: 10 }}>Total balance</div>
+          <div style={{
+            fontFamily: "var(--font-mono)", fontWeight: 700, letterSpacing: -3, lineHeight: 0.9,
+            fontSize: isMobile ? 44 : 60,
+            background: "linear-gradient(135deg,#e8ddd0 12%,#d4a882 55%,#c9956a 100%)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            filter: "drop-shadow(0 0 20px rgba(201,149,106,0.18))",
+          }}>
+            {fmt(totalBalance)}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--t2)", marginTop: 8 }}>
+            across {accounts.length} account{accounts.length !== 1 ? "s" : ""} · <span style={{ color: "var(--red)" }}>−{fmt(totalSpentAcct)}</span> spent · <span style={{ color: "var(--green)" }}>+{fmt(totalIncome)}</span> income this month
+          </div>
+        </div>
+
+        {/* ── Action bar ───────────────────────────── */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+          <PlaidButton onSuccess={handlePlaidSuccess} onExit={() => {}} label="Link Bank" style={{}} />
+          <button style={S.btn("ghost", true)} className="ledgr-btn" onClick={openAddAcct}>+ Manual</button>
+        </div>
+
+        {accounts.length === 0 ? (
+          <div className="ledgr-empty">
+            <div className="ledgr-empty-icon">🏦</div>
+            <div className="ledgr-empty-title">No accounts yet</div>
+            <div>Link a bank or add a manual account to get started</div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {groupEntries.map(([key, { label: institution, accts }]) => {
+              const groupTotal = accts.reduce((s, a) => s + (a.balance || 0), 0);
+              const plaidItem  = plaidItems.find(i => i.item_id === key);
+              const isStale    = plaidItem && staleItemIds.has(plaidItem.item_id);
+              const isManual   = key === "__manual__";
+
+              return (
+                <div key={key} style={{ border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, overflow: "hidden" }}>
+                  {/* Accent seam */}
+                  <div style={{ height: 2, background: isManual ? "linear-gradient(90deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02) 60%,transparent)" : isStale ? "linear-gradient(90deg,rgba(224,112,112,0.4),rgba(224,112,112,0.08) 60%,transparent)" : "linear-gradient(90deg,rgba(201,149,106,0.5),rgba(201,149,106,0.08) 60%,transparent)" }} />
+
+                  {/* Card header */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 16px", background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {isStale && <span style={{ color: "var(--amber)", fontSize: 12 }}>⚠</span>}
+                      <span style={{ fontSize: 13, fontWeight: 600, color: isStale ? "var(--amber)" : "var(--t1)" }}>{institution}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t3)" }}>{accts.length} account{accts.length !== 1 ? "s" : ""}</span>
                     </div>
-                  );
-                }
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "var(--t2)" }}>{fmt(groupTotal)}</span>
+                      {!isManual && plaidItem && (
+                        isStale ? (
+                          <>
+                            <PlaidButton
+                              itemId={plaidItem.item_id}
+                              onSuccess={async (publicToken, inst) => {
+                                await handlePlaidSuccess(publicToken, inst || institution);
+                                setStaleItemIds(prev => { const n = new Set(prev); n.delete(plaidItem.item_id); return n; });
+                                setReconnectingItemId(null);
+                              }}
+                              onExit={() => setReconnectingItemId(null)}
+                              label={reconnectingItemId === plaidItem.item_id ? "Opening…" : "Reconnect"}
+                              style={{ fontSize: 11, padding: "3px 8px" }}
+                            />
+                            <button style={{ ...S.btn("danger", true), fontSize: 11 }} onClick={() => disconnectItem(plaidItem.item_id)}>Remove</button>
+                          </>
+                        ) : (
+                          <>
+                            <button style={{ ...S.btn("ghost", true), fontSize: 11 }} className="ledgr-btn" onClick={() => doSync(plaidItem.item_id)} disabled={syncing}>{syncing ? "…" : "↻ Sync"}</button>
+                            <button style={{ ...S.btn("danger", true), fontSize: 11 }} onClick={() => disconnectItem(plaidItem.item_id)}>Disconnect</button>
+                          </>
+                        )
+                      )}
+                    </div>
+                  </div>
 
-                return (
-                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                    {groupEntries.map(([key, group]) => {
-                      const { label: institution, accts } = group;
-                      const groupTotal = accts.reduce((s,a) => s+(a.balance||0), 0);
+                  {/* Stale warning */}
+                  {isStale && (
+                    <div style={{ padding: "8px 16px", background: "rgba(224,112,112,0.05)", borderBottom: "1px solid rgba(224,112,112,0.1)", fontSize: 11, color: "var(--t3)", lineHeight: 1.5 }}>
+                      Connection expired — reconnect to restore syncing. Your data won't be affected.
+                    </div>
+                  )}
+
+                  {/* Accounts grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : accts.length === 1 ? "1fr" : "1fr 1fr", gap: 0 }}>
+                    {accts.map((acct, i) => {
+                      const spent  = spentByAcct[acct.id] || 0;
+                      const income = monthTxns.filter(t => t.amount > 0 && t.accountId === acct.id).reduce((s, t) => s + t.amount, 0);
+                      const daily  = today.getDate() > 0 ? spent / today.getDate() : 0;
+                      const proj   = daily * daysInMonth(today.getFullYear(), today.getMonth() + 1);
+                      const isRight = !isMobile && accts.length > 1 && i % 2 === 1;
                       return (
-                        <div key={institution} className="obsidian-card" style={{...S.card,padding:0,overflow:"hidden"}}>
-                          {/* Bank header */}
-                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--surface)",borderBottom:"1px solid var(--border)"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              
-                              <span style={{fontSize:13,fontWeight:700,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>{institution}</span>
-                              <span style={{fontSize:10,color:"var(--t3)",fontFamily:"var(--font-mono)"}}>{accts.length} account{accts.length!==1?"s":""}</span>
+                        <div key={acct.id} style={{
+                          padding: "14px 16px",
+                          borderRight: !isMobile && accts.length > 1 && i % 2 === 0 && i < accts.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                          borderBottom: isMobile && i < accts.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                        }}>
+                          {/* Account name + edit/delete */}
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
+                            <div style={{ fontSize: 12, color: "var(--t2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{acct.name}</div>
+                            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                              <button style={{ background: "none", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 5, color: "var(--t3)", fontSize: 10, padding: "2px 7px", cursor: "pointer" }} onClick={() => openEditAcct(acct)}>Edit</button>
+                              <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 13, padding: "2px 4px", lineHeight: 1 }} onClick={() => deleteAcct(acct.id)}>✕</button>
                             </div>
-                            <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:"var(--t2)"}}>{fmt(groupTotal)}</span>
                           </div>
-                          {/* Accounts in this group */}
-                          {isMobile ? (
-                            accts.map((acct,i) => <AcctRow key={acct.id} acct={acct} isLast={i===accts.length-1}/>)
-                          ) : (
-                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
-                              {accts.map((acct,i) => (
-                                <div key={acct.id} style={{borderRight:i%2===0&&i<accts.length-1?"1px solid var(--border)":"none"}}>
-                                  <AcctRow acct={acct} isLast={i>=accts.length-2}/>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+
+                          {/* Balance hero */}
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "var(--t1)", letterSpacing: -1, marginBottom: 4 }}>{fmt(acct.balance)}</div>
+
+                          {/* Type / mask */}
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t3)", marginBottom: 8 }}>
+                            {acct.type}{acct.mask ? " ····" + acct.mask : ""}
+                            {acct.available != null && <span> · Avail {fmt(acct.available)}</span>}
+                          </div>
+
+                          {/* Pills */}
+                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                            {spent > 0 && <span style={pill("rgba(224,112,112,0.06)", "var(--red)", "rgba(224,112,112,0.2)")}>−{fmt(spent)} spent</span>}
+                            {income > 0 && <span style={pill("rgba(109,184,138,0.06)", "var(--green)", "rgba(109,184,138,0.2)")}>+{fmt(income)} income</span>}
+                            {!isMobile && daily > 0 && <span style={pill("rgba(255,255,255,0.03)", "var(--t3)", "rgba(255,255,255,0.07)")}>~{fmt(proj)} proj</span>}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                );
-              })()
-          }
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ marginTop: 24 }}>
           <SecurityBadges compact />
         </div>
-      }
-      right={
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {plaidItems.length>0&&(
-            <div className="obsidian-card" style={{...S.card,padding:"10px 14px"}}>
-              <div style={{...S.cardTitle,marginBottom:8}}>Connected Banks</div>
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                {plaidItems.map(item=>{
-                  const isStale = staleItemIds.has(item.item_id);
-                  return (
-                    <div key={item.item_id}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,padding:"5px 0"}}>
-                        <span style={{fontSize:13,flex:1,minWidth:0,color:isStale?"var(--amber)":"var(--t1)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                          {isStale?"⚠ ":""}{item.institution}
-                        </span>
-                        <div style={{display:"flex",gap:4,flexShrink:0}}>
-                          {isStale ? (
-                            <>
-                              <PlaidButton
-                                itemId={item.item_id}
-                                onSuccess={async (publicToken, institution) => {
-                                  await handlePlaidSuccess(publicToken, institution || item.institution);
-                                  setStaleItemIds(prev => { const n = new Set(prev); n.delete(item.item_id); return n; });
-                                  setReconnectingItemId(null);
-                                }}
-                                onExit={() => setReconnectingItemId(null)}
-                                label={reconnectingItemId === item.item_id ? "Opening…" : "Reconnect"}
-                                style={{fontSize:11,padding:"3px 8px"}}
-                              />
-                              <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Remove</button>
-                            </>
-                          ) : (
-                            <>
-                              <button style={{...S.btn("ghost",true),fontSize:11}} className="ledgr-btn" onClick={()=>doSync(item.item_id)} disabled={syncing}>{syncing?"…":"↻ Sync"}</button>
-                              <button style={{...S.btn("danger",true),fontSize:11}} onClick={()=>disconnectItem(item.item_id)}>Disconnect</button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {isStale&&(
-                        <div style={{fontSize:11,color:"var(--t3)",paddingBottom:4,lineHeight:1.4}}>
-                          Connection expired — reconnect to restore. Your data won't be affected.
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      }
-    />
-    </div>
-  );
+      </div>
+    );
+  })();
 
   /* -- Rules -- */
   const [ruleSearch, setRuleSearch] = useState("");

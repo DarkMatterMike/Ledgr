@@ -319,8 +319,8 @@ export default function DashboardNew({
               return (
                 <div key={cat.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.03)", cursor: "pointer" }}>
                   <Sig status={sigStatus} color={cat.color} />
-                  <span style={{ fontSize: 12, color: "var(--t2)", flex: 1, opacity: complete ? 0.5 : 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat.name}</span>
-                  <div style={{ flex: isMobile ? "0 0 60px" : 1.5, height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden", width: isMobile ? 60 : undefined }}>
+                  <span style={{ fontSize: 12, color: "var(--t2)", flexShrink: 0, width: isMobile ? 100 : 120, opacity: complete ? 0.5 : 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cat.name}</span>
+                  <div style={{ flex: 1.5, height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden" }}>
                     <div style={{ height: "100%", borderRadius: 99, width: `${complete ? 100 : pct}%`, background: barColor, transition: "width 0.5s" }} />
                   </div>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: valColor, width: 70, textAlign: "right", flexShrink: 0 }}>{valLabel}</span>

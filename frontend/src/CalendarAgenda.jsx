@@ -1,10 +1,12 @@
 /**
  * CalendarAgenda.jsx — Concept 05: Agenda + Mini Cal
  *
- * Matches the Transactions/Budgets/Accounts page layout:
- *   - Outer wrapper: width 100%, maxWidth 900, margin 0 auto, padding 28px 28px
- *   - Playfair italic page header with ghost roman numeral (same as Transactions)
- *   - Below the header: the ag panel — no outer border, no outer border-radius
+ * Layout:
+ *   - No outer card/border/container — content sits directly on the page bg
+ *   - Padding matches Dashboard: left side starts at 36px (same as tier padding)
+ *   - Page header: ghost roman numeral + Playfair italic title (same as Transactions)
+ *   - Two-column body: 260px left (mini-cal + stats), flex-1 right (agenda)
+ *   - Agenda scrolls with the PAGE, not inside a fixed-height container
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -19,24 +21,31 @@ function injectCSS() {
   const s = document.createElement('style');
   s.id = 'ag-css';
   s.textContent = `
-  /* ── Agenda panel — no outer border/radius, fills its container ── */
-  .ag { background: transparent; display: flex; flex-direction: column; font-family: var(--font-body,'DM Sans',sans-serif); color: var(--t1,#e8ddd0); }
-
-  .ag-layout { display: grid; grid-template-columns: 260px 1fr; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; background: #0d0c0a; }
+  /* ── Two-column body ── */
+  .ag-body { display: grid; grid-template-columns: 260px 1fr; gap: 0; align-items: start; }
 
   /* ── Left panel ── */
-  .ag-left { background: var(--bg,#0b0a08); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; }
+  .ag-left {
+    position: sticky;
+    top: 0;
+    background: var(--bg,#0b0a08);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding-bottom: 24px;
+  }
 
-  .ag-mini-header { padding: 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .ag-mini-header { padding: 20px 16px 16px; display: flex; align-items: center; justify-content: space-between; }
   .ag-mini-month  { font-family: var(--font-disp,'Syne',sans-serif); font-size: 15px; font-weight: 700; color: var(--t1,#e8ddd0); }
   .ag-mini-nav    { display: flex; gap: 4px; }
   .ag-mini-nav-btn { background: none; border: none; color: rgba(232,221,208,0.4); cursor: pointer; font-size: 13px; padding: 2px 5px; border-radius: 4px; transition: color .15s; }
   .ag-mini-nav-btn:hover { color: var(--t1,#e8ddd0); background: rgba(255,255,255,0.05); }
 
-  .ag-mini-dow   { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 8px; margin-bottom: 4px; flex-shrink: 0; }
+  .ag-mini-dow   { display: grid; grid-template-columns: repeat(7,1fr); padding: 0 8px; margin-bottom: 4px; }
   .ag-mini-dow-c { text-align: center; font-size: 9px; font-weight: 700; color: rgba(232,221,208,0.25); text-transform: uppercase; padding: 4px 0; font-family: var(--font-disp,'Syne',sans-serif); }
 
-  .ag-mini-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; padding: 0 8px; flex-shrink: 0; }
+  .ag-mini-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; padding: 0 8px; }
   .ag-mini-day  { display: flex; flex-direction: column; align-items: center; padding: 4px 2px; border-radius: 5px; cursor: pointer; transition: background .1s; min-height: 32px; }
   .ag-mini-day:hover       { background: rgba(255,255,255,0.04); }
   .ag-mini-day.today       { background: rgba(201,149,106,0.15); }
@@ -48,21 +57,20 @@ function injectCSS() {
   .ag-mini-dots { display: flex; gap: 1px; margin-top: 2px; }
   .ag-mini-dot  { width: 3px; height: 3px; border-radius: 50%; }
 
-  .ag-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 16px; flex-shrink: 0; }
+  .ag-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 12px 16px; }
 
-  .ag-stats    { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .ag-stats    { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 6px; }
   .ag-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.02); border-radius: 7px; }
   .ag-stat-name { font-size: 11px; color: rgba(232,221,208,0.5); }
   .ag-stat-val  { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 13px; font-weight: 700; }
 
-  .ag-spacer  { flex: 1; }
-  .ag-new-btn { margin: 0 16px 16px; padding: 9px; background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.2); border-radius: 8px; color: #c9956a; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-body,'DM Sans',sans-serif); text-align: center; transition: background .15s; flex-shrink: 0; }
+  .ag-new-btn { margin: 16px 16px 0; padding: 9px; background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.2); border-radius: 8px; color: #c9956a; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-body,'DM Sans',sans-serif); text-align: center; transition: background .15s; }
   .ag-new-btn:hover { background: rgba(201,149,106,0.18); }
 
-  /* ── Right panel ── */
-  .ag-right { display: flex; flex-direction: column; overflow: hidden; }
+  /* ── Right panel — agenda ── */
+  .ag-right { display: flex; flex-direction: column; border-left: 1px solid rgba(255,255,255,0.05); }
 
-  .ag-agenda-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .ag-agenda-header { padding: 20px 24px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; }
   .ag-agenda-title  { font-family: var(--font-disp,'Syne',sans-serif); font-size: 13px; font-weight: 700; color: rgba(232,221,208,0.5); text-transform: uppercase; letter-spacing: 1px; }
   .ag-filter-btns   { display: flex; gap: 4px; }
   .ag-filter-btn    { padding: 4px 10px; border-radius: 99px; font-size: 10px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: var(--font-body,'DM Sans',sans-serif); }
@@ -70,22 +78,20 @@ function injectCSS() {
   .ag-filter-btn.inactive { background: rgba(255,255,255,0.04); color: rgba(232,221,208,0.4); }
   .ag-filter-btn.inactive:hover { background: rgba(255,255,255,0.08); color: rgba(232,221,208,0.6); }
 
-  .ag-agenda { overflow-y: auto; padding: 8px 0; }
-  .ag-agenda::-webkit-scrollbar       { width: 3px; }
-  .ag-agenda::-webkit-scrollbar-track { background: transparent; }
-  .ag-agenda::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+  /* Agenda list — no fixed height, flows naturally */
+  .ag-agenda { padding: 8px 0; }
 
   /* ── Day block ── */
   .ag-day-block  { margin-bottom: 2px; }
-  .ag-day-head   { padding: 10px 20px 6px; display: flex; align-items: baseline; gap: 10px; }
+  .ag-day-head   { padding: 10px 24px 6px; display: flex; align-items: baseline; gap: 10px; }
   .ag-day-num    { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 22px; font-weight: 700; color: rgba(232,221,208,0.2); line-height: 1; }
   .ag-day-weekday { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: rgba(232,221,208,0.3); font-family: var(--font-disp,'Syne',sans-serif); }
   .ag-day-head.is-today .ag-day-num     { color: #c9956a; }
   .ag-day-head.is-today .ag-day-weekday { color: #c9956a; }
 
   /* ── Entry row ── */
-  .ag-entry { display: flex; align-items: center; gap: 12px; padding: 9px 20px; cursor: pointer; transition: background .1s; position: relative; }
-  .ag-entry::before { content: ''; position: absolute; left: 28px; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.04); }
+  .ag-entry { display: flex; align-items: center; gap: 12px; padding: 9px 24px; cursor: pointer; transition: background .1s; position: relative; }
+  .ag-entry::before { content: ''; position: absolute; left: 32px; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.04); }
   .ag-entry:hover { background: rgba(255,255,255,0.025) !important; }
 
   .ag-entry-time    { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 10px; color: rgba(232,221,208,0.25); width: 28px; flex-shrink: 0; position: relative; z-index: 1; }
@@ -101,14 +107,15 @@ function injectCSS() {
   .ag-entry-tag.income { background: rgba(109,184,138,0.15); color: #6db88a; }
 
   /* ── Empty ── */
-  .ag-empty     { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 8px; color: rgba(232,221,208,0.25); font-size: 13px; }
+  .ag-empty     { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; gap: 8px; color: rgba(232,221,208,0.25); font-size: 13px; }
   .ag-empty-add { background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.2); border-radius: 8px; color: #c9956a; font-size: 12px; font-weight: 600; padding: 7px 14px; cursor: pointer; margin-top: 8px; font-family: var(--font-body,'DM Sans',sans-serif); transition: background .15s; }
   .ag-empty-add:hover { background: rgba(201,149,106,0.18); }
 
-  /* ── Mobile ── */
+  /* ── Mobile: stack columns ── */
   @media (max-width: 767px) {
-    .ag-layout { grid-template-columns: 1fr; }
-    .ag-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .ag-body { grid-template-columns: 1fr; }
+    .ag-left { position: static; min-height: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .ag-right { border-left: none; }
   }
   `;
   document.head.appendChild(s);
@@ -202,8 +209,9 @@ export default function CalendarAgenda({
 
   function handleMiniDayClick(day) {
     setSelectedDay(day);
+    // scroll the page to the day block
     const el = dayRefs.current[day];
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function dotsForDay(day) {
@@ -285,13 +293,13 @@ export default function CalendarAgenda({
     const subParts = [];
     if (cat) subParts.push(cat.name);
     const freq = t.recurringFreq;
-    if (freq === 'weekly')    subParts.push('Weekly');
+    if (freq === 'weekly')        subParts.push('Weekly');
     else if (freq === 'biweekly') subParts.push('Bi-weekly');
     else if (freq === 'annual')   subParts.push('Annual');
     else if (freq === 'monthly')  subParts.push('Monthly');
     if (t.recurringDay) subParts.push(`Day ${t.recurringDay}`);
-    const linkedCount = (t.linkedTxnIds || []).length;
-    if (linkedCount > 0) subParts.push(`Linked to ${linkedCount} txn${linkedCount !== 1 ? 's' : ''}`);
+    const lc = (t.linkedTxnIds || []).length;
+    if (lc > 0) subParts.push(`Linked to ${lc} txn${lc !== 1 ? 's' : ''}`);
 
     const tagClass = isIncome ? 'income' : isPosted ? 'posted' : 'sched';
     const tagLabel = isIncome ? 'Income ✓' : isPosted ? 'Posted ✓' : 'Upcoming';
@@ -328,148 +336,142 @@ export default function CalendarAgenda({
     );
   }
 
-  /* ── Panel height: fills remaining viewport below the page header ── */
-  const panelHeight = isMobile ? 'auto' : 'calc(100vh - 210px)';
+  /* ── Dashboard-style page padding: 48px top, 36px left (matches DashboardNew tier) ── */
+  const outerPad = isMobile ? '24px 16px' : '48px 0 52px 36px';
 
   return (
-    /* Same outer wrapper as Transactions/Budgets/Accounts */
-    <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 28px' }}>
+    <div style={{ fontFamily: 'var(--font-body)', color: 'var(--t1,#e8ddd0)' }}>
 
-      {/* ── Page header — identical pattern to Transactions ── */}
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
-        {/* Top-edge accent line */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.12),rgba(255,255,255,0.04) 35%,transparent 75%)', pointerEvents: 'none' }} />
+      {/* ── Page header — Playfair title, same pattern as Transactions ── */}
+      <div style={{ padding: outerPad, borderBottom: '1px solid rgba(0,0,0,0.35)', position: 'relative', overflow: 'hidden', background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)' }}>
+        {/* Top-edge seam */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.14) 0%,rgba(255,255,255,0.05) 35%,transparent 75%)', pointerEvents: 'none' }} />
         {/* Ghost roman numeral */}
         {!isMobile && (
           <div style={{ position: 'absolute', fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontSize: 96, fontWeight: 500, color: 'rgba(201,149,106,0.07)', pointerEvents: 'none', userSelect: 'none', top: '50%', transform: 'translateY(-55%)', left: 8, lineHeight: 1 }}>
             I
           </div>
         )}
-        <div style={{ paddingTop: 40, paddingBottom: 12, marginBottom: 0, borderBottom: '1px solid rgba(201,149,106,0.12)', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>01 ·</span>
-            <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: 22, color: 'var(--t1)' }}>Calendar</span>
-            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.15),transparent)', alignSelf: 'center', marginLeft: 4 }} />
-          </div>
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, position: 'relative', zIndex: 1 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>01 ·</span>
+          <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: 22, color: 'var(--t1)' }}>Calendar</span>
+          <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.15),transparent)', alignSelf: 'center', marginLeft: 4 }} />
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 5, marginBottom: 18 }}>
+        {/* Sub-line */}
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 6, position: 'relative', zIndex: 1 }}>
           {monthLabel} · {recurringItems.length} recurring item{recurringItems.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {/* ── Agenda panel ── */}
-      <div className="ag">
-        <div className="ag-layout" style={{ height: panelHeight, minHeight: 560 }}>
+      {/* ── Two-column body: left sticky panel + right flowing agenda ── */}
+      <div className="ag-body">
 
-          {/* LEFT */}
-          <div className="ag-left">
-            <div className="ag-mini-header">
-              <div className="ag-mini-month">{monthLabel}</div>
-              <div className="ag-mini-nav">
-                <button className="ag-mini-nav-btn" onClick={prevCalMonth}>‹</button>
-                <button className="ag-mini-nav-btn" onClick={nextCalMonth}>›</button>
-              </div>
+        {/* LEFT: sticky mini-cal + stats */}
+        <div className="ag-left">
+          <div className="ag-mini-header">
+            <div className="ag-mini-month">{monthLabel}</div>
+            <div className="ag-mini-nav">
+              <button className="ag-mini-nav-btn" onClick={prevCalMonth}>‹</button>
+              <button className="ag-mini-nav-btn" onClick={nextCalMonth}>›</button>
             </div>
+          </div>
 
-            <div className="ag-mini-dow">
-              {DOW_LABELS.map((d, i) => <div key={i} className="ag-mini-dow-c">{d}</div>)}
-            </div>
+          <div className="ag-mini-dow">
+            {DOW_LABELS.map((d, i) => <div key={i} className="ag-mini-dow-c">{d}</div>)}
+          </div>
 
-            <div className="ag-mini-grid">
-              {Array.from({ length: totalCells }).map((_, i) => {
-                const day   = i - firstDow + 1;
-                const valid = day >= 1 && day <= totalDays;
-                const isToday = valid && isCurrentMonth && day === today.getDate();
-                const isSel   = valid && day === selectedDay;
-                const dots    = valid ? dotsForDay(day) : [];
-                const cls = ['ag-mini-day', !valid && 'inactive', isToday && 'today', isSel && 'selected'].filter(Boolean).join(' ');
-                return (
-                  <div key={i} className={cls} onClick={() => valid && handleMiniDayClick(day)}>
-                    {valid && (
-                      <>
-                        <div className="ag-mini-dn">{day}</div>
-                        {dots.length > 0 && (
-                          <div className="ag-mini-dots">
-                            {dots.map((c, di) => <div key={di} className="ag-mini-dot" style={{ background: c }} />)}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="ag-divider" />
-
-            <div className="ag-stats">
-              {[
-                ['Monthly expenses', fmt(stats.expenses),         '#e07070'],
-                ['Expected income',  '+' + fmt(stats.income),     '#6db88a'],
-                ['Posted so far',    fmt(stats.posted),           'rgba(232,221,208,0.6)'],
-                ['Remaining',        fmt(stats.remaining),         '#c9956a'],
-              ].map(([name, val, color]) => (
-                <div key={name} className="ag-stat-row">
-                  <div className="ag-stat-name">{name}</div>
-                  <div className="ag-stat-val" style={{ color }}>{val}</div>
+          <div className="ag-mini-grid">
+            {Array.from({ length: totalCells }).map((_, i) => {
+              const day   = i - firstDow + 1;
+              const valid = day >= 1 && day <= totalDays;
+              const isToday = valid && isCurrentMonth && day === today.getDate();
+              const isSel   = valid && day === selectedDay;
+              const dots    = valid ? dotsForDay(day) : [];
+              const cls = ['ag-mini-day', !valid && 'inactive', isToday && 'today', isSel && 'selected'].filter(Boolean).join(' ');
+              return (
+                <div key={i} className={cls} onClick={() => valid && handleMiniDayClick(day)}>
+                  {valid && (
+                    <>
+                      <div className="ag-mini-dn">{day}</div>
+                      {dots.length > 0 && (
+                        <div className="ag-mini-dots">
+                          {dots.map((c, di) => <div key={di} className="ag-mini-dot" style={{ background: c }} />)}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+
+          <div className="ag-divider" />
+
+          <div className="ag-stats">
+            {[
+              ['Monthly expenses', fmt(stats.expenses),        '#e07070'],
+              ['Expected income',  '+' + fmt(stats.income),    '#6db88a'],
+              ['Posted so far',    fmt(stats.posted),          'rgba(232,221,208,0.6)'],
+              ['Remaining',        fmt(stats.remaining),        '#c9956a'],
+            ].map(([name, val, color]) => (
+              <div key={name} className="ag-stat-row">
+                <div className="ag-stat-name">{name}</div>
+                <div className="ag-stat-val" style={{ color }}>{val}</div>
+              </div>
+            ))}
+          </div>
+
+          <button className="ag-new-btn" onClick={openNewRecurringItem}>
+            + Add Recurring Item
+          </button>
+        </div>
+
+        {/* RIGHT: agenda — flows with the page */}
+        <div className="ag-right">
+          <div className="ag-agenda-header">
+            <div className="ag-agenda-title">{monthLabel} Schedule</div>
+            <div className="ag-filter-btns">
+              {[['all','All'],['expenses','Expenses'],['income','Income']].map(([val, label]) => (
+                <button
+                  key={val}
+                  className={`ag-filter-btn ${filter === val ? 'active' : 'inactive'}`}
+                  onClick={() => setFilter(val)}
+                >
+                  {label}
+                </button>
               ))}
             </div>
-
-            <div className="ag-spacer" />
-
-            <button className="ag-new-btn" onClick={openNewRecurringItem}>
-              + Add Recurring Item
-            </button>
           </div>
 
-          {/* RIGHT */}
-          <div className="ag-right">
-            <div className="ag-agenda-header">
-              <div className="ag-agenda-title">{monthLabel} Schedule</div>
-              <div className="ag-filter-btns">
-                {[['all','All'],['expenses','Expenses'],['income','Income']].map(([val, label]) => (
-                  <button
-                    key={val}
-                    className={`ag-filter-btn ${filter === val ? 'active' : 'inactive'}`}
-                    onClick={() => setFilter(val)}
-                  >
-                    {label}
-                  </button>
-                ))}
+          <div className="ag-agenda">
+            {agendaDays.length === 0 ? (
+              <div className="ag-empty">
+                <div style={{ fontSize: 28, opacity: 0.25 }}>▦</div>
+                <div>No items for {monthLabel}</div>
+                <button className="ag-empty-add" onClick={openNewRecurringItem}>
+                  + Add Recurring Item
+                </button>
               </div>
-            </div>
-
-            <div className="ag-agenda">
-              {agendaDays.length === 0 ? (
-                <div className="ag-empty">
-                  <div style={{ fontSize: 28, opacity: 0.25 }}>▦</div>
-                  <div>No items for {monthLabel}</div>
-                  <button className="ag-empty-add" onClick={openNewRecurringItem}>
-                    + Add Recurring Item
-                  </button>
-                </div>
-              ) : (
-                agendaDays.map(({ day, entries }) => {
-                  const isToday = isCurrentMonth && day === today.getDate();
-                  const headCls = ['ag-day-head', isToday && 'is-today'].filter(Boolean).join(' ');
-                  return (
-                    <div key={day} className="ag-day-block" ref={el => { dayRefs.current[day] = el; }}>
-                      <div className={headCls}>
-                        <div className="ag-day-num">{day}</div>
-                        <div className="ag-day-weekday">{dayWeekday(day)}</div>
-                      </div>
-                      {entries.map(t => renderEntry(t, isToday))}
+            ) : (
+              agendaDays.map(({ day, entries }) => {
+                const isToday = isCurrentMonth && day === today.getDate();
+                const headCls = ['ag-day-head', isToday && 'is-today'].filter(Boolean).join(' ');
+                return (
+                  <div key={day} className="ag-day-block" ref={el => { dayRefs.current[day] = el; }}>
+                    <div className={headCls}>
+                      <div className="ag-day-num">{day}</div>
+                      <div className="ag-day-weekday">{dayWeekday(day)}</div>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                    {entries.map(t => renderEntry(t, isToday))}
+                  </div>
+                );
+              })
+            )}
           </div>
-
         </div>
-      </div>
 
+      </div>
     </div>
   );
 }

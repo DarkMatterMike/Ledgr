@@ -2753,7 +2753,12 @@ function AppInner({ isDemo = false }) {
       if (Array.isArray(data.recurringItems)) setRecurringItems(data.recurringItems);
       if (data.insightsTodos)  setInsightsTodos(data.insightsTodos);
       if (data.dani)           setDaniData(data.dani);
-      if (data.theme)          { setTheme(data.theme); applyTheme(data.theme); }
+      if (data.theme) {
+        const t = (data.theme.bg === "#0f0e0d" || data.theme.bg === "#0F0E0D")
+          ? { ...data.theme, bg: "#0b0a08", surface: data.theme.surface || "#1a1612", card: data.theme.card || "#181511" }
+          : data.theme;
+        setTheme(t); applyTheme(t);
+      }
       setTxnTotal(txnTotal || 0);
       // Offset is now managed by oldest-date pagination in loadMoreTransactions
       setTxnOffset(0);
@@ -2799,7 +2804,12 @@ function AppInner({ isDemo = false }) {
       if (data.analyticsInsights) setAnalyticsInsights(data.analyticsInsights);
       if (data.insightsTodos)     setInsightsTodos(data.insightsTodos);
       if (data.dani)              setDaniData(data.dani);
-      if (data.theme)             { setTheme(data.theme); applyTheme(data.theme); }
+      if (data.theme) {
+        const t = (data.theme.bg === "#0f0e0d" || data.theme.bg === "#0F0E0D")
+          ? { ...data.theme, bg: "#0b0a08", surface: data.theme.surface || "#1a1612", card: data.theme.card || "#181511" }
+          : data.theme;
+        setTheme(t); applyTheme(t);
+      }
       // Store the full transaction set for analytics computations.
       // Falls back to the paginated set if the full load failed.
       if (allTxns?.length) setAllTransactions(allTxns);

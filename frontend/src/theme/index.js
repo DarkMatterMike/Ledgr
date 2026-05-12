@@ -75,6 +75,10 @@ export function applyGlobalOpacity(pct, theme) {
  */
 export function applyTheme(theme) {
   if (!theme) return;
+  // Migrate old Obsidian bg to darker concept-matching value
+  if (theme.bg === "#0f0e0d" || theme.bg === "#0F0E0D") {
+    theme = { ...theme, bg: "#0b0a08", surface: theme.surface || "#1a1612", card: theme.card || "#181511" };
+  }
   const root = document.documentElement;
 
   // Helper: parse "#rrggbb" → [r, g, b]

@@ -7888,7 +7888,7 @@ function AppInner({ isDemo = false }) {
       /* ── MOBILE — bottom nav ── */
       <>
         {/* Mobile top bar */}
-        <div className="obsidian-topbar" style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"var(--surface)",borderBottom:"none",position:"relative",overflow:"visible"}}>
+        <div style={{height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",background:"rgba(11,10,8,0.97)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.05)",position:"relative",overflow:"visible"}}>
           {/* Glow orb — top right, theme-matched */}
           <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"radial-gradient(circle, var(--glow-color) 0%, transparent 70%)",pointerEvents:"none",zIndex:0}}/>
           <div style={{display:"flex",alignItems:"center",gap:6,position:"relative",zIndex:1}}>
@@ -8011,13 +8011,16 @@ function AppInner({ isDemo = false }) {
          DESKTOP — persistent sidebar
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
-        {/* Desktop top bar */}
-        <div className="obsidian-topbar" style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 28px",background:"var(--surface)",borderBottom:"none"}}>
-          <div style={{display:"flex",alignItems:"center",gap:20}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span><div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div></div>
-            <div style={{width:1,height:16,background:"rgba(255,255,255,0.1)"}}/>
-            <div style={{fontFamily:"var(--font-disp)",fontSize:13,fontWeight:600,color:"var(--t3)",letterSpacing:"-0.1px"}}>
-              {NAV.find(n=>n.id===view)?.label}
+        {/* Desktop top bar — new */}
+        <div style={{height:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px 0 28px",background:"rgba(11,10,8,0.97)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontFamily:"var(--font-script)",fontSize:28,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</span>
+              <div style={{fontFamily:"'Syne', sans-serif",fontSize:14,fontWeight:700,letterSpacing:"-0.5px",color:"var(--t1)",lineHeight:1}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
+            </div>
+            <div style={{width:1,height:16,background:"rgba(255,255,255,0.06)"}}/>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",letterSpacing:"0.3px"}}>
+              {today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -8093,8 +8096,9 @@ function AppInner({ isDemo = false }) {
         {/* Desktop body */}
         <div style={{flex:1,display:"flex",overflow:"hidden"}}>
           {/* Persistent sidebar */}
-          <aside className="obsidian-nav" style={{
-            width:220,flexShrink:0,display:"flex",flexDirection:"column",
+          <aside style={{
+            width:72,flexShrink:0,display:"flex",flexDirection:"column",
+            position:"sticky",top:0,height:"calc(100vh - 56px)",overflow:"visible",
           }}>
             <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
           </aside>

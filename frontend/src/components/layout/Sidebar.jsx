@@ -110,7 +110,7 @@ body.ink-open .ink-gem-label { color: var(--cyan); }
 }
 body.ink-open .ink-panel {
   clip-path: circle(150% at 100% 36px);
-  right: 28px;
+  right: 38px;
   pointer-events: all;
 }
 

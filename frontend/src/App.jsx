@@ -2647,7 +2647,8 @@ function AppInner({ isDemo = false }) {
   const [filterReview,  setFilterReview]  = useState(false);
   const [txnSortCol,    setTxnSortCol]    = useState("date");
   const [txnSortDir,    setTxnSortDir]    = useState("desc");
-  const [txnTypeFilter, setTxnTypeFilter] = useState("all"); // "all" | "expense" | "income"
+  const [txnTypeFilter, setTxnTypeFilter] = useState("all");
+  const [txnPage,       setTxnPage]       = useState(0);
   const [editingId,     setEditingId]     = useState(null);
   const [ellipsisId,    setEllipsisId]    = useState(null);
   const [expandedTxnId, setExpandedTxnId] = useState(null);
@@ -4926,6 +4927,7 @@ function AppInner({ isDemo = false }) {
     function toggleSort(col) {
       if (txnSortCol === col) setTxnSortDir(d => d === "asc" ? "desc" : "asc");
       else { setTxnSortCol(col); setTxnSortDir(col === "amount" ? "desc" : col === "date" ? "desc" : "asc"); }
+      setTxnPage(0);
     }
 
     // ── summary strip values
@@ -4954,14 +4956,17 @@ function AppInner({ isDemo = false }) {
           <div>
 
         {/* Clarity header */}
-        <div style={{paddingBottom:20,marginBottom:20,borderBottom:"1px solid rgba(201,149,106,0.15)"}}>
-          <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.5)",letterSpacing:"1px"}}>01 ·</span>
-            <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:28,color:"var(--t1)"}}>Transactions</span>
-            <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.2),transparent)",alignSelf:"center",marginLeft:4}}/>
-          </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--t3)"}}>
-            All transactions · {new Date().toLocaleString("en-US",{month:"short",year:"numeric"})} · {typeFiltered.length} {typeFiltered.length===1?"entry":"entries"}
+        <div style={{position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.12),rgba(255,255,255,0.04) 35%,transparent 75%)",pointerEvents:"none"}}/>
+          <div style={{paddingTop:40,paddingBottom:12,marginBottom:0,borderBottom:"1px solid rgba(201,149,106,0.12)"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:6}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>01 ·</span>
+              <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:22,color:"var(--t1)"}}>Transactions</span>
+              <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.15),transparent)",alignSelf:"center",marginLeft:4}}/>
+            </div>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--t3)",marginTop:5,marginBottom:18}}>
+              All transactions · {new Date().toLocaleString("en-US",{month:"short",year:"numeric"})} · {typeFiltered.length} {typeFiltered.length===1?"entry":"entries"}
+            </div>
           </div>
         </div>
 
@@ -5050,14 +5055,12 @@ function AppInner({ isDemo = false }) {
         )}
 
         {/* Unified filter + action bar */}
-        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
-          <div style={{position:"relative",flex:1,minWidth:160}}>
-            <input ref={txnSearchInputRef}
-              onFocus={()=>{txnSearchHadFocusRef.current=true;}}
-              onBlur={()=>{txnSearchHadFocusRef.current=false;}}
-              style={{...S.input,fontSize:13,width:"100%",boxSizing:"border-box"}}
-              placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
-          </div>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:20,flexWrap:"wrap"}}>
+          <input ref={txnSearchInputRef}
+            onFocus={()=>{txnSearchHadFocusRef.current=true;}}
+            onBlur={()=>{txnSearchHadFocusRef.current=false;}}
+            style={{...S.input,fontSize:12,maxWidth:260,minWidth:160,boxSizing:"border-box"}}
+            placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
           <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)}
             options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
             style={{minWidth:0}} compact/>
@@ -5069,10 +5072,10 @@ function AppInner({ isDemo = false }) {
               padding:"6px 12px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",whiteSpace:"nowrap",
               background:txnTypeFilter===v?"var(--cyan-dim)":"var(--card-hi)",
               color:txnTypeFilter===v?"var(--cyan)":"var(--t2)",
-              border:txnTypeFilter===v?"1px solid rgba(201,149,106,0.3)":"1px solid var(--border)",
+              border:txnTypeFilter===v?"1px solid rgba(201,149,106,0.3)":"1px solid rgba(255,255,255,0.06)",
             }}>{label}</button>
           ))}
-          <button style={{...S.btn("primary",true),flexShrink:0}} onClick={openAddTxn}>+ Add</button>
+          <button style={{padding:"6px 12px",borderRadius:6,border:"none",background:"rgba(201,149,106,0.12)",color:"var(--cyan)",fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",fontWeight:600,marginLeft:"auto"}} onClick={openAddTxn}>+ Add</button>
           <div style={{position:"relative"}}>
             <button style={{...S.btn("ghost",true),fontSize:12,padding:"6px 10px"}} className="ledgr-btn"
               onClick={()=>setEllipsisId(ellipsisId==="__toolbar__"?null:"__toolbar__")}>⋯</button>
@@ -5100,8 +5103,7 @@ function AppInner({ isDemo = false }) {
           <div style={{borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border)"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
-                <tr style={{background:"var(--surface)"}}>
-                  <th style={{width:36,padding:"8px 0 10px 14px",borderBottom:"1px solid var(--border)"}}/>
+                <tr>
                   {[
                     {k:"date",    label:"Date"},
                     {k:"merchant",label:"Merchant"},
@@ -5113,15 +5115,15 @@ function AppInner({ isDemo = false }) {
                       textTransform:"uppercase",letterSpacing:"1px",
                       color:txnSortCol===k?"var(--cyan)":"var(--t3)",
                       padding:"8px 10px 10px",textAlign:right?"right":"left",
-                      borderBottom:"1px solid var(--border)",
+                      borderBottom:"1px solid rgba(255,255,255,0.06)",
                       cursor:"pointer",userSelect:"none",whiteSpace:"nowrap",
                     }}>{label}{txnSortCol===k?(txnSortDir==="asc"?" ↑":" ↓"):""}</th>
                   ))}
-                  <th style={{width:36,borderBottom:"1px solid var(--border)",padding:"8px 8px 10px"}}/>
+                  <th style={{width:28,borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"8px 6px 10px"}}/>
                 </tr>
               </thead>
               <tbody>
-                {sortedTxns.map((t,ri)=>{
+                {(()=>{const PG=25;const _s=txnPage*PG;return sortedTxns.slice(_s,_s+PG);})().map((t,ri)=>{
                   const cat=catMap[t.categoryId];
                   const acct=acctMap[t.accountId];
                   const reviewed=!needsReview(t);
@@ -5137,19 +5139,11 @@ function AppInner({ isDemo = false }) {
                         onClick={()=>{if(selectedTxns.size>0){toggleSelectTxn(t.id);}else{setExpandedTxnId(expanded?null:t.id);}}}
                         style={{background:selected?"var(--cyan-dim)":ri%2===0?"transparent":"rgba(255,255,255,0.012)",cursor:"pointer",
                           borderLeft:t.recurring?"3px solid var(--recurring-color,#fbbf24)":needsReview(t)?"3px solid var(--review-color,var(--cyan))":"3px solid transparent"}}>
-                        <td style={{padding:"0 0 0 12px",width:36}} onClick={e=>{e.stopPropagation();toggleSelectTxn(t.id);}}>
-                          <div style={{width:15,height:15,borderRadius:3,cursor:"pointer",
-                            border:`1.5px solid ${selected?"var(--cyan)":"var(--border2)"}`,
-                            background:selected?"var(--cyan)":"transparent",
-                            display:"flex",alignItems:"center",justifyContent:"center",
-                            opacity:selectedTxns.size>0?1:0.3,transition:"all .12s"}}>
-                            {selected&&<span style={{fontSize:9,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
-                          </div>
-                        </td>
-                        <td style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap"}}>
+
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",whiteSpace:"nowrap"}}>
                           {dateStr}{t.pending&&<span style={{fontSize:9,color:"var(--amber)",marginLeft:5,fontWeight:700}}>PENDING</span>}
                         </td>
-                        <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",maxWidth:isMobile?130:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",maxWidth:isMobile?130:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                           <span style={{fontSize:13,fontWeight:500,color:"var(--t1)"}}>
                             {t.name||t.merchant}
                             {t.recurringItemId&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
@@ -5157,7 +5151,7 @@ function AppInner({ isDemo = false }) {
                           {t.notes&&!isMobile&&<span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
                         </td>
                         {!isMobile&&(
-                          <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                          <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)"}} onClick={e=>e.stopPropagation()}>
                             {!noCat?(
                               cat ? (
                                 <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 7px",borderRadius:99,background:`${cat.color}1a`,color:cat.color,cursor:"pointer",whiteSpace:"nowrap"}}
@@ -5177,14 +5171,14 @@ function AppInner({ isDemo = false }) {
                           </td>
                         )}
                         {!isMobile&&(
-                          <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"7px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>
+                          <td style={{fontSize:12,color:"var(--t2)",padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>
                             {acct?.name||"—"}
                           </td>
                         )}
-                        <td style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",padding:"10px 12px 10px 10px",borderBottom:"1px solid rgba(0,0,0,0.25)",textAlign:"right",whiteSpace:"nowrap"}}>
+                        <td style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--t2)",padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",textAlign:"right",whiteSpace:"nowrap"}}>
                           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
                         </td>
-                        <td style={{width:36,padding:"7px 6px",borderBottom:"1px solid rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                        <td style={{width:28,padding:"7px 4px",borderBottom:"1px solid rgba(255,255,255,0.02)"}} onClick={e=>e.stopPropagation()}>
                           <div style={{position:"relative"}}>
                             <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
                               style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"1px 4px",lineHeight:1,opacity:0.5}}>⋯</button>
@@ -5214,7 +5208,7 @@ function AppInner({ isDemo = false }) {
                       </tr>
                       {expanded&&(
                         <tr key={t.id+"_exp"}>
-                          <td colSpan={isMobile?4:7} style={{padding:"0 16px 12px",background:"var(--surface)"}}>
+                          <td colSpan={isMobile?3:6} style={{padding:"0 16px 12px",background:"var(--surface)"}}>
                             <div className="ledgr-expand" style={{padding:"12px",display:"flex",flexDirection:"column",gap:10,borderRadius:"var(--radius)",marginTop:4}}>
                               {editingId!==t.id&&(t.name||t.merchant)&&(
                                 <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>
@@ -5263,14 +5257,44 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
-        {/* Load more */}
-        {transactions.length < txnTotal && (
-          <div style={{textAlign:"center",padding:"16px 0"}}>
-            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={loadMoreTransactions} disabled={txnLoading}>
-              {txnLoading?"Loading…":`Load more (${txnTotal-transactions.length} remaining)`}
-            </button>
-          </div>
-        )}
+        {/* Pagination footer */}
+        {(() => {
+          const PG = 25;
+          const totalShown = sortedTxns.length;
+          const totalAvail = Math.max(txnTotal, transactions.length);
+          const totalPages = Math.ceil(totalShown / PG);
+          const page = txnPage;
+          const start = page * PG;
+          const end   = Math.min(start + PG, totalShown);
+          const pgBtnStyle = (active) => ({
+            padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",
+            background:active?"var(--cyan-dim)":"var(--card-hi)",
+            color:active?"var(--cyan)":"var(--t2)",
+            border:active?"1px solid rgba(201,149,106,0.3)":"1px solid rgba(255,255,255,0.06)",
+          });
+          const visiblePages = [];
+          for(let i=0;i<totalPages;i++) if(Math.abs(i-page)<=2||i===0||i===totalPages-1) visiblePages.push(i);
+          return (
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:16,fontSize:11,color:"var(--t3)"}}>
+              <span>Showing {totalShown===0?0:start+1}–{end} of {totalAvail}{transactions.length<txnTotal?" (more available)":""}</span>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <button style={pgBtnStyle(false)} disabled={page===0} onClick={()=>setTxnPage(p=>Math.max(0,p-1))}>← Prev</button>
+                {visiblePages.map((i,vi)=>{
+                  const prev = visiblePages[vi-1];
+                  return (<span key={i} style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                    {prev!==undefined&&i-prev>1&&<span style={{color:"var(--t3)"}}>…</span>}
+                    <button style={pgBtnStyle(i===page)} onClick={()=>setTxnPage(i)}>{i+1}</button>
+                  </span>);
+                })}
+                {page===totalPages-1&&transactions.length<txnTotal ? (
+                  <button style={pgBtnStyle(false)} onClick={()=>loadMoreTransactions().then(()=>setTxnPage(p=>p+1))} disabled={txnLoading}>{txnLoading?"…":"Next →"}</button>
+                ) : (
+                  <button style={pgBtnStyle(false)} disabled={page>=totalPages-1} onClick={()=>setTxnPage(p=>Math.min(totalPages-1,p+1))}>Next →</button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
           </div>
       </div>
     );

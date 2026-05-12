@@ -56,7 +56,7 @@ export function applyGlobalOpacity(pct, theme) {
     return base + alpha;
   }
 
-  const bg      = theme?.bg      || '#0f0e0d';
+  const bg      = theme?.bg      || '#0b0a08';
   const surface = theme?.surface || '#1a1612';
   const card    = theme?.card    || '#181511';
 
@@ -134,7 +134,7 @@ export function applyTheme(theme) {
   } else {
     applyGlobalOpacity(theme.globalOpacity ?? 100, theme);
   }
-  root.style.setProperty("--bg-solid",      theme.bg      || "#0f0e0d");
+  root.style.setProperty("--bg-solid",      theme.bg      || "#0b0a08");
 
   // Font
   if (theme.fontDisp) root.style.setProperty("--font-disp", theme.fontDisp);
@@ -152,7 +152,7 @@ export function applyTheme(theme) {
   // Body background: radial gradient derived from theme
   // Bleed color = mix of surface and accent, ~40 steps above bg
   if (theme.bgImage) {
-    const bg = theme.bg || "#0f0e0d";
+    const bg = theme.bg || "#0b0a08";
     root.style.setProperty("--bg",      bg + "cc");
     root.style.setProperty("--surface", (theme.surface || "#161412") + "dd");
     root.style.setProperty("--card",    (theme.card    || "#161412") + "ee");

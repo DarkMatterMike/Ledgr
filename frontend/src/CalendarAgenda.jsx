@@ -1,35 +1,31 @@
 /**
  * CalendarAgenda.jsx — Concept 05: Agenda + Mini Cal
  *
- * Left 260px: mini calendar with dot indicators + month stats + add button
- * Right: scrollable agenda, one day-block per day that has entries
- *
- * CSS is injected once via a <style> tag using the same tokens as the rest of the app.
- * All class names are prefixed `ag-` to avoid collisions.
+ * Matches the Transactions/Budgets/Accounts page layout:
+ *   - Outer wrapper: width 100%, maxWidth 900, margin 0 auto, padding 28px 28px
+ *   - Playfair italic page header with ghost roman numeral (same as Transactions)
+ *   - Below the header: the ag panel — no outer border, no outer border-radius
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 
-/* ─── tiny helpers ──────────────────────────────────────────── */
+/* ─── helpers ───────────────────────────────────────────────── */
 function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
-
 const DOW_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-/* ─── CSS injection ─────────────────────────────────────────── */
+/* ─── CSS ───────────────────────────────────────────────────── */
 function injectCSS() {
   if (document.getElementById('ag-css')) return;
   const s = document.createElement('style');
   s.id = 'ag-css';
-  /* Pixel-perfect match to ledgr-calendar-concepts.html Concept 05 */
   s.textContent = `
-  /* ── Outer shell ── */
-  .ag { background: #0d0c0a; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); font-family: var(--font-body,'DM Sans',sans-serif); color: var(--t1,#e8ddd0); display: flex; flex-direction: column; }
+  /* ── Agenda panel — no outer border/radius, fills its container ── */
+  .ag { background: transparent; display: flex; flex-direction: column; font-family: var(--font-body,'DM Sans',sans-serif); color: var(--t1,#e8ddd0); }
 
-  /* ── Two-column layout ── */
-  .ag-layout { display: grid; grid-template-columns: 260px 1fr; flex: 1; overflow: hidden; }
+  .ag-layout { display: grid; grid-template-columns: 260px 1fr; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; background: #0d0c0a; }
 
   /* ── Left panel ── */
-  .ag-left { background: var(--bg,#0b0a08); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; overflow: hidden; }
+  .ag-left { background: var(--bg,#0b0a08); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; }
 
   .ag-mini-header { padding: 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .ag-mini-month  { font-family: var(--font-disp,'Syne',sans-serif); font-size: 15px; font-weight: 700; color: var(--t1,#e8ddd0); }
@@ -64,7 +60,7 @@ function injectCSS() {
   .ag-new-btn:hover { background: rgba(201,149,106,0.18); }
 
   /* ── Right panel ── */
-  .ag-right  { display: flex; flex-direction: column; overflow: hidden; }
+  .ag-right { display: flex; flex-direction: column; overflow: hidden; }
 
   .ag-agenda-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .ag-agenda-title  { font-family: var(--font-disp,'Syne',sans-serif); font-size: 13px; font-weight: 700; color: rgba(232,221,208,0.5); text-transform: uppercase; letter-spacing: 1px; }
@@ -74,7 +70,7 @@ function injectCSS() {
   .ag-filter-btn.inactive { background: rgba(255,255,255,0.04); color: rgba(232,221,208,0.4); }
   .ag-filter-btn.inactive:hover { background: rgba(255,255,255,0.08); color: rgba(232,221,208,0.6); }
 
-  .ag-agenda { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .ag-agenda { overflow-y: auto; padding: 8px 0; }
   .ag-agenda::-webkit-scrollbar       { width: 3px; }
   .ag-agenda::-webkit-scrollbar-track { background: transparent; }
   .ag-agenda::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
@@ -104,8 +100,8 @@ function injectCSS() {
   .ag-entry-tag.sched  { background: rgba(201,149,106,0.15); color: #c9956a; }
   .ag-entry-tag.income { background: rgba(109,184,138,0.15); color: #6db88a; }
 
-  /* ── Empty state ── */
-  .ag-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 8px; color: rgba(232,221,208,0.25); font-size: 13px; }
+  /* ── Empty ── */
+  .ag-empty     { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 8px; color: rgba(232,221,208,0.25); font-size: 13px; }
   .ag-empty-add { background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.2); border-radius: 8px; color: #c9956a; font-size: 12px; font-weight: 600; padding: 7px 14px; cursor: pointer; margin-top: 8px; font-family: var(--font-body,'DM Sans',sans-serif); transition: background .15s; }
   .ag-empty-add:hover { background: rgba(201,149,106,0.18); }
 
@@ -118,7 +114,7 @@ function injectCSS() {
   document.head.appendChild(s);
 }
 
-/* ─── icon mapping — tested against item name + category name ── */
+/* ─── icon mapping ──────────────────────────────────────────── */
 const ICON_MAP = [
   [/stream|netflix|hulu|disney|paramount|hbo|peacock|apple.?tv/i, '📺'],
   [/music|spotify|apple.?music|tidal|pandora/i,                   '🎵'],
@@ -165,9 +161,7 @@ function getIconBg(catColor, isIncome) {
   return 'rgba(201,149,106,0.15)';
 }
 
-/* ══════════════════════════════════════════════════════════════
-   Component
-══════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════ */
 export default function CalendarAgenda({
   calendarMonth,
   calendarTxnsByDay,
@@ -186,9 +180,9 @@ export default function CalendarAgenda({
   useEffect(() => { injectCSS(); }, []);
 
   const [calY, calM] = calendarMonth.split('-').map(Number);
-  const totalDays   = daysInMonth(calY, calM);
-  const firstDow    = new Date(calY, calM - 1, 1).getDay();
-  const totalCells  = Math.ceil((firstDow + totalDays) / 7) * 7;
+  const totalDays  = daysInMonth(calY, calM);
+  const firstDow   = new Date(calY, calM - 1, 1).getDay();
+  const totalCells = Math.ceil((firstDow + totalDays) / 7) * 7;
   const isCurrentMonth = calY === today.getFullYear() && calM === today.getMonth() + 1;
 
   const monthLabel = new Date(calY, calM - 1, 1)
@@ -212,7 +206,6 @@ export default function CalendarAgenda({
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  /* dot colors for mini-cal */
   function dotsForDay(day) {
     const entries = calendarTxnsByDay[day] || [];
     const seen = new Set();
@@ -227,20 +220,19 @@ export default function CalendarAgenda({
     return out;
   }
 
-  /* stats */
   const stats = useMemo(() => {
     let expenses = 0, income = 0, posted = 0;
     recurringItems.forEach(item => {
       const amt = item.amountMin != null ? item.amountMin : 0;
-      const isIncome = item.type === 'income';
+      const isInc = item.type === 'income';
       const postedThisMonth = (item.linkedTxnIds || []).some(id => {
         const t = transactions.find(x => x.id === id);
         if (!t?.date) return false;
         const [ty, tm] = t.date.split('-').map(Number);
         return ty === calY && tm === calM;
       });
-      if (isIncome) { income += amt; if (postedThisMonth) posted += amt; }
-      else          { expenses += amt; if (postedThisMonth) posted += amt; }
+      if (isInc) { income += amt; if (postedThisMonth) posted += amt; }
+      else       { expenses += amt; if (postedThisMonth) posted += amt; }
     });
     transactions.forEach(t => {
       if (!t.date || t.recurringItemId) return;
@@ -250,16 +242,14 @@ export default function CalendarAgenda({
     return { expenses, income, posted, remaining: Math.max(0, expenses - posted) };
   }, [recurringItems, transactions, calY, calM]);
 
-  /* filter */
   function applyFilter(entries) {
     if (filter === 'all') return entries;
     return entries.filter(t => {
-      const isIncome = t.type === 'income' || (t.amount != null && t.amount > 0);
-      return filter === 'income' ? isIncome : !isIncome;
+      const isInc = t.type === 'income' || (t.amount != null && t.amount > 0);
+      return filter === 'income' ? isInc : !isInc;
     });
   }
 
-  /* agenda day list */
   const agendaDays = useMemo(() => {
     const days = [];
     for (let d = 1; d <= totalDays; d++) {
@@ -269,7 +259,6 @@ export default function CalendarAgenda({
     return days;
   }, [calendarTxnsByDay, filter, totalDays]); // eslint-disable-line
 
-  /* weekday label */
   function dayWeekday(day) {
     const d = new Date(calY, calM - 1, day);
     const name = d.toLocaleDateString('en-US', { weekday: 'long' });
@@ -277,7 +266,6 @@ export default function CalendarAgenda({
     return isToday ? `${name} · Today` : name;
   }
 
-  /* render one entry */
   function renderEntry(t, dayIsToday) {
     const cat      = catMap[t.categoryId];
     const isIncome = t.type === 'income' || (t.amount != null && t.amount > 0);
@@ -288,11 +276,11 @@ export default function CalendarAgenda({
 
     const amtRaw = t.amount != null ? Math.abs(t.amount)
                  : t.amountMin != null ? t.amountMin : 0;
-    const amtColor  = isIncome ? '#6db88a' : '#e07070';
+    const amtColor = isIncome ? '#6db88a' : '#e07070';
     const isVariable = t.amountMin != null && t.amountMax != null && t.amountMax !== t.amountMin;
-    const amtText = isVariable
-      ? `~${fmt(t.amountMin)}`
-      : isIncome ? `+${fmt(amtRaw)}` : fmt(amtRaw);
+    const amtText = isVariable ? `~${fmt(t.amountMin)}`
+                  : isIncome   ? `+${fmt(amtRaw)}`
+                  : fmt(amtRaw);
 
     const subParts = [];
     if (cat) subParts.push(cat.name);
@@ -301,15 +289,13 @@ export default function CalendarAgenda({
     else if (freq === 'biweekly') subParts.push('Bi-weekly');
     else if (freq === 'annual')   subParts.push('Annual');
     else if (freq === 'monthly')  subParts.push('Monthly');
-    if (t.recurringDay && !subParts.some(p => p.includes('Day')))
-      subParts.push(`Day ${t.recurringDay}`);
+    if (t.recurringDay) subParts.push(`Day ${t.recurringDay}`);
     const linkedCount = (t.linkedTxnIds || []).length;
     if (linkedCount > 0) subParts.push(`Linked to ${linkedCount} txn${linkedCount !== 1 ? 's' : ''}`);
 
     const tagClass = isIncome ? 'income' : isPosted ? 'posted' : 'sched';
     const tagLabel = isIncome ? 'Income ✓' : isPosted ? 'Posted ✓' : 'Upcoming';
 
-    // Concept tinting: today-expense = warm amber tint, income = green tint, else transparent
     const rowBg = dayIsToday && !isIncome ? 'rgba(201,149,106,0.04)'
                 : isIncome               ? 'rgba(109,184,138,0.04)'
                 : 'transparent';
@@ -342,122 +328,148 @@ export default function CalendarAgenda({
     );
   }
 
-  /* ── render ── */
+  /* ── Panel height: fills remaining viewport below the page header ── */
+  const panelHeight = isMobile ? 'auto' : 'calc(100vh - 210px)';
+
   return (
-    <div className="ag" style={{ height: isMobile ? 'auto' : 'calc(100vh - 80px)', minHeight: 640 }}>
-      <div className="ag-layout" style={{ height: '100%' }}>
+    /* Same outer wrapper as Transactions/Budgets/Accounts */
+    <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: isMobile ? '20px 16px' : '28px 28px' }}>
 
-        {/* LEFT */}
-        <div className="ag-left">
-          <div className="ag-mini-header">
-            <div className="ag-mini-month">{monthLabel}</div>
-            <div className="ag-mini-nav">
-              <button className="ag-mini-nav-btn" onClick={prevCalMonth}>‹</button>
-              <button className="ag-mini-nav-btn" onClick={nextCalMonth}>›</button>
-            </div>
+      {/* ── Page header — identical pattern to Transactions ── */}
+      <div style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* Top-edge accent line */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.12),rgba(255,255,255,0.04) 35%,transparent 75%)', pointerEvents: 'none' }} />
+        {/* Ghost roman numeral */}
+        {!isMobile && (
+          <div style={{ position: 'absolute', fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontSize: 96, fontWeight: 500, color: 'rgba(201,149,106,0.07)', pointerEvents: 'none', userSelect: 'none', top: '50%', transform: 'translateY(-55%)', left: 8, lineHeight: 1 }}>
+            I
           </div>
-
-          <div className="ag-mini-dow">
-            {DOW_LABELS.map((d, i) => <div key={i} className="ag-mini-dow-c">{d}</div>)}
+        )}
+        <div style={{ paddingTop: 40, paddingBottom: 12, marginBottom: 0, borderBottom: '1px solid rgba(201,149,106,0.12)', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>01 ·</span>
+            <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: 22, color: 'var(--t1)' }}>Calendar</span>
+            <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.15),transparent)', alignSelf: 'center', marginLeft: 4 }} />
           </div>
-
-          <div className="ag-mini-grid">
-            {Array.from({ length: totalCells }).map((_, i) => {
-              const day   = i - firstDow + 1;
-              const valid = day >= 1 && day <= totalDays;
-              const isToday = valid && isCurrentMonth && day === today.getDate();
-              const isSel   = valid && day === selectedDay;
-              const dots    = valid ? dotsForDay(day) : [];
-
-              const cls = ['ag-mini-day', !valid && 'inactive', isToday && 'today', isSel && 'selected']
-                .filter(Boolean).join(' ');
-
-              return (
-                <div key={i} className={cls} onClick={() => valid && handleMiniDayClick(day)}>
-                  {valid && (
-                    <>
-                      <div className="ag-mini-dn">{day}</div>
-                      {dots.length > 0 && (
-                        <div className="ag-mini-dots">
-                          {dots.map((c, di) => <div key={di} className="ag-mini-dot" style={{ background: c }} />)}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="ag-divider" />
-
-          <div className="ag-stats">
-            {[
-              ['Monthly expenses', fmt(stats.expenses),          '#e07070'],
-              ['Expected income',  '+' + fmt(stats.income),      '#6db88a'],
-              ['Posted so far',    fmt(stats.posted),            'rgba(232,221,208,0.6)'],
-              ['Remaining',        fmt(stats.remaining),          '#c9956a'],
-            ].map(([name, val, color]) => (
-              <div key={name} className="ag-stat-row">
-                <div className="ag-stat-name">{name}</div>
-                <div className="ag-stat-val" style={{ color }}>{val}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="ag-spacer" />
-
-          <button className="ag-new-btn" onClick={openNewRecurringItem}>
-            + Add Recurring Item
-          </button>
         </div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 5, marginBottom: 18 }}>
+          {monthLabel} · {recurringItems.length} recurring item{recurringItems.length !== 1 ? 's' : ''}
+        </div>
+      </div>
 
-        {/* RIGHT */}
-        <div className="ag-right">
-          <div className="ag-agenda-header">
-            <div className="ag-agenda-title">{monthLabel} Schedule</div>
-            <div className="ag-filter-btns">
-              {[['all','All'],['expenses','Expenses'],['income','Income']].map(([val, label]) => (
-                <button
-                  key={val}
-                  className={`ag-filter-btn ${filter === val ? 'active' : 'inactive'}`}
-                  onClick={() => setFilter(val)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* ── Agenda panel ── */}
+      <div className="ag">
+        <div className="ag-layout" style={{ height: panelHeight, minHeight: 560 }}>
 
-          <div className="ag-agenda">
-            {agendaDays.length === 0 ? (
-              <div className="ag-empty">
-                <div style={{ fontSize: 28, opacity: 0.25 }}>▦</div>
-                <div>No items for {monthLabel}</div>
-                <button className="ag-empty-add" onClick={openNewRecurringItem}>
-                  + Add Recurring Item
-                </button>
+          {/* LEFT */}
+          <div className="ag-left">
+            <div className="ag-mini-header">
+              <div className="ag-mini-month">{monthLabel}</div>
+              <div className="ag-mini-nav">
+                <button className="ag-mini-nav-btn" onClick={prevCalMonth}>‹</button>
+                <button className="ag-mini-nav-btn" onClick={nextCalMonth}>›</button>
               </div>
-            ) : (
-              agendaDays.map(({ day, entries }) => {
-                const isToday = isCurrentMonth && day === today.getDate();
-                const headCls = ['ag-day-head', isToday && 'is-today'].filter(Boolean).join(' ');
+            </div>
 
+            <div className="ag-mini-dow">
+              {DOW_LABELS.map((d, i) => <div key={i} className="ag-mini-dow-c">{d}</div>)}
+            </div>
+
+            <div className="ag-mini-grid">
+              {Array.from({ length: totalCells }).map((_, i) => {
+                const day   = i - firstDow + 1;
+                const valid = day >= 1 && day <= totalDays;
+                const isToday = valid && isCurrentMonth && day === today.getDate();
+                const isSel   = valid && day === selectedDay;
+                const dots    = valid ? dotsForDay(day) : [];
+                const cls = ['ag-mini-day', !valid && 'inactive', isToday && 'today', isSel && 'selected'].filter(Boolean).join(' ');
                 return (
-                  <div key={day} className="ag-day-block" ref={el => { dayRefs.current[day] = el; }}>
-                    <div className={headCls}>
-                      <div className="ag-day-num">{day}</div>
-                      <div className="ag-day-weekday">{dayWeekday(day)}</div>
-                    </div>
-                    {entries.map(t => renderEntry(t, isToday))}
+                  <div key={i} className={cls} onClick={() => valid && handleMiniDayClick(day)}>
+                    {valid && (
+                      <>
+                        <div className="ag-mini-dn">{day}</div>
+                        {dots.length > 0 && (
+                          <div className="ag-mini-dots">
+                            {dots.map((c, di) => <div key={di} className="ag-mini-dot" style={{ background: c }} />)}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 );
-              })
-            )}
-          </div>
-        </div>
+              })}
+            </div>
 
+            <div className="ag-divider" />
+
+            <div className="ag-stats">
+              {[
+                ['Monthly expenses', fmt(stats.expenses),         '#e07070'],
+                ['Expected income',  '+' + fmt(stats.income),     '#6db88a'],
+                ['Posted so far',    fmt(stats.posted),           'rgba(232,221,208,0.6)'],
+                ['Remaining',        fmt(stats.remaining),         '#c9956a'],
+              ].map(([name, val, color]) => (
+                <div key={name} className="ag-stat-row">
+                  <div className="ag-stat-name">{name}</div>
+                  <div className="ag-stat-val" style={{ color }}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="ag-spacer" />
+
+            <button className="ag-new-btn" onClick={openNewRecurringItem}>
+              + Add Recurring Item
+            </button>
+          </div>
+
+          {/* RIGHT */}
+          <div className="ag-right">
+            <div className="ag-agenda-header">
+              <div className="ag-agenda-title">{monthLabel} Schedule</div>
+              <div className="ag-filter-btns">
+                {[['all','All'],['expenses','Expenses'],['income','Income']].map(([val, label]) => (
+                  <button
+                    key={val}
+                    className={`ag-filter-btn ${filter === val ? 'active' : 'inactive'}`}
+                    onClick={() => setFilter(val)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="ag-agenda">
+              {agendaDays.length === 0 ? (
+                <div className="ag-empty">
+                  <div style={{ fontSize: 28, opacity: 0.25 }}>▦</div>
+                  <div>No items for {monthLabel}</div>
+                  <button className="ag-empty-add" onClick={openNewRecurringItem}>
+                    + Add Recurring Item
+                  </button>
+                </div>
+              ) : (
+                agendaDays.map(({ day, entries }) => {
+                  const isToday = isCurrentMonth && day === today.getDate();
+                  const headCls = ['ag-day-head', isToday && 'is-today'].filter(Boolean).join(' ');
+                  return (
+                    <div key={day} className="ag-day-block" ref={el => { dayRefs.current[day] = el; }}>
+                      <div className={headCls}>
+                        <div className="ag-day-num">{day}</div>
+                        <div className="ag-day-weekday">{dayWeekday(day)}</div>
+                      </div>
+                      {entries.map(t => renderEntry(t, isToday))}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+        </div>
       </div>
+
     </div>
   );
 }

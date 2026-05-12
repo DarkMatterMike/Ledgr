@@ -69,7 +69,7 @@ function useIsMobile() {
 
     /* Layout */
     .ledgr-content     { padding: 0; }
-    .ledgr-view-padded { padding: 20px; }
+    .ledgr-view-padded { padding: 0; }
     .ledgr-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
     .ledgr-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
     .ledgr-acct-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -6872,7 +6872,7 @@ function AppInner({ isDemo = false }) {
             : view === "dashboard"
             ? <div key={navKey} className="ledgr-view-enter" style={{maxWidth:600,margin:"0 auto"}}>{VIEWS[view]}</div>
             : view === "calendar"
-            ? <div key={navKey} className="ledgr-view-enter" style={{padding:"12px"}}>{VIEWS[view]}</div>
+            ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
             : <div key={navKey} className="ledgr-view-enter ledgr-view-padded">{VIEWS[view]}</div>
           }
         </div>
@@ -6936,7 +6936,7 @@ function AppInner({ isDemo = false }) {
               : view === "dashboard"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto"}}>{VIEWS[view]}</div>
               : view === "calendar"
-              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,padding:"20px"}}>{VIEWS[view]}</div>
+              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
               : <div key={navKey} className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
             }
           </div>

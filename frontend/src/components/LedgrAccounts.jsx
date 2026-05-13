@@ -26,8 +26,8 @@ const SHARED_CSS = `
     --font-ui:'Geist',-apple-system,sans-serif;
     --font-mono:'JetBrains Mono',ui-monospace,monospace;
     --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;
-    font-family:var(--font-ui);background:var(--bg-0);color:var(--ink-0);
-    -webkit-font-smoothing:antialiased;min-height:100vh;
+    font-family:var(--font-ui);color:var(--ink-0);
+    -webkit-font-smoothing:antialiased;
   }
   .lb-shell { display:flex;min-height:100vh; }
   .lb-page       { background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; }

@@ -5679,7 +5679,7 @@ function AppInner({ isDemo = false }) {
             {overCats.length > 0 && (
               <div style={{...tierBase,background:"radial-gradient(ellipse 60% 80% at 0% 50%,rgba(224,112,112,0.04) 0%,transparent 70%)"}}>
                 <div style={seam("rgba(224,112,112,0.22)")}/>
-                <SectionHdr ord="01" title="Overspent" ghost="!" count={overCats.length} accentColor="rgba(224,112,112,0.5)" ruleColor="rgba(224,112,112,0.15)"/>
+                <SectionHdr ord="III" title="Overspent" ghost="!" count={overCats.length} accentColor="rgba(224,112,112,0.5)" ruleColor="rgba(224,112,112,0.15)"/>
                 {overCats.map(cat=><CatRow key={cat.id} cat={cat}/>)}
               </div>
             )}
@@ -5689,9 +5689,9 @@ function AppInner({ isDemo = false }) {
               <div style={{...tierBase,background:"radial-gradient(ellipse 55% 80% at 0% 50%,rgba(201,149,106,0.04) 0%,transparent 65%)"}}>
                 <div style={seam("rgba(201,149,106,0.16)")}/>
                 <SectionHdr
-                  ord={overCats.length>0?"02":"01"}
+                  ord={overCats.length>0?"IV":"III"}
                   title="In Progress"
-                  ghost={overCats.length>0?"II":"I"}
+                  ghost={overCats.length>0?"IV":"III"}
                   count={progressCats.length}
                   sub={`${monthLabel(selectedMonth)} · tracking spend vs budget`}
                 />
@@ -5704,9 +5704,9 @@ function AppInner({ isDemo = false }) {
               <div style={{...tierBase,borderBottom:"none",background:"radial-gradient(ellipse 55% 80% at 0% 50%,rgba(109,184,138,0.03) 0%,transparent 65%)"}}>
                 <div style={seam("rgba(109,184,138,0.1)")}/>
                 <SectionHdr
-                  ord={[overCats.length>0,progressCats.length>0].filter(Boolean).length+1|1}
+                  ord={overCats.length>0&&progressCats.length>0?"V":overCats.length>0||progressCats.length>0?"IV":"III"}
                   title="Completed"
-                  ghost="III"
+                  ghost={overCats.length>0&&progressCats.length>0?"V":overCats.length>0||progressCats.length>0?"IV":"III"}
                   count={completedCats.length}
                   accentColor="rgba(109,184,138,0.4)"
                   ruleColor="rgba(109,184,138,0.1)"

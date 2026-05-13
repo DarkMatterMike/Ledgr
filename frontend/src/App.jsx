@@ -1068,11 +1068,27 @@ function Paywall({ onUpgrade }) {
 }
 
 
+
+/* ── Settings helpers ─────────────────────────────────────────── */
 function SettingsSection({ title, children }) {
   return (
-    <div className="obsidian-card" style={{ ...S.card, marginBottom:16 }}>
-      <div style={S.cardTitle}>{title}</div>
+    <div style={{ marginBottom:0 }}>
+      <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase",
+        letterSpacing:"1.2px", color:"rgba(201,149,106,0.45)", marginBottom:12 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+function SettingRow({ label, hint, children, danger }) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+      gap:16, padding:"12px 0", borderBottom:"1px solid rgba(255,255,255,0.04)", flexWrap:"wrap" }}>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:13, color: danger ? "var(--red)" : "var(--t1)", fontWeight:500 }}>{label}</div>
+        {hint && <div style={{ fontSize:11, color:"var(--t3)", marginTop:2, lineHeight:1.5 }}>{hint}</div>}
+      </div>
+      <div style={{ flexShrink:0 }}>{children}</div>
     </div>
   );
 }
@@ -1087,13 +1103,14 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   const [pwError,    setPwError]    = useState("");
   const [pwSuccess,  setPwSuccess]  = useState(false);
   const [savingPw,   setSavingPw]   = useState(false);
-  const [legalDoc,   setLegalDoc]   = useState(null); // "privacy" | "terms" | null
-
-  // Household / Family Sharing
+  const [legalDoc,   setLegalDoc]   = useState(null);
   const [household,      setHousehold]      = useState(null);
   const [householdLoaded, setHouseholdLoaded] = useState(false);
   const [inviteEmail,    setInviteEmail]    = useState("");
   const [inviting,       setInviting]       = useState(false);
+  const [profileForm, setProfileForm] = useState(null);
+  const [saveThemeName, setSaveThemeName] = useState("");
+  const [showSaveInput, setShowSaveInput] = useState(false);
 
   useEffect(() => {
     api.getHousehold().then(d => { setHousehold(d?.household || null); setHouseholdLoaded(true); }).catch(() => setHouseholdLoaded(true));
@@ -1102,982 +1119,617 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   async function sendInvite() {
     if (!inviteEmail.trim()) return;
     setInviting(true);
-    try {
-      await api.inviteToHousehold(inviteEmail.trim());
-      showToast("Invite sent!");
-      setInviteEmail("");
-      const d = await api.getHousehold();
-      setHousehold(d?.household || null);
-    } catch(e) {
-      showToast(e.message || "Failed to send invite");
-    } finally { setInviting(false); }
+    try { await api.inviteToHousehold(inviteEmail.trim()); showToast("Invite sent!"); setInviteEmail(""); const d = await api.getHousehold(); setHousehold(d?.household || null); }
+    catch(e) { showToast(e.message || "Failed to send invite"); }
+    finally { setInviting(false); }
   }
-
   async function removeMember(memberId) {
-    try {
-      await api.removeHouseholdMember(memberId);
-      const d = await api.getHousehold();
-      setHousehold(d?.household || null);
-      showToast("Member removed");
-    } catch { showToast("Failed to remove member"); }
+    try { await api.removeHouseholdMember(memberId); const d = await api.getHousehold(); setHousehold(d?.household || null); showToast("Member removed"); }
+    catch { showToast("Failed to remove member"); }
   }
-
   async function leaveHousehold() {
-    try {
-      await api.leaveHousehold();
-      setHousehold(null);
-      showToast("Left household");
-    } catch { showToast("Failed to leave"); }
+    try { await api.leaveHousehold(); setHousehold(null); showToast("Left household"); }
+    catch { showToast("Failed to leave"); }
   }
-
-  // Financial profile local state
-  const [profileForm, setProfileForm] = useState(null); // null = not editing
-  // Appearance tab state (hoisted from IIFE to avoid conditional hook violation)
-  const [saveThemeName, setSaveThemeName] = useState("");
-  const [showSaveInput, setShowSaveInput] = useState(false);
-
   async function saveName() {
     if (!name.trim()) return;
     setSavingName(true);
-    try {
-      await api.updateProfile(name.trim());
-      api.setStoredUser({ ...user, name: name.trim() });
-      showToast("Name saved");
-    } catch { showToast("Failed to save name"); }
+    try { await api.updateProfile(name.trim()); api.setStoredUser({ ...user, name: name.trim() }); showToast("Name saved"); }
+    catch { showToast("Failed to save name"); }
     finally { setSavingName(false); }
   }
-
   async function changePassword() {
     setPwError(""); setPwSuccess(false);
-    if (!currPw || !newPw)   return setPwError("All fields required");
-    if (newPw.length < 8)    return setPwError("New password must be at least 8 characters");
+    if (!currPw || !newPw) return setPwError("All fields required");
+    if (newPw.length < 8)  return setPwError("New password must be at least 8 characters");
     if (newPw !== confirmPw) return setPwError("Passwords do not match");
     setSavingPw(true);
-    try {
-      await api.changePassword(currPw, newPw);
-      setPwSuccess(true);
-      setCurrPw(""); setNewPw(""); setConfirmPw("");
-      showToast("Password updated");
-    } catch (e) { setPwError(e.message || "Failed to update password"); }
+    try { await api.changePassword(currPw, newPw); setPwSuccess(true); setCurrPw(""); setNewPw(""); setConfirmPw(""); showToast("Password updated"); }
+    catch(e) { setPwError(e.message || "Failed to update password"); }
     finally { setSavingPw(false); }
   }
-
   function exportCSV() {
     const headers = ["Date","Name","Merchant","Amount","Type","Category","Account","Recurring"];
-    const rows = transactions.map(t => [
-      t.date || "", t.name || "", t.merchant || "",
-      t.amount ?? "", t.type || "",
-      catMap[t.categoryId]?.name || "",
-      acctMap[t.accountId]?.name || "",
-      t.recurring ? "Yes" : "No",
-    ]);
-    const csv = [headers, ...rows]
-      .map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type:"text/csv" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `ledgr-export-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("Export downloaded");
+    const rows = transactions.map(t => [t.date||"",t.name||"",t.merchant||"",t.amount??"",t.type||"",catMap[t.categoryId]?.name||"",acctMap[t.accountId]?.name||"",t.recurring?"Yes":"No"]);
+    const csv = [headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download=`ledgr-export-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url); showToast("Export downloaded");
   }
-
   function deleteAllTransactions() {
     if (!transactions.length) { showToast("No transactions to delete"); return; }
-    const confirmed = window.confirm(`Delete all ${transactions.length} transactions? This cannot be undone.`);
-    if (!confirmed) return;
-    setTransactions([]);
-    api.deleteAllTransactions().catch(console.error);
-    showToast("All transactions deleted");
+    if (!window.confirm(`Delete all ${transactions.length} transactions? This cannot be undone.`)) return;
+    setTransactions([]); api.deleteAllTransactions().catch(console.error); showToast("All transactions deleted");
+  }
+  async function clearAllData() {
+    if (!window.confirm("Clear ALL data? This will delete all transactions, accounts, categories, rules, and bank connections. This cannot be undone.")) return;
+    for (const item of plaidItems||[]) { try { await api.deleteItem(item.item_id); } catch {} }
+    setTransactions([]); setAccounts([]); setCategories([]); setRules([]); setPlaidItems([]);
+    await Promise.all([api.deleteAllTransactions(),api.deleteAllAccountsApi(),api.deleteAllRulesApi(),api.saveData({categories:[],plaidItems:[]})]);
+    showToast("All data cleared");
   }
 
-  async function clearAllData() {
-    const confirmed = window.confirm(
-      "Clear ALL data? This will delete all transactions, accounts, categories, rules, and bank connections. This cannot be undone."
-    );
-    if (!confirmed) return;
-    // Disconnect all Plaid items from the server first
-    for (const item of plaidItems || []) {
-      try { await api.deleteItem(item.item_id); } catch {}
-    }
-    // Clear state
-    setTransactions([]);
-    setAccounts([]);
-    setCategories([]);
-    setRules([]);
-    setPlaidItems([]);
-    // Explicitly save empty arrays to DB so they don't get restored on next load
-    await Promise.all([
-      api.deleteAllTransactions(),
-      api.deleteAllAccountsApi(),
-      api.deleteAllRulesApi(),
-      api.saveData({ categories: [], plaidItems: [] }),
-    ]);
-    showToast("All data cleared");
+  // ── Theme data ──
+  const PRESETS = [
+    { name:"Obsidian",  bg:"#0b0a08", surface:"#1a1612", card:"#181511", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
+    { name:"Midnight",  bg:"#09090f", surface:"#111120", card:"#18181e", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)",  t3:"rgba(232,232,255,0.3)" },
+    { name:"Ledgr Dark",bg:"#060a0f", surface:"#0d1520", card:"#111a28", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)",  t3:"rgba(218,234,248,0.3)" },
+    { name:"Deep Green",bg:"#050f08", surface:"#0a1c0e", card:"#0e2414", accent:"#4ade80", t1:"#d4f0df", t2:"rgba(212,240,223,0.5)",  t3:"rgba(212,240,223,0.3)" },
+    { name:"Ember",     bg:"#100600", surface:"#1c0e00", card:"#241400", accent:"#fb923c", t1:"#f5e4d0", t2:"rgba(245,228,208,0.5)",  t3:"rgba(245,228,208,0.3)" },
+    { name:"Rose",      bg:"#0f0608", surface:"#1c0c12", card:"#241018", accent:"#f472b6", t1:"#f5d8e8", t2:"rgba(245,216,232,0.5)",  t3:"rgba(245,216,232,0.3)" },
+    { name:"Slate",     bg:"#080c10", surface:"#101820", card:"#16222c", accent:"#60a5fa", t1:"#dce8f8", t2:"rgba(220,232,248,0.5)",  t3:"rgba(220,232,248,0.3)" },
+    { name:"Ocean",     bg:"#020c14", surface:"#041a2a", card:"#062238", accent:"#38bdf8", t1:"#d8f0ff", t2:"rgba(216,240,255,0.5)",  t3:"rgba(216,240,255,0.3)" },
+    { name:"Crimson",   bg:"#0f0206", surface:"#1a060c", card:"#220a12", accent:"#f87171", t1:"#fde8e8", t2:"rgba(253,232,232,0.5)",  t3:"rgba(253,232,232,0.3)" },
+    { name:"Dusk",      bg:"#090610", surface:"#100e1c", card:"#161428", accent:"#f59e0b", t1:"#f0e8ff", t2:"rgba(240,232,255,0.5)",  t3:"rgba(240,232,255,0.3)" },
+    { name:"Arctic",    bg:"#06101a", surface:"#0e1e2e", card:"#142640", accent:"#67e8f9", t1:"#e0f8ff", t2:"rgba(224,248,255,0.5)",  t3:"rgba(224,248,255,0.3)" },
+    { name:"Graphite",  bg:"#0a0a0a", surface:"#141414", card:"#1c1c1c", accent:"#e2e8f0", t1:"#f1f5f9", t2:"rgba(241,245,249,0.5)",  t3:"rgba(241,245,249,0.28)" },
+    { name:"Copper",    bg:"#0c0806", surface:"#1a1008", card:"#221608", accent:"#d97706", t1:"#fef3c7", t2:"rgba(254,243,199,0.5)",  t3:"rgba(254,243,199,0.3)" },
+    { name:"Forest",    bg:"#050a06", surface:"#0a1a0c", card:"#0d2410", accent:"#86efac", t1:"#dcfce7", t2:"rgba(220,252,231,0.5)",  t3:"rgba(220,252,231,0.3)" },
+    { name:"Violet",    bg:"#08060f", surface:"#120e20", card:"#1a1430", accent:"#c084fc", t1:"#f3e8ff", t2:"rgba(243,232,255,0.5)",  t3:"rgba(243,232,255,0.3)" },
+    { name:"Gold",      bg:"#0e0b00", surface:"#1c1600", card:"#261e00", accent:"#fbbf24", t1:"#fffbeb", t2:"rgba(255,251,235,0.5)",  t3:"rgba(255,251,235,0.28)" },
+    { name:"Steel",     bg:"#070a0e", surface:"#0f151e", card:"#16202e", accent:"#94a3b8", t1:"#e2e8f0", t2:"rgba(226,232,240,0.5)",  t3:"rgba(226,232,240,0.28)" },
+    { name:"Teal",      bg:"#040e0e", surface:"#081c1c", card:"#0c2626", accent:"#2dd4bf", t1:"#ccfbf1", t2:"rgba(204,251,241,0.5)",  t3:"rgba(204,251,241,0.3)" },
+    { name:"Sakura",    bg:"#100810", surface:"#1e0e1e", card:"#2a1228", accent:"#fb7185", t1:"#ffe4e6", t2:"rgba(255,228,230,0.5)",  t3:"rgba(255,228,230,0.3)" },
+    { name:"Noir",      bg:"#050505", surface:"#0f0f0f", card:"#181818", accent:"#facc15", t1:"#fafafa", t2:"rgba(250,250,250,0.45)", t3:"rgba(250,250,250,0.25)" },
+  ];
+  const FONTS = [
+    { label:"Syne (default)",   value:"'Syne', sans-serif" },
+    { label:"DM Sans",          value:"'DM Sans', sans-serif" },
+    { label:"Dancing Script",   value:"'Dancing Script', cursive" },
+    { label:"JetBrains Mono",   value:"'JetBrains Mono', monospace" },
+    { label:"Georgia",          value:"'Georgia', serif" },
+    { label:"Trebuchet MS",     value:"'Trebuchet MS', sans-serif" },
+  ];
+  const VARS = [
+    { key:"bg",             label:"Background" },
+    { key:"surface",        label:"Surface" },
+    { key:"card",           label:"Card" },
+    { key:"accent",         label:"Accent" },
+    { key:"t1",             label:"Text primary" },
+    { key:"t2",             label:"Text secondary" },
+    { key:"t3",             label:"Text muted" },
+    { key:"reviewColor",    label:"Review stripe" },
+    { key:"recurringColor", label:"Recurring stripe" },
+  ];
+  const defaults = PRESETS[0];
+  const current = { ...defaults, fontDisp:"'Syne', sans-serif", reviewColor:"#00d4ff", recurringColor:"#fbbf24", ...(theme||{}) };
+  const gradSteps     = current.gradSteps ?? 6;
+  const gradAngle     = current.gradAngle ?? 315;
+  const globalOpacity = current.globalOpacity ?? 100;
+  const savedThemes   = current._savedThemes || [];
+
+  function patch(k, v) { onSaveTheme({ ...current, [k]: v }); }
+  function patchGradSteps(steps) {
+    const hex2rgb = h => { const v=h.replace("#",""); return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16)]; };
+    const rgb2hex = ([r,g,b]) => "#"+[r,g,b].map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,"0")).join("");
+    const hi = rgb2hex(hex2rgb(current.card||"#181511").map(c=>c+steps));
+    document.documentElement.style.setProperty("--card-hi", hi);
+    patch("gradSteps", steps);
+  }
+  function patchGradAngle(angle) { document.documentElement.style.setProperty("--grad-angle", angle+"deg"); patch("gradAngle", angle); }
+  function patchGlobalOpacity(val) { applyGlobalOpacity(val, current); patch("globalOpacity", val); }
+  function applyPreset(preset) { onSaveTheme({ ...current, ...preset }); }
+  function saveCurrentTheme() {
+    if (!saveThemeName.trim()) return;
+    const { _savedThemes: _, ...themeData } = current;
+    const entry = { ...themeData, name: saveThemeName.trim() };
+    const next = [...savedThemes.filter(t=>t.name!==entry.name), entry];
+    patch("_savedThemes", next); setSaveThemeName(""); setShowSaveInput(false); showToast("Theme saved: "+entry.name);
+  }
+  function deleteCustomTheme(name) { patch("_savedThemes", savedThemes.filter(t=>t.name!==name)); }
+  function reset() {
+    ["--bg","--surface","--card","--border","--border2","--cyan","--cyan-dim","--t1","--t2","--t3","--font-disp"].forEach(v=>document.documentElement.style.removeProperty(v));
+    document.body.style.removeProperty("background"); document.body.style.removeProperty("background-image"); document.body.style.removeProperty("background-color");
+    document.documentElement.classList.remove("ledgr-has-bgimage");
+    try { localStorage.removeItem("ledgr_theme"); } catch {}
+    onSaveTheme({});
   }
 
   const inputSt = { ...S.input, marginBottom:0 };
   const STABS = [
-    { id:"profile",      label:"Profile"      },
-    { id:"appearance",   label:"Appearance"   },
-    { id:"household",    label:"Household"    },
-    { id:"data",         label:"Data"         },
-    { id:"subscription", label:"Subscription" },
+    { id:"profile",      label:"Profile",      icon:"◈" },
+    { id:"appearance",   label:"Appearance",   icon:"◑" },
+    { id:"household",    label:"Household",    icon:"⬡" },
+    { id:"data",         label:"Data",         icon:"⊟" },
+    { id:"subscription", label:"Subscription", icon:"◆" },
   ];
+
+  const Section = ({ title, children }) => (
+    <div style={{ paddingBottom:28, marginBottom:28, borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+      <SettingsSection title={title}>{children}</SettingsSection>
+    </div>
+  );
 
   return (
     <>
-    <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--surface)",borderRadius:"var(--radius)",padding:3,width:isMobile?"100%":"fit-content",overflowX:"auto",scrollbarWidth:"none"}}>
-      {STABS.map(t => (
-        <button key={t.id} onClick={()=>setSettingsTab(t.id)}
-          style={{background:settingsTab===t.id?"var(--cyan)":"none",border:"none",
-            color:settingsTab===t.id?"#000":"var(--t3)",
-            padding:"6px 16px",borderRadius:"var(--radius)",cursor:"pointer",
-            fontSize:13,fontWeight:600,transition:"all 0.15s",whiteSpace:"nowrap",
-            flex:isMobile?"1":"0 0 auto"}}>
-          {t.label}
-        </button>
-      ))}
-    </div>
-
-    <div style={{ maxWidth:560 }}>
-      <div key={settingsTab} className="ledgr-panel-in">
-
-      {/* ── Profile tab ─────────────────────────────── */}
-      {settingsTab === "profile" && <>
-
-      {/* Profile */}
-      <SettingsSection title="Profile">
-        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20 }}>
-          <div style={{
-            width:56, height:56, borderRadius:"50%", flexShrink:0,
-            background:avatarColor+"33", border:`2px solid ${avatarColor}`,
-            display:"flex", alignItems:"center", justifyContent:"center",
-            fontFamily:"var(--font-disp)", fontSize:22, fontWeight:800, color:avatarColor,
-          }}>
-            {avatarLetter}
-          </div>
-          <div>
-            <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)" }}>{user?.name || user?.email}</div>
-            <div style={{ fontSize:12, color:"var(--t3)", marginTop:2 }}>{user?.email}</div>
-            {user?.role === "owner" && (
-              <div style={{ marginTop:4, display:"inline-flex", alignItems:"center", gap:5,
-                background:"#00d4ff22", border:"1px solid #00d4ff44",
-                borderRadius:99, padding:"2px 10px", fontSize:10, fontWeight:700, color:"var(--cyan)", letterSpacing:"0.5px" }}>
-                ◈ OWNER
-              </div>
-            )}
-          </div>
+    {/* ── Page header ── */}
+    <div style={{ position:"relative", overflow:"hidden",
+      background:"radial-gradient(ellipse 55% 80% at 0% 40%,rgba(201,149,106,0.04) 0%,transparent 65%),var(--bg,#0b0a08)",
+      borderBottom:"1px solid rgba(0,0,0,0.35)" }}>
+      <div style={{ position:"absolute", top:0, left:0, right:0, height:1,
+        background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)" }}/>
+      {!isMobile && <div style={{ position:"absolute", fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+        fontSize:80, fontWeight:500, color:"rgba(201,149,106,0.06)", top:"50%", transform:"translateY(-50%)",
+        left:6, lineHeight:1, pointerEvents:"none", userSelect:"none" }}>IV</div>}
+      <div style={{ padding:"14px 28px 0", position:"relative", zIndex:1 }}>
+        <div style={{ display:"flex", alignItems:"baseline", gap:12, paddingBottom:12,
+          borderBottom:"1px solid rgba(201,149,106,0.12)" }}>
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:10, fontWeight:600,
+            color:"rgba(201,149,106,0.45)", letterSpacing:"1px" }}>IV ·</span>
+          <span style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+            fontWeight:400, fontSize:20, color:"var(--t1)" }}>Settings</span>
+          <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(201,149,106,0.12),transparent)" }}/>
+          <div style={{ width:28, height:28, borderRadius:"50%", background:avatarColor+"22",
+            border:`1.5px solid ${avatarColor}`, display:"flex", alignItems:"center",
+            justifyContent:"center", fontFamily:"var(--font-disp)", fontSize:12,
+            fontWeight:800, color:avatarColor }}>{avatarLetter}</div>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <input style={{ ...inputSt, flex:1 }} placeholder="Display name"
-            value={name} onChange={e => setName(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && saveName()} />
-          <button style={S.btn("primary",true)} onClick={saveName} disabled={savingName}>
-            {savingName ? "…" : "Save"}
-          </button>
-        </div>
-      </SettingsSection>
-
-      {/* Security */}
-      <SettingsSection title="Security">
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          <div style={S.field}>
-            <label style={S.label}>Current Password</label>
-            <input style={inputSt} type="password" placeholder="••••••••"
-              value={currPw} onChange={e => { setCurrPw(e.target.value); setPwError(""); setPwSuccess(false); }} />
-          </div>
-          <div style={S.field}>
-            <label style={S.label}>New Password</label>
-            <input style={inputSt} type="password" placeholder="Min. 8 characters"
-              value={newPw} onChange={e => { setNewPw(e.target.value); setPwError(""); setPwSuccess(false); }} />
-          </div>
-          <div style={S.field}>
-            <label style={S.label}>Confirm New Password</label>
-            <input style={inputSt} type="password" placeholder="••••••••"
-              value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setPwError(""); setPwSuccess(false); }} />
-          </div>
-          {pwError   && <div style={{ fontSize:12, color:"var(--red)" }}>{pwError}</div>}
-          {pwSuccess && <div style={{ fontSize:12, color:"var(--green)" }}>Password updated successfully</div>}
-          <button style={{ ...S.btn("primary"), alignSelf:"flex-start" }} onClick={changePassword} disabled={savingPw}>
-            {savingPw ? "Updating…" : "Update Password"}
-          </button>
-        </div>
-      </SettingsSection>
-
-      {/* Financial Profile */}
-      <SettingsSection title="Financial Profile">
-        <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14, lineHeight:1.6 }}>
-          Set your income and financial targets to power the Analytics page — savings rate, net worth projections, and retirement estimates.
-        </div>
-        {profileForm ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-
-            {/* Income */}
-            <div>
-              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:6 }}>Monthly Income (after tax)</div>
-              <input type="number" style={S.input} placeholder="0"
-                value={profileForm.monthlyIncome || ""}
-                onChange={e => setProfileForm(p => ({ ...p, monthlyIncome: parseFloat(e.target.value) || 0 }))} />
-            </div>
-
-            {/* Targets */}
-            <div>
-              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Targets</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                {[
-                  { key:"savingsGoal",            label:"Monthly savings goal" },
-                  { key:"emergencyFund",           label:"Emergency fund target" },
-                  { key:"netWorthTarget",          label:"Net worth target" },
-                  { key:"retirementTargetAmount",  label:"Retirement nest egg" },
-                ].map(({ key, label }) => (
-                  <div key={key}>
-                    <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>{label}</div>
-                    <input type="number" style={{ ...S.input, fontSize:13 }} placeholder="0"
-                      value={profileForm.targets?.[key] || ""}
-                      onChange={e => setProfileForm(p => ({ ...p, targets: { ...p.targets, [key]: parseFloat(e.target.value) || 0 } }))} />
-                  </div>
-                ))}
-                <div>
-                  <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>Retirement age</div>
-                  <input type="number" style={{ ...S.input, fontSize:13 }} placeholder="65"
-                    value={profileForm.targets?.retirementAge || ""}
-                    onChange={e => setProfileForm(p => ({ ...p, targets: { ...p.targets, retirementAge: parseInt(e.target.value) || 65 } }))} />
-                </div>
-              </div>
-            </div>
-
-            {/* Manual Assets */}
-            <div>
-              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Manual Assets</div>
-              {(profileForm.manualAssets || []).map((a, i) => (
-                <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
-                  <input style={{ ...S.input, flex:2, fontSize:13 }} placeholder="Name (e.g. Home, Car)"
-                    value={a.name} onChange={e => setProfileForm(p => {
-                      const assets = [...p.manualAssets]; assets[i] = { ...assets[i], name: e.target.value }; return { ...p, manualAssets: assets };
-                    })} />
-                  <input type="number" style={{ ...S.input, flex:1, fontSize:13 }} placeholder="Value"
-                    value={a.value || ""} onChange={e => setProfileForm(p => {
-                      const assets = [...p.manualAssets]; assets[i] = { ...assets[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualAssets: assets };
-                    })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} className="ledgr-btn" onClick={() => setProfileForm(p => ({ ...p, manualAssets: p.manualAssets.filter((_, j) => j !== i) }))}>✕</button>
-                </div>
-              ))}
-              <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
-                onClick={() => setProfileForm(p => ({ ...p, manualAssets: [...(p.manualAssets||[]), { name:"", value:0 }] }))}>
-                + Add Asset
-              </button>
-            </div>
-
-            {/* Manual Liabilities */}
-            <div>
-              <div style={{ fontSize:11, color:"var(--t3)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.8px", marginBottom:8 }}>Manual Liabilities</div>
-              {(profileForm.manualLiabilities || []).map((l, i) => (
-                <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
-                  <input style={{ ...S.input, flex:2, fontSize:13 }} placeholder="Name (e.g. Mortgage, Loan)"
-                    value={l.name} onChange={e => setProfileForm(p => {
-                      const liabs = [...p.manualLiabilities]; liabs[i] = { ...liabs[i], name: e.target.value }; return { ...p, manualLiabilities: liabs };
-                    })} />
-                  <input type="number" style={{ ...S.input, flex:1, fontSize:13 }} placeholder="Amount"
-                    value={l.value || ""} onChange={e => setProfileForm(p => {
-                      const liabs = [...p.manualLiabilities]; liabs[i] = { ...liabs[i], value: parseFloat(e.target.value) || 0 }; return { ...p, manualLiabilities: liabs };
-                    })} />
-                  <button style={{ ...S.btn("ghost",true), flexShrink:0 }} className="ledgr-btn" onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: p.manualLiabilities.filter((_, j) => j !== i) }))}>✕</button>
-                </div>
-              ))}
-              <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
-                onClick={() => setProfileForm(p => ({ ...p, manualLiabilities: [...(p.manualLiabilities||[]), { name:"", value:0 }] }))}>
-                + Add Liability
-              </button>
-            </div>
-
-            <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-              <button style={S.btn("ghost")} className="ledgr-btn" onClick={() => setProfileForm(null)}>Cancel</button>
-              <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={() => { onSaveProfile(profileForm); setProfileForm(null); showToast("Profile saved"); }}>Save Profile</button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
-              {[
-                { label:"Monthly income", value: userProfile?.monthlyIncome ? `$${(userProfile.monthlyIncome).toLocaleString()}` : "Not set" },
-                { label:"Retirement age", value: userProfile?.targets?.retirementAge || "Not set" },
-                { label:"Net worth target", value: userProfile?.targets?.netWorthTarget ? `$${(userProfile.targets.netWorthTarget).toLocaleString()}` : "Not set" },
-                { label:"Retirement target", value: userProfile?.targets?.retirementTargetAmount ? `$${(userProfile.targets.retirementTargetAmount).toLocaleString()}` : "Not set" },
-              ].map(({ label, value }) => (
-                <div key={label} style={{ background:"var(--surface)", border:"none", borderRadius:"var(--radius)", padding:"10px 12px" }}>
-                  <div style={{ fontSize:11, color:"var(--t3)", marginBottom:3 }}>{label}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", fontFamily:"var(--font-mono)" }}>{value}</div>
-                </div>
-              ))}
-            </div>
-            <button style={{ ...S.btn("ghost"), width:"100%" }} onClick={() => setProfileForm({ ...userProfile })}>Edit Profile</button>
-          </div>
-        )}
-      </SettingsSection>
-
-
-      </>}
-
-      {/* ── Appearance tab ──────────────────────────── */}
-      {settingsTab === "appearance" && <>
-
-      {/* -- Theme ------------------------------------------------ */}
-      <SettingsSection title="Appearance">
-        {(()=>{
-          const PRESETS = [
-            { name:"Obsidian",    bg:"#0b0a08", surface:"#1a1612", card:"#181511", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
-            { name:"Midnight",    bg:"#09090f", surface:"#111120", card:"#18181e", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)",  t3:"rgba(232,232,255,0.3)" },
-            { name:"Ledgr Dark",  bg:"#060a0f", surface:"#0d1520", card:"#111a28", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)",  t3:"rgba(218,234,248,0.3)" },
-            { name:"Deep Green",  bg:"#050f08", surface:"#0a1c0e", card:"#0e2414", accent:"#4ade80", t1:"#d4f0df", t2:"rgba(212,240,223,0.5)",  t3:"rgba(212,240,223,0.3)" },
-            { name:"Ember",       bg:"#100600", surface:"#1c0e00", card:"#241400", accent:"#fb923c", t1:"#f5e4d0", t2:"rgba(245,228,208,0.5)",  t3:"rgba(245,228,208,0.3)" },
-            { name:"Rose",        bg:"#0f0608", surface:"#1c0c12", card:"#241018", accent:"#f472b6", t1:"#f5d8e8", t2:"rgba(245,216,232,0.5)",  t3:"rgba(245,216,232,0.3)" },
-            { name:"Slate",       bg:"#080c10", surface:"#101820", card:"#16222c", accent:"#60a5fa", t1:"#dce8f8", t2:"rgba(220,232,248,0.5)",  t3:"rgba(220,232,248,0.3)" },
-            { name:"Ocean",       bg:"#020c14", surface:"#041a2a", card:"#062238", accent:"#38bdf8", t1:"#d8f0ff", t2:"rgba(216,240,255,0.5)",  t3:"rgba(216,240,255,0.3)" },
-            { name:"Crimson",     bg:"#0f0206", surface:"#1a060c", card:"#220a12", accent:"#f87171", t1:"#fde8e8", t2:"rgba(253,232,232,0.5)",  t3:"rgba(253,232,232,0.3)" },
-            { name:"Dusk",        bg:"#090610", surface:"#100e1c", card:"#161428", accent:"#f59e0b", t1:"#f0e8ff", t2:"rgba(240,232,255,0.5)",  t3:"rgba(240,232,255,0.3)" },
-            { name:"Arctic",      bg:"#06101a", surface:"#0e1e2e", card:"#142640", accent:"#67e8f9", t1:"#e0f8ff", t2:"rgba(224,248,255,0.5)",  t3:"rgba(224,248,255,0.3)" },
-            { name:"Graphite",    bg:"#0a0a0a", surface:"#141414", card:"#1c1c1c", accent:"#e2e8f0", t1:"#f1f5f9", t2:"rgba(241,245,249,0.5)",  t3:"rgba(241,245,249,0.28)" },
-            { name:"Copper",      bg:"#0c0806", surface:"#1a1008", card:"#221608", accent:"#d97706", t1:"#fef3c7", t2:"rgba(254,243,199,0.5)",  t3:"rgba(254,243,199,0.3)" },
-            { name:"Forest",      bg:"#050a06", surface:"#0a1a0c", card:"#0d2410", accent:"#86efac", t1:"#dcfce7", t2:"rgba(220,252,231,0.5)",  t3:"rgba(220,252,231,0.3)" },
-            { name:"Violet",      bg:"#08060f", surface:"#120e20", card:"#1a1430", accent:"#c084fc", t1:"#f3e8ff", t2:"rgba(243,232,255,0.5)",  t3:"rgba(243,232,255,0.3)" },
-            { name:"Gold",        bg:"#0e0b00", surface:"#1c1600", card:"#261e00", accent:"#fbbf24", t1:"#fffbeb", t2:"rgba(255,251,235,0.5)",  t3:"rgba(255,251,235,0.28)" },
-            { name:"Steel",       bg:"#070a0e", surface:"#0f151e", card:"#16202e", accent:"#94a3b8", t1:"#e2e8f0", t2:"rgba(226,232,240,0.5)",  t3:"rgba(226,232,240,0.28)" },
-            { name:"Teal",        bg:"#040e0e", surface:"#081c1c", card:"#0c2626", accent:"#2dd4bf", t1:"#ccfbf1", t2:"rgba(204,251,241,0.5)",  t3:"rgba(204,251,241,0.3)" },
-            { name:"Sakura",      bg:"#100810", surface:"#1e0e1e", card:"#2a1228", accent:"#fb7185", t1:"#ffe4e6", t2:"rgba(255,228,230,0.5)",  t3:"rgba(255,228,230,0.3)" },
-            { name:"Noir",        bg:"#050505", surface:"#0f0f0f", card:"#181818", accent:"#facc15", t1:"#fafafa", t2:"rgba(250,250,250,0.45)", t3:"rgba(250,250,250,0.25)" },
-          ];
-          const FONTS = [
-            { label:"Syne (default)",      value:"'Syne', sans-serif" },
-            { label:"DM Sans",             value:"'DM Sans', sans-serif" },
-            { label:"Dancing Script",      value:"'Dancing Script', cursive" },
-            { label:"JetBrains Mono",      value:"'JetBrains Mono', monospace" },
-            { label:"Georgia",             value:"'Georgia', serif" },
-            { label:"Trebuchet MS",        value:"'Trebuchet MS', sans-serif" },
-          ];
-          const VARS = [
-            { key:"bg",      label:"Background" },
-            { key:"surface", label:"Surface" },
-            { key:"card",    label:"Card" },
-            { key:"accent",  label:"Accent" },
-            { key:"t1",      label:"Text primary" },
-            { key:"t2",      label:"Text secondary" },
-            { key:"t3",      label:"Text muted" },
-            { key:"reviewColor",    label:"Review stripe" },
-            { key:"recurringColor", label:"Recurring stripe" },
-          ];
-          const defaults = PRESETS[0];
-          const current = { ...defaults, fontDisp:"'Syne', sans-serif", reviewColor:"#00d4ff", recurringColor:"#fbbf24", ...(theme||{}) };
-          const gradSteps = current.gradSteps ?? 6;
-          const gradAngle = current.gradAngle ?? 315;
-          const globalOpacity = current.globalOpacity ?? 100;
-          const savedThemes = current._savedThemes || [];
-          // saveThemeName and showSaveInput hoisted to SettingsView top level
-
-          function patch(k, v) {
-            const next = { ...current, [k]: v };
-            onSaveTheme(next);
-          }
-
-          function patchGradSteps(steps) {
-            const hex2rgb = h => { const v=h.replace('#',''); return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16)]; };
-            const rgb2hex = ([r,g,b]) => '#'+[r,g,b].map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,'0')).join('');
-            const base = current.card || '#181511';
-            const [r,g,b] = hex2rgb(base);
-            const hi = rgb2hex([r+steps, g+steps, b+steps]);
-            document.documentElement.style.setProperty('--card-hi', hi);
-            patch('gradSteps', steps);
-          }
-
-          function patchGradAngle(angle) {
-            document.documentElement.style.setProperty('--grad-angle', angle + 'deg');
-            patch('gradAngle', angle);
-          }
-
-          function patchGlobalOpacity(val) {
-            applyGlobalOpacity(val, current);
-            patch('globalOpacity', val);
-          }
-
-          function applyPreset(preset) {
-            const next = { ...current, ...preset };
-            onSaveTheme(next);
-          }
-
-          function saveCurrentTheme() {
-            if (!saveThemeName.trim()) return;
-            const { _savedThemes: _, ...themeData } = current;
-            const entry = { ...themeData, name: saveThemeName.trim() };
-            const next = [...savedThemes.filter(t=>t.name!==entry.name), entry];
-            patch('_savedThemes', next);
-            setSaveThemeName("");
-            setShowSaveInput(false);
-            showToast("Theme saved: " + entry.name);
-          }
-
-          function deleteCustomTheme(name) {
-            patch('_savedThemes', savedThemes.filter(t=>t.name!==name));
-          }
-
-          function reset() {
-            const root = document.documentElement;
-            ["--bg","--surface","--card","--border","--border2","--cyan","--cyan-dim","--t1","--t2","--t3","--font-disp"].forEach(v => root.style.removeProperty(v));
-            document.body.style.removeProperty("background");
-            document.body.style.removeProperty("background-image");
-            document.body.style.removeProperty("background-color");
-            document.documentElement.classList.remove("ledgr-has-bgimage");
-            try { localStorage.removeItem("ledgr_theme"); } catch {}
-            onSaveTheme({});
-          }
-
-          return (
-            <div style={{display:"flex",flexDirection:"column",gap:20}}>
-              {/* Presets — 4-column grid, all buttons same width */}
-              <div>
-                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Presets</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:6}}>
-                  {PRESETS.map(p=>(
-                    <button key={p.name} onClick={()=>applyPreset(p)} style={{
-                      display:"flex",alignItems:"center",gap:6,justifyContent:"flex-start",
-                      padding:"6px 10px",borderRadius:"var(--radius)",fontSize:11,fontWeight:500,
-                      border:`1px solid ${current.accent||"var(--border2)"}33`,
-                      background:"var(--surface)",color:"var(--t2)",cursor:"pointer",
-                      transition:"all 0.15s",whiteSpace:"nowrap",overflow:"hidden",
-                    }}
-                    onMouseEnter={e=>{e.currentTarget.style.borderColor=current.accent||"var(--cyan)";e.currentTarget.style.color="var(--t1)";}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor=`${current.accent||"var(--border2)"}33`;e.currentTarget.style.color="var(--t2)";}}>
-                      <span style={{display:"inline-flex",gap:3,flexShrink:0}}>
-                        {["bg","accent","t1"].map(k=>(
-                          <span key={k} style={{width:7,height:7,borderRadius:"50%",background:p[k],display:"inline-block"}}/>
-                        ))}
-                      </span>
-                      <span style={{overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Saved custom themes */}
-              <div>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                  <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600}}>My Themes</div>
-                  <button style={{...S.btn("ghost",true),fontSize:11}} className="ledgr-btn" onClick={()=>setShowSaveInput(p=>!p)}>
-                    {showSaveInput?"Cancel":"+ Save current"}
-                  </button>
-                </div>
-                {showSaveInput&&(
-                  <div style={{display:"flex",gap:8,marginBottom:10}}>
-                    <input
-                      autoFocus
-                      value={saveThemeName}
-                      onChange={e=>setSaveThemeName(e.target.value)}
-                      onKeyDown={e=>{ if(e.key==="Enter") saveCurrentTheme(); if(e.key==="Escape") setShowSaveInput(false); }}
-                      placeholder="Theme name…"
-                      style={{...S.input,flex:1,fontSize:12}}/>
-                    <button style={S.btn("primary",true)} onClick={saveCurrentTheme} disabled={!saveThemeName.trim()}>Save</button>
-                  </div>
-                )}
-                {savedThemes.length===0&&!showSaveInput&&(
-                  <div style={{fontSize:12,color:"var(--t3)",padding:"8px 0"}}>No saved themes yet. Customise the settings below then save.</div>
-                )}
-                {savedThemes.length>0&&(
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:6}}>
-                    {savedThemes.map(t=>(
-                      <div key={t.name} style={{display:"flex",gap:0,borderRadius:"var(--radius)",overflow:"hidden",border:`1px solid ${current.accent||"var(--border2)"}22`}}>
-                        <button onClick={()=>applyPreset(t)} style={{
-                          flex:1,display:"flex",alignItems:"center",gap:5,padding:"6px 8px",
-                          background:"var(--surface)",color:"var(--t2)",border:"none",cursor:"pointer",
-                          fontSize:11,fontWeight:500,overflow:"hidden",textAlign:"left",
-                          transition:"all 0.15s",
-                        }}
-                        onMouseEnter={e=>{e.currentTarget.style.color="var(--t1)";}}
-                        onMouseLeave={e=>{e.currentTarget.style.color="var(--t2)";}}>
-                          <span style={{display:"inline-flex",gap:3,flexShrink:0}}>
-                            {["bg","accent","t1"].map(k=>(
-                              <span key={k} style={{width:7,height:7,borderRadius:"50%",background:t[k]||"#888",display:"inline-block"}}/>
-                            ))}
-                          </span>
-                          <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</span>
-                        </button>
-                        <button onClick={()=>deleteCustomTheme(t.name)} style={{
-                          background:"var(--surface)",border:"none",borderLeft:`1px solid ${current.accent||"var(--border2)"}22`,
-                          color:"var(--t3)",cursor:"pointer",padding:"0 8px",fontSize:14,flexShrink:0,
-                          transition:"color 0.15s",
-                        }}
-                        onMouseEnter={e=>{e.currentTarget.style.color="var(--red)";}}
-                        onMouseLeave={e=>{e.currentTarget.style.color="var(--t3)";}}>×</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Background Image */}
-              <div>
-                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Background Image</div>
-                <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                  {/* Hidden file input */}
-                  <input
-                    id="ledgr-bg-upload"
-                    type="file"
-                    accept="image/*"
-                    style={{display:"none"}}
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      // Warn if file is very large
-                      if (file.size > 8 * 1024 * 1024) {
-                        alert("Image is very large and may slow down the app. Consider using an image under 8MB.");
-                      }
-                      const reader = new FileReader();
-                      reader.onload = ev => {
-                        const next = { ...current, bgImage: ev.target.result };
-                        onSaveTheme(next);
-                      };
-                      reader.readAsDataURL(file);
-                      e.target.value = ""; // reset so same file can be re-selected
-                    }}
-                  />
-                  {/* Choose image button */}
-                  <button
-                    onClick={() => document.getElementById("ledgr-bg-upload").click()}
-                    style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:8, borderColor:"var(--border2)"}}>
-                    <span>🖼</span>
-                    <span>{current.bgImage ? "Change image" : "Choose image"}</span>
-                  </button>
-                  {/* Preview + remove */}
-                  {current.bgImage && (
-                    <>
-                      <div style={{width:60,height:36,borderRadius:"var(--radius)",overflow:"hidden",border:"none",flexShrink:0}}>
-                        <img src={current.bgImage} alt="bg preview" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const next = { ...current };
-                          delete next.bgImage;
-                          onSaveTheme(next);
-                        }}
-                        style={{...S.btn("ghost",true), color:"var(--t3)", borderColor:"var(--border2)"}}>
-                        Remove
-                      </button>
-                    </>
-                  )}
-                </div>
-                {current.bgImage && (
-                  <div style={{marginTop:8,fontSize:11,color:"var(--t3)"}}>
-                    Tip: dark color presets pair well with a background image. Reduce opacity by adjusting the Background color.
-                  </div>
-                )}
-              </div>
-
-              {/* Page title font — 3-column grid */}
-              <div>
-                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Page Title Font</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:6}}>
-                  {FONTS.map(f=>{
-                    const active=(current.fontDisp||"'Syne', sans-serif")===f.value;
-                    return(
-                      <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
-                        padding:"7px 10px",borderRadius:"var(--radius)",fontSize:13,textAlign:"center",
-                        fontFamily:f.value,
-                        border:`1px solid ${active?"var(--cyan)":"var(--border2)"}`,
-                        background:active?"var(--cyan-dim)":"var(--surface)",
-                        color:active?"var(--cyan)":"var(--t2)",cursor:"pointer",transition:"all 0.15s",
-                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",
-                      }}>
-                        {f.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{marginTop:8,padding:"8px 12px",background:"var(--surface)",borderRadius:"var(--radius)",border:"none"}}>
-                  <span style={{fontFamily:current.fontDisp||"'Syne', sans-serif",fontSize:18,fontWeight:700,color:"var(--t1)"}}>Dashboard</span>
-                  <span style={{fontSize:11,color:"var(--t3)",marginLeft:12}}>preview</span>
-                </div>
-              </div>
-
-              {/* Color pickers */}
-              <div>
-                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:8}}>Colors</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:"10px 12px"}}>
-                  {VARS.map(({key,label})=>(
-                    <div key={key} style={{display:"flex",flexDirection:"column",gap:4}}>
-                      <div style={{fontSize:10,color:"var(--t2)",fontFamily:"var(--font-body)",letterSpacing:"0.3px"}}>{label}</div>
-                      <div style={{display:"flex",alignItems:"stretch",height:30,background:"var(--surface)",border:"none",borderRadius:"var(--radius)",overflow:"hidden"}}>
-                        <input type="color" value={current[key]||defaults[key]}
-                          onChange={e=>patch(key,e.target.value)}
-                          style={{width:30,height:"100%",border:"none",borderRight:"1px solid var(--border2)",cursor:"pointer",padding:0,background:"none",flexShrink:0,display:"block"}}/>
-                        <input type="text" value={current[key]||defaults[key]}
-                          onChange={e=>{ if(/^#[0-9a-fA-F]{6}$/.test(e.target.value)) patch(key,e.target.value); }}
-                          style={{flex:1,background:"none",border:"none",padding:"0 8px",fontSize:11,color:"var(--t1)",fontFamily:"var(--font-mono)",outline:"none",minWidth:0,lineHeight:"30px"}}/>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Card gradient intensity */}
-              <div>
-                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:10}}>Card Gradient</div>
-                <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
-                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>None</span>
-                  <input type="range" min={0} max={30} step={1} value={gradSteps}
-                    onChange={e=>patchGradSteps(Number(e.target.value))}
-                    style={{flex:1,accentColor:"var(--cyan)",cursor:"pointer"}}/>
-                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>Strong</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)",width:20,textAlign:"right",flexShrink:0}}>{gradSteps}</span>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
-                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0,width:28}}>0°</span>
-                  <input type="range" min={0} max={360} step={15} value={gradAngle}
-                    onChange={e=>patchGradAngle(Number(e.target.value))}
-                    style={{flex:1,accentColor:"var(--cyan)",cursor:"pointer"}}/>
-                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>360°</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)",width:32,textAlign:"right",flexShrink:0}}>{gradAngle}°</span>
-                </div>
-                <div style={{height:24,borderRadius:"var(--radius)",background:`linear-gradient(${gradAngle}deg, var(--card) 0%, var(--card-hi) 100%)`,opacity:0.8}}/>
-              </div>
-
-              {/* Global transparency */}
-              <div>
-                <div style={{fontSize:11,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",fontWeight:600,marginBottom:10}}>Transparency</div>
-                <div style={{display:"flex",alignItems:"center",gap:14}}>
-                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>Ghost</span>
-                  <input type="range" min={20} max={100} step={1} value={globalOpacity}
-                    onChange={e=>patchGlobalOpacity(Number(e.target.value))}
-                    style={{flex:1,accentColor:"var(--cyan)",cursor:"pointer"}}/>
-                  <span style={{fontSize:11,color:"var(--t3)",flexShrink:0}}>Solid</span>
-                  <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t2)",width:32,textAlign:"right",flexShrink:0}}>{globalOpacity}%</span>
-                </div>
-                <div style={{marginTop:8,fontSize:11,color:"var(--t3)"}}>Controls overall app opacity — useful for wallpaper setups</div>
-              </div>
-
-              {/* Reset */}
-              <div style={{display:"flex",justifyContent:"flex-end"}}>
-                <button onClick={reset} style={{...S.btn("ghost",true),color:"var(--t3)"}} className="ledgr-btn">
-                  Reset to defaults
-                </button>
-              </div>
-            </div>
-          );
-        })()}
-      </SettingsSection>
-
-      </>}
-
-      {/* ── Data tab ────────────────────────────────── */}
-      {settingsTab === "data" && <>
-
-      {/* Data export */}
-      <SettingsSection title="Your Data">
-        <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
-          Export all your transactions as a CSV file you can open in Excel or Google Sheets.
-        </div>
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:10 }}>
-          <div style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
-            <div style={{ fontSize:12, color:"var(--t3)" }}>
-              {transactions.length} transactions · {accounts.length} accounts · {categories.length} categories
-            </div>
-            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={exportCSV}>↓ Export CSV</button>
-          </div>
-          <button style={{...S.btn("ghost",true), display:"flex", alignItems:"center", gap:6}} className="ledgr-btn" onClick={()=>setShowTrash(true)}>
-            🗑 Deleted Transactions {deletedTransactions.length > 0 && <span style={{fontSize:10,backgroundColor:"var(--card-hi)",borderRadius:20,padding:"1px 7px",color:"var(--t3)"}}>{deletedTransactions.length}</span>}
-          </button>
-          <button style={S.btn("danger",true)} onClick={deleteAllTransactions}>
-            Delete All Transactions
-          </button>
-          <button style={S.btn("danger",true)} onClick={clearAllData}>
-            Clear All Data
-          </button>
-        </div>
-      </SettingsSection>
-
-      {/* Legal */}
-      <SettingsSection title="Legal">
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {[["Privacy Policy","privacy"],["Terms of Service","terms"]].map(([label, doc]) => (
-            <button key={doc} onClick={() => setLegalDoc(doc)}
-              style={{ fontSize:13, color:"var(--t2)", textDecoration:"none",
-                display:"flex", alignItems:"center", justifyContent:"space-between",
-                padding:"10px 12px", background:"var(--surface)", cursor:"pointer",
-                borderRadius:"var(--radius)", border:"none",
-                width:"100%", textAlign:"left" }}>
-              {label} <span style={{ color:"var(--t3)" }}>←</span>
+        <div style={{ display:"flex", gap:0, ...(isMobile?{overflowX:"auto",scrollbarWidth:"none"}:{}) }}>
+          {STABS.map(t => (
+            <button key={t.id} onClick={()=>setSettingsTab(t.id)} style={{
+              padding:"10px 16px", fontSize:11, cursor:"pointer", border:"none",
+              background:"transparent", color:settingsTab===t.id?"var(--cyan)":"var(--t3)",
+              fontFamily:"var(--font-body)", display:"flex", alignItems:"center", gap:6,
+              borderBottom:settingsTab===t.id?"2px solid var(--cyan)":"2px solid transparent",
+              transition:"all .15s", marginBottom:-1, flexShrink:0,
+              ...(isMobile?{flex:1,padding:"10px 8px",fontSize:10,justifyContent:"center"}:{}),
+            }}>
+              {!isMobile && <span style={{ fontSize:9, opacity:0.5 }}>{t.icon}</span>}
+              {t.label}
             </button>
           ))}
         </div>
-      </SettingsSection>
-
-      </>}
-
-      {/* ── Household tab ───────────────────────────── */}
-      {settingsTab === "household" && <>
-
-      {/* Family Sharing */}
-      <SettingsSection title="Family Sharing">
-        {!isFamilyPlan ? (
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{background:"var(--surface)",borderRadius:10,padding:"14px 16px",display:"flex",flexDirection:"column",gap:6}}>
-              <div style={{fontSize:13,fontWeight:600,color:"var(--t1)"}}>Family sharing requires the Family plan</div>
-              <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.6}}>
-                Invite household members to share accounts, budgets, and transactions. Each member keeps their own settings and theme.
-              </div>
-            </div>
-            <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}}
-              onClick={()=>setSettingsTab("subscription")}>
-              View plans →
-            </button>
-          </div>
-        ) : !householdLoaded ? (
-          <div style={{fontSize:12,color:"var(--t3)"}}>Loading…</div>
-        ) : household?.role === "member" ? (
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{fontSize:13,color:"var(--t2)"}}>
-              You're sharing data with <strong style={{color:"var(--t1)"}}>{household.owner_name || household.owner_email}</strong>.
-            </div>
-            <button style={{...S.btn("ghost"),color:"var(--red)"}} onClick={leaveHousehold}>Leave Household</button>
-          </div>
-        ) : (
-          <div style={{display:"flex",flexDirection:"column",gap:14}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:2}}>
-              <div style={{fontSize:12,color:"var(--t3)",lineHeight:1.5}}>
-                Invite household members to share your financial data.
-              </div>
-              <div style={{fontSize:11,color:"var(--t3)",flexShrink:0,marginLeft:10}}>
-                {(household?.members?.length||0)}/2 members
-              </div>
-            </div>
-            {(household?.members?.length||0) < 2 && (
-              <div style={{display:"flex",gap:8}}>
-                <input
-                  style={{...S.input,flex:1}}
-                  placeholder="Member's email"
-                  value={inviteEmail}
-                  onChange={e=>setInviteEmail(e.target.value)}
-                  onKeyDown={e=>e.key==="Enter"&&sendInvite()}
-                />
-                <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting}>
-                  {inviting ? "Sending…" : "Invite"}
-                </button>
-              </div>
-            )}
-            {(household?.members?.length||0) >= 2 && (
-              <div style={{fontSize:12,color:"var(--amber)",padding:"8px 12px",background:"var(--amber-dim)",borderRadius:"var(--radius)"}}>
-                Member limit reached (2/2). Remove a member to invite someone new.
-              </div>
-            )}
-            {household?.members?.length > 0 && (
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                <div style={{fontSize:10,fontWeight:700,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:2}}>Members</div>
-                {household.members.map(m => (
-                  <div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"var(--surface)",borderRadius:"var(--radius)"}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:12,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name || m.invited_email}</div>
-                      <div style={{fontSize:10,color:m.status==="active"?"var(--green)":"var(--amber)",marginTop:1}}>{m.status==="active"?"Active":"Pending invite"}</div>
-                    </div>
-                    <button style={{...S.btn("ghost",true),color:"var(--red)",fontSize:11}} className="ledgr-btn" onClick={()=>removeMember(m.id)}>Remove</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </SettingsSection>
-
-      </>}
-
-      {/* Sign out — profile tab */}
-      {settingsTab === "profile" && <SettingsSection title="Account">
-        <button style={{ ...S.btn("danger"), width:"100%" }}
-          onClick={() => { api.logout().then(() => window.location.reload()); }}>
-          Sign Out
-        </button>
-      </SettingsSection>}
-
+      </div>
     </div>
 
-    {/* Legal document modal */}
-    {legalDoc && (
-      <div style={S.overlay} className="ledgr-overlay-anim" onClick={() => setLegalDoc(null)}>
-        <div className="ledgr-modal-anim" style={{
-          ...S.modal,
-          width: 640, maxHeight: "82vh", display: "flex", flexDirection: "column",
-        }} onClick={e => e.stopPropagation()}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexShrink:0 }}>
-            <div style={S.modalTitle}>
-              {legalDoc === "privacy" ? "Privacy Policy" : "Terms of Service"}
+    {/* ── Tab content ── */}
+    <div style={{ maxWidth:640, padding:"28px 28px" }}>
+      <div key={settingsTab} className="ledgr-panel-in">
+
+      {/* ══ PROFILE ═══════════════════════════════════════════ */}
+      {settingsTab === "profile" && <>
+        <Section title="Identity">
+          <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20 }}>
+            <div style={{ width:52, height:52, borderRadius:"50%", flexShrink:0,
+              background:avatarColor+"22", border:`2px solid ${avatarColor}`,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontFamily:"var(--font-disp)", fontSize:22, fontWeight:800, color:avatarColor }}>
+              {avatarLetter}
             </div>
-            <button onClick={() => setLegalDoc(null)}
-              style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:20, lineHeight:1 }}>✕</button>
-          </div>
-          <div style={{ overflowY:"auto", flex:1, fontSize:13, color:"var(--t2)", lineHeight:1.7 }}>
-            {legalDoc === "privacy" ? <PrivacyPolicy /> : <TermsOfService />}
-          </div>
-          <div style={{ marginTop:20, flexShrink:0, textAlign:"right" }}>
-            <div style={{ fontSize:11, color:"var(--t3)" }}>Last updated: {new Date().toLocaleDateString("en-US", { month:"long", day:"numeric", year:"numeric" })}</div>
-          </div>
-        </div>
-      </div>
-    )}
-
-      {/* ── Subscription tab ─────────────────────────── */}
-      {settingsTab === "subscription" && <>
-
-      {/* Current status card */}
-      <SettingsSection title="Your Plan">
-        {user?.role === "owner" ? (
-          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--green)33"}}>
-            <div style={{width:9,height:9,borderRadius:"50%",background:"var(--green)",flexShrink:0,boxShadow:"0 0 6px var(--green)"}}/>
             <div>
-              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>Owner — Lifetime Access</div>
-              <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>No subscription required</div>
+              <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)" }}>{user?.name || user?.email}</div>
+              <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>{user?.email}</div>
+              {user?.role === "owner" && (
+                <div style={{ marginTop:5, display:"inline-flex", alignItems:"center", gap:5,
+                  background:"rgba(201,149,106,0.1)", border:"1px solid rgba(201,149,106,0.25)",
+                  borderRadius:99, padding:"2px 9px", fontSize:9, fontWeight:700,
+                  color:"var(--cyan)", letterSpacing:"0.5px" }}>◈ OWNER</div>
+              )}
             </div>
           </div>
-        ) : user?.subscription_status === "active" ? (
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--green)33"}}>
-              <div style={{width:9,height:9,borderRadius:"50%",background:"var(--green)",flexShrink:0,boxShadow:"0 0 6px var(--green)"}}/>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>
-                  {isFamilyPlan ? "Family Plan — $9.99/month" : "Personal Plan — $4.99/month"}
-                </div>
-                <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>Active — renews automatically</div>
-              </div>
+          <SettingRow label="Display name" hint="Shown in the app header">
+            <div style={{ display:"flex", gap:8 }}>
+              <input style={{ ...inputSt, width:180 }} placeholder="Your name"
+                value={name} onChange={e=>setName(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&saveName()} />
+              <button style={S.btn("primary",true)} onClick={saveName} disabled={savingName}>
+                {savingName?"…":"Save"}
+              </button>
             </div>
-            <button onClick={async()=>{ try { await api.openBillingPortal(); } catch(e) { showToast("Failed to open portal"); } }}
-              style={{...S.btn("ghost"),justifyContent:"center"}} className="ledgr-btn">
-              Manage billing & invoices →
+          </SettingRow>
+        </Section>
+
+        <Section title="Security">
+          <div style={{ display:"flex", flexDirection:"column", gap:10, maxWidth:360 }}>
+            {[["Current password","password",currPw,v=>{setCurrPw(v);setPwError("");setPwSuccess(false);},"••••••••"],
+              ["New password","password",newPw,v=>{setNewPw(v);setPwError("");setPwSuccess(false);},"Min. 8 characters"],
+              ["Confirm new password","password",confirmPw,v=>{setConfirmPw(v);setPwError("");setPwSuccess(false);},"••••••••"]
+            ].map(([label,type,val,fn,ph])=>(
+              <div key={label}>
+                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:5 }}>{label}</div>
+                <input style={inputSt} type={type} placeholder={ph} value={val} onChange={e=>fn(e.target.value)} />
+              </div>
+            ))}
+            {pwError   && <div style={{ fontSize:12, color:"var(--red)" }}>{pwError}</div>}
+            {pwSuccess && <div style={{ fontSize:12, color:"var(--green)" }}>Password updated ✓</div>}
+            <button style={{ ...S.btn("primary"), alignSelf:"flex-start" }} onClick={changePassword} disabled={savingPw}>
+              {savingPw?"Updating…":"Update password"}
             </button>
           </div>
-        ) : user?.subscription_status === "trialing" ? (
-          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--amber)33"}}>
-            <div style={{width:9,height:9,borderRadius:"50%",background:"var(--amber)",flexShrink:0,boxShadow:"0 0 6px var(--amber)"}}/>
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)"}}>Free Trial</div>
-              {user?.trial_ends_at && (
-                <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>
-                  {Math.max(0,Math.ceil((user.trial_ends_at-Date.now())/(1000*60*60*24)))} days remaining
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"var(--surface)",borderRadius:10,border:"1px solid var(--red)33"}}>
-            <div style={{width:9,height:9,borderRadius:"50%",background:"var(--red)",flexShrink:0}}/>
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color:"var(--t1)",textTransform:"capitalize"}}>{user?.subscription_status||"No active plan"}</div>
-              <div style={{fontSize:12,color:"var(--t3)",marginTop:2}}>Subscribe below to unlock full access</div>
-            </div>
-          </div>
-        )}
-      </SettingsSection>
+        </Section>
 
-      {/* Plan cards — only show if not owner and not already on family */}
-      {user?.role !== "owner" && (
-        <SettingsSection title="Plans">
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-
-            {/* Personal Plan */}
-            <div style={{
-              background:"var(--surface)",borderRadius:12,padding:"18px 16px",
-              border: !isFamilyPlan && user?.subscription_status==="active"
-                ? "1px solid var(--cyan)" : "1px solid var(--border)",
-              position:"relative",
-            }}>
-              {!isFamilyPlan && user?.subscription_status==="active" && (
-                <div style={{position:"absolute",top:-10,left:16,background:"var(--cyan)",color:"#000",fontSize:10,fontWeight:700,padding:"2px 10px",borderRadius:99,letterSpacing:"0.5px"}}>
-                  CURRENT PLAN
-                </div>
-              )}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                <div>
-                  <div style={{fontSize:15,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Personal</div>
-                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Everything you need to take control</div>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <span style={{fontSize:22,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-mono)"}}>$4.99</span>
-                  <span style={{fontSize:11,color:"var(--t3)"}}>/mo</span>
-                </div>
+        <Section title="Financial Profile">
+          {profileForm ? (
+            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              <div>
+                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:6 }}>Monthly income (after tax)</div>
+                <input type="number" style={{ ...inputSt, maxWidth:200 }} placeholder="0"
+                  value={profileForm.monthlyIncome||""} onChange={e=>setProfileForm(p=>({...p,monthlyIncome:parseFloat(e.target.value)||0}))} />
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
-                {["Bank sync via Plaid","Unlimited transactions & accounts","Budgets & goal tracking","Recurring items & calendar","AI-powered insights","Analytics & spending trends"].map(f=>(
-                  <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--t2)"}}>
-                    <span style={{color:"var(--cyan)",flexShrink:0,fontSize:11}}>✓</span>{f}
-                  </div>
-                ))}
-              </div>
-              {user?.subscription_status !== "active" && !isFamilyPlan ? (
-                <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}} className="ledgr-btn-primary"
-                  onClick={async()=>{ try { await api.startCheckout(); } catch(e) { showToast("Failed to start checkout"); } }}>
-                  Subscribe — $4.99/mo
-                </button>
-              ) : !isFamilyPlan ? (
-                <div style={{fontSize:12,color:"var(--cyan)",textAlign:"center",fontWeight:600}}>✓ Your current plan</div>
-              ) : null}
-            </div>
-
-            {/* Family Plan */}
-            <div style={{
-              background:"var(--surface)",borderRadius:12,padding:"18px 16px",
-              border: isFamilyPlan
-                ? "1px solid var(--cyan)" : "1px solid var(--border)",
-              position:"relative",
-            }}>
-              {!isFamilyPlan && (
-                <div style={{position:"absolute",top:-10,left:16,background:"var(--amber)",color:"#000",fontSize:10,fontWeight:700,padding:"2px 10px",borderRadius:99,letterSpacing:"0.5px"}}>
-                  MOST POPULAR
-                </div>
-              )}
-              {isFamilyPlan && (
-                <div style={{position:"absolute",top:-10,left:16,background:"var(--cyan)",color:"#000",fontSize:10,fontWeight:700,padding:"2px 10px",borderRadius:99,letterSpacing:"0.5px"}}>
-                  CURRENT PLAN
-                </div>
-              )}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                <div>
-                  <div style={{fontSize:15,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-disp)"}}>Family</div>
-                  <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>Everything in Personal, plus sharing</div>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <span style={{fontSize:22,fontWeight:800,color:"var(--t1)",fontFamily:"var(--font-mono)"}}>$9.99</span>
-                  <span style={{fontSize:11,color:"var(--t3)"}}>/mo</span>
-                </div>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:14}}>
-                {["Everything in Personal","Invite up to 2 household members","Shared accounts, budgets & transactions","Each member keeps personal settings & theme","Household calendar & recurring items"].map(f=>(
-                  <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--t2)"}}>
-                    <span style={{color:"var(--cyan)",flexShrink:0,fontSize:11}}>✓</span>{f}
-                  </div>
-                ))}
-              </div>
-              {isFamilyPlan ? (
-                <div style={{fontSize:12,color:"var(--cyan)",textAlign:"center",fontWeight:600}}>✓ Your current plan</div>
-              ) : (
-                <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  <button style={{...S.btn("primary"),width:"100%",justifyContent:"center"}} className="ledgr-btn-primary"
-                    onClick={async()=>{ try { const res=await api.startFamilyCheckout(); if(res.upgraded){ showToast("Upgraded to Family plan!"); window.location.reload(); } else { window.location.href=res.url; } } catch(e) { showToast("Failed to start checkout"); } }}>
-                    {user?.subscription_status==="active" ? "Upgrade to Family — $9.99/mo" : "Subscribe — $9.99/mo"}
-                  </button>
-                  {user?.subscription_status==="active" && (
-                    <div style={{fontSize:11,color:"var(--t3)",textAlign:"center"}}>
-                      You're on the $4.99 plan. Upgrading switches your subscription immediately.
+              <div>
+                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:8 }}>Targets</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+                  {[["savingsGoal","Monthly savings goal"],["emergencyFund","Emergency fund"],["netWorthTarget","Net worth target"],["retirementTargetAmount","Retirement nest egg"],["retirementAge","Retirement age"]].map(([k,l])=>(
+                    <div key={k}>
+                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>{l}</div>
+                      <input type="number" style={{ ...inputSt, fontSize:13 }} placeholder="0"
+                        value={k==="retirementAge"?profileForm.targets?.retirementAge||"":profileForm.targets?.[k]||""}
+                        onChange={e=>setProfileForm(p=>({...p,targets:{...p.targets,[k]:(k==="retirementAge"?parseInt:parseFloat)(e.target.value)||0}}))} />
                     </div>
-                  )}
+                  ))}
                 </div>
-              )}
+              </div>
+              <div>
+                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:8 }}>Manual assets</div>
+                {(profileForm.manualAssets||[]).map((a,i)=>(
+                  <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
+                    <input style={{ ...inputSt, flex:2 }} placeholder="Name (e.g. Home)" value={a.name}
+                      onChange={e=>setProfileForm(p=>{const assets=[...p.manualAssets];assets[i]={...assets[i],name:e.target.value};return{...p,manualAssets:assets};})} />
+                    <input type="number" style={{ ...inputSt, flex:1 }} placeholder="Value" value={a.value||""}
+                      onChange={e=>setProfileForm(p=>{const assets=[...p.manualAssets];assets[i]={...assets[i],value:parseFloat(e.target.value)||0};return{...p,manualAssets:assets};})} />
+                    <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualAssets:p.manualAssets.filter((_,j)=>j!==i)}))}>✕</button>
+                  </div>
+                ))}
+                <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
+                  onClick={()=>setProfileForm(p=>({...p,manualAssets:[...(p.manualAssets||[]),{name:"",value:0}]}))}>+ Add asset</button>
+              </div>
+              <div>
+                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:8 }}>Manual liabilities</div>
+                {(profileForm.manualLiabilities||[]).map((l,i)=>(
+                  <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
+                    <input style={{ ...inputSt, flex:2 }} placeholder="Name (e.g. Loan)" value={l.name}
+                      onChange={e=>setProfileForm(p=>{const liabs=[...p.manualLiabilities];liabs[i]={...liabs[i],name:e.target.value};return{...p,manualLiabilities:liabs};})} />
+                    <input type="number" style={{ ...inputSt, flex:1 }} placeholder="Amount" value={l.value||""}
+                      onChange={e=>setProfileForm(p=>{const liabs=[...p.manualLiabilities];liabs[i]={...liabs[i],value:parseFloat(e.target.value)||0};return{...p,manualLiabilities:liabs};})} />
+                    <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualLiabilities:p.manualLiabilities.filter((_,j)=>j!==i)}))}>✕</button>
+                  </div>
+                ))}
+                <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
+                  onClick={()=>setProfileForm(p=>({...p,manualLiabilities:[...(p.manualLiabilities||[]),{name:"",value:0}]}))}>+ Add liability</button>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setProfileForm(null)}>Cancel</button>
+                <button style={S.btn("primary")} className="ledgr-btn-primary"
+                  onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save profile</button>
+              </div>
             </div>
-          </div>
-        </SettingsSection>
-      )}
-
+          ) : (
+            <div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+                {[
+                  ["Monthly income",    userProfile?.monthlyIncome ? `$${(userProfile.monthlyIncome).toLocaleString()}` : "Not set"],
+                  ["Retirement age",    userProfile?.targets?.retirementAge||"Not set"],
+                  ["Net worth target",  userProfile?.targets?.netWorthTarget ? `$${(userProfile.targets.netWorthTarget).toLocaleString()}` : "Not set"],
+                  ["Retirement target", userProfile?.targets?.retirementTargetAmount ? `$${(userProfile.targets.retirementTargetAmount).toLocaleString()}` : "Not set"],
+                ].map(([label,value])=>(
+                  <div key={label} style={{ padding:"10px 12px", background:"rgba(255,255,255,0.03)", borderRadius:"var(--radius)", border:"1px solid rgba(255,255,255,0.05)" }}>
+                    <div style={{ fontSize:10, color:"var(--t3)", marginBottom:4, textTransform:"uppercase", letterSpacing:"0.5px" }}>{label}</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:"var(--t1)", fontFamily:"var(--font-mono)" }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+              <button style={{ ...S.btn("ghost"), width:"100%" }} onClick={()=>setProfileForm({...userProfile})}>Edit profile</button>
+            </div>
+          )}
+        </Section>
       </>}
 
+      {/* ══ APPEARANCE ════════════════════════════════════════ */}
+      {settingsTab === "appearance" && <>
+        <Section title="Themes">
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:5, marginBottom:16 }}>
+            {PRESETS.map(p=>(
+              <button key={p.name} onClick={()=>applyPreset(p)} style={{
+                display:"flex", alignItems:"center", gap:6, padding:"6px 10px",
+                borderRadius:"var(--radius)", fontSize:11, fontWeight:500,
+                border:"1px solid rgba(255,255,255,0.07)", background:"var(--surface)",
+                color:"var(--t2)", cursor:"pointer", transition:"all .12s",
+                whiteSpace:"nowrap", overflow:"hidden",
+              }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=current.accent||"var(--cyan)";e.currentTarget.style.color="var(--t1)";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.07)";e.currentTarget.style.color="var(--t2)";}}>
+                <span style={{ display:"inline-flex", gap:2, flexShrink:0 }}>
+                  {["bg","accent","t1"].map(k=><span key={k} style={{ width:7,height:7,borderRadius:"50%",background:p[k],display:"inline-block" }}/>)}
+                </span>
+                <span style={{ overflow:"hidden", textOverflow:"ellipsis" }}>{p.name}</span>
+              </button>
+            ))}
+          </div>
+          <div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+              <div style={{ fontSize:11, color:"var(--t3)" }}>My themes</div>
+              <button style={{ ...S.btn("ghost",true), fontSize:11 }} className="ledgr-btn"
+                onClick={()=>setShowSaveInput(p=>!p)}>{showSaveInput?"Cancel":"+ Save current"}</button>
+            </div>
+            {showSaveInput && (
+              <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+                <input autoFocus value={saveThemeName} onChange={e=>setSaveThemeName(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter")saveCurrentTheme();if(e.key==="Escape")setShowSaveInput(false);}}
+                  placeholder="Theme name…" style={{ ...inputSt, flex:1, fontSize:12 }} />
+                <button style={S.btn("primary",true)} onClick={saveCurrentTheme} disabled={!saveThemeName.trim()}>Save</button>
+              </div>
+            )}
+            {savedThemes.length===0&&!showSaveInput && <div style={{ fontSize:11, color:"var(--t3)", padding:"6px 0" }}>No saved themes yet.</div>}
+            {savedThemes.length>0 && (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:5 }}>
+                {savedThemes.map(t=>(
+                  <div key={t.name} style={{ display:"flex", borderRadius:"var(--radius)", overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)" }}>
+                    <button onClick={()=>applyPreset(t)} style={{ flex:1, display:"flex", alignItems:"center", gap:5, padding:"6px 8px", background:"var(--surface)", color:"var(--t2)", border:"none", cursor:"pointer", fontSize:11, overflow:"hidden", textAlign:"left" }}
+                      onMouseEnter={e=>e.currentTarget.style.color="var(--t1)"}
+                      onMouseLeave={e=>e.currentTarget.style.color="var(--t2)"}>
+                      <span style={{ display:"inline-flex", gap:2, flexShrink:0 }}>
+                        {["bg","accent","t1"].map(k=><span key={k} style={{ width:7,height:7,borderRadius:"50%",background:t[k]||"#888",display:"inline-block" }}/>)}
+                      </span>
+                      <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name}</span>
+                    </button>
+                    <button onClick={()=>deleteCustomTheme(t.name)} style={{ background:"var(--surface)", border:"none", borderLeft:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)", cursor:"pointer", padding:"0 8px", fontSize:14 }}
+                      onMouseEnter={e=>e.currentTarget.style.color="var(--red)"}
+                      onMouseLeave={e=>e.currentTarget.style.color="var(--t3)"}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Section>
+
+        <Section title="Custom Colors">
+          <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+            {VARS.map(({ key, label })=>(
+              <SettingRow key={key} label={label}>
+                <input type="color" value={current[key]?.startsWith("rgba")||current[key]?.startsWith("rgb")?"#888888":current[key]||"#888888"}
+                  onChange={e=>patch(key,e.target.value)}
+                  style={{ width:36, height:28, borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"none", cursor:"pointer", padding:2 }} />
+              </SettingRow>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Typography">
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,minmax(0,1fr))", gap:5 }}>
+            {FONTS.map(f=>{
+              const active=(current.fontDisp||"'Syne', sans-serif")===f.value;
+              return (
+                <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
+                  padding:"8px 10px", borderRadius:"var(--radius)", fontSize:12,
+                  fontFamily:f.value, cursor:"pointer", border:"none",
+                  background: active?"rgba(201,149,106,0.12)":"var(--surface)",
+                  color: active?"var(--cyan)":"var(--t2)",
+                  outline: active?"1px solid rgba(201,149,106,0.3)":"none",
+                  transition:"all .12s",
+                }}>{f.label}</button>
+              );
+            })}
+          </div>
+        </Section>
+
+        <Section title="Fine Tuning">
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            {[
+              ["Surface contrast","Brightness step between card layers",gradSteps,0,30,v=>patchGradSteps(Number(v)),""],
+              ["Card angle","Gradient direction on obsidian cards",gradAngle,0,360,v=>patchGradAngle(Number(v)),"°"],
+              ["Global opacity","Overall UI transparency",globalOpacity,20,100,v=>patchGlobalOpacity(Number(v)),"%"],
+            ].map(([label,hint,val,min,max,fn,unit])=>(
+              <SettingRow key={label} label={label} hint={hint}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <input type="range" min={min} max={max} value={val} onChange={e=>fn(e.target.value)}
+                    style={{ width:120, accentColor:"var(--cyan)" }} />
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t2)", width:36, textAlign:"right" }}>{val}{unit}</span>
+                </div>
+              </SettingRow>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Background Image">
+          <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+            <input id="ledgr-bg-upload" type="file" accept="image/*" style={{ display:"none" }}
+              onChange={e=>{
+                const file=e.target.files?.[0]; if(!file) return;
+                if(file.size>8*1024*1024) alert("Image is very large and may slow down the app.");
+                const reader=new FileReader();
+                reader.onload=ev=>onSaveTheme({...current,bgImage:ev.target.result});
+                reader.readAsDataURL(file); e.target.value="";
+              }} />
+            <button onClick={()=>document.getElementById("ledgr-bg-upload").click()}
+              style={{ ...S.btn("ghost",true), display:"flex", alignItems:"center", gap:8 }}>
+              <span>🖼</span><span>{current.bgImage?"Change image":"Choose image"}</span>
+            </button>
+            {current.bgImage && (
+              <>
+                <div style={{ width:60, height:36, borderRadius:"var(--radius)", overflow:"hidden", flexShrink:0 }}>
+                  <img src={current.bgImage} alt="bg" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                </div>
+                <button onClick={()=>{const next={...current};delete next.bgImage;onSaveTheme(next);}}
+                  style={{ ...S.btn("ghost",true), color:"var(--t3)" }}>Remove</button>
+              </>
+            )}
+          </div>
+        </Section>
+
+        <div style={{ paddingBottom:8 }}>
+          <button style={{ ...S.btn("ghost"), color:"var(--t3)" }} onClick={reset}>Reset to default theme</button>
+        </div>
+      </>}
+
+      {/* ══ HOUSEHOLD ════════════════════════════════════════ */}
+      {settingsTab === "household" && <>
+        {!householdLoaded ? (
+          <div style={{ color:"var(--t3)", fontSize:13, padding:"24px 0" }}>Loading…</div>
+        ) : household ? (
+          <>
+            <Section title="Household">
+              <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
+                Sharing with <strong style={{ color:"var(--t1)" }}>{household.members?.length||0} member{household.members?.length!==1?"s":""}</strong>.
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+                {(household.members||[]).map(m=>(
+                  <SettingRow key={m.id} label={m.name||m.email} hint={m.role==="owner"?"Owner":m.status||""}>
+                    {m.role !== "owner" && (
+                      <button style={{ ...S.btn("ghost",true), color:"var(--red)", fontSize:11 }} onClick={()=>removeMember(m.id)}>Remove</button>
+                    )}
+                  </SettingRow>
+                ))}
+              </div>
+            </Section>
+            <Section title="Invite member">
+              <div style={{ display:"flex", gap:8 }}>
+                <input style={{ ...inputSt, flex:1 }} type="email" placeholder="Email address"
+                  value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}
+                  onKeyDown={e=>e.key==="Enter"&&sendInvite()} />
+                <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>
+                  {inviting?"Sending…":"Send invite"}
+                </button>
+              </div>
+            </Section>
+            <button style={{ ...S.btn("ghost"), color:"var(--red)" }} onClick={leaveHousehold}>Leave household</button>
+          </>
+        ) : (
+          <Section title="Family Sharing">
+            <div style={{ fontSize:13, color:"var(--t2)", marginBottom:16, lineHeight:1.6 }}>
+              Share Ledgr with up to 2 household members. Each person keeps their own settings and theme.
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <input style={{ ...inputSt, flex:1 }} type="email" placeholder="Invite by email"
+                value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&sendInvite()} />
+              <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>
+                {inviting?"Sending…":"Invite"}
+              </button>
+            </div>
+          </Section>
+        )}
+      </>}
+
+      {/* ══ DATA ════════════════════════════════════════════ */}
+      {settingsTab === "data" && <>
+        <Section title="Overview">
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+            {[["Transactions",transactions.length],["Accounts",accounts.length],["Categories",categories.length],["Bank connections",plaidItems?.length||0]].map(([label,val])=>(
+              <div key={label} style={{ padding:"12px 14px", background:"rgba(255,255,255,0.03)", borderRadius:"var(--radius)", border:"1px solid rgba(255,255,255,0.05)" }}>
+                <div style={{ fontSize:10, color:"var(--t3)", marginBottom:5, textTransform:"uppercase", letterSpacing:"0.5px" }}>{label}</div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:20, fontWeight:700, color:"var(--t1)" }}>{val}</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Export">
+          <SettingRow label="Download CSV" hint="All transactions with categories, accounts, and dates">
+            <button style={S.btn("primary",true)} onClick={exportCSV}>Export CSV</button>
+          </SettingRow>
+        </Section>
+
+        <Section title="Trash">
+          <SettingRow label="Deleted transactions" hint={`${deletedTransactions?.length||0} items in trash`}>
+            <button style={S.btn("ghost",true)} onClick={()=>setShowTrash(p=>!p)}>
+              {showTrash?"Hide trash":"View trash"}
+            </button>
+          </SettingRow>
+          {showTrash && (
+            <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:0 }}>
+              {(deletedTransactions||[]).length === 0 ? (
+                <div style={{ fontSize:12, color:"var(--t3)", padding:"12px 0" }}>Trash is empty</div>
+              ) : (deletedTransactions||[]).slice(0,20).map(t=>(
+                <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
+                    <div style={{ fontSize:10, color:"var(--t3)", marginTop:2 }}>{t.date}</div>
+                  </div>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:t.amount<0?"var(--red)":"var(--green)", flexShrink:0 }}>
+                    {t.amount<0?"-":"+"}{`$${Math.abs(t.amount).toFixed(2)}`}
+                  </div>
+                  <button style={{ ...S.btn("ghost",true), fontSize:11, flexShrink:0 }}
+                    onClick={()=>{
+                      const restored={...t}; delete restored.deletedAt;
+                      setTransactions(p=>[restored,...p]);
+                      setDeletedTransactions(p=>{const next=p.filter(x=>x.id!==t.id);scheduleSaveRef.current?.({deletedTransactions:next});return next;});
+                      api.createTransaction(restored).catch(console.error);
+                      showToast("Restored");
+                    }}>Restore</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="Danger Zone">
+          <SettingRow label="Delete all transactions" hint="Cannot be undone" danger>
+            <button style={{ ...S.btn("ghost",true), color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" }}
+              onClick={deleteAllTransactions}>Delete all</button>
+          </SettingRow>
+          <SettingRow label="Clear all data" hint="Removes all transactions, accounts, categories, rules, and bank connections" danger>
+            <button style={{ ...S.btn("ghost",true), color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" }}
+              onClick={clearAllData}>Clear everything</button>
+          </SettingRow>
+        </Section>
+      </>}
+
+      {/* ══ SUBSCRIPTION ════════════════════════════════════ */}
+      {settingsTab === "subscription" && <>
+        <Section title="Current Plan">
+          <div style={{ padding:"16px 18px", background:"rgba(201,149,106,0.06)", borderRadius:"var(--radius)", border:"1px solid rgba(201,149,106,0.15)", marginBottom:16 }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"1px", color:"rgba(201,149,106,0.5)", marginBottom:6 }}>Active plan</div>
+            <div style={{ fontSize:16, fontWeight:700, color:"var(--t1)", marginBottom:3 }}>
+              {access==="full" ? (isFamilyPlan ? "Family Plan" : "Personal Plan") : "Free"}
+            </div>
+            <div style={{ fontSize:12, color:"var(--t3)" }}>
+              {access==="full" ? "Full access to all features" : "Limited to dashboard and settings"}
+            </div>
+          </div>
+          {access !== "full" && (
+            <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
+              {["Unlimited transactions & accounts","Budget tracking & categories","Recurring calendar","Analytics & spending trends","AI-powered insights","Bank sync via Plaid"].map(f=>(
+                <div key={f} style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, color:"var(--t2)" }}>
+                  <span style={{ color:"var(--cyan)", fontSize:10 }}>✓</span>{f}
+                </div>
+              ))}
+            </div>
+          )}
+          <a href="https://www.useledgr.com/#pricing" target="_blank" rel="noreferrer"
+            style={{ display:"inline-block", padding:"9px 18px", borderRadius:"var(--radius)", background:"var(--cyan)", color:"#000", fontWeight:700, fontSize:13, textDecoration:"none" }}>
+            {access==="full" ? "Manage subscription" : "Upgrade plan"}
+          </a>
+        </Section>
+        <Section title="Legal">
+          <SettingRow label="Privacy Policy">
+            <a href="https://www.useledgr.com/privacy" target="_blank" rel="noreferrer"
+              style={{ fontSize:12, color:"var(--cyan)", textDecoration:"none" }}>View →</a>
+          </SettingRow>
+          <SettingRow label="Terms of Service">
+            <a href="https://www.useledgr.com/terms" target="_blank" rel="noreferrer"
+              style={{ fontSize:12, color:"var(--cyan)", textDecoration:"none" }}>View →</a>
+          </SettingRow>
+        </Section>
+      </>}
+
+      </div>
     </div>
     </>
   );
 }
+
 
 /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
    MAIN APP

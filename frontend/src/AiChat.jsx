@@ -1,198 +1,360 @@
 /**
- * AiChat.jsx
+ * AiChat.jsx — "The Dispatch"
  *
- * AI assistant page — chat with Claude about your financial data.
- * Desktop: two-column layout (chat left, conversation history right).
- * Mobile: single column with a history drawer.
+ * Redesign: no chat bubbles. Conversations render as flowing editorial
+ * documents. User questions → Playfair italic pull-quotes. AI responses →
+ * structured prose with auto-styled dollar amounts. Right column shows
+ * live financial context + conversation history.
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
-const S = {
-  btn: (v = "ghost", sm = false) => {
-    const base = {
-      display: "inline-flex", alignItems: "center", justifyContent: "center",
-      gap: 5, padding: sm ? "3px 8px" : "5px 11px", borderRadius: "var(--radius)",
-      fontSize: 12, fontWeight: 500, cursor: "pointer", border: "1px solid transparent",
-      transition: "all 0.15s", userSelect: "none", whiteSpace: "nowrap",
-      WebkitTapHighlightColor: "transparent",
-    };
-    if (v === "primary") return { ...base, background: "var(--cyan)",    color: "#000",        borderColor: "var(--cyan)" };
-    if (v === "danger")  return { ...base, background: "var(--red-dim)", color: "var(--red)",  borderColor: "#ff4d6d44" };
-    return { ...base, background: "transparent", color: "var(--t2)", borderColor: "var(--border2)" };
-  },
-  input: {
-    background: "var(--surface)", borderRadius: "var(--radius)",
-    padding: "7px 10px", fontSize: 12, color: "var(--t1)", outline: "none", width: "100%",
-  },
-  card: {
-    background:"var(--card)",
-    borderRadius: "var(--radius)", padding: "10px 14px",
-  },
-};
+/* ─── inline styles ─────────────────────────────────────────────── */
+function injectCSS() {
+  if (document.getElementById("dispatch-css")) return;
+  const s = document.createElement("style");
+  s.id = "dispatch-css";
+  s.textContent = `
+    .dispatch-response p   { margin: 0 0 10px; line-height: 1.75; color: rgba(232,221,208,0.75); font-size: 13px; }
+    .dispatch-response p:last-child { margin-bottom: 0; }
+    .dispatch-response strong { color: #e8ddd0; font-weight: 600; }
+    .dispatch-response em    { font-style: italic; color: rgba(232,221,208,0.6); }
+    .dispatch-response ul, .dispatch-response ol { margin: 6px 0 10px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .dispatch-response li   { display: flex; gap: 8px; font-size: 13px; color: rgba(232,221,208,0.7); line-height: 1.55; }
+    .dispatch-response li::before { content: '—'; color: rgba(201,149,106,0.5); flex-shrink: 0; }
+    .dispatch-response h2, .dispatch-response h3 { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(201,149,106,0.7); margin: 14px 0 6px; }
+    .dispatch-response .amt { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #c9956a; }
+    .dispatch-response .amt-red { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #e07070; }
+    .dispatch-response .amt-green { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #6db88a; }
+    .dispatch-response .pct { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: rgba(232,221,208,0.5); }
+    .dispatch-exchange { border-bottom: 1px solid rgba(255,255,255,0.04); padding: 28px 0; }
+    .dispatch-exchange:last-child { border-bottom: none; }
+    .dispatch-input-field { background: transparent; border: none; outline: none; width: 100%;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; color: #e8ddd0;
+      resize: none; line-height: 1.5; caret-color: #c9956a; }
+    .dispatch-input-field::placeholder { color: rgba(232,221,208,0.25); font-style: italic; }
+    .dispatch-input-field:disabled { opacity: 0.4; }
+    .dispatch-spark { padding: 5px 11px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.03); color: rgba(232,221,208,0.5); font-size: 11px;
+      cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .12s; white-space: nowrap; }
+    .dispatch-spark:hover { background: rgba(201,149,106,0.1); border-color: rgba(201,149,106,0.25); color: #c9956a; }
+    .dispatch-hist-item { padding: 9px 10px; border-radius: 7px; cursor: pointer; transition: background .1s; }
+    .dispatch-hist-item:hover { background: rgba(255,255,255,0.04); }
+    .dispatch-hist-item.active { background: rgba(201,149,106,0.08); border: 1px solid rgba(201,149,106,0.15); }
+    .dispatch-ctx-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .dispatch-ctx-row:last-child { border-bottom: none; }
+    .dispatch-dots span { animation: ledgr-breathe 1.2s ease-in-out infinite; display: inline-block; margin: 0 1px; }
+    @keyframes ledgr-breathe { 0%,100%{opacity:.3} 50%{opacity:1} }
+    .dispatch-scroll::-webkit-scrollbar { width: 4px; }
+    .dispatch-scroll::-webkit-scrollbar-track { background: transparent; }
+    .dispatch-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+  `;
+  document.head.appendChild(s);
+}
 
-function ApiKeySection({ hasApiKey, keyChecked, onSave, isMobile }) {
-  const [editing, setEditing] = useState(false);
-  const [keyVal,  setKeyVal]  = useState("");
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState(null);
-  const [saved,   setSaved]   = useState(false);
+/* ─── prose renderer ─────────────────────────────────────────────── */
+function renderProse(text) {
+  if (!text) return null;
 
-  useEffect(() => { if (keyChecked) setEditing(!hasApiKey); }, [keyChecked, hasApiKey]);
+  // Highlight dollar amounts and percentages
+  function styleLine(line) {
+    // Split on $ amounts and % numbers
+    const parts = [];
+    let remaining = line;
+    const re = /(\$[\d,]+(?:\.\d+)?(?:k|K)?|[-+]?\d+(?:\.\d+)?%)/g;
+    let match;
+    let last = 0;
+    re.lastIndex = 0;
+    while ((match = re.exec(remaining)) !== null) {
+      if (match.index > last) parts.push(remaining.slice(last, match.index));
+      const val = match[0];
+      const isDollar = val.startsWith("$");
+      const isPct    = val.endsWith("%");
+      if (isDollar) parts.push(<span key={match.index} className="amt">{val}</span>);
+      else          parts.push(<span key={match.index} className="pct">{val}</span>);
+      last = match.index + val.length;
+    }
+    if (last < remaining.length) parts.push(remaining.slice(last));
+    return parts;
+  }
+
+  const lines = text.split("\n");
+  const elements = [];
+  let listBuffer = [];
+  let key = 0;
+
+  function flushList() {
+    if (listBuffer.length) {
+      elements.push(
+        <ul key={key++}>
+          {listBuffer.map((item, i) => <li key={i}>{styleLine(item)}</li>)}
+        </ul>
+      );
+      listBuffer = [];
+    }
+  }
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) { flushList(); return; }
+
+    if (/^#{1,3}\s/.test(trimmed)) {
+      flushList();
+      const txt = trimmed.replace(/^#+\s/, "");
+      elements.push(<h3 key={key++}>{txt}</h3>);
+    } else if (/^\*\*(.+)\*\*$/.test(trimmed)) {
+      flushList();
+      elements.push(<h3 key={key++}>{trimmed.replace(/\*\*/g, "")}</h3>);
+    } else if (/^[-•*]\s/.test(trimmed)) {
+      listBuffer.push(trimmed.replace(/^[-•*]\s/, ""));
+    } else if (/^\d+\.\s/.test(trimmed)) {
+      listBuffer.push(trimmed.replace(/^\d+\.\s/, ""));
+    } else {
+      flushList();
+      // Inline bold
+      const boldParts = trimmed.split(/\*\*(.+?)\*\*/g).map((p, i) =>
+        i % 2 === 1 ? <strong key={i}>{p}</strong> : styleLine(p)
+      );
+      elements.push(<p key={key++}>{boldParts}</p>);
+    }
+  });
+  flushList();
+  return elements;
+}
+
+/* ─── smart prompt sparks ────────────────────────────────────────── */
+function buildSparks(transactions, categories, accounts) {
+  const sparks = [];
+  const now = new Date();
+  const thisYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+
+  // Unreviewed
+  const unreviewed = transactions.filter(t => !t.categoryId && t.amount < 0).length;
+  if (unreviewed > 3) sparks.push(`I have ${unreviewed} uncategorized transactions — what should I do?`);
+
+  // Over-budget
+  const overspent = categories.filter(c => {
+    const spent = transactions.filter(t => t.date?.startsWith(thisYM) && t.categoryId === c.id && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+    return c.limit && spent > c.limit;
+  });
+  if (overspent.length) sparks.push(`I'm over budget in ${overspent.map(c => c.name).join(" and ")} — give me advice`);
+
+  // Top category this month
+  const catSpend = {};
+  transactions.filter(t => t.date?.startsWith(thisYM) && t.amount < 0).forEach(t => {
+    if (t.categoryId) catSpend[t.categoryId] = (catSpend[t.categoryId] || 0) + Math.abs(t.amount);
+  });
+  const topCatId = Object.entries(catSpend).sort((a,b) => b[1]-a[1])[0]?.[0];
+  const topCat = categories.find(c => c.id === topCatId);
+  if (topCat) sparks.push(`Why did I spend so much on ${topCat.name} this month?`);
+
+  // Negative balance
+  const negAcct = accounts.find(a => a.balance != null && a.balance < 0);
+  if (negAcct) sparks.push(`${negAcct.name} has a negative balance — what should I prioritize?`);
+
+  // Defaults
+  sparks.push("How does this month compare to last month?");
+  sparks.push("What are my biggest recurring expenses?");
+  sparks.push("Am I on track with my budget overall?");
+  sparks.push("Which purchases were unusual this month?");
+
+  return [...new Set(sparks)].slice(0, 5);
+}
+
+/* ─── sub-components ─────────────────────────────────────────────── */
+function Exchange({ msg, prevMsg, index }) {
+  const isUser = msg.role === "user";
+  const isAI   = msg.role === "assistant";
+  const isThinking = isAI && !msg.content;
+
+  if (isUser) return null; // user messages are rendered with their paired AI response
+
+  // Find paired user message (previous message)
+  const question = prevMsg?.role === "user" ? prevMsg.content : null;
+
+  return (
+    <div className="dispatch-exchange">
+      {/* Question — Playfair italic pull-quote */}
+      {question && (
+        <div style={{ display:"flex", gap:14, marginBottom:20 }}>
+          <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
+          <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--t1)" }}>
+            {question}
+          </div>
+        </div>
+      )}
+
+      {/* AI response */}
+      <div style={{ display:"flex", gap:14 }}>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, flexShrink:0 }}>
+          <div style={{ width:20, height:20, borderRadius:"50%", background:"rgba(201,149,106,0.1)", border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--cyan)", fontFamily:"var(--font-disp)" }}>ℓ</div>
+          {!isThinking && <div style={{ flex:1, width:1, background:"rgba(255,255,255,0.04)", minHeight:20 }}/>}
+        </div>
+        <div style={{ flex:1, paddingBottom:4 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase", letterSpacing:"1px", color:"rgba(201,149,106,0.4)", marginBottom:10 }}>
+            ✦ Claude
+          </div>
+          {isThinking ? (
+            <div className="dispatch-dots" style={{ color:"rgba(232,221,208,0.4)", fontSize:13 }}>
+              <span style={{ animationDelay:"0s" }}>●</span>
+              <span style={{ animationDelay:"0.2s" }}>●</span>
+              <span style={{ animationDelay:"0.4s" }}>●</span>
+            </div>
+          ) : (
+            <div className="dispatch-response">{renderProse(msg.content)}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContextPanel({ transactions, categories, accounts }) {
+  const now = new Date();
+  const thisYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const fmt = n => n == null ? "—" : "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits:0, maximumFractionDigits:0 });
+
+  const thisMonthExpenses = transactions
+    .filter(t => t.date?.startsWith(thisYM) && t.amount < 0 && !["transfer","income","reimbursement"].includes(t.type))
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalBalance = accounts.filter(a => a.balance != null).reduce((s, a) => s + a.balance, 0);
+  const totalBudget  = categories.reduce((s, c) => s + (c.limit || 0), 0);
+  const overBudget   = categories.filter(c => {
+    const spent = transactions.filter(t => t.date?.startsWith(thisYM) && t.categoryId === c.id && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+    return c.limit && spent > c.limit;
+  }).length;
+
+  const rows = [
+    { label:"Net worth",     val: fmt(totalBalance),          color: totalBalance >= 0 ? "var(--green)" : "var(--red)" },
+    { label:"Spent this mo", val: fmt(thisMonthExpenses),     color: "var(--red)" },
+    { label:"Monthly budget",val: fmt(totalBudget),           color: "var(--t2)" },
+    { label:"Over budget",   val: `${overBudget} categor${overBudget===1?"y":"ies"}`, color: overBudget > 0 ? "var(--amber)" : "var(--green)" },
+    { label:"Transactions",  val: String(transactions.length),color: "var(--t2)" },
+  ];
+
+  return (
+    <div>
+      <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase", letterSpacing:"1.2px", color:"rgba(201,149,106,0.4)", marginBottom:10 }}>
+        Context loaded
+      </div>
+      {rows.map(r => (
+        <div key={r.label} className="dispatch-ctx-row">
+          <span style={{ fontSize:11, color:"var(--t3)" }}>{r.label}</span>
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600, color:r.color }}>{r.val}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HistItem({ conv, isActive, onSelect, onDelete }) {
+  const date = new Date(conv.createdAt);
+  const now  = new Date();
+  const diff = now - date;
+  const isToday = date.toDateString() === now.toDateString();
+  const isYest  = new Date(now.setDate(now.getDate()-1)).toDateString() === date.toDateString();
+  const label   = isToday ? date.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})
+                : isYest  ? "Yesterday"
+                : date.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  const question = conv.messages.find(m => m.role === "user")?.content || "Empty";
+  const turns    = Math.ceil(conv.messages.length / 2);
+
+  return (
+    <div className={`dispatch-hist-item${isActive?" active":""}`} onClick={() => onSelect(conv.id)}
+      style={{ position:"relative" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:6, marginBottom:3 }}>
+        <div style={{ fontSize:11, fontWeight:600, color:isActive?"var(--cyan)":"var(--t1)", flex:1,
+          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {conv.title || question.slice(0,40)}
+        </div>
+        <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0 }}>
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--t3)" }}>{label}</span>
+          <button onClick={e=>{e.stopPropagation();onDelete(conv.id);}}
+            style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:11,
+              padding:"1px 2px", lineHeight:1, opacity:0, transition:"opacity .1s" }}
+            onMouseEnter={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.color="var(--red)";}}
+            onMouseLeave={e=>{e.currentTarget.style.opacity="0";e.currentTarget.style.color="var(--t3)";}}>✕</button>
+        </div>
+      </div>
+      <div style={{ fontSize:10, color:"var(--t3)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+        {question.slice(0,55)}{question.length>55?"…":""}
+      </div>
+      <div style={{ fontSize:9, color:"rgba(232,221,208,0.2)", marginTop:2, fontFamily:"var(--font-mono)" }}>
+        {turns} turn{turns!==1?"s":""}
+      </div>
+    </div>
+  );
+}
+
+function ApiKeySetup({ onSave }) {
+  const [keyVal, setKeyVal] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState(null);
 
   async function handleSave() {
     if (!keyVal.trim()) return;
     setSaving(true); setError(null);
-    try {
-      await onSave(keyVal.trim());
-      setSaved(true); setKeyVal(""); setEditing(false);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      setError(e.message);
-    } finally { setSaving(false); }
+    try { await onSave(keyVal.trim()); } catch(e) { setError(e.message); }
+    finally { setSaving(false); }
   }
 
-  if (!keyChecked) return null;
   return (
-    <div className="obsidian-card" style={{ ...S.card, marginBottom: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: editing ? 12 : 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: hasApiKey ? "var(--green)" : "var(--t3)" }} />
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>Claude API Key</div>
-            <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 1 }}>
-              {hasApiKey ? "Key saved — your data stays private" : "Required to use the AI assistant"}
+    <div style={{ maxWidth:520, margin:"0 auto", padding:"48px 28px" }}>
+      {/* Ghost */}
+      <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:80,
+        color:"rgba(201,149,106,0.05)", lineHeight:1, marginBottom:-24, userSelect:"none" }}>✦</div>
+      <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:26, color:"var(--t1)", marginBottom:8 }}>
+        Set up your advisor
+      </div>
+      <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.7, marginBottom:28, maxWidth:400 }}>
+        Ledgr uses Claude by Anthropic to give you a personalized financial advisor — one that actually knows your numbers.
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:24 }}>
+        {[
+          { n:"1", t:"Create an Anthropic account", b:"Go to console.anthropic.com and sign up for free.", link:"https://console.anthropic.com" },
+          { n:"2", t:"Generate an API key",         b:"Under API Keys, click Create Key. Copy the sk-ant-… string." },
+          { n:"3", t:"Paste it below",              b:"Your key is encrypted and only used for your conversations." },
+        ].map(s => (
+          <div key={s.n} style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+            <div style={{ width:22, height:22, borderRadius:"50%", flexShrink:0, background:"rgba(201,149,106,0.12)",
+              border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center", justifyContent:"center",
+              fontFamily:"var(--font-mono)", fontSize:10, fontWeight:700, color:"var(--cyan)" }}>{s.n}</div>
+            <div>
+              <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", marginBottom:2 }}>{s.t}</div>
+              <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.5 }}>{s.b}</div>
+              {s.link && <a href={s.link} target="_blank" rel="noreferrer"
+                style={{ fontSize:11, color:"var(--cyan)", marginTop:4, display:"inline-block" }}>
+                Open Anthropic Console →</a>}
             </div>
           </div>
-        </div>
-        {hasApiKey && !editing && (
-          <button style={S.btn("ghost", true)} onClick={() => setEditing(true)}>
-            {saved ? "✓ Saved" : "Replace Key"}
-          </button>
-        )}
+        ))}
       </div>
-      {editing && (
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
-          <input style={{ ...S.input, flex: 1, fontFamily: "var(--font-mono)", fontSize: 12 }}
-            type="password" placeholder="sk-ant-api03-…"
-            value={keyVal} onChange={e => setKeyVal(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleSave()} autoFocus />
-          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            {hasApiKey && <button style={S.btn("ghost", true)} onClick={() => { setEditing(false); setKeyVal(""); }}>Cancel</button>}
-            <button style={S.btn("primary", true)} onClick={handleSave} disabled={saving || !keyVal.trim()}>
-              {saving ? "Saving…" : "Save Key"}
-            </button>
-          </div>
-        </div>
-      )}
-      {error && <div style={{ fontSize: 12, color: "var(--red)", marginTop: 8 }}>{error}</div>}
-      {!hasApiKey && !editing && (
-        <div style={{ marginTop: 10, fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
-          Get your API key at{" "}
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
-            console.anthropic.com
-          </a>. Your key is encrypted and stored securely.
-        </div>
-      )}
-    </div>
-  );
-}
 
-function MessageBubble({ msg }) {
-  const isUser = msg.role === "user";
-  return (
-    <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 12 }}>
-      {!isUser && (
-        <div style={{
-          width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-          background: "var(--cyan-dim)", border: "1.5px solid var(--cyan)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 13, fontWeight: 800, color: "var(--cyan)",
-          fontFamily: "var(--font-disp)", marginRight: 8, marginTop: 2,
-        }}>ℓ</div>
-      )}
-      <div style={{
-        maxWidth: "80%",
-        background: isUser ? "var(--cyan)" : "var(--card)",
-        color: isUser ? "#000" : "var(--t1)",
-        border: isUser ? "none" : "1px solid var(--border)",
-        borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-        padding: "8px 12px", fontSize: 13, lineHeight: 1.55,
-        whiteSpace: "pre-wrap", wordBreak: "break-word",
-      }}>
-        {msg.content || (
-          <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            {[0, 0.2, 0.4].map((d, i) => (
-              <span key={i} style={{ animation: `ledgr-breathe 1s ease-in-out ${d}s infinite`, display: "inline-block" }}>●</span>
-            ))}
-          </span>
-        )}
+      <div style={{ display:"flex", gap:8 }}>
+        <input type="password" placeholder="sk-ant-api03-…" value={keyVal}
+          onChange={e=>setKeyVal(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&handleSave()}
+          autoFocus
+          style={{ flex:1, background:"var(--surface)", border:"1px solid var(--border)",
+            borderRadius:"var(--radius)", padding:"9px 12px", fontSize:13, color:"var(--t1)",
+            outline:"none", fontFamily:"var(--font-mono)", colorScheme:"dark" }} />
+        <button onClick={handleSave} disabled={saving||!keyVal.trim()}
+          style={{ padding:"9px 18px", borderRadius:"var(--radius)", background:"var(--cyan)",
+            color:"#000", border:"none", fontWeight:700, fontSize:13, cursor:"pointer",
+            opacity:saving||!keyVal.trim()?0.5:1 }}>
+          {saving?"Saving…":"Connect"}
+        </button>
+      </div>
+      {error && <div style={{ fontSize:12, color:"var(--red)", marginTop:8 }}>{error}</div>}
+      <div style={{ fontSize:11, color:"rgba(232,221,208,0.2)", marginTop:14, lineHeight:1.6 }}>
+        $5 free credits on sign-up · Encrypted storage · Used only for your questions
       </div>
     </div>
   );
 }
 
-function ConversationItem({ conv, isActive, onSelect, onDelete }) {
-  const preview = conv.messages.find(m => m.role === "user")?.content || "Empty conversation";
-  const date    = new Date(conv.createdAt);
-  const now     = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-  const dateStr = isToday
-    ? date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-  return (
-    <div
-      onClick={() => onSelect(conv.id)}
-      style={{
-        padding: "7px 10px",
-        borderRadius: "var(--radius)",
-        background: isActive ? "var(--cyan-dim)" : "transparent",
-        border: `1px solid ${isActive ? "var(--cyan)33" : "transparent"}`,
-        cursor: "pointer",
-        transition: "background 0.12s",
-        position: "relative",
-      }}
-      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--surface)"; }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 600,
-          color: isActive ? "var(--cyan)" : "var(--t1)",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
-        }}>
-          {conv.title || "Untitled"}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <span style={{ fontSize: 10, color: "var(--t3)", whiteSpace: "nowrap" }}>{dateStr}</span>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              color: "var(--t3)", fontSize: 12, padding: "1px 3px", lineHeight: 1,
-              opacity: 0, transition: "opacity 0.1s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "var(--red)"; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = "0"; e.currentTarget.style.color = "var(--t3)"; }}>
-            ✕
-          </button>
-        </div>
-      </div>
-      <div style={{
-        fontSize: 11, color: "var(--t3)",
-        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-      }}>
-        {preview.slice(0, 60)}{preview.length > 60 ? "…" : ""}
-      </div>
-      {conv.messages.length > 0 && (
-        <div style={{ fontSize: 10, color: "var(--t3)", marginTop: 2 }}>
-          {Math.ceil(conv.messages.length / 2)} message{Math.ceil(conv.messages.length / 2) !== 1 ? "s" : ""}
-        </div>
-      )}
-    </div>
-  );
-}
-
+/* ─── main export ────────────────────────────────────────────────── */
 const SUGGESTED_QUESTIONS = [
   "How much did I spend last month?",
   "What's my biggest spending category?",
@@ -206,26 +368,34 @@ export default function AiChat({
   messages, conversations, currentConvId,
   hasApiKey, keyChecked, loading, error,
   checkApiKey, saveApiKey, sendMessage,
-  newConversation, selectConversation, deleteConversation, clearCurrentConversation,
-  clearHistory,
+  newConversation, selectConversation, deleteConversation,
+  clearCurrentConversation, clearHistory,
   transactions, categories, accounts, catMap, acctMap,
   isMobile,
 }) {
-  const [input,       setInput]       = useState("");
-  const [showHistory, setShowHistory] = useState(false); // mobile history drawer
-  const bottomRef = useRef(null);
-  const inputRef  = useRef(null);
-
+  useEffect(() => { injectCSS(); }, []);
   useEffect(() => { checkApiKey(); }, []);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const [input,       setInput]       = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [showCtx,     setShowCtx]     = useState(false);
+  const bottomRef  = useRef(null);
+  const inputRef   = useRef(null);
+  const scrollRef  = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior:"smooth" });
+  }, [messages]);
+
+  const sparks = useMemo(() => buildSparks(transactions, categories, accounts), [transactions, categories, accounts]);
+  const sortedConvs = [...(conversations || [])].sort((a, b) => b.createdAt - a.createdAt);
+  const isEmpty = messages.length === 0;
 
   function buildContext() {
-    const now          = new Date();
-    const thisMonth    = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const lastMonthD   = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthStr = `${lastMonthD.getFullYear()}-${String(lastMonthD.getMonth() + 1).padStart(2, "0")}`;
-    const thisMonthTxns = transactions.filter(t => t.date?.startsWith(thisMonth));
-    const lastMonthTxns = transactions.filter(t => t.date?.startsWith(lastMonthStr));
+    const now = new Date();
+    const thisMonth    = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    const lastMonthD   = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const lastMonthStr = `${lastMonthD.getFullYear()}-${String(lastMonthD.getMonth()+1).padStart(2,"0")}`;
     const spentByCat = {};
     transactions.forEach(t => {
       if (t.amount < 0 && t.categoryId)
@@ -233,205 +403,334 @@ export default function AiChat({
     });
     return {
       currentMonth: thisMonth,
-      categories: categories.map(c => ({ id: c.id, name: c.name, limit: c.limit, spent: Math.round((spentByCat[c.id] || 0) * 100) / 100 })),
-      accounts: accounts.map(a => ({ name: a.name, type: a.type, balance: a.balance })),
-      thisMonthTransactions: thisMonthTxns.slice(0, 100).map(t => ({ date: t.date, merchant: t.name || t.merchant, amount: t.amount, category: catMap[t.categoryId]?.name || null, pending: t.pending || false })),
-      lastMonthTransactions: lastMonthTxns.slice(0, 50).map(t => ({ date: t.date, merchant: t.name || t.merchant, amount: t.amount, category: catMap[t.categoryId]?.name || null })),
+      categories: categories.map(c => ({ id:c.id, name:c.name, limit:c.limit, spent:Math.round((spentByCat[c.id]||0)*100)/100 })),
+      accounts: accounts.map(a => ({ name:a.name, type:a.type, balance:a.balance })),
+      thisMonthTransactions: transactions.filter(t=>t.date?.startsWith(thisMonth)).slice(0,100).map(t=>({ date:t.date, merchant:t.name||t.merchant, amount:t.amount, category:catMap[t.categoryId]?.name||null, pending:t.pending||false })),
+      lastMonthTransactions: transactions.filter(t=>t.date?.startsWith(lastMonthStr)).slice(0,50).map(t=>({ date:t.date, merchant:t.name||t.merchant, amount:t.amount, category:catMap[t.categoryId]?.name||null })),
       totalTransactions: transactions.length,
-      recentTransactions: transactions.slice(0, 20).map(t => ({ date: t.date, merchant: t.name || t.merchant, amount: t.amount, category: catMap[t.categoryId]?.name || null })),
+      recentTransactions: transactions.slice(0,20).map(t=>({ date:t.date, merchant:t.name||t.merchant, amount:t.amount, category:catMap[t.categoryId]?.name||null })),
     };
   }
 
-  function handleSend() {
-    if (!input.trim() || loading || !hasApiKey) return;
-    sendMessage(input.trim(), buildContext());
+  function handleSend(text) {
+    const q = (text || input).trim();
+    if (!q || loading || !hasApiKey) return;
+    sendMessage(q, buildContext());
     setInput("");
   }
 
-  const isEmpty = messages.length === 0;
-  const sortedConvs = [...(conversations || [])].sort((a, b) => b.createdAt - a.createdAt);
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  }
 
-  // ── History panel (used in both mobile drawer and desktop right column) ──
-  const HistoryPanel = (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+  /* ── Pair messages into exchanges ── */
+  const exchanges = [];
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i].role === "assistant") {
+      exchanges.push({ question: messages[i-1], answer: messages[i] });
+    } else if (i === messages.length - 1 && messages[i].role === "user") {
+      exchanges.push({ question: messages[i], answer: null }); // pending
+    }
+  }
+
+  /* ── Shared right panel ── */
+  const RightPanel = (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", gap:0 }}>
       {/* Header */}
-      <div style={{ padding: "0 0 12px", borderBottom: "1px solid var(--border)", marginBottom: 12, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 11, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "2px" }}>
-            Conversations
-          </div>
-          <button
-            style={{ ...S.btn("primary", true), fontSize: 12, padding: "5px 12px" }}
-            onClick={() => { newConversation(); setShowHistory(false); }}>
-            + New
-          </button>
+      <div style={{ padding:"0 0 14px", borderBottom:"1px solid rgba(255,255,255,0.05)", marginBottom:14, flexShrink:0 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase",
+            letterSpacing:"1.2px", color:"rgba(201,149,106,0.45)" }}>Conversations</div>
+          <button onClick={()=>newConversation()}
+            style={{ padding:"3px 9px", borderRadius:5, background:"rgba(201,149,106,0.1)",
+              border:"1px solid rgba(201,149,106,0.2)", color:"var(--cyan)", fontSize:10,
+              fontWeight:600, cursor:"pointer" }}>+ New</button>
         </div>
       </div>
-      {/* List */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+      {/* History list */}
+      <div className="dispatch-scroll" style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:2 }}>
         {sortedConvs.length === 0 ? (
-          <div style={{ fontSize: 12, color: "var(--t3)", textAlign: "center", padding: "24px 8px" }}>
-            No conversations yet
+          <div style={{ fontSize:11, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
+            Your conversations<br/>will appear here
           </div>
         ) : sortedConvs.map(conv => (
-          <ConversationItem
-            key={conv.id}
-            conv={conv}
-            isActive={conv.id === currentConvId}
-            onSelect={id => { selectConversation(id); setShowHistory(false); }}
-            onDelete={deleteConversation}
-          />
+          <HistItem key={conv.id} conv={conv} isActive={conv.id===currentConvId}
+            onSelect={id=>{selectConversation(id);setShowHistory(false);}}
+            onDelete={deleteConversation} />
         ))}
       </div>
+      {/* Context */}
+      <div style={{ borderTop:"1px solid rgba(255,255,255,0.05)", paddingTop:14, marginTop:14, flexShrink:0 }}>
+        <ContextPanel transactions={transactions} categories={categories} accounts={accounts} />
+      </div>
+      {/* Key status */}
+      {hasApiKey && keyChecked && (
+        <div style={{ marginTop:12, display:"flex", alignItems:"center", gap:6, paddingTop:12,
+          borderTop:"1px solid rgba(255,255,255,0.04)" }}>
+          <div style={{ width:6, height:6, borderRadius:"50%", background:"var(--green)" }}/>
+          <span style={{ fontSize:10, color:"var(--t3)" }}>Claude API connected</span>
+        </div>
+      )}
     </div>
   );
 
-  // ── Chat panel ──────────────────────────────────────────────────
-  const ChatPanel = (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* API Key */}
-      <ApiKeySection hasApiKey={hasApiKey} keyChecked={keyChecked} onSave={saveApiKey} isMobile={isMobile} />
+  /* ── Main chat area ── */
+  const ChatArea = (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0 }}>
+      {/* Page header */}
+      <div style={{ flexShrink:0, padding:"0 0 0", borderBottom:"1px solid rgba(0,0,0,0.3)",
+        background:"radial-gradient(ellipse 55% 120% at 0% 50%,rgba(201,149,106,0.04) 0%,transparent 70%),var(--bg,#0b0a08)",
+        position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:1,
+          background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)" }}/>
+        <div style={{ position:"absolute", fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+          fontSize:64, fontWeight:500, color:"rgba(201,149,106,0.06)", top:"50%",
+          transform:"translateY(-50%)", left:6, lineHeight:1, pointerEvents:"none", userSelect:"none" }}>III</div>
+        <div style={{ padding:"14px 28px 0", position:"relative", zIndex:1 }}>
+          <div style={{ display:"flex", alignItems:"baseline", gap:12, paddingBottom:12,
+            borderBottom:"1px solid rgba(201,149,106,0.1)" }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:10, fontWeight:600,
+              color:"rgba(201,149,106,0.45)", letterSpacing:"1px" }}>III ·</span>
+            <span style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+              fontWeight:400, fontSize:20, color:"var(--t1)" }}>Ask Claude</span>
+            <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(201,149,106,0.12),transparent)" }}/>
+            {/* Mobile: toggle panels */}
+            {isMobile && (
+              <div style={{ display:"flex", gap:6 }}>
+                <button onClick={()=>setShowCtx(p=>!p)}
+                  style={{ fontSize:10, padding:"3px 8px", borderRadius:5, background:"rgba(255,255,255,0.04)",
+                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)", cursor:"pointer" }}>
+                  {showCtx?"Hide ctx":"Context"}
+                </button>
+                <button onClick={()=>setShowHistory(true)}
+                  style={{ fontSize:10, padding:"3px 8px", borderRadius:5, background:"rgba(255,255,255,0.04)",
+                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)", cursor:"pointer" }}>
+                  History
+                </button>
+              </div>
+            )}
+          </div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase",
+            letterSpacing:"0.7px", color:"var(--t3)", padding:"6px 0 14px", position:"relative", zIndex:1 }}>
+            {!hasApiKey && keyChecked ? "Setup required" : `${transactions.length} transactions · ${categories.length} budgets · ${accounts.length} accounts in context`}
+          </div>
+        </div>
+      </div>
 
-      {/* Chat area */}
-      <div className="obsidian-card" style={{ ...S.card, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", padding: 0 }}>
-        {/* Messages */}
-        <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
-          {isEmpty && hasApiKey && (
-            <div style={{ textAlign: "center", padding: "32px 16px" }}>
-              <div style={{ fontSize: 24, marginBottom: 8 }}>✦</div>
-              <div style={{ fontFamily: "var(--font-disp)", fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4 }}>
-                Ask me anything about your finances
-              </div>
-              <div style={{ fontSize: 12, color: "var(--t3)", marginBottom: 14, lineHeight: 1.5 }}>
-                I have access to your transactions, budgets, and accounts for this conversation.
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-                {SUGGESTED_QUESTIONS.map(q => (
-                  <button key={q}
-                    style={{ ...S.btn("ghost", true), fontSize: 12, textAlign: "left", whiteSpace: "normal", maxWidth: isMobile ? "100%" : 220 }}
-                    onClick={() => sendMessage(q, buildContext())}>
-                    {q}
-                  </button>
-                ))}
-              </div>
+      {/* If no API key — setup screen */}
+      {!hasApiKey && keyChecked && (
+        <div className="dispatch-scroll" style={{ flex:1, overflowY:"auto" }}>
+          <ApiKeySetup onSave={saveApiKey} />
+        </div>
+      )}
+
+      {/* Conversation area */}
+      {(hasApiKey || !keyChecked) && (
+        <div className="dispatch-scroll" ref={scrollRef} style={{ flex:1, overflowY:"auto", padding:"0 28px" }}>
+
+          {/* Mobile context */}
+          {isMobile && showCtx && (
+            <div style={{ padding:"16px 0", borderBottom:"1px solid rgba(255,255,255,0.05)", marginBottom:8 }}>
+              <ContextPanel transactions={transactions} categories={categories} accounts={accounts} />
             </div>
           )}
 
-          {isEmpty && !hasApiKey && keyChecked && (
-            <div style={{ padding: "24px 8px", maxWidth: 480, margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 14 }}>
-                <div style={{ fontSize: 22, marginBottom: 8 }}>✦</div>
-                <div style={{ fontFamily: "var(--font-disp)", fontSize: 14, fontWeight: 700, color: "var(--t1)", marginBottom: 4 }}>
-                  Set up your AI assistant
+          {/* Empty state */}
+          {isEmpty && (
+            <div style={{ padding:"40px 0 20px" }}>
+              <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+                fontSize:14, color:"var(--t3)", marginBottom:24, lineHeight:1.7 }}>
+                I have access to your transactions, budgets, and accounts.
+                Ask me anything about your financial picture.
+              </div>
+
+              {/* Smart sparks */}
+              <div style={{ marginBottom:32 }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase",
+                  letterSpacing:"1px", color:"rgba(201,149,106,0.35)", marginBottom:10 }}>
+                  {sparks.length > 3 ? "Based on your data" : "Suggested questions"}
                 </div>
-                <div style={{ fontSize: 13, color: "var(--t3)", lineHeight: 1.6 }}>
-                  Ledgr uses Claude by Anthropic to answer questions about your financial data.
-                  You'll need a free API key to get started.
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {(sparks.length > 0 ? sparks : SUGGESTED_QUESTIONS).map(q => (
+                    <button key={q} className="dispatch-spark" onClick={()=>handleSend(q)} disabled={loading}>{q}</button>
+                  ))}
                 </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+
+              {/* What I know */}
+              <div style={{ borderLeft:"2px solid rgba(201,149,106,0.15)", paddingLeft:14 }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase",
+                  letterSpacing:"1px", color:"rgba(201,149,106,0.35)", marginBottom:8 }}>What I can see</div>
                 {[
-                  { step: "1", title: "Create an Anthropic account", body: "Go to console.anthropic.com and sign up for a free account.", link: { label: "Open Anthropic Console →", url: "https://console.anthropic.com" } },
-                  { step: "2", title: "Generate an API key",         body: "Once logged in, go to API Keys and click \"Create Key\"." },
-                  { step: "3", title: "Paste it above",              body: "Copy your key (starts with sk-ant-api03-) and paste it into the field above." },
-                ].map(s => (
-                  <div key={s.step} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "var(--surface)", borderRadius: "var(--radius)", padding: "8px 12px" }}>
-                    <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, background: "var(--cyan)", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, fontFamily: "var(--font-mono)" }}>{s.step}</div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)", marginBottom: 3 }}>{s.title}</div>
-                      <div style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.5 }}>{s.body}</div>
-                      {s.link && <a href={s.link.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "var(--cyan)", marginTop: 6, display: "inline-block" }}>{s.link.label}</a>}
-                    </div>
+                  [`${transactions.length} transactions`, "including this month's activity"],
+                  [`${categories.filter(c=>c.limit).length} budget categories`, "with limits and spending totals"],
+                  [`${accounts.length} accounts`, "with current balances"],
+                ].map(([val, label]) => (
+                  <div key={val} style={{ display:"flex", gap:10, marginBottom:6, fontSize:12 }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, color:"var(--cyan)", flexShrink:0 }}>{val}</span>
+                    <span style={{ color:"var(--t3)" }}>{label}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ background:"var(--card)", borderRadius: "var(--radius)", padding: "12px 14px", fontSize: 12, color: "var(--t3)", lineHeight: 1.6 }}>
-                <span style={{ color: "var(--t2)", fontWeight: 600 }}>What does it cost?</span>{" "}
-                Anthropic offers $5 in free credits when you sign up — enough for thousands of questions. Your key is encrypted on our servers.
+            </div>
+          )}
+
+          {/* Exchanges */}
+          {exchanges.map(({ question, answer }, i) => {
+            if (!answer) {
+              // Pending — show just the question
+              return (
+                <div key={`q${i}`} className="dispatch-exchange">
+                  <div style={{ display:"flex", gap:14, marginBottom:20 }}>
+                    <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
+                    <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+                      fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--t1)" }}>
+                      {question?.content}
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap:14 }}>
+                    <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                      <div style={{ width:20, height:20, borderRadius:"50%", background:"rgba(201,149,106,0.1)",
+                        border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center",
+                        justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--cyan)" }}>ℓ</div>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase",
+                        letterSpacing:"1px", color:"rgba(201,149,106,0.4)", marginBottom:10 }}>✦ Claude</div>
+                      <div className="dispatch-dots" style={{ color:"rgba(232,221,208,0.4)", fontSize:14 }}>
+                        <span style={{ animationDelay:"0s" }}>●</span>
+                        <span style={{ animationDelay:"0.2s" }}>●</span>
+                        <span style={{ animationDelay:"0.4s" }}>●</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={`e${i}`} className="dispatch-exchange">
+                {question && (
+                  <div style={{ display:"flex", gap:14, marginBottom:20 }}>
+                    <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
+                    <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+                      fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--t1)" }}>
+                      {question.content}
+                    </div>
+                  </div>
+                )}
+                <div style={{ display:"flex", gap:14 }}>
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, flexShrink:0 }}>
+                    <div style={{ width:20, height:20, borderRadius:"50%", background:"rgba(201,149,106,0.1)",
+                      border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center",
+                      justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--cyan)" }}>ℓ</div>
+                    <div style={{ flex:1, width:1, background:"rgba(255,255,255,0.04)", minHeight:16 }}/>
+                  </div>
+                  <div style={{ flex:1, paddingBottom:4 }}>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase",
+                      letterSpacing:"1px", color:"rgba(201,149,106,0.4)", marginBottom:10 }}>✦ Claude</div>
+                    <div className="dispatch-response">{renderProse(answer.content)}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })}
 
-          {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
-
+          {/* Error */}
           {error && (
-            <div style={{ background: "var(--red-dim)", border: "1px solid #ff4d6d44", borderRadius: "var(--radius)", padding: "10px 14px", fontSize: 13, color: "var(--red)", marginBottom: 12 }}>
-              {error.includes("invalid_api_key") || error.includes("401") ? "Invalid API key — please check your key and try again."
-                : error.includes("overloaded") ? "Claude is busy right now — try again in a moment."
-                : error}
+            <div style={{ padding:"12px 14px", borderLeft:"2px solid var(--red)",
+              background:"rgba(224,112,112,0.06)", margin:"12px 0", fontSize:13, color:"var(--red)" }}>
+              {error.includes("invalid_api_key")||error.includes("401") ? "Invalid API key — please check your key."
+               : error.includes("overloaded") ? "Claude is busy — try again in a moment."
+               : error}
             </div>
           )}
-          <div ref={bottomRef} />
+
+          <div ref={bottomRef} style={{ height:8 }} />
         </div>
+      )}
 
-        {/* Divider */}
-        <div style={{ height: 1, background: "var(--border)", flexShrink: 0 }} />
-
-        {/* Input */}
-        <div style={{ padding: "8px 12px", display: "flex", gap: 8, alignItems: "flex-end", flexShrink: 0 }}>
-          {/* Mobile: history button */}
-          {isMobile && (
-            <button style={{ ...S.btn("ghost", true), padding: "7px 10px", flexShrink: 0 }} onClick={() => setShowHistory(true)}>
-              ☰
-            </button>
-          )}
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder={hasApiKey ? "Ask about your spending, budgets, or transactions…" : "Add your API key above to start chatting"}
-            disabled={!hasApiKey || loading}
-            rows={1}
-            style={{ ...S.input, flex: 1, resize: "none", lineHeight: 1.5, fontFamily: "var(--font-body)", fontSize: 13, maxHeight: 120, overflow: "auto", opacity: hasApiKey ? 1 : 0.5 }}
-          />
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-            <button style={{ ...S.btn("primary", true), padding: "6px 12px" }} onClick={handleSend} disabled={!hasApiKey || !input.trim() || loading}>
-              {loading ? "…" : "↑"}
-            </button>
-            {messages.length > 0 && (
-              <button style={{ ...S.btn("ghost", true), padding: "6px 10px", fontSize: 11 }}
-                onClick={() => clearCurrentConversation?.() || clearHistory?.()}
-                title="Clear conversation">✕</button>
-            )}
+      {/* ── Composer ── */}
+      {hasApiKey && (
+        <div style={{ flexShrink:0, borderTop:"1px solid rgba(255,255,255,0.06)",
+          background:"var(--bg,#0b0a08)", padding:"16px 28px 20px" }}>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
+            <span style={{ fontFamily:"var(--font-mono)", fontSize:14, color:"rgba(201,149,106,0.4)",
+              paddingTop:2, flexShrink:0 }}>✦</span>
+            <textarea ref={inputRef} className="dispatch-input-field"
+              value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={loading || !hasApiKey}
+              rows={1}
+              placeholder="What would you like to know?"
+              style={{ maxHeight:120, overflow:"auto", colorScheme:"dark" }} />
+            <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+              {messages.length > 0 && (
+                <button onClick={()=>(clearCurrentConversation||clearHistory)?.()}
+                  style={{ padding:"6px 10px", borderRadius:6, background:"none",
+                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)",
+                    fontSize:11, cursor:"pointer" }} title="Clear">✕</button>
+              )}
+              <button onClick={()=>handleSend()}
+                disabled={!input.trim()||loading}
+                style={{ padding:"6px 14px", borderRadius:6, background:"var(--cyan)",
+                  color:"#000", border:"none", fontWeight:700, fontSize:13, cursor:"pointer",
+                  opacity:(!input.trim()||loading)?0.4:1, transition:"opacity .12s" }}>
+                {loading?"…":"↑"}
+              </button>
+            </div>
           </div>
+          {/* Spark chips when empty — show below input */}
+          {isEmpty && !loading && (
+            <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginTop:12, paddingLeft:26 }}>
+              {(sparks.length > 0 ? sparks : SUGGESTED_QUESTIONS).slice(0,4).map(q => (
+                <button key={q} className="dispatch-spark"
+                  onClick={()=>handleSend(q)} style={{ fontSize:10 }}>{q}</button>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 
-  return (
-    <div style={{ width: "100%", height: isMobile ? "calc(100vh - 120px)" : "calc(100vh - 92px)", display: "flex", flexDirection: "column" }}>
-      {isMobile ? (
-        <>
-          {ChatPanel}
-          {/* Mobile history drawer */}
-          {showHistory && (
-            <div style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 200, display: "flex" }}
-              onClick={e => { if (e.target === e.currentTarget) setShowHistory(false); }}>
-              <div style={{ width: "80%", maxWidth: 300, background:"var(--card)", height: "100%", padding: "10px 14px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <span style={{ fontWeight: 700, color: "var(--t1)" }}>Conversations</span>
-                  <button style={{ ...S.btn("ghost", true), padding: "4px 8px" }} onClick={() => setShowHistory(false)}>✕</button>
-                </div>
-                {HistoryPanel}
+  /* ── Layout ── */
+  const height = isMobile ? "calc(100dvh - 120px)" : "calc(100dvh - 92px)";
+
+  if (isMobile) {
+    return (
+      <div style={{ width:"100%", height, display:"flex", flexDirection:"column" }}>
+        {ChatArea}
+        {/* History drawer */}
+        {showHistory && (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:200 }}
+            onClick={e=>{if(e.target===e.currentTarget)setShowHistory(false);}}>
+            <div style={{ position:"absolute", right:0, top:0, bottom:0, width:"82%", maxWidth:320,
+              background:"var(--card)", padding:"16px 14px", display:"flex", flexDirection:"column" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase",
+                  letterSpacing:"1px", color:"rgba(201,149,106,0.45)" }}>Conversations</span>
+                <button onClick={()=>setShowHistory(false)}
+                  style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16 }}>✕</button>
               </div>
+              <div style={{ flex:1, overflowY:"auto" }}>{RightPanel}</div>
             </div>
-          )}
-        </>
-      ) : (
-        /* Desktop: two-column layout */
-        <div style={{ display: "flex", gap: 16, height: "100%", alignItems: "stretch" }}>
-          {/* Left: chat */}
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-            {ChatPanel}
           </div>
-          {/* Right: conversation history */}
-          <div style={{ width: 340, flexShrink: 0, background:"var(--card)", borderRadius: "var(--radius)", padding: "10px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            {HistoryPanel}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width:"100%", height, display:"flex", gap:0, overflow:"hidden" }}>
+      {/* Main */}
+      <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        {ChatArea}
+      </div>
+      {/* Right panel */}
+      <div style={{ width:280, flexShrink:0, borderLeft:"1px solid rgba(255,255,255,0.05)",
+        padding:"20px 16px", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        {RightPanel}
+      </div>
     </div>
   );
 }

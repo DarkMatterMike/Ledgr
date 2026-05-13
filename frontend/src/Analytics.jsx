@@ -816,15 +816,15 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   /* ─── Concept visual components ─────────────────────────────────── */
   const Tier = ({ ord, title, sub, children, last=false, ghost="" }) => (
     <div style={{
-      padding:"28px 28px", borderBottom:last?"none":"1px solid rgba(0,0,0,0.35)",
+      padding:"20px 28px 28px", borderBottom:last?"none":"1px solid rgba(0,0,0,0.35)",
       position:"relative", overflow:"hidden",
       background:"radial-gradient(ellipse 55% 80% at 0% 40%,rgba(201,149,106,0.04) 0%,transparent 65%),var(--bg,#0b0a08)",
     }}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,rgba(201,149,106,0.1),rgba(255,255,255,0.03) 35%,transparent 75%)"}}/>
       {ghost && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",
-        fontSize:88,fontWeight:500,color:"rgba(201,149,106,0.06)",top:"50%",transform:"translateY(-55%)",
-        left:4,lineHeight:1,pointerEvents:"none",userSelect:"none",zIndex:0}}>{ghost}</div>}
+        fontSize:88,fontWeight:500,color:"rgba(201,149,106,0.06)",top:0,left:4,
+        lineHeight:1,pointerEvents:"none",userSelect:"none",zIndex:0}}>{ghost}</div>}
       <div style={{display:"flex",alignItems:"baseline",gap:12,paddingBottom:10,
         borderBottom:"1px solid rgba(201,149,106,0.1)",marginBottom:6,position:"relative",zIndex:1}}>
         <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,
@@ -909,43 +909,42 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   return (
     <div style={{width:"100%"}} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
 
-      {/* ── Page header (phdr) ──────────────────────────────────── */}
-      <div style={{padding:"28px 28px 0",position:"relative",overflow:"hidden",
-        background:"radial-gradient(ellipse 55% 80% at 0% 40%,rgba(201,149,106,0.055) 0%,transparent 65%),var(--bg,#0b0a08)",
-        borderBottom:"1px solid rgba(0,0,0,0.35)"}}>
+      {/* ── Compact sticky header: title row + tab bar ───────────── */}
+      <div style={{position:"sticky",top:0,zIndex:10,
+        background:"rgba(11,10,8,0.95)",backdropFilter:"blur(14px)",
+        borderBottom:"1px solid rgba(0,0,0,0.4)"}}>
+        {/* Amber seam */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:1,
           background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)"}}/>
-        <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",
-          fontSize:96,fontWeight:500,color:"rgba(201,149,106,0.07)",top:"50%",transform:"translateY(-55%)",
-          left:8,lineHeight:1,pointerEvents:"none",userSelect:"none",zIndex:0}}>II</div>
-        <div style={{display:"flex",alignItems:"baseline",gap:12,paddingBottom:12,
-          borderBottom:"1px solid rgba(201,149,106,0.12)",position:"relative",zIndex:1}}>
+        {/* Ghost "II" */}
+        {!isMobile && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",
+          fontSize:72,fontWeight:500,color:"rgba(201,149,106,0.06)",top:"50%",transform:"translateY(-50%)",
+          left:8,lineHeight:1,pointerEvents:"none",userSelect:"none",zIndex:0}}>II</div>}
+        {/* Title + meta row */}
+        <div style={{padding:"10px 28px 0",display:"flex",alignItems:"baseline",gap:12,
+          position:"relative",zIndex:1}}>
           <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,
             color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>II ·</span>
           <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",
-            fontWeight:400,fontSize:22,color:"var(--t1)"}}>Analytics</span>
-          <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.15),transparent)"}}/>
+            fontWeight:400,fontSize:20,color:"var(--t1)"}}>Analytics</span>
+          <div style={{width:1,height:12,background:"rgba(255,255,255,0.1)",margin:"0 4px"}}/>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",
+            textTransform:"uppercase",letterSpacing:"0.5px"}}>
+            {tabLabels[tab]} · {monthLabel}
+          </span>
         </div>
-        <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",
-          letterSpacing:"0.7px",color:"var(--t3)",marginTop:6,paddingBottom:20,
-          position:"relative",zIndex:1}}>
-          {tabLabels[tab]} · {monthLabel} · {txnCount} transactions
-        </div>
-      </div>
-
-      {/* ── Sticky tab bar ─────────────────────────────────────── */}
-      <div style={{padding:"0 28px",background:"rgba(11,10,8,0.9)",position:"sticky",
-        top:0,zIndex:10,borderBottom:"1px solid rgba(255,255,255,0.04)",backdropFilter:"blur(14px)"}}>
-        <div style={{display:"flex",gap:0,borderBottom:"none",marginBottom:0}}>
+        {/* Tab bar */}
+        <div style={{display:"flex",gap:0,padding:"0 28px",
+          ...(isMobile?{overflowX:"auto",scrollbarWidth:"none"}:{})}}>
           {TABS.map(t => (
             <button key={t} onClick={()=>setTab(t)} style={{
-              padding:"12px 18px",fontSize:11,cursor:"pointer",
+              padding:"10px 16px",fontSize:11,cursor:"pointer",
               border:"none",background:"transparent",
               color:tab===t?"var(--cyan)":"var(--t3)",
               fontFamily:"var(--font-body)",
               borderBottom:tab===t?"2px solid var(--cyan)":"2px solid transparent",
-              transition:"all .15s",marginBottom:-1,
-              ...(isMobile?{flex:1,padding:"12px 8px",fontSize:10}:{}),
+              transition:"all .15s",marginBottom:-1,flexShrink:0,
+              ...(isMobile?{flex:1,padding:"10px 8px",fontSize:10}:{}),
             }}>{tabLabels[t]}</button>
           ))}
         </div>

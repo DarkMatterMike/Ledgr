@@ -119,7 +119,7 @@ const CSS = `
                        border-radius: 8px; text-align: center; color: var(--warn); font-size: 12px; cursor: pointer; }
 
   /* main content */
-  .lb-main   { flex: 1; padding: 36px 40px; overflow-y: auto; min-width: 0; }
+  .lb-main   { flex: 1; padding: 36px 52px; overflow-y: auto; min-width: 0; }
 
   /* topbar */
   .lb-topbar { border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 28px;

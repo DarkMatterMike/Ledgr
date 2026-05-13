@@ -4588,6 +4588,32 @@ function AppInner({ isDemo = false }) {
   );
 
 
+  async function runSuggestLimits() {
+    if (!categories.length) return;
+    setSuggestingLimits(true);
+    try {
+      const monthKeys = [];
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+      }
+      const summaries = await Promise.all(monthKeys.map(m => api.loadSummary(m)));
+      const months = summaries.map(s => ({ month: s.month, byCategory: s.spentByCat }));
+      const avgIncome = summaries.reduce((a, s) => a + (s.totalIncome || 0), 0) / summaries.length;
+      const { suggestions } = await api.suggestLimits(
+        categories.map(c => ({ id: c.id, name: c.name, limit: c.limit || 0 })),
+        months,
+        avgIncome,
+      );
+      setLimitSuggestions(suggestions);
+      if (!suggestions.length) showToast("Not enough spending history yet — need at least 2 months of data");
+    } catch (e) {
+      if (!e.message?.includes("no_api_key")) showToast("Suggestion failed: " + e.message);
+    } finally {
+      setSuggestingLimits(false);
+    }
+  }
+
   /* ── Budgets ─────────────────────────────────── */
   const Budgets = (() => {
 

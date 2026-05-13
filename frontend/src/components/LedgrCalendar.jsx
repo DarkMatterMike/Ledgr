@@ -41,7 +41,7 @@ const SHARED_CSS = `
   .lc-layout { flex:1;display:grid;grid-template-columns:300px 1fr;min-height:100vh;overflow:hidden; }
   .lc-left { border-right:1px solid var(--line);background:var(--bg-1);display:flex;flex-direction:column;overflow-y:auto; }
   .lc-right { overflow-y:auto; }
-  .lc-topbar { height:60px;padding:0 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-0);z-index:10; }
+  .lc-topbar { height:60px;padding:0 52px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-0);z-index:10; }
   .lc-topbar-left { display:flex;align-items:baseline;gap:16px; }
   .lc-label { font-family:var(--font-mono);font-size:11px;color:var(--ink-3); }
   .lc-title { font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px; }
@@ -83,7 +83,7 @@ const SHARED_CSS = `
   .lc-ri-add { margin:12px 20px;padding:10px;border:1px solid rgba(240,176,76,0.25);border-radius:var(--r-md);text-align:center;color:var(--warn);font-size:11px;cursor:pointer;font-family:var(--font-mono); }
   .lc-ri-add:hover { background:var(--warn-bg); }
   /* agenda right */
-  .lc-agenda-content { padding:32px; }
+  .lc-agenda-content { padding:40px 52px; }
   .lc-agenda-day { margin-bottom:28px; }
   .lc-day-header { display:grid;grid-template-columns:60px 1fr;gap:0;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:12px; }
   .lc-day-num { font-family:var(--font-display);font-size:32px;line-height:1;color:var(--ink-2); }

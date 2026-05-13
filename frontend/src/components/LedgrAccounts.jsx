@@ -37,7 +37,7 @@ const SHARED_CSS = `
   .lb-nav-item.active { color:var(--safe);background:var(--safe-bg); }
   .lb-nav-spacer { flex:1; }
   .la-main { flex:1;overflow-y:auto;min-width:0; }
-  .la-topbar { height:60px;padding:0 40px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-0);z-index:10; }
+  .la-topbar { height:60px;padding:0 52px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-0);z-index:10; }
   .la-topbar-left { display:flex;align-items:baseline;gap:16px; }
   .la-label { font-family:var(--font-mono);font-size:11px;color:var(--ink-3); }
   .la-title { font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px; }
@@ -49,7 +49,7 @@ const SHARED_CSS = `
   .la-btn.primary { background:var(--safe-bg);border-color:rgba(93,202,165,0.4);color:var(--safe); }
   .la-btn.danger { background:var(--debt-bg);border-color:rgba(232,115,99,0.3);color:var(--debt); }
   .la-btn.warn { background:var(--warn-bg);border-color:rgba(240,176,76,0.3);color:var(--warn); }
-  .la-content { padding:40px; }
+  .la-content { padding:40px 52px; }
   .la-hero { margin-bottom:40px;padding-bottom:32px;border-bottom:1px solid var(--line); }
   .la-hero-eyebrow { font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px; }
   .la-hero-number { font-family:var(--font-display);font-size:72px;line-height:0.9;letter-spacing:-2px;color:var(--ink-0);margin-bottom:12px; }

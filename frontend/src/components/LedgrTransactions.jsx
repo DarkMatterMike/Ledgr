@@ -46,7 +46,7 @@ const SHARED_CSS = `
   .lb-nav-item.active { color:var(--safe);background:var(--safe-bg); }
   .lb-nav-spacer { flex:1; }
   .lt-main { flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden; }
-  .lt-topbar { height:60px;padding:0 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .lt-topbar { height:60px;padding:0 52px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
   .lt-topbar-left { display:flex;align-items:baseline;gap:16px; }
   .lt-label { font-family:var(--font-mono);font-size:11px;color:var(--ink-3); }
   .lt-title { font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px; }
@@ -60,30 +60,30 @@ const SHARED_CSS = `
   .lt-btn:hover { border-color:var(--line-3);color:var(--ink-0); }
   .lt-btn.active { background:var(--safe-bg);border-color:rgba(93,202,165,0.4);color:var(--safe); }
   .lt-btn.primary { background:var(--safe-bg);border-color:rgba(93,202,165,0.4);color:var(--safe); }
-  .lt-filter-bar { padding:16px 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-1); }
+  .lt-filter-bar { padding:16px 52px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-1); }
   .lt-filter-select { background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-family:var(--font-mono);color:var(--ink-1);cursor:pointer;outline:none;-webkit-appearance:none;appearance:none; }
   .lt-summary-strip { display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);flex-shrink:0; }
-  .lt-summary-cell { padding:14px 32px;border-right:1px solid var(--line); }
+  .lt-summary-cell { padding:14px 52px;border-right:1px solid var(--line); }
   .lt-summary-cell:last-child { border-right:none; }
   .lt-summary-label { font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px; }
   .lt-summary-val { font-family:var(--font-mono);font-size:20px;font-weight:500; }
   .lt-content { flex:1;overflow-y:auto; }
   .lt-table-wrap { padding:0; }
   .lt-table { width:100%;border-collapse:collapse; }
-  .lt-th { font-family:var(--font-mono);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink-3);padding:10px 16px 12px;text-align:left;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;white-space:nowrap;transition:color .12s; }
+  .lt-th { font-family:var(--font-mono);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink-3);padding:10px 20px 12px;text-align:left;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;white-space:nowrap;transition:color .12s; }
   .lt-th:hover { color:var(--ink-1); }
   .lt-th.active { color:var(--safe); }
   .lt-row { border-bottom:1px solid var(--line);transition:background .1s;cursor:pointer; }
   .lt-row:hover { background:rgba(255,255,255,0.02); }
   .lt-row.selected { background:rgba(93,202,165,0.04);border-color:rgba(93,202,165,0.15); }
-  .lt-td { padding:11px 16px;vertical-align:middle;font-size:13px; }
-  .lt-empty { padding:80px 32px;text-align:center;color:var(--ink-3); }
+  .lt-td { padding:11px 20px;vertical-align:middle;font-size:13px; }
+  .lt-empty { padding:80px 52px;text-align:center;color:var(--ink-3); }
   .lt-empty-icon { font-size:32px;margin-bottom:12px; }
   .lt-empty-title { font-family:var(--font-display);font-size:24px;color:var(--ink-2);margin-bottom:6px; }
   .lt-pill { display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--font-mono);white-space:nowrap; }
   .lt-cat-dot { width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0; }
   .lt-bulk-bar { position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:10px 20px;display:flex;align-items:center;gap:12px;z-index:50;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:var(--font-mono);font-size:12px; }
-  .lt-load-more { padding:20px 32px;text-align:center; }
+  .lt-load-more { padding:20px 52px;text-align:center; }
   @media(max-width:700px){
     .lb-sidenav{display:none;}
     .lt-topbar{padding:0 16px;}

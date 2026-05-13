@@ -456,7 +456,7 @@ export default function RulesPage({
   }
 
   /* outer padding matches Dashboard/Calendar: 48px top, 36px left */
-  const outerPad = isMobile ? '24px 16px' : '48px 0 0 36px';
+  const outerPad = isMobile ? '20px 16px' : '28px 28px';
 
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--t1)' }}>

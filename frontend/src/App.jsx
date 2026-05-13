@@ -70,7 +70,7 @@ function useIsMobile() {
 
     /* Layout */
     .ledgr-content     { padding: 0; }
-    .ledgr-view-padded { padding: 0; }
+    .ledgr-view-padded { padding: 0; max-width: 900px; margin: 0 auto; width: 100%; }
     .ledgr-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
     .ledgr-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
     .ledgr-acct-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -80,6 +80,7 @@ function useIsMobile() {
 
     @media (max-width: 768px) {
       .ledgr-content { padding: 0 !important; }
+      .ledgr-view-padded { padding: 0 !important; }
       .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 8px !important; justify-content: center !important; }
     }
 

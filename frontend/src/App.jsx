@@ -5670,6 +5670,7 @@ function AppInner({ isDemo = false }) {
           </div>
         )}
 
+        </div>{/* /content wrapper */}
         {categories.length === 0 ? (
           <div className="ledgr-empty"><div className="ledgr-empty-icon">🏷️</div><div className="ledgr-empty-title">No categories yet</div><div>Add a category to start tracking budgets</div></div>
         ) : (
@@ -5715,7 +5716,6 @@ function AppInner({ isDemo = false }) {
             )}
           </>
         )}
-        </div>{/* /content wrapper */}
 
       </div>
     );

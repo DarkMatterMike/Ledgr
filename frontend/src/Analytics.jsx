@@ -228,51 +228,65 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
   // X-axis day labels
   const xLabels = [1, 6, 11, 16, 21, 26, 31].filter(d => d <= daysInMonth);
 
+  // Projected spend — linear from today to end of month
+  const projectedTotal = today.getDate() > 0 ? Math.round(thisTotal / today.getDate() * daysInMonth) : thisTotal;
+  const projVsComp     = compTotal > 0 ? Math.round(((projectedTotal - compTotal) / compTotal) * 100) : null;
+
+  // Projected path — from today's point to end of month
+  function buildProjectedPath() {
+    const todayIdx = today.getDate() - 1;
+    const todayVal = thisMonthPoints[todayIdx];
+    if (todayVal == null) return "";
+    let d = `M${xOf(todayIdx).toFixed(1)},${yOf(todayVal).toFixed(1)}`;
+    d += ` L${xOf(daysInMonth - 1).toFixed(1)},${yOf(projectedTotal).toFixed(1)}`;
+    return d;
+  }
+
   return (
-    <Card style={{ position:"relative" }}>
-      {/* Header */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12, gap:8 }}>
+    <div style={{ position:"relative" }}>
+      {/* 3-number summary header */}
+      <div style={{ display:"flex", gap:40, marginBottom:20, flexWrap:"wrap" }}>
         <div>
-          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.8px", color:"var(--t3)", textTransform:"uppercase", marginBottom:4 }}>
-            Spending Pace
-          </div>
-          <div style={{ display:"flex", gap:16, alignItems:"baseline", flexWrap:"wrap" }}>
-            <div>
-              <span style={{ fontSize:11, color:"var(--t3)" }}>This month: </span>
-              <span style={{ fontSize:14, fontWeight:700, fontFamily:"var(--font-mono)", color:"var(--cyan)" }}>{fmt(thisTotal)}</span>
-            </div>
-            <div>
-              <span style={{ fontSize:11, color:"var(--t3)" }}>{selectedLabel === "Last month" ? "Last month:" : "Avg:"} </span>
-              <span style={{ fontSize:13, fontWeight:600, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(compTotal)}</span>
-            </div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--t3)", marginBottom:4 }}>So far this month</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--red)" }}>{fmt(thisTotal)}</div>
+          <div style={{ fontSize:11, color:"var(--t3)", marginTop:4 }}>Day {today.getDate()} of {daysInMonth}</div>
+        </div>
+        <div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--t3)", marginBottom:4 }}>Projected end of month</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--amber)" }}>{fmt(projectedTotal)}</div>
+          <div style={{ fontSize:11, color:"var(--t3)", marginTop:4 }}>
+            {projVsComp != null ? `${projVsComp > 0 ? "↑" : "↓"} ${Math.abs(projVsComp)}% vs ${selectedLabel.toLowerCase()}` : "linear estimate"}
           </div>
         </div>
-        {/* Range picker */}
-        <div style={{ position:"relative", flexShrink:0 }}>
-          <button
-            onClick={() => setPickerOpen(p => !p)}
-            style={{ display:"flex", alignItems:"center", gap:6, padding:"6px 12px",
-              background:"var(--surface)",
-              borderRadius:20, cursor:"pointer", fontSize:12, color:"var(--t1)", fontWeight:500 }}>
-            {selectedLabel}
-            <span style={{ fontSize:10, color:"var(--t3)" }}>▾</span>
+        <div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--t3)", marginBottom:4 }}>{selectedLabel}</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--t3)" }}>{fmt(compTotal)}</div>
+          <div style={{ fontSize:11, color:"var(--t3)", marginTop:4 }}>For reference</div>
+        </div>
+        {/* Range picker — inline, right-aligned */}
+        <div style={{ marginLeft:"auto", position:"relative", alignSelf:"flex-start" }}>
+          <button onClick={() => setPickerOpen(p => !p)}
+            style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px",
+              background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)",
+              borderRadius:6, cursor:"pointer", fontSize:11, color:"var(--t2)" }}>
+            {selectedLabel} <span style={{ fontSize:9, color:"var(--t3)" }}>▾</span>
           </button>
           {pickerOpen && (
             <>
               <div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={() => setPickerOpen(false)} />
-              <div className="obsidian-card" style={{ position:"absolute", right:0, top:"calc(100% + 6px)", zIndex:200,
-                background:"var(--card)", borderRadius:12,
-                boxShadow:"0 8px 24px #0006", minWidth:160, overflow:"hidden" }}>
+              <div style={{ position:"absolute", right:0, top:"calc(100% + 4px)", zIndex:200,
+                background:"var(--card)", border:"1px solid rgba(255,255,255,0.08)",
+                borderRadius:8, boxShadow:"0 8px 24px #0006", minWidth:140, overflow:"hidden" }}>
                 {PACE_RANGES.map(r => (
-                  <button key={r.key}
-                    onClick={() => { setRange(r.key); setPickerOpen(false); }}
+                  <button key={r.key} onClick={() => { setRange(r.key); setPickerOpen(false); }}
                     style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-                      width:"100%", padding:"11px 16px", background:"none", border:"none",
-                      cursor:"pointer", fontSize:13, color: r.key === range ? "var(--cyan)" : "var(--t1)",
+                      width:"100%", padding:"9px 14px", background:"none", border:"none",
+                      cursor:"pointer", fontSize:12,
+                      color: r.key === range ? "var(--cyan)" : "var(--t2)",
                       fontWeight: r.key === range ? 700 : 400,
-                      borderBottom:"1px solid var(--border)" }}>
+                      borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
                     {r.label}
-                    {r.key === range && <span style={{ fontSize:14, color:"var(--cyan)" }}>✓</span>}
+                    {r.key === range && <span style={{ fontSize:12, color:"var(--cyan)" }}>✓</span>}
                   </button>
                 ))}
               </div>
@@ -281,63 +295,92 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
         </div>
       </div>
 
-      {/* Chart */}
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:"auto", overflow:"visible" }}>
-        <defs>
-          <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
+      {/* Chart — bordered top+left like concept */}
+      <div style={{ borderTop:"1px solid rgba(255,255,255,0.04)", borderLeft:"1px solid rgba(255,255,255,0.04)", paddingTop:4 }}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:"auto", overflow:"visible" }}>
+          <defs>
+            <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0" />
+            </linearGradient>
+            <filter id="todayGlow">
+              <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="rgba(201,149,106,0.8)" />
+            </filter>
+          </defs>
 
-        {/* Gridlines + Y labels */}
-        {gridVals.map(v => (
-          <g key={v}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={yOf(v)} y2={yOf(v)}
-              stroke="var(--border)" strokeWidth="1" strokeDasharray="4,4" />
-            <text x={PAD.left - 6} y={yOf(v) + 4} textAnchor="end"
-              style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
-              {fmtK(v)}
-            </text>
-          </g>
-        ))}
+          {/* Gridlines + Y labels */}
+          {gridVals.map(v => (
+            <g key={v}>
+              <line x1={PAD.left} x2={W - PAD.right} y1={yOf(v)} y2={yOf(v)}
+                stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+              <text x={PAD.left - 6} y={yOf(v) + 4} textAnchor="end"
+                style={{ fontSize:9, fill:"rgba(232,221,208,0.2)", fontFamily:"var(--font-mono)" }}>
+                {fmtK(v)}
+              </text>
+            </g>
+          ))}
 
-        {/* X-axis labels */}
-        {xLabels.map(d => (
-          <text key={d} x={xOf(d-1)} y={H - 6} textAnchor="middle"
-            style={{ fontSize:9, fill:"var(--t3)", fontFamily:"var(--font-mono)" }}>
-            {d}
-          </text>
-        ))}
+          {/* X-axis day labels */}
+          {xLabels.map(d => {
+            const isToday = d === today.getDate();
+            return (
+              <text key={d} x={xOf(d-1)} y={H - 6} textAnchor="middle"
+                style={{ fontSize:8, fill: isToday ? "rgba(201,149,106,0.6)" : "rgba(232,221,208,0.2)", fontFamily:"var(--font-mono)" }}>
+                {isToday ? `${d}↑` : d}
+              </text>
+            );
+          })}
 
-        {/* Area fill — this month */}
-        <path d={buildArea(thisMonthPoints)} fill="url(#paceGrad)" />
+          {/* Area fill — this month */}
+          <path d={buildArea(thisMonthPoints)} fill="url(#paceGrad)" opacity="0.6" />
 
-        {/* Comparison line */}
-        <path d={buildPath(compPoints, false)} fill="none"
-          stroke="var(--t3)" strokeWidth="1.5" strokeDasharray="0" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Comparison line — dashed */}
+          <path d={buildPath(compPoints, false)} fill="none"
+            stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeDasharray="5,3"
+            strokeLinecap="round" strokeLinejoin="round" />
 
-        {/* This month line */}
-        <path d={buildPath(thisMonthPoints)} fill="none"
-          stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Projected dashed line */}
+          {buildProjectedPath() && (
+            <path d={buildProjectedPath()} fill="none"
+              stroke="rgba(201,149,106,0.4)" strokeWidth="1.5" strokeDasharray="4,3"
+              strokeLinecap="round" />
+          )}
 
-        {/* Today marker */}
-        {thisMonthPoints[today.getDate()-1] != null && (
-          <circle cx={xOf(today.getDate()-1)} cy={yOf(thisMonthPoints[today.getDate()-1])}
-            r="4" fill="var(--cyan)" stroke="var(--card)" strokeWidth="2" />
-        )}
-      </svg>
+          {/* Today vertical line */}
+          {thisMonthPoints[today.getDate()-1] != null && (
+            <line
+              x1={xOf(today.getDate()-1)} x2={xOf(today.getDate()-1)}
+              y1={yOf(thisMonthPoints[today.getDate()-1])} y2={PAD.top + (H - PAD.top - PAD.bottom)}
+              stroke="rgba(201,149,106,0.15)" strokeWidth="1" strokeDasharray="3,2" />
+          )}
+
+          {/* This month line */}
+          <path d={buildPath(thisMonthPoints)} fill="none"
+            stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Today dot — glowing */}
+          {thisMonthPoints[today.getDate()-1] != null && (
+            <circle cx={xOf(today.getDate()-1)} cy={yOf(thisMonthPoints[today.getDate()-1])}
+              r="4" fill="var(--cyan)" filter="url(#todayGlow)" />
+          )}
+        </svg>
+      </div>
 
       {/* Legend */}
-      <div style={{ display:"flex", gap:16, justifyContent:"center", marginTop:6 }}>
+      <div style={{ display:"flex", gap:20, marginTop:10 }}>
         <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
-          <div style={{ width:16, height:2.5, borderRadius:2, background:"var(--cyan)" }} /> This month
+          <div style={{ width:16, height:2, borderRadius:2, background:"var(--cyan)" }} /> This month
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
-          <div style={{ width:16, height:2, borderRadius:2, background:"var(--t3)" }} /> {selectedLabel}
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t3)" }}>
+          <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeDasharray="4,3"/></svg>
+          {selectedLabel}
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t3)" }}>
+          <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="rgba(201,149,106,0.5)" strokeWidth="1.5" strokeDasharray="4,3"/></svg>
+          Projected
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 

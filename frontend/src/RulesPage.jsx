@@ -456,14 +456,14 @@ export default function RulesPage({
   }
 
   /* outer padding matches Dashboard/Calendar: 48px top, 36px left */
-  const outerPad = isMobile ? '20px 16px' : '28px 28px 28px 16px';
+  const outerPad = isMobile ? '20px 16px' : '28px 28px';
 
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--t1)' }}>
 
       {/* ── Page header ── */}
       <div style={{
-        padding: '28px 0 0', margin: isMobile ? '0' : '0 -16px',
+        padding: outerPad,
         borderBottom: '1px solid rgba(0,0,0,0.35)',
         position: 'relative', overflow: 'hidden',
         background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)',
@@ -477,13 +477,13 @@ export default function RulesPage({
           </div>
         )}
         {/* title row */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, paddingBottom: 12, paddingLeft: 16, borderBottom: '1px solid rgba(201,149,106,0.12)', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, paddingBottom: 12, borderBottom: '1px solid rgba(201,149,106,0.12)', position: 'relative', zIndex: 1 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>01 ·</span>
           <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: isMobile ? 18 : 22, color: 'var(--t1)' }}>Rules</span>
           <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.15),transparent)', alignSelf: 'center', marginLeft: 4 }} />
         </div>
         {/* meta */}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 6, paddingBottom: 20, paddingLeft: 16, position: 'relative', zIndex: 1 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 6, paddingBottom: 20, position: 'relative', zIndex: 1 }}>
           Auto-categorization · {rules.length} rule{rules.length !== 1 ? 's' : ''} · {manualCount} manual · {aiCount} AI
         </div>
       </div>

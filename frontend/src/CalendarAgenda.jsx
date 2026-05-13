@@ -337,13 +337,13 @@ export default function CalendarAgenda({
   }
 
   /* ── Dashboard-style page padding: 48px top, 36px left (matches DashboardNew tier) ── */
-  const outerPad = isMobile ? '20px 16px' : '28px 28px 28px 16px';
+  const outerPad = isMobile ? '20px 16px' : '28px 28px';
 
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--t1,#e8ddd0)' }}>
 
       {/* ── Page header — Playfair title, same pattern as Transactions ── */}
-      <div style={{ padding: '28px 0 0', margin: isMobile ? '0' : '0 -16px', borderBottom: '1px solid rgba(0,0,0,0.35)', position: 'relative', overflow: 'hidden', background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)' }}>
+      <div style={{ padding: outerPad, borderBottom: '1px solid rgba(0,0,0,0.35)', position: 'relative', overflow: 'hidden', background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)' }}>
         {/* Top-edge seam */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.14) 0%,rgba(255,255,255,0.05) 35%,transparent 75%)', pointerEvents: 'none' }} />
         {/* Ghost roman numeral */}
@@ -353,13 +353,13 @@ export default function CalendarAgenda({
           </div>
         )}
         {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, position: 'relative', zIndex: 1, paddingBottom: 12, paddingLeft: 16, borderBottom: '1px solid rgba(201,149,106,0.12)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, position: 'relative', zIndex: 1, paddingBottom: 12, borderBottom: '1px solid rgba(201,149,106,0.12)' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>01 ·</span>
           <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: 22, color: 'var(--t1)' }}>Calendar</span>
           <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.15),transparent)', alignSelf: 'center', marginLeft: 4 }} />
         </div>
         {/* Sub-line */}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 6, paddingLeft: 16, position: 'relative', zIndex: 1 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 6, position: 'relative', zIndex: 1 }}>
           {monthLabel} · {recurringItems.length} recurring item{recurringItems.length !== 1 ? 's' : ''}
         </div>
       </div>

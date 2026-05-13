@@ -17,7 +17,7 @@ import * as api from "./api.js";
 const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
 import DashboardNew, { DashboardHero, DashboardContent } from "./components/DashboardNew.jsx";
-import BriefingPage from "./BriefingPage.jsx";
+import LedgrBriefing from "./components/LedgrBriefing.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -990,8 +990,6 @@ export default function App() {
   })();
 
   if (!authed) return <AuthGate onAuth={()=>setAuthed(true)} inviteToken={appInviteToken}/>;
-
-  if (window.location.pathname === "/briefing") return <BriefingPage />;
 
   return <AppInner isDemo={isDemo}/>;
 }
@@ -4545,26 +4543,19 @@ function AppInner({ isDemo = false }) {
       insightsTodos, isMobile, catMap]);
 
   const Dashboard = (
-    <DashboardContent
-      isMobile={isMobile}
-      selectedMonth={selectedMonth}
-      isCurrentMonth={isCurrentMonth}
-      prevMonth={prevMonth}
-      nextMonth={nextMonth}
-      monthLabel={monthLabel}
+    <LedgrBriefing
+      accounts={accounts}
+      categories={categories}
+      monthTxns={monthTxns}
+      recurringItems={recurringItems}
       totalSpent={totalSpent}
       totalIncome={totalIncome}
       totalBudget={totalBudget}
-      spentByCat={spentByCat}
-      sortedCategories={sortedCategories}
-      categories={categories}
-      catMap={catMap}
-      monthTxns={monthTxns}
-      recurringItems={recurringItems}
       goals={goals}
-      navigate={navigate}
-      fmt={fmt}
       today={today}
+      fmt={fmt}
+      navigate={navigate}
+      isMobile={isMobile}
     />
   );
 
@@ -6158,6 +6149,24 @@ function AppInner({ isDemo = false }) {
   const trialDaysLeft = (_trialUser && _trialUser.role !== "owner" && _trialUser.role !== "free" && _trialUser.subscription_status === "trialing")
     ? Math.max(0, Math.ceil((_trialUser.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
+
+  // Full-screen dashboard — bypass app shell entirely
+  if (view === "dashboard") return (
+    <LedgrBriefing
+      accounts={accounts}
+      categories={categories}
+      monthTxns={monthTxns}
+      recurringItems={recurringItems}
+      totalSpent={totalSpent}
+      totalIncome={totalIncome}
+      totalBudget={totalBudget}
+      goals={goals}
+      today={today}
+      fmt={fmt}
+      navigate={navigate}
+      isMobile={isMobile}
+    />
+  );
 
   return (
     <div style={{...S.shell, paddingTop: isDemo ? 45 : 0, ...(theme.bgImage ? {

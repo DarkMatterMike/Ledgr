@@ -111,6 +111,29 @@ function injectCSS() {
   .ag-empty-add { background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.2); border-radius: 8px; color: #c9956a; font-size: 12px; font-weight: 600; padding: 7px 14px; cursor: pointer; margin-top: 8px; font-family: var(--font-body,'DM Sans',sans-serif); transition: background .15s; }
   .ag-empty-add:hover { background: rgba(201,149,106,0.18); }
 
+  /* ── Split view ── */
+  .ag-split-block { margin: 0 12px 4px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
+  .ag-split-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; transition: background .12s; user-select: none; }
+  .ag-split-row:hover { background: rgba(255,255,255,0.04); }
+  .ag-split-row.open { background: rgba(201,149,106,0.06); }
+  .ag-split-label { flex: 1; font-size: 12px; font-weight: 600; color: rgba(232,221,208,0.7); font-family: var(--font-body,'DM Sans',sans-serif); }
+  .ag-split-total { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 12px; font-weight: 700; color: #e07070; }
+  .ag-split-total.income { color: #6db88a; }
+  .ag-split-caret { font-size: 9px; color: rgba(232,221,208,0.3); transition: transform .15s; }
+  .ag-split-caret.open { transform: rotate(180deg); }
+  .ag-split-body { border-top: 1px solid rgba(255,255,255,0.05); padding: 8px 0 4px; background: rgba(0,0,0,0.15); }
+  .ag-split-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; }
+  .ag-split-item-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .ag-split-item-name { font-size: 11px; color: rgba(232,221,208,0.6); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ag-split-item-day { font-size: 10px; font-family: var(--font-mono,'JetBrains Mono',monospace); color: rgba(232,221,208,0.3); flex-shrink: 0; }
+  .ag-split-item-amt { font-size: 11px; font-family: var(--font-mono,'JetBrains Mono',monospace); font-weight: 600; color: #e07070; flex-shrink: 0; }
+  .ag-split-item-amt.posted { color: #6db88a; text-decoration: line-through; opacity: 0.6; }
+  .ag-split-acct-hdr { padding: 8px 12px 4px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(232,221,208,0.28); font-family: var(--font-disp,'Syne',sans-serif); border-top: 1px solid rgba(255,255,255,0.04); margin-top: 4px; }
+  .ag-split-acct-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 12px; }
+  .ag-split-acct-name { font-size: 11px; color: rgba(232,221,208,0.5); }
+  .ag-split-acct-amt { font-size: 11px; font-family: var(--font-mono,'JetBrains Mono',monospace); font-weight: 600; color: rgba(232,221,208,0.8); }
+  .ag-split-divider { height: 1px; background: rgba(255,255,255,0.04); margin: 0 12px 4px; }
+
   /* ── Mobile: stack columns ── */
   @media (max-width: 767px) {
     .ag-body { grid-template-columns: 1fr; }
@@ -199,6 +222,55 @@ export default function CalendarAgenda({
     () => isCurrentMonth ? today.getDate() : null
   );
   const [filter, setFilter] = useState('all');
+  const [splitOpen, setSplitOpen] = useState(null); // null | 'first' | 'second'
+
+  /* ── Split view data: first half (1-15) and second half (16-end) ── */
+  const splitData = useMemo(() => {
+    function buildHalf(items, dayMin, dayMax) {
+      const halfItems = items
+        .filter(item => {
+          const day = item.recurringDay;
+          if (!day) return false;
+          return day >= dayMin && day <= dayMax;
+        })
+        .sort((a, b) => (a.recurringDay || 0) - (b.recurringDay || 0));
+
+      const totalExpenses = halfItems
+        .filter(i => i.type !== 'income')
+        .reduce((s, i) => s + (i.amountMin || 0), 0);
+      const totalIncome = halfItems
+        .filter(i => i.type === 'income')
+        .reduce((s, i) => s + (i.amountMin || 0), 0);
+
+      // Per-account breakdown (expenses only, unposted)
+      const acctMap_ = {};
+      halfItems.forEach(item => {
+        if (item.type === 'income') return;
+        const isPosted = (item.linkedTxnIds || []).some(id => {
+          const t = transactions.find(x => x.id === id);
+          if (!t?.date) return false;
+          const [ty, tm] = t.date.split('-').map(Number);
+          return ty === calY && tm === calM;
+        });
+        if (isPosted) return; // already paid, skip from "needed" totals
+        const acctId = item.accountId || '__unassigned__';
+        if (!acctMap_[acctId]) acctMap_[acctId] = { id: acctId, total: 0 };
+        acctMap_[acctId].total += item.amountMin || 0;
+      });
+
+      return {
+        items: halfItems,
+        totalExpenses,
+        totalIncome,
+        acctTotals: Object.values(acctMap_).sort((a, b) => b.total - a.total),
+      };
+    }
+
+    return {
+      first:  buildHalf(recurringItems, 1, 15),
+      second: buildHalf(recurringItems, 16, 31),
+    };
+  }, [recurringItems, transactions, calY, calM]); // eslint-disable-line
 
   useEffect(() => {
     const now = calY === today.getFullYear() && calM === today.getMonth() + 1;
@@ -420,6 +492,98 @@ export default function CalendarAgenda({
                 <div className="ag-stat-val" style={{ color }}>{val}</div>
               </div>
             ))}
+          </div>
+
+          {/* ── Split view: 1–15 / 16–End ─────────────────────── */}
+          <div style={{ padding: '4px 0 8px' }}>
+            <div style={{ padding: '8px 12px 6px', fontSize: 9, textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(232,221,208,0.28)', fontFamily: 'var(--font-disp)' }}>
+              Paycheck Planning
+            </div>
+
+            {[
+              { key: 'first',  label: 'Days 1 – 15',   data: splitData.first  },
+              { key: 'second', label: 'Days 16 – End',  data: splitData.second },
+            ].map(({ key, label, data }) => {
+              const isOpen = splitOpen === key;
+              const hasItems = data.items.length > 0;
+              return (
+                <div key={key} className="ag-split-block" style={{ marginBottom: 6 }}>
+                  {/* Summary row */}
+                  <div
+                    className={`ag-split-row${isOpen ? ' open' : ''}`}
+                    onClick={() => setSplitOpen(isOpen ? null : key)}
+                  >
+                    <div className="ag-split-label">{label}</div>
+                    {data.totalIncome > 0 && (
+                      <span className="ag-split-total income">+{fmt(data.totalIncome)}</span>
+                    )}
+                    {data.totalExpenses > 0 && (
+                      <span className="ag-split-total">{fmt(data.totalExpenses)}</span>
+                    )}
+                    {!hasItems && (
+                      <span style={{ fontSize: 10, color: 'rgba(232,221,208,0.25)' }}>—</span>
+                    )}
+                    <span className={`ag-split-caret${isOpen ? ' open' : ''}`}>▼</span>
+                  </div>
+
+                  {/* Expanded body */}
+                  {isOpen && hasItems && (
+                    <div className="ag-split-body">
+                      {/* Item list */}
+                      {data.items.map(item => {
+                        const cat = catMap[item.categoryId];
+                        const isIncome = item.type === 'income';
+                        const isPosted = (item.linkedTxnIds || []).some(id => {
+                          const t = transactions.find(x => x.id === id);
+                          if (!t?.date) return false;
+                          const [ty, tm] = t.date.split('-').map(Number);
+                          return ty === calY && tm === calM;
+                        });
+                        return (
+                          <div key={item.id} className="ag-split-item">
+                            <div className="ag-split-item-dot"
+                              style={{ background: isIncome ? '#6db88a' : (cat?.color || '#c9956a') }} />
+                            <div className="ag-split-item-name">{item.name || item.merchant || '—'}</div>
+                            <div className="ag-split-item-day">
+                              {item.recurringDay ? `Day ${item.recurringDay}` : '—'}
+                            </div>
+                            <div className={`ag-split-item-amt${isPosted ? ' posted' : ''}`}
+                              style={isIncome ? { color: '#6db88a' } : {}}>
+                              {isIncome ? '+' : ''}{fmt(item.amountMin || 0)}
+                              {isPosted ? ' ✓' : ''}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Per-account needed totals */}
+                      {data.acctTotals.length > 0 && (
+                        <>
+                          <div className="ag-split-acct-hdr">Needed by account</div>
+                          {data.acctTotals.map(({ id, total }) => {
+                            const acct = acctMap[id];
+                            return (
+                              <div key={id} className="ag-split-acct-row">
+                                <div className="ag-split-acct-name">
+                                  {acct ? acct.name : 'Unassigned'}
+                                </div>
+                                <div className="ag-split-acct-amt">{fmt(total)}</div>
+                              </div>
+                            );
+                          })}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {isOpen && !hasItems && (
+                    <div className="ag-split-body" style={{ padding: '10px 12px', fontSize: 11, color: 'rgba(232,221,208,0.3)' }}>
+                      No recurring items in this period.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <button className="ag-new-btn" onClick={openNewRecurringItem}>

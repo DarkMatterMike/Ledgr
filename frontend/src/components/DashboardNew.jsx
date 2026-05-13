@@ -118,6 +118,7 @@ export function DashboardHero({
   totalSpent, totalIncome, totalBudget,
   spentByCat, categories, monthTxns, recurringItems,
   fmt, today,
+  showBriefing = false, onToggleBriefing = null,
 }) {
   const [heroMode, setHeroMode] = useState("budget");
   const budgetRemaining  = totalBudget - totalSpent;
@@ -142,6 +143,27 @@ export function DashboardHero({
           {isCurrentMonth && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--cyan)", background: "rgba(201,149,106,0.1)", padding: "2px 8px", borderRadius: 99 }}>current</span>}
         </div>
         <button onClick={nextMonth} disabled={isCurrentMonth} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, color: isCurrentMonth ? "var(--border2)" : "var(--t2)", cursor: isCurrentMonth ? "default" : "pointer", padding: "5px 10px", fontSize: 16, lineHeight: 1, opacity: isCurrentMonth ? 0.3 : 1 }}>›</button>
+        {onToggleBriefing && (
+          <button
+            onClick={onToggleBriefing}
+            style={{
+              marginLeft: "auto",
+              background: showBriefing ? "rgba(93,202,165,0.12)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${showBriefing ? "rgba(93,202,165,0.4)" : "rgba(255,255,255,0.07)"}`,
+              color: showBriefing ? "#5dcaa5" : "var(--t3)",
+              borderRadius: 8,
+              padding: "5px 12px",
+              fontSize: 11,
+              fontFamily: "var(--font-mono)",
+              cursor: "pointer",
+              letterSpacing: "0.5px",
+              transition: "all 0.15s",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {showBriefing ? "◐ briefing on" : "◐ try briefing"}
+          </button>
+        )}
       </div>
 
       <SectionHdr ord="I" title="How much can I spend?" isMobile={isMobile} />

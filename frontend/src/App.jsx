@@ -6285,6 +6285,8 @@ function AppInner({ isDemo = false }) {
               spentByCat={spentByCat} categories={categories}
               monthTxns={monthTxns} recurringItems={recurringItems}
               fmt={fmt} today={today}
+              showBriefing={showBriefing}
+              onToggleBriefing={view === "dashboard" ? () => setShowBriefing(b => !b) : null}
             />
           {view === "analytics"
             ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>
@@ -6350,28 +6352,6 @@ function AppInner({ isDemo = false }) {
           <div style={{flex:1,minWidth:0,position:"relative"}}>
             
             
-            {/* ── Briefing toggle ── */}
-            {view === "dashboard" && (
-              <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 24px 0" }}>
-                <button
-                  onClick={() => setShowBriefing(b => !b)}
-                  style={{
-                    background: showBriefing ? "rgba(93,202,165,0.12)" : "transparent",
-                    border: `1px solid ${showBriefing ? "rgba(93,202,165,0.4)" : "rgba(255,255,255,0.1)"}`,
-                    color: showBriefing ? "#5dcaa5" : "#7d8594",
-                    borderRadius: 8,
-                    padding: "5px 12px",
-                    fontSize: 11,
-                    fontFamily: "var(--font-mono, monospace)",
-                    cursor: "pointer",
-                    letterSpacing: "0.5px",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {showBriefing ? "◐ briefing on" : "◐ try briefing"}
-                </button>
-              </div>
-            )}
             <DashboardHero
               isMobile={isMobile}
               selectedMonth={selectedMonth} isCurrentMonth={isCurrentMonth}
@@ -6380,6 +6360,8 @@ function AppInner({ isDemo = false }) {
               spentByCat={spentByCat} categories={categories}
               monthTxns={monthTxns} recurringItems={recurringItems}
               fmt={fmt} today={today}
+              showBriefing={showBriefing}
+              onToggleBriefing={view === "dashboard" ? () => setShowBriefing(b => !b) : null}
             />
             {view === "analytics"
               ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>

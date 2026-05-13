@@ -18,6 +18,9 @@ const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
 import DashboardNew, { DashboardHero, DashboardContent } from "./components/DashboardNew.jsx";
 import LedgrBriefing from "./components/LedgrBriefing.jsx";
+import LedgrTransactions from "./components/LedgrTransactions.jsx";
+import LedgrAccounts from "./components/LedgrAccounts.jsx";
+import LedgrCalendar from "./components/LedgrCalendar.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -4543,19 +4546,26 @@ function AppInner({ isDemo = false }) {
       insightsTodos, isMobile, catMap]);
 
   const Dashboard = (
-    <LedgrBriefing
-      accounts={accounts}
-      categories={categories}
-      monthTxns={monthTxns}
-      recurringItems={recurringItems}
+    <DashboardContent
+      isMobile={isMobile}
+      selectedMonth={selectedMonth}
+      isCurrentMonth={isCurrentMonth}
+      prevMonth={prevMonth}
+      nextMonth={nextMonth}
+      monthLabel={monthLabel}
       totalSpent={totalSpent}
       totalIncome={totalIncome}
       totalBudget={totalBudget}
+      spentByCat={spentByCat}
+      sortedCategories={sortedCategories}
+      categories={categories}
+      catMap={catMap}
+      monthTxns={monthTxns}
+      recurringItems={recurringItems}
       goals={goals}
-      today={today}
-      fmt={fmt}
       navigate={navigate}
-      isMobile={isMobile}
+      fmt={fmt}
+      today={today}
     />
   );
 
@@ -4563,482 +4573,43 @@ function AppInner({ isDemo = false }) {
   /* -- Transactions -- */
 
   /* ── Transactions — Clarity flat table ─────────────── */
-  const Transactions = (()=>{
-    const toReview    = transactions.filter(t=>needsReview(t)).length;
-    const totalBalance = accounts.reduce((a,b)=>a+(b.balance||0),0);
-
-    // ── type filter applied on top of filteredTxns
-    const typeFiltered = txnTypeFilter === "all" ? filteredTxns
-      : txnTypeFilter === "income"
-        ? filteredTxns.filter(t => t.amount > 0)
-        : filteredTxns.filter(t => t.amount < 0);
-
-    // ── sort
-    const sortedTxns = [...typeFiltered].sort((a, b) => {
-      let av, bv;
-      switch (txnSortCol) {
-        case "date":     av = a.date||""; bv = b.date||""; break;
-        case "merchant": av = (a.name||a.merchant||"").toLowerCase(); bv = (b.name||b.merchant||"").toLowerCase(); break;
-        case "category": av = (catMap[a.categoryId]?.name||"").toLowerCase(); bv = (catMap[b.categoryId]?.name||"").toLowerCase(); break;
-        case "account":  av = (acctMap[a.accountId]?.name||"").toLowerCase(); bv = (acctMap[b.accountId]?.name||"").toLowerCase(); break;
-        case "amount":   av = Math.abs(a.amount); bv = Math.abs(b.amount); break;
-        default:         av = a.date||""; bv = b.date||"";
-      }
-      if (av < bv) return txnSortDir === "asc" ? -1 : 1;
-      if (av > bv) return txnSortDir === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    function toggleSort(col) {
-      if (txnSortCol === col) setTxnSortDir(d => d === "asc" ? "desc" : "asc");
-      else { setTxnSortCol(col); setTxnSortDir(col === "amount" ? "desc" : col === "date" ? "desc" : "asc"); }
-      setTxnPage(0);
-    }
-
-    // ── summary strip values
-    const totalSpent  = typeFiltered.filter(t=>t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0);
-    const totalIncome = typeFiltered.filter(t=>t.amount>0).reduce((a,t)=>a+t.amount,0);
-    const netAmt      = totalIncome - totalSpent;
-
-    const colHdr = (col, label) => {
-      const active = txnSortCol === col;
-      const arrow  = active ? (txnSortDir === "asc" ? " ↑" : " ↓") : "";
-      return (
-        <th onClick={()=>toggleSort(col)} style={{
-          fontFamily:"var(--font-mono)", fontSize:9, fontWeight:600,
-          textTransform:"uppercase", letterSpacing:"1px",
-          color: active ? "var(--cyan)" : "var(--t3)",
-          padding:"8px 10px 10px", textAlign:"left",
-          borderBottom:"1px solid var(--border)",
-          cursor:"pointer", userSelect:"none", whiteSpace:"nowrap",
-          transition:"color .12s",
-        }}>{label}{arrow}</th>
-      );
-    };
-
-    return (
-      <div style={{width:"100%",maxWidth:1080}}>
-          <div>
-
-        {/* ── Page header ── */}
-        <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)",pointerEvents:"none"}}/>
-          {!isMobile && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:96,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-55%)",left:8,lineHeight:1}}>II</div>}
-          <div style={{display:"flex",alignItems:"baseline",gap:12,paddingBottom:12,borderBottom:"1px solid rgba(201,149,106,0.12)",position:"relative",zIndex:1}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>II ·</span>
-            <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:isMobile?18:22,color:"var(--t1)"}}>Transactions</span>
-            <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.15),transparent)",alignSelf:"center",marginLeft:4}}/>
-          </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--t3)",marginTop:6,paddingBottom:20,position:"relative",zIndex:1}}>
-            All transactions · {new Date().toLocaleString("en-US",{month:"short",year:"numeric"})} · {typeFiltered.length} {typeFiltered.length===1?"entry":"entries"}
-          </div>
-        </div>
-
-        <div style={{padding:"0 28px 28px",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%),var(--bg,#0b0a08)"}}>
-        {/* Summary strip */}
-        <div style={{display:"flex",gap:0,marginBottom:18,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
-          {[
-            {label:"Spent",      val:fmt(totalSpent),   color:"var(--red)"},
-            {label:"Income",     val:fmt(totalIncome),  color:"var(--green)"},
-            {label:"Net",        val:(netAmt>=0?"+":"")+fmt(netAmt), color:netAmt>=0?"var(--green)":"var(--red)"},
-            {label:"Unreviewed", val:String(toReview),  color:"var(--amber)"},
-          ].map((c,i,arr)=>(
-            <div key={c.label} style={{flex:1,padding:"9px 14px",borderRight:i<arr.length-1?"1px solid rgba(255,255,255,0.06)":"none",background:"transparent"}}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:3}}>{c.label}</div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:600,color:c.color}}>{c.val}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Pending reconciliation banner */}
-        {(activeDuplicatePairs.length>0)&&(
-          <div style={{background:"rgba(251,191,36,0.08)",borderLeft:"3px solid #fbbf24",borderRadius:"var(--radius)",padding:"10px 14px",marginBottom:12}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <span style={{fontSize:13,color:"var(--t1)",fontWeight:500}}>
-                <span style={{color:"#fbbf24",fontWeight:700}}>{activeDuplicatePairs.length}</span> possible duplicate{activeDuplicatePairs.length!==1?"s":""} found
-              </span>
-              <button onClick={()=>{if(showReconcile&&duplicateScanActive)setDuplicateScanActive(false);setShowReconcile(p=>!p);}}
-                style={{background:showReconcile?"#fbbf24":"none",color:showReconcile?"#000":"#fbbf24",border:"none",borderRadius:"var(--radius)",cursor:"pointer",fontSize:13,fontWeight:600,padding:showReconcile?"3px 10px":"0"}}>
-                {showReconcile?"✕ Close":"Review ›"}
-              </button>
-            </div>
-            {showReconcile&&(
-              <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-                {activeDuplicatePairs.map(({pending:p,posted:po,wasConfirmed})=>{
-                  const isScannedDuplicate=duplicateScanActive;
-                  const pCat=catMap[p.categoryId];
-                  const removeCandidate=(p&&po)?pickRemove(p,po):p;
-                  const removeLabel=removeCandidate?.pending?"pending":isPreauth(removeCandidate)?"preauth":"earlier";
-                  return(
-                    <div key={p.id} style={{background:"var(--card)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"#fbbf24",fontWeight:600,marginBottom:2}}>{isScannedDuplicate?(p.pending?"PENDING / CANDIDATE":"CANDIDATE A"):"PENDING"}</div>
-                          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name||p.merchant}</div>
-                          <div style={{fontSize:11,color:"var(--t3)"}}>{p.date}{pCat&&<span style={{color:pCat.color}}> · {pCat.name}</span>}{p.recurring&&<span style={{color:"var(--amber)"}}> · ↻</span>}</div>
-                        </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,color:"var(--t3)",flexShrink:0,marginLeft:10}}>{fmt(Math.abs(p.amount))}</span>
-                      </div>
-                      <div style={{fontSize:11,color:"var(--t3)",textAlign:"center",margin:"4px 0"}}>{isScannedDuplicate?"↓ possible duplicate match":"↓ matches posted transaction"}</div>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"var(--green)",fontWeight:600,marginBottom:2}}>{isScannedDuplicate?(po.pending?"PENDING / CANDIDATE":"CANDIDATE B"):"POSTED"}</div>
-                          <div style={{fontSize:13,fontWeight:500,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{po.name||po.merchant}</div>
-                          <div style={{fontSize:11,color:"var(--t3)"}}>{po.date}</div>
-                        </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:600,color:po.amount<0?"var(--red)":"var(--green)",flexShrink:0,marginLeft:10}}>{po.amount<0?"-":"+"}{fmt(Math.abs(po.amount))}</span>
-                      </div>
-                      <div style={{display:"flex",gap:8,justifyContent:"flex-end",alignItems:"center"}}>
-                        {wasConfirmed&&<span style={{fontSize:11,color:"var(--cyan)",marginRight:"auto"}}>✦ previously confirmed</span>}
-                        <button style={{...S.btn("ghost",true),fontSize:12}} className="ledgr-btn" onClick={()=>{if(isScannedDuplicate){if(!processingIds.has([p.id,po.id].sort().join('__')))dismissDuplicatePair(p.id,po.id);}else{if(!processingIds.has(p.id))dismissPair(p.id);}}}>Not a match</button>
-                        <button style={{...S.btn("primary",true),fontSize:12}} onClick={()=>{
-                          if(isScannedDuplicate){
-                            const remove=removeCandidate;
-                            setTransactions(prev=>prev.filter(t=>t.id!==remove.id));
-                            setDuplicatePairs(prev=>prev.filter(pair=>!((pair.pending.id===p.id&&pair.posted.id===po.id)||(pair.pending.id===po.id&&pair.posted.id===p.id))));
-                            const remaining=duplicatePairs.filter(pair=>!((pair.pending.id===p.id&&pair.posted.id===po.id)||(pair.pending.id===po.id&&pair.posted.id===p.id)));
-                            if(remaining.length===0)setDuplicateScanActive(false);
-                            setShowReconcile(remaining.length>0);
-                            const trashedDup={...remove,deletedAt:new Date().toISOString()};
-                            setDeletedTransactions(px=>{const next=[trashedDup,...px];scheduleSaveRef.current?.({deletedTransactions:next});return next;});
-                            showUndoToast("Duplicate removed",()=>{setTransactions(prev=>[remove,...prev]);setDeletedTransactions(px=>{const next=px.filter(t=>t.id!==remove.id);scheduleSaveRef.current?.({deletedTransactions:next});return next;});});
-                            setTimeout(()=>api.deleteTransaction(remove.id).catch(console.error),4200);
-                          }else{
-                            const pendingTxn=transactions.find(t=>t.id===p.id);
-                            if(!processingIds.has(p.id))confirmPair(p.id,po.id);
-                            setShowReconcile(pendingPairs.length>1);
-                            if(pendingTxn){showUndoToast("Merged — pending removed",()=>{setTransactions(prev=>[pendingTxn,...prev]);api.createTransaction(pendingTxn).catch(console.error);});}
-                          }
-                        }}>✓ Confirm & remove {removeLabel}</button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Unified filter + action bar */}
-        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:20,flexWrap:"wrap"}}>
-          <input ref={txnSearchInputRef}
-            onFocus={()=>{txnSearchHadFocusRef.current=true;}}
-            onBlur={()=>{txnSearchHadFocusRef.current=false;}}
-            style={{...S.input,fontSize:12,maxWidth:260,minWidth:160,boxSizing:"border-box"}}
-            placeholder="Search transactions…" value={search} onChange={handleTxnSearchChange}/>
-          <CustomSelect value={filterCat} onChange={v=>setFilterCat(v)}
-            options={[{value:"all",label:"All Categories"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
-            style={{minWidth:0,backgroundColor:"var(--card-hi)",borderRadius:8}} compact/>
-          <CustomSelect value={filterAcct} onChange={v=>setFilterAcct(v)}
-            options={[{value:"all",label:"All Accounts"},{value:"__unlinked__",label:"Unlinked"},...accounts.map(a=>({value:a.id,label:a.name}))]}
-            style={{minWidth:0,backgroundColor:"var(--card-hi)",borderRadius:8}} compact/>
-          {[["all","All"],["expense","Expenses"],["income","Income"]].map(([v,label])=>(
-            <button key={v} onClick={()=>setTxnTypeFilter(v)} style={{
-              padding:"6px 12px",borderRadius:6,fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",whiteSpace:"nowrap",
-              background:txnTypeFilter===v?"var(--cyan-dim)":"var(--card-hi)",
-              color:txnTypeFilter===v?"var(--cyan)":"var(--t2)",
-              border:txnTypeFilter===v?"1px solid rgba(201,149,106,0.3)":"1px solid rgba(255,255,255,0.06)",
-            }}>{label}</button>
-          ))}
-          <button style={{padding:"6px 12px",borderRadius:6,border:"none",background:"rgba(201,149,106,0.12)",color:"var(--cyan)",fontSize:11,cursor:"pointer",fontFamily:"var(--font-body)",fontWeight:600,marginLeft:"auto"}} onClick={openAddTxn}>+ Add</button>
-          <div style={{position:"relative"}}>
-            <button style={{...S.btn("ghost",true),fontSize:12,padding:"6px 10px"}} className="ledgr-btn"
-              onClick={()=>setEllipsisId(ellipsisId==="__toolbar__"?null:"__toolbar__")}>⋯</button>
-            {ellipsisId==="__toolbar__"&&(
-              <>
-                <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
-                <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:180,overflow:"hidden",marginTop:4}}>
-                  <button className="ledgr-btn" onClick={()=>{scanForDuplicates();setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Scan Duplicates</button>
-                  {plaidItems.length>0&&<button className="ledgr-btn" onClick={()=>{doSync();setEllipsisId(null);}} disabled={syncing} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>{syncing?"↻ Syncing…":"↻ Sync"}</button>}
-                  {aiChat.hasApiKey&&<button className="ledgr-btn" disabled={autoCatRunning} onClick={async()=>{setEllipsisId(null);const count=await runAutoCategorize();showToast(count>0?`✦ Auto-categorized ${count} transaction${count===1?"":"s"}`:"Nothing new to categorize");}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--cyan)"}}>{autoCatRunning?"✦ Categorizing…":"✦ Auto-categorize"}</button>}
-                  <div style={{borderTop:"1px solid var(--border)",padding:"4px 0"}}>
-                    <button className="ledgr-btn" onClick={()=>{selectedTxns.size>0?clearSelection():selectAllVisible();setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>
-                      {selectedTxns.size>0?`✕ Deselect ${selectedTxns.size}`:"Select All Visible"}</button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Clarity flat table */}
-        {sortedTxns.length===0 ? (
-          <div className="ledgr-empty"><div className="ledgr-empty-icon">🔍</div><div className="ledgr-empty-title">No transactions found</div><div>Try adjusting your filters or search</div></div>
-        ) : (
-          <div style={{borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid var(--border)"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead>
-                <tr>
-                  <th style={{width:28,padding:"8px 0 10px 10px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}/>
-                  {[
-                    {k:"date",    label:"Date"},
-                    {k:"merchant",label:"Merchant"},
-                    ...(!isMobile?[{k:"category",label:"Category"},{k:"account",label:"Account"}]:[]),
-                    {k:"amount",  label:"Amount",right:true},
-                  ].map(({k,label,right})=>(
-                    <th key={k} onClick={()=>toggleSort(k)} style={{
-                      fontFamily:"var(--font-mono)",fontSize:9,fontWeight:600,
-                      textTransform:"uppercase",letterSpacing:"1px",
-                      color:txnSortCol===k?"var(--cyan)":"var(--t3)",
-                      padding:"8px 10px 10px",textAlign:right?"right":"left",
-                      borderBottom:"1px solid rgba(255,255,255,0.06)",
-                      cursor:"pointer",userSelect:"none",whiteSpace:"nowrap",
-                    }}>{label}{txnSortCol===k?(txnSortDir==="asc"?" ↑":" ↓"):""}</th>
-                  ))}
-                  <th style={{width:28,borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"8px 6px 10px"}}/>
-                </tr>
-              </thead>
-              <tbody>
-                {(()=>{const PG=25;const _s=txnPage*PG;return sortedTxns.slice(_s,_s+PG);})().map((t,ri)=>{
-                  const cat=catMap[t.categoryId];
-                  const acct=acctMap[t.accountId];
-                  const reviewed=!needsReview(t);
-                  const typeVal=t.type||(t.amount<0?"expense":"income");
-                  const noCat=["income","transfer","reimbursement"].includes(typeVal);
-                  const expanded=expandedTxnId===t.id;
-                  const selected=selectedTxns.has(t.id);
-                  const isNew=newTxnIds.has(t.id);
-                  const dateStr=t.date?new Date(t.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—";
-                  return(
-                    <Fragment key={t.id}>
-                      <tr className={isNew?"ledgr-txn-new":undefined}
-                        onClick={()=>{if(selectedTxns.size>0){toggleSelectTxn(t.id);}else{setExpandedTxnId(expanded?null:t.id);}}}
-                        style={{background:selected?"var(--cyan-dim)":ri%2===0?"transparent":"rgba(255,255,255,0.012)",cursor:"pointer"}}>
-
-                        {/* Checkbox + status dot */}
-                        <td style={{padding:"0 0 0 10px",width:28,borderBottom:"1px solid rgba(255,255,255,0.02)"}} onClick={e=>{e.stopPropagation();toggleSelectTxn(t.id);}}>
-                          <div style={{display:"flex",alignItems:"center",gap:5}}>
-                            {selectedTxns.size>0 ? (
-                              <div style={{width:14,height:14,borderRadius:3,cursor:"pointer",flexShrink:0,
-                                border:`1.5px solid ${selected?"var(--cyan)":"var(--border2)"}`,
-                                background:selected?"var(--cyan)":"transparent",
-                                display:"flex",alignItems:"center",justifyContent:"center",transition:"all .12s"}}>
-                                {selected&&<span style={{fontSize:9,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
-                              </div>
-                            ) : (
-                              <div style={{width:7,height:7,borderRadius:"50%",flexShrink:0,
-                                background:t.recurring?"var(--recurring-color,#fbbf24)":needsReview(t)?"var(--review-color,var(--cyan))":"transparent",
-                                boxShadow:t.recurring?"0 0 5px rgba(251,191,36,0.6)":needsReview(t)?"0 0 5px rgba(201,149,106,0.6)":"none",
-                                transition:"all .15s"}}/>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",whiteSpace:"nowrap"}}>
-                          {dateStr}{t.pending&&<span style={{fontSize:9,color:"var(--amber)",marginLeft:5,fontWeight:700}}>PENDING</span>}
-                        </td>
-                        <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",maxWidth:isMobile?130:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                          <span style={{fontSize:13,fontWeight:500,color:"var(--t1)"}}>
-                            {t.name||t.merchant}
-                            {t.recurringItemId&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
-                          </span>
-                          {t.notes&&!isMobile&&<span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
-                        </td>
-                        {!isMobile&&(
-                          <td style={{padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)"}} onClick={e=>e.stopPropagation()}>
-                            {!noCat?(
-                              cat ? (
-                                <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 7px",borderRadius:99,background:`${cat.color}1a`,color:cat.color,cursor:"pointer",whiteSpace:"nowrap"}}
-                                  onClick={()=>setExpandedTxnId(expanded?null:t.id)}>
-                                  <span style={{width:5,height:5,borderRadius:"50%",background:cat.color,flexShrink:0,display:"inline-block"}}/>
-                                  {cat.name}
-                                </span>
-                              ) : (
-                                <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 7px",borderRadius:99,background:"rgba(255,255,255,0.04)",color:"var(--t3)",cursor:"pointer"}}
-                                  onClick={()=>setExpandedTxnId(expanded?null:t.id)}>
-                                  — None —
-                                </span>
-                              )
-                            ):(
-                              <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:10,padding:"2px 7px",borderRadius:99,background:"rgba(255,255,255,0.04)",color:"var(--t3)",textTransform:"capitalize"}}>{typeVal}</span>
-                            )}
-                          </td>
-                        )}
-                        {!isMobile&&(
-                          <td style={{fontSize:12,color:"var(--t2)",padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:140}}>
-                            {acct?.name||"—"}
-                          </td>
-                        )}
-                        <td style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--t2)",padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.02)",textAlign:"right",whiteSpace:"nowrap"}}>
-                          {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
-                        </td>
-                        <td style={{width:28,padding:"7px 4px",borderBottom:"1px solid rgba(255,255,255,0.02)"}} onClick={e=>e.stopPropagation()}>
-                          <div style={{position:"relative"}}>
-                            <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
-                              style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"1px 4px",lineHeight:1,opacity:0.5}}>⋯</button>
-                            {ellipsisId===t.id&&(
-                              <>
-                                <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
-                                <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",borderRadius:"var(--radius)",boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
-                                  <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
-                                    {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}</button>
-                                  <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
-                                  {goals&&goals.length>0&&(
-                                    <div style={{borderTop:"1px solid var(--border)",paddingTop:4,paddingBottom:4}}>
-                                      <div style={{padding:"6px 14px 4px",fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Add to goal</div>
-                                      {goals.map(g=>{
-                                        const assigned=(g.assignedTxnIds||[]).includes(t.id);
-                                        return(<button key={g.id} onClick={()=>{assignTxnToGoal(t.id,g.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:assigned?"var(--cyan)":"var(--t2)"}}>
-                                          {assigned?"✓ ":""}{g.title}</button>);
-                                      })}
-                                    </div>
-                                  )}
-                                  <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      {expanded&&(
-                        <tr key={t.id+"_exp"}>
-                          <td colSpan={isMobile?3:6} style={{padding:"0 16px 12px",background:"var(--surface)"}}>
-                            <div className="ledgr-expand" style={{padding:"12px",display:"flex",flexDirection:"column",gap:10,borderRadius:"var(--radius)",marginTop:4}}>
-                              {editingId!==t.id&&(t.name||t.merchant)&&(
-                                <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>
-                                  {t.name||t.merchant}{t.pending&&<span style={{fontSize:10,color:"var(--amber)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
-                                </div>
-                              )}
-                              {editingId===t.id&&(
-                                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                                  <input style={{...S.input,flex:1,fontSize:13}} value={editingName} onChange={e=>setEditingName(e.target.value)}
-                                    onKeyDown={e=>{if(e.key==="Enter")saveRename(t.id);if(e.key==="Escape")setEditingId(null);}} autoFocus/>
-                                  <button style={S.btn("primary",true)} onClick={()=>saveRename(t.id)}>✓</button>
-                                  <button style={S.btn("ghost",true)} onClick={()=>setEditingId(null)}>✕</button>
-                                </div>
-                              )}
-                              <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:8}}>
-                                <div style={{display:"flex",flexDirection:"column",gap:8,flex:1}}>
-                                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                                    <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)}
-                                      options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]}
-                                      style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
-                                    {noCat?(<div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>):(
-                                      <CustomSelect value={t.categoryId||""} onChange={v=>{if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);}}}
-                                        options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
-                                        style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
-                                    )}
-                                  </div>
-                                  <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)}
-                                    options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]}
-                                    style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
-                                </div>
-                                <textarea placeholder="Add a note…" value={t.notes||""} onChange={e=>updateTxnNotes(t.id,e.target.value)} rows={2}
-                                  style={{...S.input,flex:isMobile?undefined:"0 0 38%",width:isMobile?"100%":undefined,resize:"none",fontSize:12,padding:"7px 10px",lineHeight:1.5,fontFamily:"var(--font-body)"}}/>
-                              </div>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <button onClick={()=>setExpandedTxnId(null)} style={{...S.btn("ghost",true),marginLeft:"auto"}}>Done</button>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination footer */}
-        {(() => {
-          const PG = 25;
-          const totalShown = sortedTxns.length;
-          const totalAvail = Math.max(txnTotal, transactions.length);
-          const totalPages = Math.ceil(totalShown / PG);
-          const page = txnPage;
-          const start = page * PG;
-          const end   = Math.min(start + PG, totalShown);
-          const pgBtnStyle = (active) => ({
-            padding:"4px 10px",borderRadius:6,fontSize:11,cursor:"pointer",
-            background:active?"var(--cyan-dim)":"var(--card-hi)",
-            color:active?"var(--cyan)":"var(--t2)",
-            border:active?"1px solid rgba(201,149,106,0.3)":"1px solid rgba(255,255,255,0.06)",
-          });
-          const visiblePages = [];
-          for(let i=0;i<totalPages;i++) if(Math.abs(i-page)<=2||i===0||i===totalPages-1) visiblePages.push(i);
-          return (
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:16,fontSize:11,color:"var(--t3)"}}>
-              <span>Showing {totalShown===0?0:start+1}–{end} of {totalAvail}{transactions.length<txnTotal?" (more available)":""}</span>
-              <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                <button style={pgBtnStyle(false)} disabled={page===0} onClick={()=>setTxnPage(p=>Math.max(0,p-1))}>← Prev</button>
-                {visiblePages.map((i,vi)=>{
-                  const prev = visiblePages[vi-1];
-                  return (<span key={i} style={{display:"inline-flex",alignItems:"center",gap:6}}>
-                    {prev!==undefined&&i-prev>1&&<span style={{color:"var(--t3)"}}>…</span>}
-                    <button style={pgBtnStyle(i===page)} onClick={()=>setTxnPage(i)}>{i+1}</button>
-                  </span>);
-                })}
-                {page===totalPages-1&&transactions.length<txnTotal ? (
-                  <button style={pgBtnStyle(false)} onClick={()=>loadMoreTransactions().then(()=>setTxnPage(p=>p+1))} disabled={txnLoading}>{txnLoading?"…":"Next →"}</button>
-                ) : (
-                  <button style={pgBtnStyle(false)} disabled={page>=totalPages-1} onClick={()=>setTxnPage(p=>Math.min(totalPages-1,p+1))}>Next →</button>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-          </div>
-        </div>{/* /content wrapper */}
-      </div>
-    );
-  })();
-
-
-
-  /* -- Budgets -- */
-
-  function saveCatName(id) {
-    const trimmed = editingCatName.trim();
-    if (trimmed) {
-      setCategories(p=>p.map(c=>c.id===id?{...c,name:trimmed}:c));
-      showToast("Category renamed");
-    }
-    setEditingCatNameId(null);
-  }
-
-  function startEditLimit(cat, e) {
-    e.stopPropagation();
-    setEditingLimitId(cat.id);
-    setEditingLimitVal(String(cat.limit));
-  }
-  function saveLimit(id) {
-    const val = parseFloat(editingLimitVal);
-    if (!isNaN(val) && val > 0) {
-      setCategories(p=>p.map(c=>c.id===id?{...c,limit:val}:c));
-      showToast("Budget updated");
-    }
-    setEditingLimitId(null);
-  }
-
-  async function runSuggestLimits() {
-    if (!categories.length) return;
-    setSuggestingLimits(true);
-    try {
-      // Build last 3 months of spending per category
-      // Fetch last 3 months of summaries from the server — accurate even with pagination
-      const monthKeys = [];
-      for (let i = 2; i >= 0; i--) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        monthKeys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-      }
-      const summaries = await Promise.all(monthKeys.map(m => api.loadSummary(m)));
-      const months = summaries.map(s => ({ month: s.month, byCategory: s.spentByCat }));
-      const avgIncome = summaries.reduce((a, s) => a + (s.totalIncome || 0), 0) / summaries.length;
-
-      const { suggestions } = await api.suggestLimits(
-        categories.map(c => ({ id: c.id, name: c.name, limit: c.limit || 0 })),
-        months,
-        avgIncome,
-      );
-      setLimitSuggestions(suggestions);
-      if (!suggestions.length) showToast("Not enough spending history yet — need at least 2 months of data");
-    } catch (e) {
-      if (!e.message?.includes("no_api_key")) showToast("Suggestion failed: " + e.message);
-    } finally {
-      setSuggestingLimits(false);
-    }
-  }
+  const Transactions = (
+    <LedgrTransactions
+      transactions={transactions}
+      filteredTxns={filteredTxns}
+      categories={categories}
+      catMap={catMap}
+      accounts={accounts}
+      acctMap={acctMap}
+      search={search}
+      handleTxnSearchChange={handleTxnSearchChange}
+      filterCat={filterCat}
+      setFilterCat={setFilterCat}
+      filterAcct={filterAcct}
+      setFilterAcct={setFilterAcct}
+      txnTypeFilter={txnTypeFilter}
+      setTxnTypeFilter={setTxnTypeFilter}
+      txnSortCol={txnSortCol}
+      setTxnSortCol={setTxnSortCol}
+      txnSortDir={txnSortDir}
+      setTxnSortDir={setTxnSortDir}
+      selectedTxns={selectedTxns}
+      setSelectedTxns={setSelectedTxns}
+      needsReview={needsReview}
+      deleteTxn={deleteTxn}
+      openAddTxn={openAddTxn}
+      bulkCategorize={bulkSetCategory}
+      bulkDelete={bulkDelete}
+      bulkMarkReviewed={bulkMarkReviewed}
+      selectAllVisible={selectAllVisible}
+      clearSelection={clearSelection}
+      txnLoading={txnLoading}
+      fmt={fmt}
+      today={today}
+      isMobile={isMobile}
+      navigate={navigate}
+    />
+  );
 
 
   /* ── Budgets ─────────────────────────────────── */
@@ -5370,192 +4941,29 @@ function AppInner({ isDemo = false }) {
   /* -- Accounts -- */
 
   /* ── Accounts ─────────────────────────────────── */
-  const Accounts = (() => {
-    const totalBalance  = accounts.reduce((s, a) => s + (a.balance || 0), 0);
-    const totalSpentAcct= accounts.reduce((s, a) => s + (spentByAcct[a.id] || 0), 0);
-    const totalIncome   = monthTxns.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-
-    /* Group by plaidItemId, manual last */
-    const groups = {};
-    accounts.forEach(acct => {
-      const key = acct.plaidItemId || "__manual__";
-      if (!groups[key]) {
-        const item = plaidItems.find(i => i.item_id === acct.plaidItemId);
-        groups[key] = { label: item?.institution || acct.institution || "Manual", accts: [] };
-      }
-      groups[key].accts.push(acct);
-    });
-    const groupEntries = Object.entries(groups).sort(([ka], [kb]) => {
-      if (ka === "__manual__") return 1;
-      if (kb === "__manual__") return -1;
-      return groups[ka].label.localeCompare(groups[kb].label);
-    });
-
-    /* Shared styles */
-    const pill = (bg, color, border) => ({
-      fontFamily: "var(--font-mono)", fontSize: 10,
-      padding: "2px 8px", borderRadius: 99,
-      border: `1px solid ${border}`, background: bg, color,
-      whiteSpace: "nowrap",
-    });
-
-    return (
-      <div style={{ width: "100%", maxWidth: 1080 }}>
-
-        {/* ── Page header ── */}
-        <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)",pointerEvents:"none"}}/>
-          {!isMobile && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:96,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-55%)",left:8,lineHeight:1}}>II</div>}
-          <div style={{display:"flex",alignItems:"baseline",gap:12,paddingBottom:12,borderBottom:"1px solid rgba(201,149,106,0.12)",position:"relative",zIndex:1}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>II ·</span>
-            <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:isMobile?18:22,color:"var(--t1)"}}>Accounts</span>
-            <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.15),transparent)",alignSelf:"center",marginLeft:4}}/>
-          </div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--t3)",marginTop:6,paddingBottom:20,position:"relative",zIndex:1}}>
-            {accounts.length} account{accounts.length !== 1 ? "s" : ""} · Projections through end of {today.toLocaleString("default", { month: "long" })}
-          </div>
-        </div>
-
-        <div style={{padding:"0 28px 28px",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%),var(--bg,#0b0a08)"}}>
-        {/* ── Net worth hero ───────────────────────── */}
-        <div style={{ paddingBottom: 24, marginBottom: 24, borderBottom: "1px solid rgba(201,149,106,0.1)", position: "relative" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--t3)", marginBottom: 10 }}>Total balance</div>
-          <div style={{
-            fontFamily: "var(--font-mono)", fontWeight: 700, letterSpacing: -3, lineHeight: 0.9,
-            fontSize: isMobile ? 44 : 60,
-            background: "linear-gradient(135deg,#e8ddd0 12%,#d4a882 55%,#c9956a 100%)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            filter: "drop-shadow(0 0 20px rgba(201,149,106,0.18))",
-          }}>
-            {fmt(totalBalance)}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--t2)", marginTop: 8 }}>
-            across {accounts.length} account{accounts.length !== 1 ? "s" : ""} · <span style={{ color: "var(--red)" }}>−{fmt(totalSpentAcct)}</span> spent · <span style={{ color: "var(--green)" }}>+{fmt(totalIncome)}</span> income this month
-          </div>
-        </div>
-
-        {/* ── Action bar ───────────────────────────── */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
-          <PlaidButton onSuccess={handlePlaidSuccess} onExit={() => {}} label="Link Bank" style={{}} />
-          <button style={S.btn("ghost", true)} className="ledgr-btn" onClick={openAddAcct}>+ Manual</button>
-        </div>
-
-        {accounts.length === 0 ? (
-          <div className="ledgr-empty">
-            <div className="ledgr-empty-icon">🏦</div>
-            <div className="ledgr-empty-title">No accounts yet</div>
-            <div>Link a bank or add a manual account to get started</div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {groupEntries.map(([key, { label: institution, accts }]) => {
-              const groupTotal = accts.reduce((s, a) => s + (a.balance || 0), 0);
-              const plaidItem  = plaidItems.find(i => i.item_id === key);
-              const isStale    = plaidItem && staleItemIds.has(plaidItem.item_id);
-              const isManual   = key === "__manual__";
-
-              return (
-                <div key={key} style={{ border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, overflow: "hidden" }}>
-                  {/* Accent seam */}
-                  <div style={{ height: 2, background: isManual ? "linear-gradient(90deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02) 60%,transparent)" : isStale ? "linear-gradient(90deg,rgba(224,112,112,0.4),rgba(224,112,112,0.08) 60%,transparent)" : "linear-gradient(90deg,rgba(201,149,106,0.5),rgba(201,149,106,0.08) 60%,transparent)" }} />
-
-                  {/* Card header */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 16px", background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap", gap: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {isStale && <span style={{ color: "var(--amber)", fontSize: 12 }}>⚠</span>}
-                      <span style={{ fontSize: 13, fontWeight: 600, color: isStale ? "var(--amber)" : "var(--t1)" }}>{institution}</span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t3)" }}>{accts.length} account{accts.length !== 1 ? "s" : ""}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "var(--t2)" }}>{fmt(groupTotal)}</span>
-                      {!isManual && plaidItem && (
-                        isStale ? (
-                          <>
-                            <PlaidButton
-                              itemId={plaidItem.item_id}
-                              onSuccess={async (publicToken, inst) => {
-                                await handlePlaidSuccess(publicToken, inst || institution);
-                                setStaleItemIds(prev => { const n = new Set(prev); n.delete(plaidItem.item_id); return n; });
-                                setReconnectingItemId(null);
-                              }}
-                              onExit={() => setReconnectingItemId(null)}
-                              label={reconnectingItemId === plaidItem.item_id ? "Opening…" : "Reconnect"}
-                              style={{ fontSize: 11, padding: "3px 8px" }}
-                            />
-                            <button style={{ ...S.btn("danger", true), fontSize: 11 }} onClick={() => disconnectItem(plaidItem.item_id)}>Remove</button>
-                          </>
-                        ) : (
-                          <>
-                            <button style={{ ...S.btn("ghost", true), fontSize: 11 }} className="ledgr-btn" onClick={() => doSync(plaidItem.item_id)} disabled={syncing}>{syncing ? "…" : "↻ Sync"}</button>
-                            <button style={{ ...S.btn("danger", true), fontSize: 11 }} onClick={() => disconnectItem(plaidItem.item_id)}>Disconnect</button>
-                          </>
-                        )
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Stale warning */}
-                  {isStale && (
-                    <div style={{ padding: "8px 16px", background: "rgba(224,112,112,0.05)", borderBottom: "1px solid rgba(224,112,112,0.1)", fontSize: 11, color: "var(--t3)", lineHeight: 1.5 }}>
-                      Connection expired — reconnect to restore syncing. Your data won't be affected.
-                    </div>
-                  )}
-
-                  {/* Accounts grid */}
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : accts.length === 1 ? "1fr" : "1fr 1fr", gap: 0 }}>
-                    {accts.map((acct, i) => {
-                      const spent  = spentByAcct[acct.id] || 0;
-                      const income = monthTxns.filter(t => t.amount > 0 && t.accountId === acct.id).reduce((s, t) => s + t.amount, 0);
-                      const daily  = today.getDate() > 0 ? spent / today.getDate() : 0;
-                      const proj   = daily * daysInMonth(today.getFullYear(), today.getMonth() + 1);
-                      const isRight = !isMobile && accts.length > 1 && i % 2 === 1;
-                      return (
-                        <div key={acct.id} style={{
-                          padding: "14px 16px",
-                          borderRight: !isMobile && accts.length > 1 && i % 2 === 0 && i < accts.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                          borderBottom: isMobile && i < accts.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                        }}>
-                          {/* Account name + edit/delete */}
-                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
-                            <div style={{ fontSize: 12, color: "var(--t2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{acct.name}</div>
-                            <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                              <button style={{ background: "none", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 5, color: "var(--t3)", fontSize: 10, padding: "2px 7px", cursor: "pointer" }} onClick={() => openEditAcct(acct)}>Edit</button>
-                              <button style={{ background: "none", border: "none", cursor: "pointer", color: "var(--t3)", fontSize: 13, padding: "2px 4px", lineHeight: 1 }} onClick={() => deleteAcct(acct.id)}>✕</button>
-                            </div>
-                          </div>
-
-                          {/* Balance hero */}
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 700, color: "var(--t1)", letterSpacing: -1, marginBottom: 4 }}>{fmt(acct.balance)}</div>
-
-                          {/* Type / mask */}
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t3)", marginBottom: 8 }}>
-                            {acct.type}{acct.mask ? " ····" + acct.mask : ""}
-                            {acct.available != null && <span> · Avail {fmt(acct.available)}</span>}
-                          </div>
-
-                          {/* Pills */}
-                          <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                            {spent > 0 && <span style={pill("rgba(224,112,112,0.06)", "var(--red)", "rgba(224,112,112,0.2)")}>−{fmt(spent)} spent</span>}
-                            {income > 0 && <span style={pill("rgba(109,184,138,0.06)", "var(--green)", "rgba(109,184,138,0.2)")}>+{fmt(income)} income</span>}
-                            {!isMobile && daily > 0 && <span style={pill("rgba(255,255,255,0.03)", "var(--t3)", "rgba(255,255,255,0.07)")}>~{fmt(proj)} proj</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <div style={{ marginTop: 24 }}>
-          <SecurityBadges compact />
-        </div>
-        </div>{/* /content wrapper */}
-      </div>
-    );
-  })();
+  const Accounts = (
+    <LedgrAccounts
+      accounts={accounts}
+      plaidItems={plaidItems}
+      staleItemIds={staleItemIds}
+      spentByAcct={spentByAcct}
+      monthTxns={monthTxns}
+      openAddAcct={openAddAcct}
+      openEditAcct={openEditAcct}
+      deleteAcct={deleteAcct}
+      disconnectItem={disconnectItem}
+      doSync={doSync}
+      syncing={syncing}
+      reconnectingItemId={reconnectingItemId}
+      setReconnectingItemId={setReconnectingItemId}
+      handlePlaidSuccess={handlePlaidSuccess}
+      PlaidButton={PlaidButton}
+      fmt={fmt}
+      today={today}
+      isMobile={isMobile}
+      navigate={navigate}
+    />
+  )
 
   /* -- Rules -- */
   const [ruleSearch, setRuleSearch] = useState("");
@@ -5588,7 +4996,7 @@ function AppInner({ isDemo = false }) {
 
   /* ── Calendar — Agenda View ────────────────────── */
   const Calendar = (
-    <CalendarAgenda
+    <LedgrCalendar
       calendarMonth={calendarMonth}
       calendarTxnsByDay={calendarTxnsByDay}
       recurringItems={recurringItems}
@@ -5599,9 +5007,10 @@ function AppInner({ isDemo = false }) {
       nextCalMonth={nextCalMonth}
       openNewRecurringItem={openNewRecurringItem}
       openEditRecurringItem={openEditRecurringItem}
-      isMobile={isMobile}
-      today={today}
       fmt={fmt}
+      today={today}
+      isMobile={isMobile}
+      navigate={navigate}
     />
   );
   /* -----------------------------------------------------------------
@@ -6150,7 +5559,7 @@ function AppInner({ isDemo = false }) {
     ? Math.max(0, Math.ceil((_trialUser.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
-  // Full-screen dashboard — bypass app shell entirely
+  // Full-screen views — bypass app shell entirely
   if (view === "dashboard") return (
     <LedgrBriefing
       accounts={accounts}
@@ -6165,6 +5574,87 @@ function AppInner({ isDemo = false }) {
       fmt={fmt}
       navigate={navigate}
       isMobile={isMobile}
+    />
+  );
+
+  if (view === "transactions") return (
+    <LedgrTransactions
+      transactions={transactions}
+      filteredTxns={filteredTxns}
+      categories={categories}
+      catMap={catMap}
+      accounts={accounts}
+      acctMap={acctMap}
+      search={search}
+      handleTxnSearchChange={handleTxnSearchChange}
+      filterCat={filterCat}
+      setFilterCat={setFilterCat}
+      filterAcct={filterAcct}
+      setFilterAcct={setFilterAcct}
+      txnTypeFilter={txnTypeFilter}
+      setTxnTypeFilter={setTxnTypeFilter}
+      txnSortCol={txnSortCol}
+      setTxnSortCol={setTxnSortCol}
+      txnSortDir={txnSortDir}
+      setTxnSortDir={setTxnSortDir}
+      selectedTxns={selectedTxns}
+      setSelectedTxns={setSelectedTxns}
+      needsReview={needsReview}
+      deleteTxn={deleteTxn}
+      openAddTxn={openAddTxn}
+      bulkCategorize={bulkSetCategory}
+      bulkDelete={bulkDelete}
+      bulkMarkReviewed={bulkMarkReviewed}
+      selectAllVisible={selectAllVisible}
+      clearSelection={clearSelection}
+      txnLoading={txnLoading}
+      fmt={fmt}
+      today={today}
+      isMobile={isMobile}
+      navigate={navigate}
+    />
+  );
+
+  if (view === "accounts") return (
+    <LedgrAccounts
+      accounts={accounts}
+      plaidItems={plaidItems}
+      staleItemIds={staleItemIds}
+      spentByAcct={spentByAcct}
+      monthTxns={monthTxns}
+      openAddAcct={openAddAcct}
+      openEditAcct={openEditAcct}
+      deleteAcct={deleteAcct}
+      disconnectItem={disconnectItem}
+      doSync={doSync}
+      syncing={syncing}
+      reconnectingItemId={reconnectingItemId}
+      setReconnectingItemId={setReconnectingItemId}
+      handlePlaidSuccess={handlePlaidSuccess}
+      PlaidButton={PlaidButton}
+      fmt={fmt}
+      today={today}
+      isMobile={isMobile}
+      navigate={navigate}
+    />
+  );
+
+  if (view === "calendar") return (
+    <LedgrCalendar
+      calendarMonth={calendarMonth}
+      calendarTxnsByDay={calendarTxnsByDay}
+      recurringItems={recurringItems}
+      transactions={transactions}
+      catMap={catMap}
+      acctMap={acctMap}
+      prevCalMonth={prevCalMonth}
+      nextCalMonth={nextCalMonth}
+      openNewRecurringItem={openNewRecurringItem}
+      openEditRecurringItem={openEditRecurringItem}
+      fmt={fmt}
+      today={today}
+      isMobile={isMobile}
+      navigate={navigate}
     />
   );
 

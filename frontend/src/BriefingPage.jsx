@@ -2,9 +2,7 @@
  * BriefingPage.jsx
  *
  * Standalone full-screen wrapper for LedgrBriefing.
- * Fetches its own data — no app shell, no sidebar, no DashboardHero.
- * Rendered when window.location.pathname === "/briefing".
- *
+ * Mirrors the exact data loading pattern from useAppData + App.jsx.
  * Place in: src/BriefingPage.jsx
  */
 
@@ -16,64 +14,75 @@ const fmt = n =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.abs(n));
 
 const today = new Date();
-
-function getSelectedMonth() {
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-}
+const selectedMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
 export default function BriefingPage() {
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState(null);
-  const [accounts, setAccounts]         = useState([]);
-  const [categories, setCategories]     = useState([]);
-  const [monthTxns, setMonthTxns]       = useState([]);
+  const [loading, setLoading]               = useState(true);
+  const [error, setError]                   = useState(null);
+  const [accounts, setAccounts]             = useState([]);
+  const [categories, setCategories]         = useState([]);
+  const [monthTxns, setMonthTxns]           = useState([]);
   const [recurringItems, setRecurringItems] = useState([]);
-  const [goals, setGoals]               = useState([]);
-  const [totalSpent, setTotalSpent]     = useState(0);
-  const [totalIncome, setTotalIncome]   = useState(0);
+  const [goals, setGoals]                   = useState([]);
+  const [totalSpent, setTotalSpent]         = useState(0);
+  const [totalIncome, setTotalIncome]       = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
-        const selectedMonth = getSelectedMonth();
+        // Mirror exactly what App.jsx / useAppData does
         const now = new Date();
-        const fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
-          .toISOString().slice(0, 10);
+        const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const fromDate = firstOfLastMonth.toISOString().slice(0, 10);
 
-        const [coreResult, txnResult, recurringResult] = await Promise.allSettled([
+        const [coreResult, txnResult, recurringResult, summaryResult] = await Promise.allSettled([
           api.loadData(),
-          api.loadTransactions({ fromDate, limit: 500 }),
+          api.loadTransactions({ month: selectedMonth, limit: 1000 }),
           api.loadTransactions({ recurring: true }),
+          api.loadSummary(selectedMonth),
         ]);
 
-        const core      = coreResult.status      === "fulfilled" ? coreResult.value      : {};
-        const txnPage   = txnResult.status       === "fulfilled" ? txnResult.value       : { transactions: [] };
-        const recurring = recurringResult.status === "fulfilled" ? recurringResult.value : { transactions: [] };
+        const coreData    = coreResult.status      === "fulfilled" ? coreResult.value      : {};
+        const txnPage     = txnResult.status        === "fulfilled" ? txnResult.value       : { transactions: [] };
+        const recurringTx = recurringResult.status  === "fulfilled" ? recurringResult.value : { transactions: [] };
+        const summary     = summaryResult.status    === "fulfilled" ? summaryResult.value   : null;
 
-        const accts  = core.accounts       || [];
-        const cats   = core.categories     || [];
-        const ri     = core.recurringItems || [];
-        const gs     = core.goals          || [];
+        // Exact same field names as useAppData/App.jsx
+        setAccounts(coreData.accounts       || []);
+        setCategories(coreData.categories   || []);
+        setRecurringItems(coreData.recurringItems || []);
+        setGoals(coreData.goals             || []);
 
-        // filter to current month
+        // Use server summary for totals if available (same as App.jsx line 2725-2726)
+        if (summary) {
+          setTotalSpent(summary.totalSpent   || 0);
+          setTotalIncome(summary.totalIncome || 0);
+        }
+
+        // Merge txns + recurring, dedupe by id (same as useAppData)
+        const rawTxns      = txnPage.transactions    || [];
+        const recurringRaw = recurringTx.transactions || [];
+        const pageIds      = new Set(rawTxns.map(t => t.id));
+        const merged       = [...rawTxns, ...recurringRaw.filter(t => !pageIds.has(t.id))];
+
+        // Filter to current month only
         const [cy, cm] = selectedMonth.split("-").map(Number);
-        const txns = (txnPage.transactions || []).filter(t => {
+        const txns = merged.filter(t => {
           if (!t.date) return false;
           const [ty, tm] = t.date.split("-").map(Number);
           return ty === cy && tm === cm;
         });
 
-        const spent  = txns.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-        const income = txns.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-
-        setAccounts(accts);
-        setCategories(cats.map(c => ({ ...c, limit: c.monthlyLimit || c.limit || 0 })));
         setMonthTxns(txns);
-        setRecurringItems(ri);
-        setGoals(gs);
-        setTotalSpent(spent);
-        setTotalIncome(income);
+
+        // Fallback totals if no summary
+        if (!summary) {
+          setTotalSpent(txns.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0));
+          setTotalIncome(txns.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0));
+        }
+
       } catch (err) {
+        console.error("BriefingPage load error:", err);
         setError(err.message || "Failed to load data");
       } finally {
         setLoading(false);
@@ -100,7 +109,7 @@ export default function BriefingPage() {
           boxShadow: "0 0 24px rgba(93,202,165,0.35)",
           animation: "lb-pulse 1.8s ease-in-out infinite",
         }}/>
-        <style>{`@keyframes lb-pulse { 0%,100%{opacity:0.4;transform:scale(0.95)} 50%{opacity:1;transform:scale(1.05)} }`}</style>
+        <style>{`@keyframes lb-pulse{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:1;transform:scale(1.05)}}`}</style>
         <span style={{ fontSize: 11, letterSpacing: "1.8px", textTransform: "uppercase" }}>
           loading briefing…
         </span>
@@ -119,9 +128,11 @@ export default function BriefingPage() {
         <div style={{ color: "#e87363", fontSize: 13 }}>Failed to load: {error}</div>
         <button
           onClick={() => window.location.reload()}
-          style={{ background: "rgba(232,115,99,0.1)", border: "1px solid rgba(232,115,99,0.3)",
-                   color: "#e87363", borderRadius: 8, padding: "6px 14px", cursor: "pointer",
-                   fontFamily: "inherit", fontSize: 11 }}
+          style={{
+            background: "rgba(232,115,99,0.1)", border: "1px solid rgba(232,115,99,0.3)",
+            color: "#e87363", borderRadius: 8, padding: "6px 14px", cursor: "pointer",
+            fontFamily: "inherit", fontSize: 11,
+          }}
         >
           retry
         </button>
@@ -141,7 +152,7 @@ export default function BriefingPage() {
       goals={goals}
       today={today}
       fmt={fmt}
-      navigate={(view) => { window.location.href = view === "dashboard" ? "/" : `/${view}`; }}
+      navigate={view => { window.location.href = view === "dashboard" ? "/" : `/${view}`; }}
       isMobile={window.innerWidth < 768}
     />
   );

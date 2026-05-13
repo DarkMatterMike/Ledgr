@@ -38,11 +38,16 @@ const SHARED_CSS = `
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
   }
-  .lb-outer { background:var(--bg-0);min-height:100vh; }
-  .lb-frame { max-width:1480px;margin:0 auto;padding:0 48px;min-height:100vh;display:flex;flex-direction:column;box-shadow:0 0 0 1px var(--line); }
-  @media(max-width:900px){ .lb-frame{padding:0 16px;} }
-  @media(max-width:600px){ .lb-frame{padding:0;} }
   .lb-shell { display:flex;flex:1;min-height:100vh; }
+  .lb-page       { background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; }
+  .lb-frame      { background: var(--bg-1); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 80px rgba(0,0,0,0.4); }
+  .lb-frame-bar  { height: 40px; background: var(--bg-2); border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 18px; gap: 8px; flex-shrink: 0; }
+  .lb-frame-dot  { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-4); }
+  .lb-frame-url  { margin-left: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.4px; }
+  .lb-frame-live { margin-left: auto; display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .lb-frame-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 8px var(--safe); display: inline-block; }
+  @media(max-width: 1000px) { .lb-page { padding: 20px 16px 60px; } }
+  @media(max-width: 600px)  { .lb-page { padding: 0; } .lb-frame { border-radius: 0; border: none; } }
   .lb-sidenav { width:64px;border-right:1px solid var(--line);background:var(--bg-1);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0; }
   .lb-logo { width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),#0f6e56 80%);margin-bottom:24px;flex-shrink:0; }
   .lb-nav-item { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:17px;cursor:pointer;transition:background .15s,color .15s;user-select:none; }
@@ -198,8 +203,14 @@ export default function LedgrTransactions({
   return (
     <>
       <style>{SHARED_CSS}</style>
-      <div className="lb-outer"><div className="lb-frame">
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+      <div className="lb-page">
+        <div className="lb-frame">
+          <div className="lb-frame-bar">
+            <div className="lb-frame-dot"/><div className="lb-frame-dot"/><div className="lb-frame-dot"/>
+            <span className="lb-frame-url">app.ledgr.app / transactions</span>
+            <span className="lb-frame-live">live · synced just now</span>
+          </div>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
         background: "radial-gradient(ellipse at 15% 0%,rgba(108,140,255,0.03),transparent 40%)" }} />
 
       <div className="lb-root" style={{ display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
@@ -404,7 +415,8 @@ export default function LedgrTransactions({
           <button className="lt-btn" onClick={clearSelection}>✕ Clear</button>
         </div>
       )}
-      </div></div>{/* /lb-frame /lb-outer */}
+        </div>{/* /lb-frame */}
+      </div>{/* /lb-page */}
     </>
   );
 }

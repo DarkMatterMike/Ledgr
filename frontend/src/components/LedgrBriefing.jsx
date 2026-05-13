@@ -62,11 +62,6 @@ const CSS = `
 
   .lb-page       { background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; }
   .lb-frame      { background: var(--bg-1); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 80px rgba(0,0,0,0.4); }
-  .lb-frame-bar  { height: 40px; background: var(--bg-2); border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 18px; gap: 8px; flex-shrink: 0; }
-  .lb-frame-dot  { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-4); }
-  .lb-frame-url  { margin-left: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.4px; }
-  .lb-frame-live { margin-left: auto; display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
-  .lb-frame-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--safe); box-shadow: 0 0 8px var(--safe); display: inline-block; }
   @media(max-width: 1000px) { .lb-page { padding: 20px 16px 60px; } }
   @media(max-width: 600px)  { .lb-page { padding: 0; } .lb-frame { border-radius: 0; border: none; } }
   /* layout shell */
@@ -516,11 +511,6 @@ export default function LedgrBriefing({
       {/* ambient glow */}
       <div className="lb-page">
         <div className="lb-frame">
-          <div className="lb-frame-bar">
-            <div className="lb-frame-dot"/><div className="lb-frame-dot"/><div className="lb-frame-dot"/>
-            <span className="lb-frame-url">app.ledgr.app / home</span>
-            <span className="lb-frame-live">live · synced just now</span>
-          </div>
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
         background: "radial-gradient(ellipse at 15% 0%, rgba(108,140,255,0.03), transparent 40%), radial-gradient(ellipse at 85% 100%, rgba(93,202,165,0.025), transparent 50%)",

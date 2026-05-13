@@ -59,6 +59,10 @@ const CSS = `
     display: flex;
     flex-direction: column;
   }
+  .lb-outer { background: var(--bg-0); min-height: 100vh; }
+  .lb-frame { max-width: 1480px; margin: 0 auto; padding: 0 48px; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 0 1px var(--line); }
+  @media(max-width: 900px) { .lb-frame { padding: 0 16px; } }
+  @media(max-width: 600px) { .lb-frame { padding: 0; } }
 
   /* layout shell */
   .lb-shell   { display: flex; flex: 1; position: relative; }
@@ -505,6 +509,7 @@ export default function LedgrBriefing({
       <style>{CSS}</style>
 
       {/* ambient glow */}
+      <div className="lb-outer"><div className="lb-frame">
       <div style={{
         position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
         background: "radial-gradient(ellipse at 15% 0%, rgba(108,140,255,0.03), transparent 40%), radial-gradient(ellipse at 85% 100%, rgba(93,202,165,0.025), transparent 50%)",
@@ -787,6 +792,7 @@ export default function LedgrBriefing({
           </main>
         </div>
       </div>
+      </div></div>{/* /lb-frame /lb-outer */}
     </>
   );
 }

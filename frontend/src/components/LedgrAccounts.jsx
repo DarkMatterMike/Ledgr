@@ -29,6 +29,10 @@ const SHARED_CSS = `
     font-family:var(--font-ui);background:var(--bg-0);color:var(--ink-0);
     -webkit-font-smoothing:antialiased;min-height:100vh;
   }
+  .lb-outer { min-height:100vh;background:var(--bg-0); }
+  .lb-frame { max-width:1480px;margin:0 auto;padding:0 48px;min-height:100vh;display:flex;flex-direction:column;box-shadow:0 0 0 1px var(--line); }
+  @media(max-width:900px){ .lb-frame{padding:0 16px;} }
+  @media(max-width:600px){ .lb-frame{padding:0;} }
   .lb-shell { display:flex;min-height:100vh; }
   .lb-sidenav { width:64px;border-right:1px solid var(--line);background:var(--bg-1);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0; }
   .lb-logo { width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),#0f6e56 80%);margin-bottom:24px;flex-shrink:0; }
@@ -148,6 +152,8 @@ export default function LedgrAccounts({
   return (
     <>
       <style>{SHARED_CSS}</style>
+      <div className="lb-outer">
+      <div className="lb-frame">
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
         background: "radial-gradient(ellipse at 85% 100%,rgba(93,202,165,0.025),transparent 50%)" }} />
 
@@ -319,6 +325,8 @@ export default function LedgrAccounts({
           </main>
         </div>
       </div>
+      </div>{/* /lb-frame */}
+      </div>{/* /lb-outer */}
     </>
   );
 }

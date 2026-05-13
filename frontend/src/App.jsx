@@ -5577,6 +5577,9 @@ function AppInner({ isDemo = false }) {
       fmt={fmt}
       navigate={navigate}
       isMobile={isMobile}
+      hasApiKey={aiChat.hasApiKey}
+      apiBase={(import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app")}
+      authHeaders={() => ({ "Authorization": `Bearer ${api.getToken()}`, "Content-Type": "application/json" })}
     />
   );
 

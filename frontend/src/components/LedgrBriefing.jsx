@@ -1,28 +1,20 @@
 /**
  * LedgrBriefing.jsx — Dashboard, concept 2 "The Briefing"
  * src/components/LedgrBriefing.jsx
+ *
+ * Props:
+ *   accounts, categories, monthTxns, recurringItems
+ *   totalSpent, totalIncome, totalBudget, goals
+ *   today, fmt, navigate, isMobile
+ *   hasApiKey {boolean}  — from aiChat.hasApiKey
+ *   apiBase   {string}   — Railway base URL e.g. "https://ledgr-production-9e35.up.railway.app"
+ *   authHeaders {Function} — from api.js, returns { Authorization: "Bearer …" }
  */
-import { useState, useMemo } from "react";
-
-const TOKENS = `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
-  :root {
-    --bg-0:#07090d; --bg-1:#0b0e14; --bg-2:#11151d; --bg-3:#161c26; --bg-4:#1c2330;
-    --line:rgba(255,255,255,0.06); --line-2:rgba(255,255,255,0.10); --line-3:rgba(255,255,255,0.18);
-    --ink-0:#f4f4f1; --ink-1:#c8cdd6; --ink-2:#7d8594; --ink-3:#4a5161; --ink-4:#2e3340;
-    --safe:#5dcaa5; --safe-d:#0f6e56; --safe-bg:rgba(93,202,165,0.08);
-    --warn:#f0b04c; --warn-d:#6b4708; --warn-bg:rgba(240,176,76,0.08);
-    --debt:#e87363; --debt-d:#5a1c14; --debt-bg:rgba(232,115,99,0.08);
-    --calm:#6c8cff; --calm-d:#1a2a66; --calm-bg:rgba(108,140,255,0.08);
-    --goal:#a78bff; --goal-d:#2a1f5e; --goal-bg:rgba(167,139,255,0.08);
-    --font-display:'Instrument Serif',Georgia,serif;
-    --font-ui:'Geist',-apple-system,sans-serif;
-    --font-mono:'JetBrains Mono',ui-monospace,monospace;
-    --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:20px;
-  }
-`;
+import { useState, useMemo, useRef, useCallback } from "react";
 
 const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
+  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;--line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);--warn:#f0b04c;--warn-d:#6b4708;--warn-bg:rgba(240,176,76,0.08);--debt:#e87363;--debt-d:#5a1c14;--debt-bg:rgba(232,115,99,0.08);--calm:#6c8cff;--calm-d:#1a2a66;--calm-bg:rgba(108,140,255,0.08);--goal:#a78bff;--goal-d:#2a1f5e;--goal-bg:rgba(167,139,255,0.08);--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;}
   .lb-wrap *,.lb-wrap *::before,.lb-wrap *::after{box-sizing:border-box;}
   .lb-wrap h1,.lb-wrap h2,.lb-wrap h3,.lb-wrap h4,.lb-wrap p{margin:0;padding:0;}
   .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
@@ -30,9 +22,9 @@ const CSS = `
   @media(max-width:600px){.lb-wrap{padding:0;}}
   .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);}
   @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
-  .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;}
+  .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
   .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
-  .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);letter-spacing:0.4px;}
+  .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
   .lb-brief{display:grid;grid-template-columns:64px 320px 1fr;min-height:880px;}
@@ -77,12 +69,12 @@ const CSS = `
   .lb-tb-div{width:1px;height:14px;background:var(--line-2);flex-shrink:0;}
   .lb-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
   .lb-tb-right{display:flex;align-items:center;gap:14px;}
-  .lb-search{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--ink-3);font-family:var(--font-mono);display:flex;align-items:center;gap:8px;min-width:240px;}
-  .lb-kbd{margin-left:auto;font-size:10px;padding:1px 6px;background:var(--bg-3);border-radius:4px;color:var(--ink-3);}
   .lb-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);font-weight:500;flex-shrink:0;}
   .lb-eyebrow{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:8px;}
-  .lb-headline{font-family:var(--font-display);font-size:56px;line-height:1.02;letter-spacing:-1.5px;font-weight:400;margin-bottom:24px;}
+  .lb-headline{font-family:var(--font-display);font-size:56px;line-height:1.02;letter-spacing:-1.5px;font-weight:400;margin-bottom:24px;transition:color .3s;}
   .lb-headline em{font-style:italic;color:var(--safe);}
+  .lb-headline em.warn{color:var(--warn);}
+  .lb-headline em.debt{color:var(--debt);}
   .lb-deck{font-size:16px;color:var(--ink-1);line-height:1.65;max-width:580px;margin-bottom:28px;}
   .lb-deck .amt{font-style:normal;font-family:var(--font-mono);color:var(--safe);}
   .lb-deck .debt{font-style:normal;font-family:var(--font-mono);color:var(--debt);}
@@ -91,7 +83,7 @@ const CSS = `
   .lb-cstats{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;}
   .lb-stat{border-left:1px solid var(--line-2);padding-left:14px;}
   .lb-stat .l{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);}
-  .lb-stat .v{font-family:var(--font-mono);font-size:18px;margin-top:3px;}
+  .lb-stat .v{font-family:var(--font-mono);font-size:18px;margin-top:3px;transition:color .3s;}
   .lb-stat .v.safe{color:var(--safe);}
   .lb-stat .v.debt{color:var(--debt);}
   .lb-stat .v.calm{color:var(--calm);}
@@ -102,7 +94,7 @@ const CSS = `
   .lb-alloc-head h4 em{font-style:italic;color:var(--safe);}
   .lb-alloc-head .tot{font-family:var(--font-mono);font-size:13px;color:var(--ink-2);}
   .lb-track{display:flex;gap:2px;height:32px;border-radius:8px;overflow:hidden;margin-bottom:12px;}
-  .lb-track .seg{display:flex;align-items:center;padding:0 12px;font-family:var(--font-mono);font-size:11px;overflow:hidden;white-space:nowrap;}
+  .lb-track .seg{display:flex;align-items:center;padding:0 12px;font-family:var(--font-mono);font-size:11px;overflow:hidden;white-space:nowrap;transition:flex .4s ease;}
   .lb-track .seg.free{background:rgba(93,202,165,0.18);color:var(--safe);}
   .lb-track .seg.bills{background:rgba(232,115,99,0.18);color:var(--debt);}
   .lb-track .seg.cushion{background:rgba(108,140,255,0.18);color:var(--calm);}
@@ -116,72 +108,94 @@ const CSS = `
   .lb-led.calm{background:var(--calm);}
   .lb-led.goal{background:var(--goal);}
   .lb-led.warn{background:var(--warn);}
+
+  /* what-if section */
   .lb-whatif{margin-top:24px;}
   .lb-wi-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .lb-wi-head h4{font-family:var(--font-display);font-size:24px;font-weight:400;letter-spacing:-0.4px;}
   .lb-wi-head h4 em{font-style:italic;color:var(--safe);}
-  .lb-wi-hint{font-size:11px;color:var(--ink-3);font-family:var(--font-mono);}
-  .lb-wi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .lb-wi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
   @media(max-width:900px){.lb-wi-row{grid-template-columns:1fr 1fr;}}
   @media(max-width:600px){.lb-wi-row{grid-template-columns:1fr;}}
-  .lb-wi-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:.15s;}
+  .lb-wi-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;}
   .lb-wi-card:hover{border-color:var(--line-3);}
   .lb-wi-card.sel{border-color:rgba(93,202,165,0.4);background:rgba(93,202,165,0.04);}
+  .lb-wi-card.ai-card{border-color:rgba(108,140,255,0.3);background:rgba(108,140,255,0.04);}
+  .lb-wi-card.ai-card.sel{border-color:rgba(108,140,255,0.5);background:rgba(108,140,255,0.08);}
+  .lb-wi-tag{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--calm);font-family:var(--font-mono);margin-bottom:6px;}
   .lb-wi-nm{font-size:13px;color:var(--ink-1);line-height:1.4;margin-bottom:8px;}
   .lb-wi-delta{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-3);}
   .lb-wi-delta .v{font-family:var(--font-mono);font-size:14px;letter-spacing:0;}
   .lb-wi-delta .v.pos{color:var(--safe);}
   .lb-wi-delta .v.neg{color:var(--debt);}
+  .lb-wi-clear{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.06);border:1px solid var(--line);border-radius:99px;font-size:9px;padding:2px 8px;color:var(--ink-3);cursor:pointer;font-family:var(--font-mono);letter-spacing:0.5px;transition:.15s;}
+  .lb-wi-clear:hover{background:rgba(255,255,255,0.1);color:var(--ink-1);}
+  .lb-wi-loading{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3);font-family:var(--font-mono);}
+  .lb-wi-loading::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--calm);animation:lb-pulse 1.2s ease-in-out infinite;}
+  @keyframes lb-pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+  /* AI ask bar */
+  .lb-ask{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 18px;display:flex;align-items:center;gap:12px;}
+  .lb-ask-ico{font-size:14px;color:var(--calm);flex-shrink:0;}
+  .lb-ask input{background:none;border:none;outline:none;color:var(--ink-0);font-family:var(--font-mono);font-size:13px;flex:1;min-width:0;}
+  .lb-ask input::placeholder{color:var(--ink-3);}
+  .lb-ask-hint{font-size:11px;color:var(--ink-3);font-family:var(--font-mono);white-space:nowrap;}
+  .lb-ask-send{background:var(--calm-bg);border:1px solid rgba(108,140,255,0.3);border-radius:8px;padding:5px 14px;font-size:11px;font-family:var(--font-mono);color:var(--calm);cursor:pointer;transition:.15s;white-space:nowrap;}
+  .lb-ask-send:hover{background:rgba(108,140,255,0.15);}
+  .lb-ask-send:disabled{opacity:.4;cursor:not-allowed;}
+  .lb-no-key{font-size:12px;color:var(--ink-3);font-family:var(--font-mono);text-align:center;padding:10px 0;}
+  .lb-no-key a{color:var(--calm);cursor:pointer;text-decoration:underline;}
 `;
 
-const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const DN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const NAV=[{icon:"◐",id:"dashboard",active:true},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
 
-function daysUntil(d, today) {
-  const t = today.getDate();
-  const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
-  return d >= t ? d - t : dim - t + d;
+function daysUntil(d,today){
+  const t=today.getDate(),dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+  return d>=t?d-t:dim-t+d;
 }
 
-function Gauge({ pct=0.5 }) {
-  const angle = -90 + pct * 180;
-  return (
+/* ─── Pressure Gauge ──────────────────────────────────────────── */
+function Gauge({pct=0.5}){
+  const angle=-90+pct*180;
+  const needleColor=pct>0.5?"#5dcaa5":pct>0.25?"#f0b04c":"#e87363";
+  return(
     <svg viewBox="0 0 220 160" style={{width:"100%",height:"100%",display:"block"}}>
       <defs>
         <linearGradient id="ggrad" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0"    stopColor="#e87363"/>
+          <stop offset="0" stopColor="#e87363"/>
           <stop offset="0.45" stopColor="#f0b04c"/>
-          <stop offset="0.7"  stopColor="#5dcaa5"/>
-          <stop offset="1"    stopColor="#6c8cff"/>
+          <stop offset="0.7" stopColor="#5dcaa5"/>
+          <stop offset="1" stopColor="#6c8cff"/>
         </linearGradient>
       </defs>
       <path d="M 30 120 A 80 80 0 0 1 190 120" stroke="rgba(255,255,255,0.05)" strokeWidth="12" fill="none" strokeLinecap="round"/>
       <path d="M 30 120 A 80 80 0 0 1 190 120" stroke="url(#ggrad)" strokeWidth="12" fill="none" strokeLinecap="round"/>
-      <g transform={`rotate(${angle} 110 120)`}>
-        <line x1="110" y1="120" x2="110" y2="50" stroke="#f4f4f1" strokeWidth="2.5" strokeLinecap="round"/>
-        <circle cx="110" cy="50" r="3.5" fill="#f4f4f1"/>
+      <g transform={`rotate(${angle} 110 120)`} style={{transition:"transform .6s cubic-bezier(.34,1.56,.64,1)"}}>
+        <line x1="110" y1="120" x2="110" y2="50" stroke={needleColor} strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="110" cy="50" r="3.5" fill={needleColor}/>
       </g>
       <circle cx="110" cy="120" r="9" fill="#11151d" stroke="rgba(255,255,255,0.2)"/>
-      <circle cx="110" cy="120" r="3.5" fill="#5dcaa5"/>
-      <text x="30"  y="138" fontSize="9" fill="#e87363" fontFamily="JetBrains Mono" textAnchor="middle">TIGHT</text>
-      <text x="110" y="32"  fontSize="9" fill="#5dcaa5" fontFamily="JetBrains Mono" textAnchor="middle">SAFE</text>
+      <circle cx="110" cy="120" r="3.5" fill={needleColor}/>
+      <text x="30" y="138" fontSize="9" fill="#e87363" fontFamily="JetBrains Mono" textAnchor="middle">TIGHT</text>
+      <text x="110" y="32" fontSize="9" fill="#5dcaa5" fontFamily="JetBrains Mono" textAnchor="middle">SAFE</text>
       <text x="190" y="138" fontSize="9" fill="#6c8cff" fontFamily="JetBrains Mono" textAnchor="middle">AHEAD</text>
     </svg>
   );
 }
 
-function MiniCal({ today, bills, incs, mixes }) {
-  const [cm, setCm] = useState({ y:today.getFullYear(), m:today.getMonth() });
-  const { y, m } = cm;
-  const first = new Date(y,m,1).getDay();
-  const dim   = new Date(y,m+1,0).getDate();
-  const dimp  = new Date(y,m,0).getDate();
-  const isCur = y===today.getFullYear() && m===today.getMonth();
-  const cells = [];
-  for (let i=first-1;i>=0;i--) cells.push({d:dimp-i,muted:true});
-  for (let d=1;d<=dim;d++) cells.push({d,isToday:isCur&&d===today.getDate(),hasMix:isCur&&mixes.has(d),hasBill:isCur&&bills.has(d),hasInc:isCur&&incs.has(d)});
-  while (cells.length<42) cells.push({d:cells.length-first-dim+1,muted:true});
-  return (
+/* ─── Mini Calendar ───────────────────────────────────────────── */
+function MiniCal({today,bills,incs,mixes}){
+  const[cm,setCm]=useState({y:today.getFullYear(),m:today.getMonth()});
+  const{y,m}=cm;
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),dimp=new Date(y,m,0).getDate();
+  const isCur=y===today.getFullYear()&&m===today.getMonth();
+  const cells=[];
+  for(let i=first-1;i>=0;i--) cells.push({d:dimp-i,muted:true});
+  for(let d=1;d<=dim;d++) cells.push({d,isToday:isCur&&d===today.getDate(),hasMix:isCur&&mixes.has(d),hasBill:isCur&&bills.has(d),hasInc:isCur&&incs.has(d)});
+  while(cells.length<42) cells.push({d:cells.length-first-dim+1,muted:true});
+  return(
     <div style={{marginBottom:22}}>
       <div className="lb-cal-head">
         <div className="lb-cal-title">{MN[m]} {y}</div>
@@ -206,6 +220,60 @@ function MiniCal({ today, bills, incs, mixes }) {
   );
 }
 
+/* ─── Scenario generation ─────────────────────────────────────── */
+function generateScenarios(categories,monthTxns,upcomingBills,accounts,safeToSpend){
+  const pool=[];
+
+  // Pool 1: skip a spending category for the week
+  const spendCats=categories.filter(c=>c.limit>0);
+  spendCats.forEach(cat=>{
+    const spent=monthTxns.filter(t=>t.categoryId===cat.id&&t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+    if(spent>0){
+      const weekly=Math.round(spent/4.33);
+      if(weekly>5) pool.push({nm:`Skip ${cat.name.toLowerCase()} for one week`,delta:weekly,pos:true,source:"category"});
+    }
+  });
+
+  // Pool 2: defer an upcoming bill
+  upcomingBills.forEach(b=>{
+    if(b.amountMin>0) pool.push({nm:`Defer ${b.name} to next cycle`,delta:b.amountMin,pos:true,source:"bill"});
+  });
+
+  // Pool 3: cancel a subscription-type bill
+  const subs=upcomingBills.filter(b=>/netflix|spotify|hulu|disney|amazon prime|apple|gym|fitness|sub/i.test(b.name));
+  subs.forEach(s=>{
+    if(s.amountMin>0) pool.push({nm:`Cancel ${s.name}`,delta:s.amountMin,pos:true,source:"sub"});
+  });
+
+  // Pool 4: fixed hypothetical expenses (always available)
+  pool.push({nm:"$200 weekend trip",delta:200,pos:false,source:"fixed"});
+  pool.push({nm:"$100 impulse purchase",delta:100,pos:false,source:"fixed"});
+  pool.push({nm:"$500 emergency buffer",delta:500,pos:false,source:"fixed"});
+
+  // Pool 5: save a portion of safe-to-spend
+  if(safeToSpend>100){
+    const save=Math.round(safeToSpend*0.2/10)*10;
+    pool.push({nm:`Auto-save $${save} to emergency fund`,delta:save,pos:false,source:"save"});
+  }
+
+  // Shuffle and pick 4 unique ones, preferring variety of source types
+  const shuffled=[...pool].sort(()=>Math.random()-0.5);
+  const picked=[];
+  const usedSources=new Set();
+  // First pass: one of each source type
+  for(const s of shuffled){
+    if(picked.length>=4) break;
+    if(!usedSources.has(s.source)){picked.push(s);usedSources.add(s.source);}
+  }
+  // Second pass: fill remaining slots
+  for(const s of shuffled){
+    if(picked.length>=4) break;
+    if(!picked.includes(s)) picked.push(s);
+  }
+  return picked.slice(0,4);
+}
+
+/* ─── Main component ──────────────────────────────────────────── */
 export default function LedgrBriefing({
   accounts=[],categories=[],monthTxns=[],recurringItems=[],
   totalSpent=0,totalIncome=0,totalBudget=0,goals=[],
@@ -213,82 +281,215 @@ export default function LedgrBriefing({
   fmt=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Math.abs(n)),
   navigate=()=>{},
   isMobile=false,
-}) {
-  const [selWI,setSelWI]=useState(0);
-  const totalBalance  = useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
-  const checkingBal   = useMemo(()=>accounts.filter(a=>a.type==="checking"||a.type==="savings").reduce((s,a)=>s+(a.balance||0),0),[accounts]);
-  const curY=today.getFullYear(), curM=today.getMonth()+1;
+  hasApiKey=false,
+  apiBase="https://ledgr-production-9e35.up.railway.app",
+  authHeaders=()=>({}),
+}){
+  // ── Computed financials ────────────────────────────────────────
+  const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
+  const checkingBal =useMemo(()=>accounts.filter(a=>a.type==="checking").reduce((s,a)=>s+(a.balance||0),0),[accounts]);
+  const curY=today.getFullYear(),curM=today.getMonth()+1;
 
-  const upcomingBills = useMemo(()=>recurringItems.filter(r=>{
+  const upcomingBills=useMemo(()=>recurringItems.filter(r=>{
     if(r.type==="income"||!r.recurringDay) return false;
-    return !(r.linkedTxnIds||[]).some(id=>{const t=monthTxns.find(x=>x.id===id);if(!t?.date)return false;const[ty,tm]=t.date.split("-").map(Number);return ty===curY&&tm===curM;});
+    return!(r.linkedTxnIds||[]).some(id=>{
+      const t=monthTxns.find(x=>x.id===id);
+      if(!t?.date) return false;
+      const[ty,tm]=t.date.split("-").map(Number);
+      return ty===curY&&tm===curM;
+    });
   }).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)),[recurringItems,monthTxns,curY,curM]);
 
-  const upcomingIncome = useMemo(()=>recurringItems.filter(r=>{
+  const upcomingIncome=useMemo(()=>recurringItems.filter(r=>{
     if(r.type!=="income"||!r.recurringDay) return false;
-    return !(r.linkedTxnIds||[]).some(id=>{const t=monthTxns.find(x=>x.id===id);if(!t?.date)return false;const[ty,tm]=t.date.split("-").map(Number);return ty===curY&&tm===curM;});
+    return!(r.linkedTxnIds||[]).some(id=>{
+      const t=monthTxns.find(x=>x.id===id);
+      if(!t?.date) return false;
+      const[ty,tm]=t.date.split("-").map(Number);
+      return ty===curY&&tm===curM;
+    });
   }).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)),[recurringItems,monthTxns,curY,curM]);
 
-  const billsTotal  = useMemo(()=>upcomingBills.reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
-  const nextPay     = upcomingIncome[0]||null;
-  const nextPayDay  = nextPay?.recurringDay||null;
-  const daysLeft    = nextPayDay ? daysUntil(nextPayDay,today) : null;
-  const safeToSpend = Math.max(0,Math.round(checkingBal-billsTotal));
-  const dailyPace   = daysLeft&&daysLeft>0 ? Math.round(safeToSpend/daysLeft) : null;
-  const pressurePct = checkingBal ? Math.max(0,Math.min(1,1-(billsTotal/checkingBal)*0.8)) : 0.5;
-  const pressureLabel = pressurePct>0.65?"safe":pressurePct>0.4?"moderate":"tight";
-  const goalsSaved  = useMemo(()=>goals.reduce((s,g)=>s+(g.savedAmount||0),0),[goals]);
-
-  const allocFree=safeToSpend, allocBill=billsTotal;
-  const allocCush=Math.round(checkingBal*0.1);
-  const allocGoal=Math.round(goalsSaved*0.1);
-  const allocFlex=Math.round(totalSpent*0.05);
-  const allocTotal=allocFree+allocBill+allocCush+allocGoal+allocFlex;
+  const billsTotal  =useMemo(()=>upcomingBills.reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
+  const nextPay     =upcomingIncome[0]||null;
+  const nextPayDay  =nextPay?.recurringDay||null;
+  const daysLeft    =nextPayDay?daysUntil(nextPayDay,today):null;
+  const safeToSpend =Math.max(0,Math.round(checkingBal-billsTotal));
+  const dailyPace   =daysLeft&&daysLeft>0?Math.round(safeToSpend/daysLeft):null;
+  const pressurePct =checkingBal>0?Math.max(0,Math.min(1,safeToSpend/checkingBal)):0;
+  const pressureLabel=pressurePct>0.5?"safe":pressurePct>0.25?"moderate":"tight";
+  const goalsSaved  =useMemo(()=>goals.reduce((s,g)=>s+(g.savedAmount||0),0),[goals]);
 
   const billDays=useMemo(()=>{const s=new Set();recurringItems.filter(r=>r.type!=="income"&&r.recurringDay).forEach(r=>s.add(parseInt(r.recurringDay)));return s;},[recurringItems]);
   const incDays =useMemo(()=>{const s=new Set();recurringItems.filter(r=>r.type==="income"&&r.recurringDay).forEach(r=>s.add(parseInt(r.recurringDay)));return s;},[recurringItems]);
   const mixDays =useMemo(()=>{const s=new Set();billDays.forEach(d=>{if(incDays.has(d))s.add(d);});return s;},[billDays,incDays]);
 
-  const diningCat   = categories.find(c=>/dining|restaurant/i.test(c.name));
-  const diningSpent = diningCat ? monthTxns.filter(t=>t.categoryId===diningCat.id&&t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0) : 0;
-  const cardBill    = upcomingBills.find(b=>/card|credit/i.test(b.name));
-  const whatIfs=[
-    {nm:"Skip dining out for the rest of the week",delta:Math.round(diningSpent/4)||86,pos:true},
-    {nm:"Move card payment to next cycle",delta:cardBill?.amountMin||336,pos:true},
-    {nm:"$200 weekend getaway",delta:200,pos:false},
-    {nm:"Auto-save $150 to emergency fund",delta:150,pos:false},
-  ];
+  // ── What-if state ──────────────────────────────────────────────
+  const initScenarios=useMemo(()=>generateScenarios(categories,monthTxns,upcomingBills,accounts,safeToSpend),[]);
+  const[scenarios,setScenarios]=useState(initScenarios);
+  const[selIdx,setSelIdx]=useState(null); // null = none active
+  const[aiLoading,setAiLoading]=useState(false);
+  const[aiInput,setAiInput]=useState("");
+  const aiInputRef=useRef(null);
 
+  // Active delta — 0 when nothing selected
+  const activeDelta=selIdx!==null&&scenarios[selIdx]
+    ?scenarios[selIdx].pos?scenarios[selIdx].delta:-scenarios[selIdx].delta
+    :0;
+
+  // All displayed values adjust when a scenario is active
+  const displaySafe   =Math.max(0,safeToSpend+activeDelta);
+  const displayPct    =checkingBal>0?Math.max(0,Math.min(1,displaySafe/checkingBal)):0;
+  const displayLabel  =displayPct>0.5?"safe":displayPct>0.25?"moderate":"tight";
+  const displayPace   =daysLeft&&daysLeft>0?Math.round(displaySafe/daysLeft):null;
+
+  // Alloc bar uses displaySafe
+  const allocFree =displaySafe;
+  const allocBill =billsTotal;
+  const allocCush =Math.round(checkingBal*0.1);
+  const allocGoal =Math.round(goalsSaved*0.1);
+  const allocFlex =Math.round(totalSpent*0.05);
+  const allocTotal=allocFree+allocBill+allocCush+allocGoal+allocFlex;
+
+  // Headline color based on pressure
+  const safeColor=displayPct>0.5?"var(--safe)":displayPct>0.25?"var(--warn)":"var(--debt)";
+
+  // ── AI scenario handler ────────────────────────────────────────
+  const askScenario=useCallback(async()=>{
+    const q=aiInput.trim();
+    if(!q||aiLoading) return;
+    setAiLoading(true);
+    setAiInput("");
+
+    try{
+      const context={
+        safeToSpend,checkingBal,billsTotal,
+        upcomingBills:upcomingBills.map(b=>({name:b.name,amount:b.amountMin})),
+        topCategories:categories.slice(0,8).map(c=>({
+          name:c.name,
+          spent:monthTxns.filter(t=>t.categoryId===c.id&&t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0),
+        })),
+        totalIncome,totalSpent,
+      };
+
+      const systemPrompt=`You are a financial scenario calculator for a personal finance app. 
+The user will ask a "what if" financial question. 
+Respond with ONLY a JSON object in this exact format, no other text:
+{
+  "name": "short scenario name (max 8 words)",
+  "description": "what changes financially",
+  "delta": <number — positive dollar amount of change>,
+  "positive": <true if this adds to safe-to-spend, false if it reduces it>
+}
+
+User's current finances:
+- Safe to spend: $${safeToSpend}
+- Checking balance: $${checkingBal}  
+- Upcoming bills total: $${billsTotal}
+- Monthly income: $${totalIncome}
+- Monthly expenses: $${totalSpent}
+- Upcoming bills: ${upcomingBills.map(b=>`${b.name} $${b.amountMin}`).join(", ")||"none"}
+- Top spending: ${context.topCategories.map(c=>`${c.name} $${Math.round(c.spent)}`).join(", ")||"none"}`;
+
+      const res=await fetch(`${apiBase}/api/ai/chat`,{
+        method:"POST",
+        headers:{...authHeaders(),"Content-Type":"application/json"},
+        body:JSON.stringify({
+          message:q,
+          history:[],
+          context:{systemOverride:systemPrompt,...context},
+        }),
+      });
+
+      if(!res.ok) throw new Error("API error");
+
+      // Collect streamed response
+      const reader=res.body.getReader();
+      const decoder=new TextDecoder();
+      let full="";
+      while(true){
+        const{done,value}=await reader.read();
+        if(done) break;
+        const chunk=decoder.decode(value,{stream:true});
+        for(const line of chunk.split("\n")){
+          if(line.startsWith("data: ")){
+            const data=line.slice(6);
+            if(data==="[DONE]") break;
+            try{const j=JSON.parse(data);full+=j.delta?.text||"";}catch{}
+          }
+        }
+      }
+
+      // Parse JSON from response
+      const jsonMatch=full.match(/\{[\s\S]*\}/);
+      if(!jsonMatch) throw new Error("No JSON in response");
+      const parsed=JSON.parse(jsonMatch[0]);
+
+      const newScenario={
+        nm:parsed.name||q.slice(0,40),
+        delta:Math.round(Math.abs(parsed.delta||0)),
+        pos:parsed.positive!==false,
+        source:"ai",
+        isAi:true,
+      };
+
+      // Shift: new card at index 0, card 4 drops off
+      setScenarios(prev=>[newScenario,...prev.slice(0,3)]);
+      setSelIdx(0); // auto-select the new AI scenario
+    }catch(err){
+      console.warn("What-if AI error:",err);
+      // Fallback: add a simple scenario from the question
+      const fallback={nm:q.slice(0,40)+"…",delta:0,pos:true,source:"ai",isAi:true,error:true};
+      setScenarios(prev=>[fallback,...prev.slice(0,3)]);
+      setSelIdx(null);
+    }finally{
+      setAiLoading(false);
+    }
+  },[aiInput,aiLoading,safeToSpend,checkingBal,billsTotal,upcomingBills,categories,monthTxns,totalIncome,totalSpent,apiBase,authHeaders]);
+
+  function handleAiKey(e){if(e.key==="Enter") askScenario();}
+
+  function selectCard(i){setSelIdx(prev=>prev===i?null:i);}
+  function clearCard(e,i){e.stopPropagation();if(selIdx===i)setSelIdx(null);}
+
+  // ── Display helpers ────────────────────────────────────────────
+  const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
   const halfIncome=nextPay?(nextPay.amountMin||0):totalIncome/2;
   const halfBills=billsTotal/2;
-  const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
   const timeLabel=`${DN[today.getDay()]}, ${MN[today.getMonth()]} ${today.getDate()} · ${today.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`;
-  const NAV=[{icon:"◐",id:"dashboard",active:true},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
 
-  return (
+  return(
     <>
-      <style>{TOKENS+CSS}</style>
+      <style>{CSS}</style>
       <div className="lb-wrap">
         <div className="lb-frame">
+
+          {/* chrome bar */}
           <div className="lb-bar">
             <div className="lb-bar-dot"/><div className="lb-bar-dot"/><div className="lb-bar-dot"/>
             <span className="lb-bar-url">app.ledgr.app / home</span>
             <span className="lb-bar-live">live · synced just now</span>
           </div>
+
+          {/* brief grid */}
           <div className="lb-brief">
+
+            {/* sidenav */}
             <nav className="lb-nav">
               <div className="lb-nav-logo"/>
               {NAV.map(n=><div key={n.id} className={`lb-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>)}
               <div className="lb-nav-spacer"/>
               <div className="lb-nav-item" onClick={()=>navigate("settings")}>⚙</div>
             </nav>
+
+            {/* agenda */}
             <aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
                 <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">{fmt(totalSpent)}</span></div>
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(totalIncome)}</span></div>
                 <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(Math.abs(totalBalance-safeToSpend))}</span></div>
-                <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(safeToSpend)}</span></div>
+                <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
               </div>
               <div className="lb-pc-lbl">Paycheck planning</div>
               <div className="lb-pc-card">
@@ -309,6 +510,8 @@ export default function LedgrBriefing({
               </div>
               <div className="lb-pc-add" onClick={()=>navigate("calendar")}>+ Add Recurring Item</div>
             </aside>
+
+            {/* main */}
             <main className="lb-main">
               <div className="lb-topbar">
                 <div className="lb-tb-left">
@@ -318,27 +521,57 @@ export default function LedgrBriefing({
                   <span className="lb-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="lb-tb-right">
-                  <div className="lb-search"><span style={{color:"var(--ink-2)"}}>⌕</span> ask anything…<span className="lb-kbd">⌘K</span></div>
                   <div className="lb-avatar">{initials}</div>
                 </div>
               </div>
+
+              {/* hero */}
               <div style={{marginBottom:40}}>
-                <div className="lb-eyebrow">Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"} · the headline</div>
-                <h2 className="lb-headline">After everything you owe, you have <em>{fmt(safeToSpend)}</em> truly free.</h2>
+                <div className="lb-eyebrow">
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"} · the headline
+                  {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
+                </div>
+                <h2 className="lb-headline">
+                  After everything you owe, you have{" "}
+                  <em style={{color:safeColor}}>{fmt(displaySafe)}</em> truly free.
+                </h2>
                 <p className="lb-deck">
                   {daysLeft!=null?<>That's <em className="amt">{daysLeft} day{daysLeft!==1?"s":""}</em> of room until your next paycheck{nextPayDay?` on ${MN[today.getMonth()]} ${nextPayDay}`:""}.&nbsp;</>:<>Your funds are calculated across all accounts.&nbsp;</>}
-                  You've got <em className="debt">{fmt(billsTotal)}</em> in scheduled bills already accounted for. The pressure gauge is sitting comfortably in <em className="amt">{pressureLabel}</em>. {upcomingBills.length===0?"No surprises in the queue.":`${upcomingBills.length} item${upcomingBills.length>1?"s":""} upcoming.`}
+                  You've got <em className="debt">{fmt(billsTotal)}</em> in scheduled bills accounted for. The pressure gauge is <em className="amt">{displayLabel}</em>.{" "}
+                  {upcomingBills.length===0?"No surprises in the queue.":`${upcomingBills.length} item${upcomingBills.length>1?"s":""} upcoming.`}
                 </p>
+
+                {/* callout */}
                 <div className="lb-callout">
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:160}}><Gauge pct={pressurePct}/></div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:160}}>
+                    <Gauge pct={displayPct}/>
+                  </div>
                   <div className="lb-cstats">
-                    <div className="lb-stat"><div className="l">Safe to spend</div><div className="v safe">{fmt(safeToSpend)}</div><div className="s">{daysLeft!=null?`over ${daysLeft} days`:"right now"}</div></div>
-                    <div className="lb-stat"><div className="l">Daily pace</div><div className="v">{dailyPace!=null?`$${dailyPace.toLocaleString()}`:"—"}<span style={{fontSize:12,color:"var(--ink-3)"}}>/d</span></div><div className="s">if spread evenly</div></div>
-                    <div className="lb-stat"><div className="l">Bills incoming</div><div className="v debt">{fmt(billsTotal)}</div><div className="s">{upcomingBills.length} scheduled · all expected</div></div>
-                    <div className="lb-stat"><div className="l">Next paycheck</div><div className="v calm">{nextPay?`+${fmt(nextPay.amountMin||0)}`:"—"}</div><div className="s">{nextPayDay&&daysLeft!=null?`${MN[today.getMonth()]} ${nextPayDay} · ${daysLeft} days`:"check calendar"}</div></div>
+                    <div className="lb-stat">
+                      <div className="l">Safe to spend</div>
+                      <div className="v" style={{color:safeColor}}>{fmt(displaySafe)}</div>
+                      <div className="s">{daysLeft!=null?`over ${daysLeft} days`:"right now"}</div>
+                    </div>
+                    <div className="lb-stat">
+                      <div className="l">Daily pace</div>
+                      <div className="v">{displayPace!=null?`$${displayPace.toLocaleString()}`:"—"}<span style={{fontSize:12,color:"var(--ink-3)"}}>/d</span></div>
+                      <div className="s">if spread evenly</div>
+                    </div>
+                    <div className="lb-stat">
+                      <div className="l">Bills incoming</div>
+                      <div className="v debt">{fmt(billsTotal)}</div>
+                      <div className="s">{upcomingBills.length} scheduled · all expected</div>
+                    </div>
+                    <div className="lb-stat">
+                      <div className="l">Next paycheck</div>
+                      <div className="v calm">{nextPay?`+${fmt(nextPay.amountMin||0)}`:"—"}</div>
+                      <div className="s">{nextPayDay&&daysLeft!=null?`${MN[today.getMonth()]} ${nextPayDay} · ${daysLeft} days`:"check calendar"}</div>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* allocation bar */}
               <div className="lb-alloc">
                 <div className="lb-alloc-head">
                   <h4>Where your <em>{fmt(allocTotal)}</em> is going</h4>
@@ -359,26 +592,67 @@ export default function LedgrBriefing({
                   <span><span className="lb-led warn"/>&nbsp;Flex pool</span>
                 </div>
               </div>
+
+              {/* what-if */}
               <div className="lb-whatif">
                 <div className="lb-wi-head">
-                  <h4>If you <em>did this</em>, what would it look like?</h4>
-                  <span className="lb-wi-hint">tap to preview</span>
+                  <h4>What if you <em>changed something</em>?</h4>
+                  {selIdx!==null&&(
+                    <button onClick={()=>setSelIdx(null)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid var(--line)",borderRadius:99,padding:"3px 12px",fontSize:11,color:"var(--ink-3)",cursor:"pointer",fontFamily:"var(--font-mono)"}}>
+                      × clear scenario
+                    </button>
+                  )}
                 </div>
+
                 <div className="lb-wi-row">
-                  {whatIfs.map((s,i)=>(
-                    <div key={i} className={`lb-wi-card${selWI===i?" sel":""}`} onClick={()=>setSelWI(i)}>
+                  {scenarios.map((s,i)=>(
+                    <div key={i} className={`lb-wi-card${s.isAi?" ai-card":""}${selIdx===i?" sel":""}`} onClick={()=>selectCard(i)}>
+                      {s.isAi&&<div className="lb-wi-tag">✦ your question</div>}
+                      {selIdx===i&&<span className="lb-wi-clear" onClick={e=>clearCard(e,i)}>× clear</span>}
                       <div className="lb-wi-nm">{s.nm}</div>
-                      <div className="lb-wi-delta"><span>Safe-to-spend</span><span className={`v ${s.pos?"pos":"neg"}`}>{s.pos?"+":"−"}${s.delta.toLocaleString()}</span></div>
+                      {s.error?(
+                        <div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)"}}>couldn't compute delta</div>
+                      ):(
+                        <div className="lb-wi-delta">
+                          <span>Safe-to-spend</span>
+                          <span className={`v ${s.pos?"pos":"neg"}`}>{s.pos?"+":"−"}${s.delta.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
-                {whatIfs[selWI]&&(
-                  <div style={{marginTop:12,padding:"16px 20px",background:"rgba(93,202,165,0.04)",border:"1px solid rgba(93,202,165,0.2)",borderRadius:"var(--r-md)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontSize:13,color:"var(--ink-2)",fontStyle:"italic"}}>"{whatIfs[selWI].nm}"</span>
-                    <span style={{fontFamily:"var(--font-display)",fontSize:28,letterSpacing:"-0.8px",color:whatIfs[selWI].pos?"var(--safe)":"var(--debt)"}}>{fmt(safeToSpend+(whatIfs[selWI].pos?1:-1)*whatIfs[selWI].delta)}</span>
+
+                {/* AI ask bar */}
+                {hasApiKey?(
+                  <div className="lb-ask">
+                    <span className="lb-ask-ico">✦</span>
+                    <input
+                      ref={aiInputRef}
+                      value={aiInput}
+                      onChange={e=>setAiInput(e.target.value)}
+                      onKeyDown={handleAiKey}
+                      placeholder="Ask anything — "what if I got a $500 raise?" or "what if I cut dining?"…"
+                      disabled={aiLoading}
+                    />
+                    {aiLoading?(
+                      <span className="lb-wi-loading">thinking</span>
+                    ):(
+                      <button className="lb-ask-send" onClick={askScenario} disabled={!aiInput.trim()}>
+                        Ask ↵
+                      </button>
+                    )}
+                  </div>
+                ):(
+                  <div className="lb-ask" style={{justifyContent:"center"}}>
+                    <span className="lb-no-key">
+                      Add your Claude API key on the{" "}
+                      <a onClick={()=>navigate("ai")}>Ask AI page</a>{" "}
+                      to ask custom what-if questions
+                    </span>
                   </div>
                 )}
               </div>
+
               <div style={{height:48}}/>
             </main>
           </div>

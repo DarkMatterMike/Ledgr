@@ -4971,7 +4971,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,paddingLeft:16}}>
+      <div style={{width:"100%",maxWidth:900,paddingLeft:28}}>
           <div>
 
         {/* ── Page header ── */}
@@ -5578,7 +5578,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,paddingLeft:16}}>
+      <div style={{width:"100%",maxWidth:900,paddingLeft:28}}>
 
         {/* ── Page header ── */}
         <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>
@@ -5750,7 +5750,7 @@ function AppInner({ isDemo = false }) {
     });
 
     return (
-      <div style={{ width: "100%", maxWidth: 900, paddingLeft: 16 }}>
+      <div style={{ width: "100%", maxWidth: 900, paddingLeft: 28 }}>
 
         {/* ── Page header ── */}
         <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>

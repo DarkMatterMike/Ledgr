@@ -4971,7 +4971,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,paddingLeft:28}}>
+      <div style={{width:"100%",maxWidth:900}}>
           <div>
 
         {/* ── Page header ── */}
@@ -4988,6 +4988,7 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
+        <div style={{padding:"0 28px 28px"}}>
         {/* Summary strip */}
         <div style={{display:"flex",gap:0,marginBottom:18,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
           {[
@@ -5332,6 +5333,7 @@ function AppInner({ isDemo = false }) {
           );
         })()}
           </div>
+        </div>{/* /content wrapper */}
       </div>
     );
   })();
@@ -5578,7 +5580,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,paddingLeft:28}}>
+      <div style={{width:"100%",maxWidth:900}}>
 
         {/* ── Page header ── */}
         <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>
@@ -5594,6 +5596,7 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
+        <div style={{padding:"0 28px 28px"}}>
         {/* ── Stat strip ──────────────────────────────── */}
         <div style={{display:"flex",gap:0,marginBottom:20,border:"1px solid rgba(255,255,255,0.08)",borderRadius:"var(--radius)",overflow:"hidden"}}>
           {[
@@ -5712,6 +5715,7 @@ function AppInner({ isDemo = false }) {
             )}
           </>
         )}
+        </div>{/* /content wrapper */}
 
       </div>
     );
@@ -5750,7 +5754,7 @@ function AppInner({ isDemo = false }) {
     });
 
     return (
-      <div style={{ width: "100%", maxWidth: 900, paddingLeft: 28 }}>
+      <div style={{ width: "100%", maxWidth: 900 }}>
 
         {/* ── Page header ── */}
         <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>
@@ -5766,6 +5770,7 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
+        <div style={{padding:"0 28px 28px"}}>
         {/* ── Net worth hero ───────────────────────── */}
         <div style={{ paddingBottom: 24, marginBottom: 24, borderBottom: "1px solid rgba(201,149,106,0.1)", position: "relative" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--t3)", marginBottom: 10 }}>Total balance</div>
@@ -5901,6 +5906,7 @@ function AppInner({ isDemo = false }) {
         <div style={{ marginTop: 24 }}>
           <SecurityBadges compact />
         </div>
+        </div>{/* /content wrapper */}
       </div>
     );
   })();

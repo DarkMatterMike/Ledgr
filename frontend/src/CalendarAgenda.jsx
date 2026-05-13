@@ -672,14 +672,6 @@ export default function CalendarAgenda({
                           </div>
                           <div className="ag-today-chip-rule" />
                         </div>
-
-                        {/* Next-up card — only if it's a future/today item */}
-                        {nextUpEntry && (
-                          <div className="ag-next-up">
-                            <div className="ag-next-up-label">↑ up next</div>
-                            {renderEntry(nextUpEntry, nextUpDay === todayNum)}
-                          </div>
-                        )}
                       </>
                     )}
 

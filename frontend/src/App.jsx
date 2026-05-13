@@ -4972,7 +4972,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,padding:"28px 28px"}}>
+      <div style={{width:"100%",maxWidth:900}}>
           <div>
 
         {/* Clarity header */}
@@ -5582,7 +5582,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,padding:isMobile?"20px 16px":"28px 28px"}}>
+      <div style={{width:"100%",maxWidth:900}}>
 
         {/* ── Page header ─────────────────────────────── */}
         <div style={{position:"relative",overflow:"hidden",marginBottom:0}}>
@@ -5756,7 +5756,7 @@ function AppInner({ isDemo = false }) {
     });
 
     return (
-      <div style={{ width: "100%", maxWidth: 900, padding: isMobile ? "20px 16px" : "28px 28px" }}>
+      <div style={{ width: "100%", maxWidth: 900 }}>
 
         {/* ── Page header ─────────────────────────── */}
         <div style={{ position: "relative", overflow: "hidden", marginBottom: 0 }}>
@@ -6675,12 +6675,12 @@ function AppInner({ isDemo = false }) {
             
             
             {view === "analytics"
-              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,padding:"28px 28px",boxSizing:"border-box"}}>{AnalyticsPage}</div></div>
+              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,boxSizing:"border-box"}}>{AnalyticsPage}</div></div>
               : view === "dashboard"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto"}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,padding:"28px 28px",boxSizing:"border-box"}}>{VIEWS[view]}</div></div>
+              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,boxSizing:"border-box"}}>{VIEWS[view]}</div></div>
             }
           </div>
           </div>{/* /max-width wrapper */}

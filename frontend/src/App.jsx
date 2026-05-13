@@ -17,7 +17,7 @@ import * as api from "./api.js";
 const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
 import DashboardNew, { DashboardHero, DashboardContent } from "./components/DashboardNew.jsx";
-import LedgrBriefing from "./components/LedgrBriefing.jsx";
+import BriefingPage from "./BriefingPage.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -990,6 +990,8 @@ export default function App() {
   })();
 
   if (!authed) return <AuthGate onAuth={()=>setAuthed(true)} inviteToken={appInviteToken}/>;
+
+  if (window.location.pathname === "/briefing") return <BriefingPage />;
 
   return <AppInner isDemo={isDemo}/>;
 }
@@ -2231,7 +2233,6 @@ function AppInner({ isDemo = false }) {
   }
 
   const [view,          setView]          = useState("dashboard");
-  const [showBriefing,  setShowBriefing]  = useState(false);
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [newTxnNotifs,  setNewTxnNotifs]  = useState([]); // [{id, merchant, amount, date}]
   const [pendingDuplicates, setPendingDuplicates] = useState(null); // {count, detectedAt}
@@ -4543,22 +4544,7 @@ function AppInner({ isDemo = false }) {
   }, [goals, today, recurringTxns, recurringItems, transactions, categories, sortedCategories, spentByCat, selectedMonth,
       insightsTodos, isMobile, catMap]);
 
-  const Dashboard = showBriefing ? (
-    <LedgrBriefing
-      accounts={accounts}
-      categories={categories}
-      monthTxns={monthTxns}
-      recurringItems={recurringItems}
-      totalSpent={totalSpent}
-      totalIncome={totalIncome}
-      totalBudget={totalBudget}
-      goals={goals}
-      today={today}
-      fmt={fmt}
-      navigate={navigate}
-      isMobile={isMobile}
-    />
-  ) : (
+  const Dashboard = (
     <DashboardContent
       isMobile={isMobile}
       selectedMonth={selectedMonth}
@@ -6285,8 +6271,6 @@ function AppInner({ isDemo = false }) {
               spentByCat={spentByCat} categories={categories}
               monthTxns={monthTxns} recurringItems={recurringItems}
               fmt={fmt} today={today}
-              showBriefing={showBriefing}
-              onToggleBriefing={view === "dashboard" ? () => setShowBriefing(b => !b) : null}
             />
           {view === "analytics"
             ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>
@@ -6360,8 +6344,6 @@ function AppInner({ isDemo = false }) {
               spentByCat={spentByCat} categories={categories}
               monthTxns={monthTxns} recurringItems={recurringItems}
               fmt={fmt} today={today}
-              showBriefing={showBriefing}
-              onToggleBriefing={view === "dashboard" ? () => setShowBriefing(b => !b) : null}
             />
             {view === "analytics"
               ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>

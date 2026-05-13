@@ -337,7 +337,7 @@ export default function CalendarAgenda({
   }
 
   /* ── Dashboard-style page padding: 48px top, 36px left (matches DashboardNew tier) ── */
-  const outerPad = isMobile ? '20px 16px' : '28px 28px';
+  const outerPad = isMobile ? '20px 16px' : '28px 28px 28px 10px';
 
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--t1,#e8ddd0)' }}>

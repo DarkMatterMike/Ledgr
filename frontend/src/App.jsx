@@ -4972,7 +4972,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900}}>
+      <div style={{width:"100%",maxWidth:900,paddingLeft:10}}>
           <div>
 
         {/* Clarity header */}
@@ -5582,7 +5582,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900}}>
+      <div style={{width:"100%",maxWidth:900,paddingLeft:10}}>
 
         {/* ── Page header ─────────────────────────────── */}
         <div style={{position:"relative",overflow:"hidden",marginBottom:0}}>
@@ -5756,7 +5756,7 @@ function AppInner({ isDemo = false }) {
     });
 
     return (
-      <div style={{ width: "100%", maxWidth: 900 }}>
+      <div style={{ width: "100%", maxWidth: 900, paddingLeft: 10 }}>
 
         {/* ── Page header ─────────────────────────── */}
         <div style={{ position: "relative", overflow: "hidden", marginBottom: 0 }}>

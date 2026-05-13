@@ -4972,7 +4972,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,paddingLeft:10}}>
+      <div style={{width:"100%",maxWidth:900}}>
           <div>
 
         {/* ── Page header ── */}
@@ -5579,7 +5579,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,paddingLeft:10}}>
+      <div style={{width:"100%",maxWidth:900}}>
 
         {/* ── Page header ── */}
         <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>
@@ -5751,7 +5751,7 @@ function AppInner({ isDemo = false }) {
     });
 
     return (
-      <div style={{ width: "100%", maxWidth: 900, paddingLeft: 10 }}>
+      <div style={{ width: "100%", maxWidth: 900 }}>
 
         {/* ── Page header ── */}
         <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)"}}>
@@ -6604,12 +6604,12 @@ function AppInner({ isDemo = false }) {
       <>
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
           {view === "analytics"
-            ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900,padding:"20px 16px",boxSizing:"border-box"}}>{AnalyticsPage}</div></div>
+            ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900}}>{AnalyticsPage}</div></div>
             : view === "dashboard"
             ? <div key={navKey} className="ledgr-view-enter" style={{maxWidth:600,margin:"0 auto"}}>{VIEWS[view]}</div>
             : view === "calendar" || view === "rules"
             ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
-            : <div key={navKey} className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900,padding:"20px 16px",boxSizing:"border-box"}}>{VIEWS[view]}</div></div>
+            : <div key={navKey} className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900}}>{VIEWS[view]}</div></div>
           }
         </div>
 
@@ -6668,12 +6668,12 @@ function AppInner({ isDemo = false }) {
             
             
             {view === "analytics"
-              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,boxSizing:"border-box"}}>{AnalyticsPage}</div></div>
+              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900}}>{AnalyticsPage}</div></div>
               : view === "dashboard"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto"}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,boxSizing:"border-box"}}>{VIEWS[view]}</div></div>
+              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900}}>{VIEWS[view]}</div></div>
             }
           </div>
           </div>{/* /max-width wrapper */}

@@ -70,7 +70,7 @@ function useIsMobile() {
 
     /* Layout */
     .ledgr-content     { padding: 0; }
-    .ledgr-view-padded { padding: 0; max-width: 900px; margin: 0 auto; width: 100%; }
+    .ledgr-view-padded { padding: 0; }
     .ledgr-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
     .ledgr-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
     .ledgr-acct-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -80,7 +80,6 @@ function useIsMobile() {
 
     @media (max-width: 768px) {
       .ledgr-content { padding: 0 !important; }
-      .ledgr-view-padded { padding: 0 !important; }
       .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 8px !important; justify-content: center !important; }
     }
 
@@ -4973,7 +4972,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,margin:"0 auto",padding:"28px 28px"}}>
+      <div style={{width:"100%",maxWidth:900,padding:"28px 28px"}}>
           <div>
 
         {/* Clarity header */}
@@ -5583,7 +5582,7 @@ function AppInner({ isDemo = false }) {
     };
 
     return (
-      <div style={{width:"100%",maxWidth:900,margin:"0 auto",padding:isMobile?"20px 16px":"28px 28px"}}>
+      <div style={{width:"100%",maxWidth:900,padding:isMobile?"20px 16px":"28px 28px"}}>
 
         {/* ── Page header ─────────────────────────────── */}
         <div style={{position:"relative",overflow:"hidden",marginBottom:0}}>
@@ -5757,7 +5756,7 @@ function AppInner({ isDemo = false }) {
     });
 
     return (
-      <div style={{ width: "100%", maxWidth: 900, margin: "0 auto", padding: isMobile ? "20px 16px" : "28px 28px" }}>
+      <div style={{ width: "100%", maxWidth: 900, padding: isMobile ? "20px 16px" : "28px 28px" }}>
 
         {/* ── Page header ─────────────────────────── */}
         <div style={{ position: "relative", overflow: "hidden", marginBottom: 0 }}>
@@ -6612,12 +6611,12 @@ function AppInner({ isDemo = false }) {
       <>
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
           {view === "analytics"
-            ? <div className="ledgr-view-enter ledgr-view-padded">{AnalyticsPage}</div>
+            ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900,padding:"20px 16px",boxSizing:"border-box"}}>{AnalyticsPage}</div></div>
             : view === "dashboard"
             ? <div key={navKey} className="ledgr-view-enter" style={{maxWidth:600,margin:"0 auto"}}>{VIEWS[view]}</div>
             : view === "calendar" || view === "rules"
             ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
-            : <div key={navKey} className="ledgr-view-enter ledgr-view-padded">{VIEWS[view]}</div>
+            : <div key={navKey} className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900,padding:"20px 16px",boxSizing:"border-box"}}>{VIEWS[view]}</div></div>
           }
         </div>
 
@@ -6676,12 +6675,12 @@ function AppInner({ isDemo = false }) {
             
             
             {view === "analytics"
-              ? <div className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{AnalyticsPage}</div>
+              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,padding:"28px 28px",boxSizing:"border-box"}}>{AnalyticsPage}</div></div>
               : view === "dashboard"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto"}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : <div key={navKey} className="ledgr-view-enter ledgr-view-padded" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900,padding:"28px 28px",boxSizing:"border-box"}}>{VIEWS[view]}</div></div>
             }
           </div>
           </div>{/* /max-width wrapper */}

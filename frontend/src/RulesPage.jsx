@@ -38,7 +38,7 @@ function injectCSS() {
   /* column header row */
   .rp-col-hdr {
     display: grid;
-    grid-template-columns: 1fr 120px 52px;
+    grid-template-columns: 1fr 100px 52px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     background: rgba(255,255,255,0.015);
     flex-shrink: 0;
@@ -61,7 +61,7 @@ function injectCSS() {
   /* rule rows */
   .rp-row {
     display: grid;
-    grid-template-columns: 1fr 120px 52px;
+    grid-template-columns: 1fr 100px 52px;
     align-items: center;
     border-bottom: 1px solid rgba(255,255,255,0.03);
     cursor: pointer;
@@ -79,7 +79,7 @@ function injectCSS() {
   .rp-cell-pat {
     padding: 10px 14px;
     display: flex; align-items: center; gap: 8px;
-    min-width: 0;
+    min-width: 0; overflow: hidden;
   }
   .rp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .rp-dot.override { border-radius: 2px; }
@@ -95,7 +95,7 @@ function injectCSS() {
     display: inline-flex; align-items: center; gap: 4px;
     font-size: 10px; font-weight: 600; padding: 2px 9px;
     border-radius: 99px; white-space: nowrap;
-    max-width: 108px; overflow: hidden; text-overflow: ellipsis;
+    max-width: 88px; overflow: hidden; text-overflow: ellipsis;
   }
   .rp-type-chip {
     display: inline-flex; align-items: center; gap: 4px;

@@ -16,7 +16,6 @@ import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
-import DashboardNew, { DashboardHero, DashboardContent } from "./components/DashboardNew.jsx";
 import LedgrBriefing from "./components/LedgrBriefing.jsx";
 import LedgrTransactions from "./components/LedgrTransactions.jsx";
 import LedgrAccounts from "./components/LedgrAccounts.jsx";
@@ -42,7 +41,6 @@ import { BottomNav, BOTTOM_NAV } from "./components/layout/BottomNav.jsx";
 import { InstallPrompt } from "./components/layout/InstallPrompt.jsx";
 import { PrivacyPolicy, TermsOfService } from "./auth/Legal.jsx";
 import { SecurityBadges } from "./auth/SecurityBadges.jsx";
-import CalendarAgenda from "./CalendarAgenda.jsx";
 import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
@@ -4545,29 +4543,7 @@ function AppInner({ isDemo = false }) {
   }, [goals, today, recurringTxns, recurringItems, transactions, categories, sortedCategories, spentByCat, selectedMonth,
       insightsTodos, isMobile, catMap]);
 
-  const Dashboard = (
-    <DashboardContent
-      isMobile={isMobile}
-      selectedMonth={selectedMonth}
-      isCurrentMonth={isCurrentMonth}
-      prevMonth={prevMonth}
-      nextMonth={nextMonth}
-      monthLabel={monthLabel}
-      totalSpent={totalSpent}
-      totalIncome={totalIncome}
-      totalBudget={totalBudget}
-      spentByCat={spentByCat}
-      sortedCategories={sortedCategories}
-      categories={categories}
-      catMap={catMap}
-      monthTxns={monthTxns}
-      recurringItems={recurringItems}
-      goals={goals}
-      navigate={navigate}
-      fmt={fmt}
-      today={today}
-    />
-  );
+  const Dashboard = null; // rendered via early return above
 
 
   /* -- Transactions -- */
@@ -5762,15 +5738,6 @@ function AppInner({ isDemo = false }) {
       /* ── MOBILE — bottom nav ── */
       <>
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
-            <DashboardHero
-              isMobile={isMobile}
-              selectedMonth={selectedMonth} isCurrentMonth={isCurrentMonth}
-              prevMonth={prevMonth} nextMonth={nextMonth} monthLabel={monthLabel}
-              totalSpent={totalSpent} totalIncome={totalIncome} totalBudget={totalBudget}
-              spentByCat={spentByCat} categories={categories}
-              monthTxns={monthTxns} recurringItems={recurringItems}
-              fmt={fmt} today={today}
-            />
           {view === "analytics"
             ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>
             : view === "dashboard"
@@ -5835,15 +5802,6 @@ function AppInner({ isDemo = false }) {
           <div style={{flex:1,minWidth:0,position:"relative"}}>
             
             
-            <DashboardHero
-              isMobile={isMobile}
-              selectedMonth={selectedMonth} isCurrentMonth={isCurrentMonth}
-              prevMonth={prevMonth} nextMonth={nextMonth} monthLabel={monthLabel}
-              totalSpent={totalSpent} totalIncome={totalIncome} totalBudget={totalBudget}
-              spentByCat={spentByCat} categories={categories}
-              monthTxns={monthTxns} recurringItems={recurringItems}
-              fmt={fmt} today={today}
-            />
             {view === "analytics"
               ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>
               : view === "dashboard"

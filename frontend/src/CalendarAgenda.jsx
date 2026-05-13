@@ -134,6 +134,16 @@ function injectCSS() {
   .ag-split-acct-amt { font-size: 11px; font-family: var(--font-mono,'JetBrains Mono',monospace); font-weight: 600; color: rgba(232,221,208,0.8); }
   .ag-split-divider { height: 1px; background: rgba(255,255,255,0.04); margin: 0 12px 4px; }
 
+  /* ── Today chip + next-up card (concept 3) ── */
+  .ag-today-chip-row { display: flex; align-items: center; gap: 10px; padding: 8px 24px; }
+  .ag-today-chip { display: flex; align-items: center; gap: 6px; background: rgba(201,149,106,0.1); border: 1px solid rgba(201,149,106,0.28); border-radius: 99px; padding: 4px 12px; font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 10px; font-weight: 600; color: #c9956a; letter-spacing: 0.3px; flex-shrink: 0; }
+  .ag-today-chip-dot { width: 5px; height: 5px; border-radius: 50%; background: #c9956a; }
+  .ag-today-chip-rule { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(201,149,106,0.15), transparent); }
+  .ag-next-up { margin: 2px 16px 8px; border-radius: 8px; background: rgba(201,149,106,0.06); border: 1px solid rgba(201,149,106,0.14); overflow: hidden; }
+  .ag-next-up-label { font-family: var(--font-mono,'JetBrains Mono',monospace); font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(201,149,106,0.55); padding: 7px 14px 0; }
+  .ag-day-block.past { opacity: 0.35; }
+  .ag-day-block.past .ag-entry { pointer-events: none; }
+
   /* ── Mobile: stack columns ── */
   @media (max-width: 767px) {
     .ag-body { grid-template-columns: 1fr; }
@@ -617,21 +627,73 @@ export default function CalendarAgenda({
                   + Add Recurring Item
                 </button>
               </div>
-            ) : (
-              agendaDays.map(({ day, entries }) => {
-                const isToday = isCurrentMonth && day === today.getDate();
-                const headCls = ['ag-day-head', isToday && 'is-today'].filter(Boolean).join(' ');
+            ) : (() => {
+              const todayNum = today.getDate();
+              const chipInserted = { done: false };
+
+              // Find the first upcoming entry (today or future) for "next up"
+              let nextUpEntry = null;
+              let nextUpDay   = null;
+              for (const { day, entries } of agendaDays) {
+                if (!isCurrentMonth || day >= todayNum) {
+                  const upcoming = entries.find(t => {
+                    const isInc = t.type === 'income' || (t.amount != null && t.amount > 0);
+                    return !isInc; // show next expense as "up next"
+                  }) || entries[0];
+                  if (upcoming) { nextUpEntry = upcoming; nextUpDay = day; break; }
+                }
+              }
+
+              return agendaDays.map(({ day, entries }) => {
+                const isToday  = isCurrentMonth && day === todayNum;
+                const isPast   = isCurrentMonth && day < todayNum;
+                const isFuture = !isCurrentMonth || day > todayNum;
+                const headCls  = ['ag-day-head', isToday && 'is-today'].filter(Boolean).join(' ');
+                const blockCls = ['ag-day-block', isPast && 'past'].filter(Boolean).join(' ');
+
+                // Insert chip + next-up before the first non-past day
+                const insertChip = isCurrentMonth && !chipInserted.done && (isToday || isFuture);
+                if (insertChip) chipInserted.done = true;
+
+                const todayLabel = (() => {
+                  const d = today;
+                  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                })();
+
                 return (
-                  <div key={day} className="ag-day-block" ref={el => { dayRefs.current[day] = el; }}>
-                    <div className={headCls}>
-                      <div className="ag-day-num">{day}</div>
-                      <div className="ag-day-weekday">{dayWeekday(day)}</div>
+                  <div key={day}>
+                    {insertChip && (
+                      <>
+                        {/* Today chip + rule */}
+                        <div className="ag-today-chip-row">
+                          <div className="ag-today-chip">
+                            <div className="ag-today-chip-dot" />
+                            Today, {todayLabel}
+                          </div>
+                          <div className="ag-today-chip-rule" />
+                        </div>
+
+                        {/* Next-up card — only if it's a future/today item */}
+                        {nextUpEntry && (
+                          <div className="ag-next-up">
+                            <div className="ag-next-up-label">↑ up next</div>
+                            {renderEntry(nextUpEntry, nextUpDay === todayNum)}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    <div className={blockCls} ref={el => { dayRefs.current[day] = el; }}>
+                      <div className={headCls}>
+                        <div className="ag-day-num">{day}</div>
+                        <div className="ag-day-weekday">{dayWeekday(day)}</div>
+                      </div>
+                      {entries.map(t => renderEntry(t, isToday))}
                     </div>
-                    {entries.map(t => renderEntry(t, isToday))}
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </div>
 

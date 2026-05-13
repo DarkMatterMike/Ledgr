@@ -135,9 +135,10 @@ function injectCSS() {
 
   /* pattern hero */
   .rp-d-pattern {
-    font-family: var(--font-mono); font-size: 22px; font-weight: 700;
-    color: var(--t1); letter-spacing: -0.5px; word-break: break-all;
-    line-height: 1.1;
+    font-family: var(--font-mono); font-size: 18px; font-weight: 700;
+    color: var(--t1); letter-spacing: -0.5px;
+    line-height: 1.1; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .rp-d-subline {
     font-family: var(--font-mono); font-size: 9px; color: var(--t3);

@@ -19,6 +19,8 @@ import { useState, useMemo, useRef } from "react";
 
 const SHARED_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
+  .lb-root *, .lb-root *::before, .lb-root *::after { box-sizing: border-box; }
+  .lb-root h1, .lb-root h2, .lb-root h3, .lb-root h4, .lb-root p { margin: 0; padding: 0; }
   .lb-root {
     --bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;
     --line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);
@@ -36,9 +38,9 @@ const SHARED_CSS = `
     color:var(--ink-0);
     -webkit-font-smoothing:antialiased;
   }
-  .lb-shell { display:flex;flex:1;min-height:100vh; }
-  .lb-page       { background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; }
-  .lb-frame      { background: var(--bg-1); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 80px rgba(0,0,0,0.4); }
+  .lb-shell { display:grid;grid-template-columns:64px 1fr;flex:1;min-height:800px; }
+  .lb-page       { background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; position: relative; }
+  .lb-frame      { background: var(--bg-1); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; min-height: 600px; box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 80px rgba(0,0,0,0.4); }
   @media(max-width: 1000px) { .lb-page { padding: 20px 16px 60px; } }
   @media(max-width: 600px)  { .lb-page { padding: 0; } .lb-frame { border-radius: 0; border: none; } }
   .lb-sidenav { width:64px;border-right:1px solid var(--line);background:var(--bg-1);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0; }
@@ -48,7 +50,7 @@ const SHARED_CSS = `
   .lb-nav-item.active { color:var(--safe);background:var(--safe-bg); }
   .lb-nav-spacer { flex:1; }
   .lt-main { flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden; }
-  .lt-topbar { height:60px;padding:0 52px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
+  .lt-topbar { height:60px;padding:0 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0; }
   .lt-topbar-left { display:flex;align-items:baseline;gap:16px; }
   .lt-label { font-family:var(--font-mono);font-size:11px;color:var(--ink-3); }
   .lt-title { font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px; }
@@ -62,10 +64,10 @@ const SHARED_CSS = `
   .lt-btn:hover { border-color:var(--line-3);color:var(--ink-0); }
   .lt-btn.active { background:var(--safe-bg);border-color:rgba(93,202,165,0.4);color:var(--safe); }
   .lt-btn.primary { background:var(--safe-bg);border-color:rgba(93,202,165,0.4);color:var(--safe); }
-  .lt-filter-bar { padding:16px 52px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-1); }
+  .lt-filter-bar { padding:16px 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-1); }
   .lt-filter-select { background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-family:var(--font-mono);color:var(--ink-1);cursor:pointer;outline:none;-webkit-appearance:none;appearance:none; }
   .lt-summary-strip { display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);flex-shrink:0; }
-  .lt-summary-cell { padding:14px 52px;border-right:1px solid var(--line); }
+  .lt-summary-cell { padding:14px 32px;border-right:1px solid var(--line); }
   .lt-summary-cell:last-child { border-right:none; }
   .lt-summary-label { font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px; }
   .lt-summary-val { font-family:var(--font-mono);font-size:20px;font-weight:500; }
@@ -142,6 +144,8 @@ export default function LedgrTransactions({
   isMobile = false,
   navigate = () => {},
 }) {
+  const initials = accounts[0]?.institution?.slice(0,2).toUpperCase() || "ME";
+
   const [bulkCatOpen, setBulkCatOpen] = useState(false);
 
   // Sort
@@ -218,7 +222,7 @@ export default function LedgrTransactions({
         background: "radial-gradient(ellipse at 15% 0%,rgba(108,140,255,0.03),transparent 40%)" }} />
 
       <div className="lb-root" style={{ display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
-        <div className="lb-shell">
+        <div className="lb-root lb-shell">
           {/* Sidenav */}
           <nav className="lb-sidenav">
             <div className="lb-logo" />
@@ -239,6 +243,13 @@ export default function LedgrTransactions({
                 <span className="lt-sub">{todayLabel}</span>
               </div>
               <div className="lt-topbar-right">
+                                <div style={{ background:"var(--bg-2)", border:"1px solid var(--line)", borderRadius:8, padding:"7px 14px", fontSize:12, color:"var(--ink-3)", fontFamily:"var(--font-mono)", display:"flex", alignItems:"center", gap:8, minWidth:240 }}>
+                  <span style={{color:"var(--ink-2)"}}>⌕</span> ask anything…
+                  <span style={{marginLeft:"auto", fontSize:10, padding:"1px 6px", background:"var(--bg-3)", borderRadius:4, color:"var(--ink-3)"}}>⌘K</span>
+                </div>
+                <div style={{ width:30, height:30, borderRadius:"50%", background:"linear-gradient(135deg,var(--goal-d,#2a1f5e),var(--goal,#a78bff))", fontSize:11, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ink-0)", fontWeight:500, flexShrink:0 }}>
+                  {initials}
+                </div>
                 <button className="lt-btn primary" onClick={openAddTxn}>+ Add</button>
               </div>
             </div>

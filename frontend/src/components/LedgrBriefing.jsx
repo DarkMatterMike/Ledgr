@@ -26,6 +26,8 @@ import { useState, useMemo } from "react";
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
 
+  .lb-root *, .lb-root *::before, .lb-root *::after { box-sizing: border-box; }
+  .lb-root h1, .lb-root h2, .lb-root h3, .lb-root h4, .lb-root p, .lb-root ul, .lb-root ol { margin: 0; padding: 0; }
   .lb-root {
     --bg-0: #07090d;
     --bg-1: #0b0e14;
@@ -56,12 +58,12 @@ const CSS = `
     -webkit-font-smoothing: antialiased;
   }
 
-  .lb-page       { background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; }
-  .lb-frame      { background: var(--bg-1); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 80px rgba(0,0,0,0.4); }
+  .lb-page       { background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; position: relative; }
+  .lb-frame      { background: var(--bg-1); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; min-height: 600px; box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 80px rgba(0,0,0,0.4); }
   @media(max-width: 1000px) { .lb-page { padding: 20px 16px 60px; } }
   @media(max-width: 600px)  { .lb-page { padding: 0; } .lb-frame { border-radius: 0; border: none; } }
   /* layout shell */
-  .lb-shell   { display: flex; flex: 1; position: relative; }
+  .lb-shell   { display: grid; grid-template-columns: 64px 320px 1fr; min-height: 800px; }
   .lb-sidenav { width: 64px; border-right: 1px solid var(--line); background: var(--bg-1);
                 padding: 24px 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
                 flex-shrink: 0; }
@@ -76,8 +78,8 @@ const CSS = `
   .lb-nav-spacer { flex: 1; }
 
   /* left agenda */
-  .lb-agenda  { width: 300px; border-right: 1px solid var(--line); background: var(--bg-1);
-                padding: 24px 20px; overflow-y: auto; flex-shrink: 0; }
+  .lb-agenda  { border-right: 1px solid var(--line); background: var(--bg-1);
+                padding: 24px 22px; overflow-y: auto; }
 
   /* mini calendar */
   .lb-cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -119,10 +121,10 @@ const CSS = `
                        border-radius: 8px; text-align: center; color: var(--warn); font-size: 12px; cursor: pointer; }
 
   /* main content */
-  .lb-main   { flex: 1; padding: 36px 52px; overflow-y: auto; min-width: 0; }
+  .lb-main   { padding: 36px 40px; overflow-y: auto; min-width: 0; }
 
   /* topbar */
-  .lb-topbar { border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 28px;
+  .lb-topbar { border-bottom: 1px solid var(--line); padding: 0 0 20px; height: auto; margin-bottom: 28px;
                display: flex; align-items: center; justify-content: space-between; }
   .lb-topbar-left  { display: flex; align-items: baseline; gap: 16px; }
   .lb-topbar-label { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
@@ -132,7 +134,7 @@ const CSS = `
   .lb-topbar-right { display: flex; align-items: center; gap: 14px; }
   .lb-search  { background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px;
                 padding: 7px 14px; font-size: 12px; color: var(--ink-3); font-family: var(--font-mono);
-                display: flex; align-items: center; gap: 8px; min-width: 220px; }
+                display: flex; align-items: center; gap: 8px; min-width: 240px; }
   .lb-kbd     { margin-left: auto; font-size: 10px; padding: 1px 6px; background: var(--bg-3);
                 border-radius: 4px; color: var(--ink-3); }
   .lb-avatar  { width: 30px; height: 30px; border-radius: 50%;
@@ -145,17 +147,17 @@ const CSS = `
                 font-weight: 500; margin-bottom: 8px; }
 
   /* hero headline */
-  .lb-headline { font-family: var(--font-display); font-size: 52px; line-height: 1.02;
+  .lb-headline { font-family: var(--font-display); font-size: 56px; line-height: 1.02;
                  letter-spacing: -1.5px; font-weight: 400; margin-bottom: 20px; }
   .lb-headline .green { font-style: italic; color: var(--safe); }
-  .lb-deck    { font-size: 16px; color: var(--ink-1); line-height: 1.65; max-width: 580px; margin-bottom: 28px; }
+  .lb-deck    { font-size: 16px; color: var(--ink-1); line-height: 1.65; max-width: 580px; margin-bottom: 0; }
   .lb-deck .amt  { font-style: normal; font-family: var(--font-mono); color: var(--safe); }
   .lb-deck .debt { font-style: normal; font-family: var(--font-mono); color: var(--debt); }
   .lb-deck .calm { font-style: normal; font-family: var(--font-mono); color: var(--calm); }
 
   /* callout box */
-  .lb-callout { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-xl);
-                padding: 28px; display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: center; }
+  .lb-callout { margin-top: 28px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-xl);
+                padding: 28px; display: grid; grid-template-columns: 240px 1fr; gap: 28px; align-items: center; }
   .lb-callout-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
   .lb-stat    { border-left: 1px solid var(--line-2); padding-left: 14px; }
   .lb-stat .l { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink-3); }
@@ -166,7 +168,7 @@ const CSS = `
   .lb-stat .s { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
 
   /* allocation bar */
-  .lb-alloc   { margin-top: 28px; background: var(--bg-2); border: 1px solid var(--line);
+  .lb-alloc   { margin-top: 12px; background: var(--bg-2); border: 1px solid var(--line);
                 border-radius: var(--r-lg); padding: 22px 24px; }
   .lb-alloc-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
   .lb-alloc-head h4 { font-family: var(--font-display); font-size: 24px; font-weight: 400; letter-spacing: -0.4px; }
@@ -504,291 +506,214 @@ export default function LedgrBriefing({
     <>
       <style>{CSS}</style>
 
-      {/* ambient glow */}
       <div className="lb-page">
-        <div className="lb-frame">
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
-        background: "radial-gradient(ellipse at 15% 0%, rgba(108,140,255,0.03), transparent 40%), radial-gradient(ellipse at 85% 100%, rgba(93,202,165,0.025), transparent 50%)",
-      }}/>
-
-      <div className="lb-root" style={{ position: "relative", zIndex: 1 }}>
-        {/* browser chrome bar */}
+        {/* ambient glow — inside lb-page which is position:relative */}
         <div style={{
-          height: 40, background: "var(--bg-2)", borderBottom: "1px solid var(--line)",
-          display: "flex", alignItems: "center", padding: "0 18px", gap: 8,
-        }}>
-          {[1,2,3].map(i => <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--ink-4)" }}/>)}
-          <span style={{ marginLeft: 14, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.4px" }}>
-            app.ledgr.app / home
-          </span>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16, fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--safe)", boxShadow: "0 0 8px var(--safe)", display: "inline-block" }}/>
-              live · synced just now
+          position: "absolute", inset: 0, pointerEvents: "none",
+          background: "radial-gradient(ellipse at 15% 0%, rgba(108,140,255,0.04), transparent 40%), radial-gradient(ellipse at 85% 100%, rgba(93,202,165,0.03), transparent 50%)",
+        }}/>
+
+        {/* frame — bordered rounded card */}
+        <div className="lb-frame">
+
+          {/* browser chrome bar */}
+          <div style={{
+            height: 40, background: "var(--bg-2)", borderBottom: "1px solid var(--line)",
+            display: "flex", alignItems: "center", padding: "0 18px", gap: 8, flexShrink: 0,
+          }}>
+            {[1,2,3].map(i => <div key={i} style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--ink-4)" }}/>)}
+            <span style={{ marginLeft: 14, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.4px" }}>
+              app.ledgr.app / home
             </span>
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16, fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-mono)" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--safe)", boxShadow: "0 0 8px var(--safe)", display: "inline-block" }}/>
+                live · synced just now
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="lb-shell">
-          {/* side nav */}
-          <nav className="lb-sidenav">
-            <div className="lb-logo"/>
-            {[
-              { icon: "◐", id: "dashboard",    active: true  },
-              { icon: "▦", id: "calendar",     active: false },
-              { icon: "◇", id: "accounts",     active: false },
-              { icon: "⌥", id: "transactions", active: false },
-              { icon: "◆", id: "goals",        active: false },
-            ].map(n => (
-              <div key={n.id} className={`lb-nav-item${n.active ? " active" : ""}`}
-                   onClick={() => navigate(n.id)} title={n.id}>
-                {n.icon}
-              </div>
-            ))}
-            <div className="lb-nav-spacer"/>
-            <div className="lb-nav-item" onClick={() => navigate("settings")}>⚙</div>
-          </nav>
+          {/* brief grid: sidenav | agenda | main */}
+          <div className="lb-root lb-shell">
 
-          {/* left agenda panel */}
-          <aside className="lb-agenda">
-            <MiniCalendar today={today} billDays={billDays} incDays={incDays} mixDays={mixDays}/>
-
-            <div className="lb-mini-stats">
-              <div className="row">
-                <span className="l">Monthly expenses</span>
-                <span className="v debt">{fmt(totalSpent)}</span>
-              </div>
-              <div className="row">
-                <span className="l">Expected income</span>
-                <span className="v safe">+{fmt(totalIncome)}</span>
-              </div>
-              <div className="row">
-                <span className="l">Posted so far</span>
-                <span className="v">{fmt(Math.abs(totalBalance - safeToSpend))}</span>
-              </div>
-              <div className="row">
-                <span className="l">Safe to spend</span>
-                <span className="v calm">{fmt(safeToSpend)}</span>
-              </div>
-            </div>
-
-            {/* paycheck planning */}
-            <div className="lb-paycheck-lbl">Paycheck planning</div>
-
-            {/* first half */}
-            <div className="lb-paycheck-card">
-              <div>
-                <div className="lb-paycheck-days">Days</div>
-                <div className="lb-paycheck-range">1 – 15</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontFamily: "var(--font-mono)", color: "var(--safe)", fontSize: 13 }}>
-                  +{fmt(halfIncome)}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", color: "var(--debt)", fontSize: 13 }}>
-                  −{fmt(halfBills)}
-                </span>
-              </div>
-              <span style={{ color: "var(--ink-3)", fontSize: 14 }}>▾</span>
-            </div>
-
-            {/* second half */}
-            <div className="lb-paycheck-card">
-              <div>
-                <div className="lb-paycheck-days">Days</div>
-                <div className="lb-paycheck-range" style={{ lineHeight: 1.1 }}>16 –<br/>End</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span style={{ fontFamily: "var(--font-mono)", color: "var(--safe)", fontSize: 13 }}>
-                  +{fmt(halfIncome)}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", color: "var(--debt)", fontSize: 13 }}>
-                  −{fmt(scheduledBillsTotal - halfBills)}
-                </span>
-              </div>
-              <span style={{ color: "var(--ink-3)", fontSize: 14 }}>▾</span>
-            </div>
-
-            <div className="lb-paycheck-add" onClick={() => navigate("calendar")}>
-              + Add Recurring Item
-            </div>
-          </aside>
-
-          {/* main content */}
-          <main className="lb-main">
-            {/* topbar */}
-            <div className="lb-topbar">
-              <div className="lb-topbar-left">
-                <span className="lb-topbar-label">ii ·</span>
-                <span className="lb-topbar-title" style={{ fontFamily: "var(--font-display)" }}>Briefing</span>
-                <span className="lb-topbar-div"/>
-                <span className="lb-topbar-sub">{todayLabel}</span>
-              </div>
-              <div className="lb-topbar-right">
-                <div className="lb-search">
-                  <span style={{ color: "var(--ink-2)" }}>⌕</span>
-                  ask anything…
-                  <span className="lb-kbd">⌘ K</span>
+            {/* sidenav */}
+            <nav className="lb-sidenav">
+              <div className="lb-logo"/>
+              {[
+                { icon: "◐", id: "dashboard",    active: true  },
+                { icon: "▦", id: "calendar",     active: false },
+                { icon: "◇", id: "accounts",     active: false },
+                { icon: "⇅", id: "transactions", active: false },
+                { icon: "◆", id: "goals",        active: false },
+              ].map(n => (
+                <div key={n.id} className={`lb-nav-item${n.active ? " active" : ""}`}
+                     onClick={() => navigate(n.id)} title={n.id}>
+                  {n.icon}
                 </div>
-                <div className="lb-avatar">{initials}</div>
+              ))}
+              <div className="lb-nav-spacer"/>
+              <div className="lb-nav-item" onClick={() => navigate("settings")}>⚙</div>
+            </nav>
+
+            {/* left agenda panel */}
+            <aside className="lb-agenda">
+              <MiniCalendar today={today} billDays={billDays} incDays={incDays} mixDays={mixDays}/>
+
+              <div className="lb-mini-stats">
+                <div className="row"><span className="l">Monthly expenses</span><span className="v debt">{fmt(totalSpent)}</span></div>
+                <div className="row"><span className="l">Expected income</span><span className="v safe">+{fmt(totalIncome)}</span></div>
+                <div className="row"><span className="l">Posted so far</span><span className="v">{fmt(Math.abs(totalBalance - safeToSpend))}</span></div>
+                <div className="row"><span className="l">Safe to spend</span><span className="v calm">{fmt(safeToSpend)}</span></div>
               </div>
-            </div>
 
-            {/* hero section */}
-            <div style={{ marginBottom: 28 }}>
-              <div className="lb-eyebrow">
-                Good {today.getHours() < 12 ? "morning" : today.getHours() < 17 ? "afternoon" : "evening"} · the headline
-              </div>
-
-              <h2 className="lb-headline">
-                After everything you owe, you have{" "}
-                <span className="green">{fmt(safeToSpend)}</span> truly free.
-              </h2>
-
-              <p className="lb-deck">
-                {daysToPayday != null
-                  ? <>That's <em className="amt">{daysToPayday} day{daysToPayday !== 1 ? "s" : ""}</em> of room until your next paycheck
-                     {nextPayDay ? ` on ${MONTH_NAMES[today.getMonth()]} ${nextPayDay}` : ""}.</>
-                  : <>Your funds are calculated across all accounts.</>
-                }{" "}
-                You've got <em className="debt">{fmt(scheduledBillsTotal)}</em> in scheduled bills already
-                accounted for. The pressure gauge is sitting{" "}
-                <em className="amt">{pressureLabel}</em>.{" "}
-                {upcomingBills.length === 0
-                  ? "No surprises in the queue."
-                  : `${upcomingBills.length} item${upcomingBills.length > 1 ? "s" : ""} upcoming.`
-                }
-              </p>
-
-              {/* callout: gauge + stats */}
-              <div className="lb-callout">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 160 }}>
-                  <PressureGauge pressurePct={pressurePct}/>
+              <div className="lb-paycheck-lbl">Paycheck planning</div>
+              <div className="lb-paycheck-card">
+                <div>
+                  <div className="lb-paycheck-days">Days</div>
+                  <div className="lb-paycheck-range">1 – 15</div>
                 </div>
-                <div className="lb-callout-stats">
-                  <div className="lb-stat">
-                    <div className="l">Safe to spend</div>
-                    <div className="v safe">{fmt(safeToSpend)}</div>
-                    <div className="s">{daysToPayday != null ? `over ${daysToPayday} days` : "right now"}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--safe)", fontSize: 13 }}>+{fmt(halfIncome)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--debt)", fontSize: 13 }}>−{fmt(halfBills)}</span>
+                </div>
+                <span style={{ color: "var(--ink-3)", fontSize: 14 }}>▾</span>
+              </div>
+              <div className="lb-paycheck-card">
+                <div>
+                  <div className="lb-paycheck-days">Days</div>
+                  <div className="lb-paycheck-range" style={{ lineHeight: 1.1 }}>16 –<br/>End</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--safe)", fontSize: 13 }}>+{fmt(halfIncome)}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", color: "var(--debt)", fontSize: 13 }}>−{fmt(scheduledBillsTotal - halfBills)}</span>
+                </div>
+                <span style={{ color: "var(--ink-3)", fontSize: 14 }}>▾</span>
+              </div>
+              <div className="lb-paycheck-add" onClick={() => navigate("calendar")}>+ Add Recurring Item</div>
+            </aside>
+
+            {/* main content */}
+            <main className="lb-main">
+              {/* topbar */}
+              <div className="lb-topbar">
+                <div className="lb-topbar-left">
+                  <span className="lb-topbar-label">ii ·</span>
+                  <span className="lb-topbar-title" style={{ fontFamily: "var(--font-display)" }}>Briefing</span>
+                  <span className="lb-topbar-div"/>
+                  <span className="lb-topbar-sub">{todayLabel}</span>
+                </div>
+                <div className="lb-topbar-right">
+                  <div className="lb-search">
+                    <span style={{ color: "var(--ink-2)" }}>⌕</span>
+                    ask anything…
+                    <span className="lb-kbd">⌘ K</span>
                   </div>
-                  <div className="lb-stat">
-                    <div className="l">Daily pace</div>
-                    <div className="v">
-                      {dailyPace != null ? `$${dailyPace.toLocaleString()}` : "—"}
-                      <span style={{ fontSize: 12, color: "var(--ink-3)" }}>/d</span>
+                  <div className="lb-avatar">{initials}</div>
+                </div>
+              </div>
+
+              {/* hero section */}
+              <div style={{ marginBottom: 40 }}>
+                <div className="lb-eyebrow">
+                  Good {today.getHours() < 12 ? "morning" : today.getHours() < 17 ? "afternoon" : "evening"} · the headline
+                </div>
+                <h2 className="lb-headline">
+                  After everything you owe, you have{" "}
+                  <span className="green">{fmt(safeToSpend)}</span> truly free.
+                </h2>
+                <p className="lb-deck">
+                  {daysToPayday != null
+                    ? <>That's <em className="amt">{daysToPayday} day{daysToPayday !== 1 ? "s" : ""}</em> of room until your next paycheck{nextPayDay ? ` on ${MONTH_NAMES[today.getMonth()]} ${nextPayDay}` : ""}.</>
+                    : <>Your funds are calculated across all accounts.</>
+                  }{" "}
+                  You've got <em className="debt">{fmt(scheduledBillsTotal)}</em> in scheduled bills already accounted for. The pressure gauge is sitting <em className="amt">{pressureLabel}</em>.{" "}
+                  {upcomingBills.length === 0 ? "No surprises in the queue." : `${upcomingBills.length} item${upcomingBills.length > 1 ? "s" : ""} upcoming.`}
+                </p>
+
+                {/* callout: gauge + stats */}
+                <div className="lb-callout">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 160 }}>
+                    <PressureGauge pressurePct={pressurePct}/>
+                  </div>
+                  <div className="lb-callout-stats">
+                    <div className="lb-stat">
+                      <div className="l">Safe to spend</div>
+                      <div className="v safe">{fmt(safeToSpend)}</div>
+                      <div className="s">{daysToPayday != null ? `over ${daysToPayday} days` : "right now"}</div>
                     </div>
-                    <div className="s">if spread evenly</div>
-                  </div>
-                  <div className="lb-stat">
-                    <div className="l">Bills incoming</div>
-                    <div className="v debt">{fmt(scheduledBillsTotal)}</div>
-                    <div className="s">{upcomingBills.length} scheduled · all expected</div>
-                  </div>
-                  <div className="lb-stat">
-                    <div className="l">Next paycheck</div>
-                    <div className="v calm">
-                      {nextPaycheck
-                        ? `+${fmt(nextPaycheck.amountMin || 0)}`
-                        : accounts.filter(a => a.type === "savings").length
-                          ? `+${fmt(accounts.filter(a => a.type === "savings").reduce((s,a)=>s+(a.balance||0),0))}`
-                          : "—"
-                      }
+                    <div className="lb-stat">
+                      <div className="l">Daily pace</div>
+                      <div className="v">{dailyPace != null ? `$${dailyPace.toLocaleString()}` : "—"}<span style={{ fontSize: 12, color: "var(--ink-3)" }}>/d</span></div>
+                      <div className="s">if spread evenly</div>
                     </div>
-                    <div className="s">
-                      {nextPayDay && daysToPayday != null
-                        ? `${MONTH_NAMES[today.getMonth()]} ${nextPayDay} · ${daysToPayday} days`
-                        : "check calendar"
-                      }
+                    <div className="lb-stat">
+                      <div className="l">Bills incoming</div>
+                      <div className="v debt">{fmt(scheduledBillsTotal)}</div>
+                      <div className="s">{upcomingBills.length} scheduled · all expected</div>
+                    </div>
+                    <div className="lb-stat">
+                      <div className="l">Next paycheck</div>
+                      <div className="v calm">
+                        {nextPaycheck ? `+${fmt(nextPaycheck.amountMin || 0)}` : accounts.filter(a => a.type === "savings").length ? `+${fmt(accounts.filter(a => a.type === "savings").reduce((s,a)=>s+(a.balance||0),0))}` : "—"}
+                      </div>
+                      <div className="s">{nextPayDay && daysToPayday != null ? `${MONTH_NAMES[today.getMonth()]} ${nextPayDay} · ${daysToPayday} days` : "check calendar"}</div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* allocation bar */}
-            <div className="lb-alloc">
-              <div className="lb-alloc-head">
-                <h4>Where your <em>{fmt(allocTotal)}</em> is going</h4>
-                <span className="total">total across checking + buffer</span>
+              {/* allocation bar */}
+              <div className="lb-alloc">
+                <div className="lb-alloc-head">
+                  <h4>Where your <em>{fmt(allocTotal)}</em> is going</h4>
+                  <span className="total">total across checking + buffer</span>
+                </div>
+                <div className="lb-alloc-track">
+                  <div className="seg free"    style={{ flex: allocFree || 1 }}>{allocFree > allocTotal * 0.15 ? `${fmt(allocFree)} free` : ""}</div>
+                  <div className="seg bills"   style={{ flex: allocBill || 1 }}>{allocBill > allocTotal * 0.15 ? `${fmt(allocBill)} bills` : ""}</div>
+                  {allocCush > 0 && <div className="seg cushion" style={{ flex: allocCush }}>{allocCush > allocTotal * 0.12 ? `${fmt(allocCush)} cushion` : ""}</div>}
+                  {allocGoal > 0 && <div className="seg goals"   style={{ flex: allocGoal }}>{allocGoal > allocTotal * 0.1  ? `${fmt(allocGoal)} goals` : ""}</div>}
+                  {allocFlex > 0 && <div className="seg flex"    style={{ flex: allocFlex }}>{allocFlex > allocTotal * 0.08 ? `${fmt(allocFlex)} flex` : ""}</div>}
+                </div>
+                <div className="lb-alloc-legend">
+                  <span><span className="lb-led safe"/>&nbsp;Free · safe to spend</span>
+                  <span><span className="lb-led debt"/>&nbsp;Bills ahead</span>
+                  <span><span className="lb-led calm"/>&nbsp;Cushion (auto)</span>
+                  {goals.length > 0 && <span><span className="lb-led goal"/>&nbsp;Goals</span>}
+                  <span><span className="lb-led warn"/>&nbsp;Flex pool</span>
+                </div>
               </div>
-              <div className="lb-alloc-track">
-                <div className="seg free"    style={{ flex: allocFree || 1 }}>
-                  {allocFree > allocTotal * 0.15 ? `${fmt(allocFree)} free` : ""}
+
+              {/* what-if */}
+              <div className="lb-whatif">
+                <div className="lb-whatif-head">
+                  <h4>If you <em>did this</em>, what would it look like?</h4>
+                  <span className="lb-whatif-hint">tap to preview</span>
                 </div>
-                <div className="seg bills"   style={{ flex: allocBill || 1 }}>
-                  {allocBill > allocTotal * 0.15 ? `${fmt(allocBill)} bills` : ""}
+                <div className="lb-whatif-row">
+                  {whatIfScenarios.map((s, i) => (
+                    <div key={i} className={`lb-whatif-card${selectedWhatIf === i ? " selected" : ""}`} onClick={() => setSelectedWhatIf(i)}>
+                      <div className="lb-whatif-nm">{s.nm}</div>
+                      <div className="lb-whatif-delta">
+                        <span>Safe-to-spend</span>
+                        <span className={`v ${s.pos ? "pos" : "neg"}`}>{s.pos ? "+" : "−"}${s.delta.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {allocCush > 0 && (
-                  <div className="seg cushion" style={{ flex: allocCush }}>
-                    {allocCush > allocTotal * 0.12 ? `${fmt(allocCush)} cushion` : ""}
-                  </div>
-                )}
-                {allocGoal > 0 && (
-                  <div className="seg goals"   style={{ flex: allocGoal }}>
-                    {allocGoal > allocTotal * 0.1 ? `${fmt(allocGoal)} goals` : ""}
-                  </div>
-                )}
-                {allocFlex > 0 && (
-                  <div className="seg flex"    style={{ flex: allocFlex }}>
-                    {allocFlex > allocTotal * 0.08 ? `${fmt(allocFlex)} flex` : ""}
+                {whatIfScenarios[selectedWhatIf] && (
+                  <div style={{ marginTop: 12, padding: "16px 20px", background: "rgba(93,202,165,0.04)", border: "1px solid rgba(93,202,165,0.2)", borderRadius: "var(--r-md)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 13, color: "var(--ink-2)", fontStyle: "italic" }}>"{whatIfScenarios[selectedWhatIf].nm}"</span>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: "-0.8px", color: whatIfScenarios[selectedWhatIf].pos ? "var(--safe)" : "var(--debt)" }}>
+                      {fmt(safeToSpend + (whatIfScenarios[selectedWhatIf].pos ? 1 : -1) * whatIfScenarios[selectedWhatIf].delta)}
+                    </span>
                   </div>
                 )}
               </div>
-              <div className="lb-alloc-legend">
-                <span><span className="lb-led safe"/>&nbsp;Free · safe to spend</span>
-                <span><span className="lb-led debt"/>&nbsp;Bills ahead</span>
-                <span><span className="lb-led calm"/>&nbsp;Cushion (auto)</span>
-                {goals.length > 0 && <span><span className="lb-led goal"/>&nbsp;Goals</span>}
-                <span><span className="lb-led warn"/>&nbsp;Flex pool</span>
-              </div>
-            </div>
 
-            {/* what-if */}
-            <div className="lb-whatif">
-              <div className="lb-whatif-head">
-                <h4>If you <em>did this</em>, what would it look like?</h4>
-                <span className="lb-whatif-hint">tap to preview</span>
-              </div>
-              <div className="lb-whatif-row">
-                {whatIfScenarios.map((s, i) => (
-                  <div key={i}
-                       className={`lb-whatif-card${selectedWhatIf === i ? " selected" : ""}`}
-                       onClick={() => setSelectedWhatIf(i)}>
-                    <div className="lb-whatif-nm">{s.nm}</div>
-                    <div className="lb-whatif-delta">
-                      <span>Safe-to-spend</span>
-                      <span className={`v ${s.pos ? "pos" : "neg"}`}>
-                        {s.pos ? "+" : "−"}${s.delta.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* selected scenario result */}
-              {whatIfScenarios[selectedWhatIf] && (
-                <div style={{
-                  marginTop: 12, padding: "16px 20px", background: "rgba(93,202,165,0.04)",
-                  border: "1px solid rgba(93,202,165,0.2)", borderRadius: "var(--r-md)",
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                }}>
-                  <span style={{ fontSize: 13, color: "var(--ink-2)", fontStyle: "italic" }}>
-                    "{whatIfScenarios[selectedWhatIf].nm}"
-                  </span>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: "-0.8px",
-                                 color: whatIfScenarios[selectedWhatIf].pos ? "var(--safe)" : "var(--debt)" }}>
-                    {fmt(safeToSpend + (whatIfScenarios[selectedWhatIf].pos ? 1 : -1) * whatIfScenarios[selectedWhatIf].delta)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* bottom padding */}
-            <div style={{ height: 48 }}/>
-          </main>
-        </div>
-      </div>
+              <div style={{ height: 48 }}/>
+            </main>
+          </div>{/* /lb-shell */}
         </div>{/* /lb-frame */}
       </div>{/* /lb-page */}
     </>

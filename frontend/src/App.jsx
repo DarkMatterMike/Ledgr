@@ -5643,6 +5643,7 @@ function AppInner({ isDemo = false }) {
 
   if (view === "calendar") return (
     <LedgrCalendar
+      accounts={accounts}
       calendarMonth={calendarMonth}
       calendarTxnsByDay={calendarTxnsByDay}
       recurringItems={recurringItems}

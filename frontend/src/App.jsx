@@ -16,7 +16,7 @@ import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
 const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
-import DashboardNew from "./components/DashboardNew.jsx";
+import DashboardNew, { DashboardHero, DashboardContent } from "./components/DashboardNew.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -4890,7 +4890,7 @@ function AppInner({ isDemo = false }) {
       insightsTodos, isMobile, catMap]);
 
   const Dashboard = (
-    <DashboardNew
+    <DashboardContent
       isMobile={isMobile}
       selectedMonth={selectedMonth}
       isCurrentMonth={isCurrentMonth}
@@ -4900,7 +4900,6 @@ function AppInner({ isDemo = false }) {
       totalSpent={totalSpent}
       totalIncome={totalIncome}
       totalBudget={totalBudget}
-      displaySpent={displaySpent}
       spentByCat={spentByCat}
       sortedCategories={sortedCategories}
       categories={categories}
@@ -6603,10 +6602,19 @@ function AppInner({ isDemo = false }) {
       /* ── MOBILE — bottom nav ── */
       <>
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
+            <DashboardHero
+              isMobile={isMobile}
+              selectedMonth={selectedMonth} isCurrentMonth={isCurrentMonth}
+              prevMonth={prevMonth} nextMonth={nextMonth} monthLabel={monthLabel}
+              totalSpent={totalSpent} totalIncome={totalIncome} totalBudget={totalBudget}
+              spentByCat={spentByCat} categories={categories}
+              monthTxns={monthTxns} recurringItems={recurringItems}
+              fmt={fmt} today={today}
+            />
           {view === "analytics"
             ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900}}>{AnalyticsPage}</div></div>
             : view === "dashboard"
-            ? <div key={navKey} className="ledgr-view-enter" style={{maxWidth:600,margin:"0 auto"}}>{VIEWS[view]}</div>
+            ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
             : view === "calendar" || view === "rules"
             ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
             : <div key={navKey} className="ledgr-view-enter"><div style={{width:"100%",maxWidth:900}}>{VIEWS[view]}</div></div>
@@ -6667,10 +6675,19 @@ function AppInner({ isDemo = false }) {
           <div style={{flex:1,minWidth:0,position:"relative"}}>
             
             
+            <DashboardHero
+              isMobile={isMobile}
+              selectedMonth={selectedMonth} isCurrentMonth={isCurrentMonth}
+              prevMonth={prevMonth} nextMonth={nextMonth} monthLabel={monthLabel}
+              totalSpent={totalSpent} totalIncome={totalIncome} totalBudget={totalBudget}
+              spentByCat={spentByCat} categories={categories}
+              monthTxns={monthTxns} recurringItems={recurringItems}
+              fmt={fmt} today={today}
+            />
             {view === "analytics"
               ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900}}>{AnalyticsPage}</div></div>
               : view === "dashboard"
-              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,maxWidth:1080,margin:"0 auto"}}>{VIEWS[view]}</div>
+              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
               : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:900}}>{VIEWS[view]}</div></div>

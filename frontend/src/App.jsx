@@ -4574,7 +4574,7 @@ function AppInner({ isDemo = false }) {
       needsReview={needsReview}
       deleteTxn={deleteTxn}
       openAddTxn={openAddTxn}
-      bulkCategorize={bulkSetCategory}
+      bulkSetCategory={bulkSetCategory}
       bulkDelete={bulkDelete}
       bulkMarkReviewed={bulkMarkReviewed}
       selectAllVisible={selectAllVisible}
@@ -4999,6 +4999,7 @@ function AppInner({ isDemo = false }) {
   /* ── Calendar — Agenda View ────────────────────── */
   const Calendar = (
     <LedgrCalendar
+      accounts={accounts}
       calendarMonth={calendarMonth}
       calendarTxnsByDay={calendarTxnsByDay}
       recurringItems={recurringItems}
@@ -5604,7 +5605,7 @@ function AppInner({ isDemo = false }) {
       needsReview={needsReview}
       deleteTxn={deleteTxn}
       openAddTxn={openAddTxn}
-      bulkCategorize={bulkSetCategory}
+      bulkSetCategory={bulkSetCategory}
       bulkDelete={bulkDelete}
       bulkMarkReviewed={bulkMarkReviewed}
       selectAllVisible={selectAllVisible}

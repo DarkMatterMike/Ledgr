@@ -649,6 +649,100 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     last6.map(m => ({ label: m.label, value: Math.round(m.income - m.spending) }))
   , [last6]);
 
+  /* ── Projection data ─────────────────────────────────────────────── */
+  const projectionData = useMemo(() => {
+    const monthlySv = avgIncome - avgSpending;
+    const fv = (pv, pmt, r, months) => {
+      if (months === 0) return pv;
+      if (r === 0) return pv + pmt * months;
+      return pv * Math.pow(1+r, months) + (pmt > 0 ? pmt * ((Math.pow(1+r, months)-1)/r) : 0);
+    };
+    const rates = { conservative:0.04/12, moderate:0.07/12, optimistic:0.10/12 };
+
+    // Net worth points every 6 months for 10 years (21 points incl. now)
+    const nwPoints = Array.from({length:21},(_,i)=>{
+      const mo = i*6;
+      return {
+        months:mo,
+        conservative:Math.round(fv(currentNetWorth,Math.max(0,monthlySv),rates.conservative,mo)),
+        moderate:    Math.round(fv(currentNetWorth,Math.max(0,monthlySv),rates.moderate,mo)),
+        optimistic:  Math.round(fv(currentNetWorth,Math.max(0,monthlySv),rates.optimistic,mo)),
+      };
+    });
+
+    // Milestone snapshots
+    const milestones = [12,36,60,120].map(mo=>({
+      label: mo===12?"1 yr":mo===36?"3 yrs":mo===60?"5 yrs":"10 yrs",
+      conservative:Math.round(fv(currentNetWorth,Math.max(0,monthlySv),rates.conservative,mo)),
+      moderate:    Math.round(fv(currentNetWorth,Math.max(0,monthlySv),rates.moderate,mo)),
+      optimistic:  Math.round(fv(currentNetWorth,Math.max(0,monthlySv),rates.optimistic,mo)),
+    }));
+
+    // Goal completion timelines
+    const goalTimelines = goals.map(g => {
+      const remaining = Math.max(0,(g.targetAmount||0)-(g.savedAmount||0));
+      const pct = g.targetAmount>0?Math.min(100,Math.round(((g.savedAmount||0)/g.targetAmount)*100)):0;
+      if (remaining<=0) return {...g,done:true,pct:100,months:0,date:"Completed!"};
+      if (monthlySv<=0) return {...g,done:false,pct,months:null,date:"Add income data"};
+      const months = Math.ceil(remaining/Math.max(monthlySv,1));
+      const dt = new Date(); dt.setMonth(dt.getMonth()+months);
+      return {...g,done:false,pct,months,date:dt.toLocaleDateString("en-US",{month:"short",year:"numeric"})};
+    });
+
+    // Subscription drain
+    const subDrain = {
+      yr1:  Math.round(subscriptionTotal*12),
+      yr5:  Math.round(subscriptionTotal*12*5),
+      yr10: Math.round(subscriptionTotal*12*10),
+    };
+    const topSubs = subscriptions.slice(0,5);
+
+    // Emergency fund
+    const emergencyTarget = userProfile?.targets?.emergencyFund || avgSpending*6;
+    const liquidBalance = accounts.filter(a=>a.balance>0).reduce((s,a)=>s+a.balance,0);
+    const emergencyPct = emergencyTarget>0?Math.min(100,Math.round((liquidBalance/emergencyTarget)*100)):0;
+    const monthsCovered = avgSpending>0?(liquidBalance/avgSpending):0;
+    const monthsToEmergency = emergencyTarget>liquidBalance&&monthlySv>0
+      ?Math.ceil((emergencyTarget-liquidBalance)/monthlySv):0;
+
+    // Spending forecast using recent trend
+    const recent = monthlyData.slice(-4).filter(m=>m.spending>0);
+    let spendTrend = 0;
+    if (recent.length>=2) {
+      const slope = recent.reduce((acc,m,i,arr)=>i===0?acc:acc+(m.spending-arr[i-1].spending),0)/(recent.length-1);
+      spendTrend = avgSpending>0?slope/avgSpending:0;
+    }
+    const nextMonthEst  = Math.round(avgSpending*(1+spendTrend));
+    const annualForecast= Math.round(nextMonthEst*12);
+
+    // Account projections — linear from last 3 months of transactions
+    const accountProjections = accounts.filter(a=>a.balance!=null).map(a=>{
+      const recent3mo = monthlyData.slice(-3);
+      // Find txns for this account
+      const monthlyNet = recent3mo.map(m=>{
+        const txns = transactions.filter(t=>t.date?.startsWith(m.ym)&&t.accountId===a.id);
+        return txns.reduce((s,t)=>s+t.amount,0);
+      }).filter(v=>v!==0);
+      const avgMonthlyChange = monthlyNet.length?monthlyNet.reduce((s,v)=>s+v,0)/monthlyNet.length:0;
+      return {
+        ...a,
+        proj6mo:  Math.round(a.balance + avgMonthlyChange*6),
+        proj12mo: Math.round(a.balance + avgMonthlyChange*12),
+        trend: avgMonthlyChange,
+      };
+    });
+
+    // "Power of saving more" — what $100/mo extra compounds to
+    const savingsBoosts = [100,250,500].map(extra=>({
+      extra,
+      yr5:  Math.round(fv(0,extra,rates.moderate,60)),
+      yr10: Math.round(fv(0,extra,rates.moderate,120)),
+      yr20: Math.round(fv(0,extra,rates.moderate,240)),
+    }));
+
+    return {nwPoints,milestones,goalTimelines,subDrain,topSubs,emergencyTarget,liquidBalance,emergencyPct,monthsCovered,monthsToEmergency,monthlySv,spendTrend,nextMonthEst,annualForecast,accountProjections,savingsBoosts};
+  },[currentNetWorth,avgIncome,avgSpending,goals,subscriptions,subscriptionTotal,accounts,monthlyData,userProfile,transactions]);
+
   /* ── Financial Health Score ──────────────────────────────────────── */
   const healthScore = useMemo(() => {
     let score = 0;
@@ -874,8 +968,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   );
 
   /* ── Tab bar ──────────────────────────────────────────────────── */
-  const TABS = ["overview","spending","budget","insights","goals"];
-  const tabLabels = { overview:"Overview", spending:"Spending", budget:"Budget", insights:"Insights", goals:"Goals" };
+  const TABS = ["overview","spending","budget","insights","goals","projections"];
+  const tabLabels = { overview:"Overview", spending:"Spending", budget:"Budget", insights:"Insights", goals:"Goals", projections:"Projections" };
 
   /* ── Derived display values ──────────────────────────────────── */
   const dowFull = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -1396,6 +1490,371 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   color:"var(--cyan)"}}>+ Add Goal</button>
             )}
           </Tier>
+        </div>
+      )}
+
+      {/* ══ PROJECTIONS ═══════════════════════════════════════════════ */}
+      {tab === "projections" && (
+        <div key="projections" className="ledgr-panel-in">
+          {(() => {
+            const { nwPoints,milestones,goalTimelines,subDrain,topSubs,emergencyTarget,liquidBalance,emergencyPct,monthsCovered,monthsToEmergency,monthlySv,spendTrend,nextMonthEst,annualForecast,accountProjections,savingsBoosts } = projectionData;
+            const fmtK = n => { const a=Math.abs(n); return a>=1000000?`$${(n/1000000).toFixed(1)}M`:a>=1000?`$${(n/1000).toFixed(0)}k`:`$${Math.round(n)}`; };
+            const nwMax = Math.max(...nwPoints.map(p=>p.optimistic),1);
+            const nwMin = Math.min(...nwPoints.map(p=>p.conservative),currentNetWorth,0);
+            const W=680, H=180, padL=52, padR=20, padT=16, padB=28;
+            const iW=W-padL-padR, iH=H-padT-padB;
+            const xOf = i => padL + (i/20)*iW;
+            const yOf = v => padT + iH - ((v-nwMin)/(nwMax-nwMin||1))*iH;
+            function buildPath(key) {
+              return nwPoints.map((p,i)=>`${i===0?"M":"L"}${xOf(i).toFixed(1)},${yOf(p[key]).toFixed(1)}`).join(" ");
+            }
+            const gridVals = [0,0.25,0.5,0.75,1].map(f=>Math.round(nwMin+f*(nwMax-nwMin)));
+            const yearLabels = [0,2,4,6,8,10]; // every 2 years = every 4 points on the 6mo grid
+
+            return (<>
+
+            {/* ── T III: Net Worth Trajectory ── */}
+            <Tier ord="III" title="Net Worth Trajectory" ghost="III"
+              sub="Conservative 4% · Moderate 7% · Optimistic 10% annual growth">
+
+              {/* Milestone numbers */}
+              <div style={{display:"flex",gap:0,marginBottom:24,flexWrap:"wrap"}}>
+                <div style={{marginRight:32}}>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Today</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:700,color:"var(--t1)",letterSpacing:"-1px"}}>{fmtK(currentNetWorth)}</div>
+                </div>
+                {milestones.map((m,i)=>(
+                  <div key={m.label} style={{marginRight:32,paddingLeft:i===0?0:0}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>{m.label}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:700,letterSpacing:"-1px",
+                      color:i===milestones.length-1?"var(--green)":"var(--t1)"}}>{fmtK(m.moderate)}</div>
+                    <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>
+                      {m.optimistic>m.moderate?`↑ ${fmtK(m.optimistic)} best`:`${fmtK(m.conservative)} conservative`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* SVG chart */}
+              <div style={{borderTop:"1px solid rgba(255,255,255,0.04)",borderLeft:"1px solid rgba(255,255,255,0.04)",paddingTop:4}}>
+                <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",height:"auto",overflow:"visible"}}>
+                  <defs>
+                    <linearGradient id="projGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgba(201,149,106,0.2)"/>
+                      <stop offset="100%" stopColor="rgba(201,149,106,0)"/>
+                    </linearGradient>
+                  </defs>
+
+                  {/* Grid */}
+                  {gridVals.map(v=>(
+                    <g key={v}>
+                      <line x1={padL} x2={W-padR} y1={yOf(v)} y2={yOf(v)} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+                      <text x={padL-6} y={yOf(v)+4} textAnchor="end" style={{fontSize:9,fill:"rgba(232,221,208,0.2)",fontFamily:"var(--font-mono)"}}>
+                        {fmtK(v)}
+                      </text>
+                    </g>
+                  ))}
+
+                  {/* Year labels */}
+                  {yearLabels.map(yr=>(
+                    <text key={yr} x={xOf(yr*2)} y={H-4} textAnchor="middle"
+                      style={{fontSize:8,fill:"rgba(232,221,208,0.25)",fontFamily:"var(--font-mono)"}}>
+                      {yr===0?"Now":`${yr}yr`}
+                    </text>
+                  ))}
+
+                  {/* Area under moderate */}
+                  <path d={`${buildPath("moderate")} L${xOf(20).toFixed(1)},${(padT+iH).toFixed(1)} L${padL},${(padT+iH).toFixed(1)} Z`}
+                    fill="url(#projGrad)" opacity="0.5"/>
+
+                  {/* Conservative line */}
+                  <path d={buildPath("conservative")} fill="none"
+                    stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" strokeDasharray="5,3"
+                    strokeLinecap="round" strokeLinejoin="round"/>
+
+                  {/* Optimistic line */}
+                  <path d={buildPath("optimistic")} fill="none"
+                    stroke="rgba(109,184,138,0.4)" strokeWidth="1.5" strokeDasharray="5,3"
+                    strokeLinecap="round" strokeLinejoin="round"/>
+
+                  {/* Moderate line (hero) */}
+                  <path d={buildPath("moderate")} fill="none"
+                    stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+
+                  {/* Milestone dots */}
+                  {[2,6,10,20].map(i=>(
+                    <circle key={i} cx={xOf(i)} cy={yOf(nwPoints[i]?.moderate||0)}
+                      r="4" fill="var(--cyan)" style={{filter:"drop-shadow(0 0 4px rgba(201,149,106,0.7))"}}/>
+                  ))}
+                </svg>
+              </div>
+
+              {/* Legend */}
+              <div style={{display:"flex",gap:20,marginTop:10,flexWrap:"wrap"}}>
+                {[["var(--cyan)",false,"Moderate (7%)"],["rgba(109,184,138,0.6)",true,"Optimistic (10%)"],["rgba(255,255,255,0.3)",true,"Conservative (4%)"]].map(([color,dashed,label])=>(
+                  <div key={label} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--t3)"}}>
+                    <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke={color} strokeWidth={dashed?1.5:2} strokeDasharray={dashed?"4,3":"none"}/></svg>
+                    {label}
+                  </div>
+                ))}
+                {monthlySv>0&&<div style={{fontSize:11,color:"var(--t3)",marginLeft:"auto"}}>↳ Based on {fmtK(Math.round(monthlySv))}/mo savings</div>}
+              </div>
+            </Tier>
+
+            {/* ── T IV: Goal Timelines ── */}
+            <Tier ord="IV" title="Goal Completion Timelines" ghost="IV"
+              sub="Estimated at current savings pace">
+              {goalTimelines.length===0?(
+                <div style={{fontSize:13,color:"var(--t3)"}}>
+                  No goals set yet. Add goals on the Goals tab to see completion estimates.
+                </div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  {goalTimelines.map((g,i)=>(
+                    <div key={g.id} style={{padding:"12px 0",borderBottom:i<goalTimelines.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7,gap:10}}>
+                        <div style={{fontSize:13,fontWeight:500,color:g.done?"var(--green)":"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</div>
+                        <div style={{display:"flex",gap:12,alignItems:"baseline",flexShrink:0}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
+                            {fmt(g.savedAmount||0)} / {fmt(g.targetAmount||0)}
+                          </span>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,
+                            color:g.done?"var(--green)":g.months&&g.months<24?"var(--cyan)":"var(--amber)"}}>
+                            {g.date}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${g.pct}%`,borderRadius:99,transition:"width 0.5s",
+                          background:g.done?"var(--green)":g.pct>=60?"var(--cyan)":"var(--amber)"}}/>
+                      </div>
+                      {!g.done&&g.months&&(
+                        <div style={{fontSize:10,color:"var(--t3)",marginTop:4}}>
+                          {fmt(Math.max(0,(g.targetAmount||0)-(g.savedAmount||0)))} remaining · ~{g.months} month{g.months!==1?"s":""}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Tier>
+
+            {/* ── T V: Retirement + Emergency Fund ── */}
+            <Tier ord="V" title="Retirement & Safety Net" ghost="V"
+              sub="Long-term security projections">
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:48}}>
+
+                {/* Retirement */}
+                <div>
+                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Retirement projection</div>
+                  {(()=>{
+                    const {fv:retFv,target:retTarget,years,monthlySavings:ms}=retirementProjection;
+                    const onTrack = retTarget>0?retFv>=retTarget:true;
+                    const pct = retTarget>0?Math.min(100,Math.round((retFv/retTarget)*100)):null;
+                    const retAge = userProfile?.targets?.retirementAge||65;
+                    // Ring
+                    const r=38,circ=2*Math.PI*r;
+                    const dash = pct!=null?Math.min(pct/100,1)*circ:0;
+                    return (
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",gap:20,marginBottom:16}}>
+                          {pct!=null&&(
+                            <svg width="96" height="96" viewBox="0 0 96 96" style={{flexShrink:0}}>
+                              <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8"/>
+                              <circle cx="48" cy="48" r={r} fill="none"
+                                stroke={onTrack?"var(--green)":"var(--amber)"}
+                                strokeWidth="8" strokeLinecap="round"
+                                strokeDasharray={`${dash} ${circ}`}
+                                transform="rotate(-90 48 48)"/>
+                              <text x="48" y="44" textAnchor="middle" style={{fontSize:13,fontWeight:700,fill:"var(--t1)",fontFamily:"var(--font-mono)"}}>{pct}%</text>
+                              <text x="48" y="58" textAnchor="middle" style={{fontSize:9,fill:"var(--t3)",fontFamily:"var(--font-mono)"}}>of goal</text>
+                            </svg>
+                          )}
+                          <div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Projected at {retAge}</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:700,color:onTrack?"var(--green)":"var(--amber)",letterSpacing:"-1px"}}>{fmtK(retFv)}</div>
+                            {retTarget>0&&<div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>Target: {fmtK(retTarget)}</div>}
+                            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{years} year{years!==1?"s":""} away</div>
+                          </div>
+                        </div>
+                        {retTarget>0&&!onTrack&&ms>0&&(()=>{
+                          const gap = retTarget-retFv;
+                          const extraNeeded = Math.round(gap/(years*12*((Math.pow(1.07/12+1,years*12)-1)/(0.07/12))||1));
+                          return <div style={{fontSize:12,color:"var(--amber)",padding:"8px 12px",background:"rgba(201,149,106,0.06)",borderRadius:"var(--radius)",borderLeft:"2px solid rgba(201,149,106,0.3)"}}>To reach goal: save {fmtK(extraNeeded)}/mo more</div>;
+                        })()}
+                        {!retTarget&&<div style={{fontSize:12,color:"var(--t3)"}}>Set a retirement target in Settings → Financial Profile to see your gap.</div>}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Emergency fund */}
+                <div>
+                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Emergency fund</div>
+                  {(()=>{
+                    const months = Math.round(monthsCovered*10)/10;
+                    const statusColor = months>=6?"var(--green)":months>=3?"var(--amber)":"var(--red)";
+                    const statusLabel = months>=6?"Fully funded":months>=3?"Partially funded":"Underfunded";
+                    return (
+                      <div>
+                        <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:14}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Months covered</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:28,fontWeight:700,color:statusColor,letterSpacing:"-2px",lineHeight:1}}>{months.toFixed(1)}</div>
+                            <div style={{fontSize:11,color:statusColor,marginTop:3}}>{statusLabel}</div>
+                          </div>
+                          <div style={{textAlign:"right"}}>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Liquid balance</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:"var(--t1)"}}>{fmtK(liquidBalance)}</div>
+                            <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>Target: {fmtK(emergencyTarget)}</div>
+                          </div>
+                        </div>
+                        <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden",marginBottom:8}}>
+                          <div style={{height:"100%",width:`${emergencyPct}%`,background:statusColor,borderRadius:99,transition:"width 0.5s"}}/>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)",marginBottom:10}}>
+                          <span>0 months</span><span>3 months</span><span>6 months</span>
+                        </div>
+                        {monthsToEmergency>0&&monthlySv>0&&(
+                          <div style={{fontSize:12,color:"var(--t3)"}}>
+                            At current pace: fully funded in <span style={{color:"var(--cyan)",fontWeight:600}}>{monthsToEmergency} month{monthsToEmergency!==1?"s":""}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </Tier>
+
+            {/* ── T VI: Subscription Drain ── */}
+            <Tier ord="VI" title="Subscription Cost Over Time" ghost="VI"
+              sub="What your recurring charges really cost at scale">
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:48}}>
+                <div>
+                  {/* Big number strip */}
+                  <div style={{display:"flex",gap:0,marginBottom:20,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
+                    {[["1 year",subDrain.yr1],["5 years",subDrain.yr5],["10 years",subDrain.yr10]].map(([label,val],i,arr)=>(
+                      <div key={label} style={{flex:1,padding:"10px 12px",borderRight:i<arr.length-1?"1px solid rgba(255,255,255,0.06)":"none",background:"transparent"}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>{label}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:i===2?18:14,fontWeight:700,color:i===2?"var(--red)":"var(--t1)"}}>{fmtK(val)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {subscriptionTotal>0?(
+                    <div style={{fontSize:12,color:"var(--t3)",marginBottom:16,lineHeight:1.6}}>
+                      You're currently spending <span style={{color:"var(--amber)",fontWeight:600}}>{fmtK(subscriptionTotal)}/mo</span> on {subscriptions.length} recurring charge{subscriptions.length!==1?"s":""}. Over a decade, that's <span style={{color:"var(--red)",fontWeight:600}}>{fmtK(subDrain.yr10)}</span> — enough to {fmtK(subDrain.yr10)>50000?"fund a significant portion of retirement":"make a meaningful investment"}.
+                    </div>
+                  ):(
+                    <div style={{fontSize:12,color:"var(--t3)"}}>No recurring charges found. Mark transactions as recurring to track them here.</div>
+                  )}
+                </div>
+
+                {/* Top drains */}
+                {topSubs.length>0&&(
+                  <div>
+                    <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Biggest drains · 10yr cost</div>
+                    {topSubs.map((s,i)=>(
+                      <div key={s.name} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<topSubs.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
+                        <div style={{width:2,height:24,background:"rgba(255,255,255,0.1)",borderRadius:1,flexShrink:0}}/>
+                        <div style={{flex:1,fontSize:12,color:"var(--t2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0}}>{fmtK(s.amount)}/mo</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0,width:56,textAlign:"right"}}>{fmtK(s.amount*120)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Tier>
+
+            {/* ── T VII: Power of Small Changes ── */}
+            <Tier ord="VII" title="Power of Small Changes" ghost="VII"
+              sub="What an extra $X/month becomes at 7% compound growth">
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":`repeat(3,1fr)`,gap:isMobile?12:0,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
+                {savingsBoosts.map((b,i,arr)=>(
+                  <div key={b.extra} style={{padding:"16px 18px",borderRight:!isMobile&&i<arr.length-1?"1px solid rgba(255,255,255,0.06)":"none"}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.8px",color:"rgba(201,149,106,0.5)",marginBottom:8}}>+{fmtK(b.extra)}/month</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {[["5 years",b.yr5,"var(--t2)"],["10 years",b.yr10,"var(--cyan)"],["20 years",b.yr20,"var(--green)"]].map(([label,val,color])=>(
+                        <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+                          <span style={{fontSize:11,color:"var(--t3)"}}>{label}</span>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color}}>{fmtK(val)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:11,color:"var(--t3)",marginTop:10,lineHeight:1.6}}>
+                Assumes 7% average annual return, compounded monthly. Does not include your existing savings — this is purely the growth of the additional contribution alone.
+              </div>
+            </Tier>
+
+            {/* ── T VIII: Spending Forecast ── */}
+            <Tier ord="VIII" title="Spending Forecast" last ghost="VIII"
+              sub="If current trends continue">
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:48}}>
+                <div>
+                  <div style={{display:"flex",gap:32,marginBottom:20}}>
+                    <div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Next month</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,letterSpacing:"-1px",
+                        color:spendTrend>0.05?"var(--red)":spendTrend<-0.05?"var(--green)":"var(--t1)"}}>{fmtK(nextMonthEst)}</div>
+                      {Math.abs(spendTrend)>0.01&&<div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                        {spendTrend>0?`↑ ${Math.round(spendTrend*100)}% vs avg`:`↓ ${Math.round(Math.abs(spendTrend)*100)}% vs avg`}
+                      </div>}
+                    </div>
+                    <div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Annual forecast</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,letterSpacing:"-1px",color:"var(--t1)"}}>{fmtK(annualForecast)}</div>
+                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>vs {fmtK(avgSpending*12)} avg/yr</div>
+                    </div>
+                  </div>
+                  {/* Trend bar viz */}
+                  <div style={{background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:10}}>Last 6 months</div>
+                    {last6.map((m,i)=>{
+                      const maxSpend=Math.max(...last6.map(x=>x.spending),1);
+                      const barW=Math.round((m.spending/maxSpend)*100);
+                      const isCurrent=i===last6.length-1;
+                      return(
+                        <div key={m.ym} style={{display:"flex",alignItems:"center",gap:8,marginBottom:i<last6.length-1?6:0}}>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:isCurrent?"var(--cyan)":"var(--t3)",width:28,flexShrink:0}}>{m.label.split(" ")[0]}</div>
+                          <div style={{flex:1,height:4,background:"rgba(255,255,255,0.05)",borderRadius:99,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${barW}%`,borderRadius:99,
+                              background:isCurrent?"var(--cyan)":"rgba(255,255,255,0.2)"}}/>
+                          </div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:isCurrent?"var(--t1)":"var(--t3)",width:44,textAlign:"right",flexShrink:0}}>{fmtK(m.spending)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Account projections */}
+                <div>
+                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Account balance projections</div>
+                  {accountProjections.length===0?(
+                    <div style={{fontSize:12,color:"var(--t3)"}}>No accounts found.</div>
+                  ):accountProjections.slice(0,6).map((a,i)=>(
+                    <div key={a.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(accountProjections.length,6)-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
+                      <div style={{width:5,height:5,borderRadius:"50%",background:a.trend>0?"var(--green)":a.trend<0?"var(--red)":"var(--t3)",flexShrink:0}}/>
+                      <div style={{flex:1,fontSize:12,color:"var(--t2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</div>
+                      <div style={{textAlign:"right",flexShrink:0}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:"var(--t1)"}}>{fmtK(a.balance)}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:a.proj12mo>a.balance?"var(--green)":"var(--red)"}}>
+                          {a.proj12mo>a.balance?"↑":"↓"} {fmtK(a.proj12mo)} in 1yr
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{fontSize:10,color:"rgba(232,221,208,0.2)",marginTop:10,lineHeight:1.5}}>Account projections based on recent transaction patterns. Results may vary.</div>
+                </div>
+              </div>
+            </Tier>
+
+            </>);
+          })()}
         </div>
       )}
 

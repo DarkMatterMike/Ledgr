@@ -17,6 +17,7 @@ import * as api from "./api.js";
 const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
 import DashboardNew, { DashboardHero, DashboardContent } from "./components/DashboardNew.jsx";
+import LedgrBriefing from "./components/LedgrBriefing.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -2230,6 +2231,7 @@ function AppInner({ isDemo = false }) {
   }
 
   const [view,          setView]          = useState("dashboard");
+  const [showBriefing,  setShowBriefing]  = useState(false);
   const [notifOpen,     setNotifOpen]     = useState(false);
   const [newTxnNotifs,  setNewTxnNotifs]  = useState([]); // [{id, merchant, amount, date}]
   const [pendingDuplicates, setPendingDuplicates] = useState(null); // {count, detectedAt}
@@ -4541,7 +4543,22 @@ function AppInner({ isDemo = false }) {
   }, [goals, today, recurringTxns, recurringItems, transactions, categories, sortedCategories, spentByCat, selectedMonth,
       insightsTodos, isMobile, catMap]);
 
-  const Dashboard = (
+  const Dashboard = showBriefing ? (
+    <LedgrBriefing
+      accounts={accounts}
+      categories={categories}
+      monthTxns={monthTxns}
+      recurringItems={recurringItems}
+      totalSpent={totalSpent}
+      totalIncome={totalIncome}
+      totalBudget={totalBudget}
+      goals={goals}
+      today={today}
+      fmt={fmt}
+      navigate={navigate}
+      isMobile={isMobile}
+    />
+  ) : (
     <DashboardContent
       isMobile={isMobile}
       selectedMonth={selectedMonth}
@@ -6333,6 +6350,28 @@ function AppInner({ isDemo = false }) {
           <div style={{flex:1,minWidth:0,position:"relative"}}>
             
             
+            {/* ── Briefing toggle ── */}
+            {view === "dashboard" && (
+              <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 24px 0" }}>
+                <button
+                  onClick={() => setShowBriefing(b => !b)}
+                  style={{
+                    background: showBriefing ? "rgba(93,202,165,0.12)" : "transparent",
+                    border: `1px solid ${showBriefing ? "rgba(93,202,165,0.4)" : "rgba(255,255,255,0.1)"}`,
+                    color: showBriefing ? "#5dcaa5" : "#7d8594",
+                    borderRadius: 8,
+                    padding: "5px 12px",
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono, monospace)",
+                    cursor: "pointer",
+                    letterSpacing: "0.5px",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {showBriefing ? "◐ briefing on" : "◐ try briefing"}
+                </button>
+              </div>
+            )}
             <DashboardHero
               isMobile={isMobile}
               selectedMonth={selectedMonth} isCurrentMonth={isCurrentMonth}

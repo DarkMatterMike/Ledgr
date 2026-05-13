@@ -473,12 +473,12 @@ export default function RulesPage({
         {/* ghost numeral */}
         {!isMobile && (
           <div style={{ position: 'absolute', fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontSize: 96, fontWeight: 500, color: 'rgba(201,149,106,0.07)', pointerEvents: 'none', userSelect: 'none', top: '50%', transform: 'translateY(-55%)', left: 8, lineHeight: 1 }}>
-            I
+            II
           </div>
         )}
         {/* title row */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, paddingBottom: 12, borderBottom: '1px solid rgba(201,149,106,0.12)', position: 'relative', zIndex: 1 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>01 ·</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>II ·</span>
           <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: isMobile ? 18 : 22, color: 'var(--t1)' }}>Rules</span>
           <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.15),transparent)', alignSelf: 'center', marginLeft: 4 }} />
         </div>

@@ -463,7 +463,7 @@ export default function RulesPage({
 
       {/* ── Page header ── */}
       <div style={{
-        padding: outerPad,
+        padding: outerPad, background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg, #0b0a08)',
         borderBottom: '1px solid rgba(0,0,0,0.35)',
         position: 'relative', overflow: 'hidden',
         background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)',

@@ -343,7 +343,7 @@ export default function CalendarAgenda({
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--t1,#e8ddd0)' }}>
 
       {/* ── Page header — Playfair title, same pattern as Transactions ── */}
-      <div style={{ padding: outerPad, borderBottom: '1px solid rgba(0,0,0,0.35)', position: 'relative', overflow: 'hidden', background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)' }}>
+      <div style={{ padding: outerPad, background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg, #0b0a08)', borderBottom: '1px solid rgba(0,0,0,0.35)', position: 'relative', overflow: 'hidden', background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)' }}>
         {/* Top-edge seam */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.14) 0%,rgba(255,255,255,0.05) 35%,transparent 75%)', pointerEvents: 'none' }} />
         {/* Ghost roman numeral */}

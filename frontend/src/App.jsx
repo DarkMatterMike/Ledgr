@@ -4988,7 +4988,7 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
-        <div style={{padding:"0 28px 28px"}}>
+        <div style={{padding:"0 28px 28px",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%),var(--bg,#0b0a08)"}}>
         {/* Summary strip */}
         <div style={{display:"flex",gap:0,marginBottom:18,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
           {[
@@ -5596,7 +5596,7 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
-        <div style={{padding:"0 28px 28px"}}>
+        <div style={{padding:"0 28px 28px",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%),var(--bg,#0b0a08)"}}>
         {/* ── Stat strip ──────────────────────────────── */}
         <div style={{display:"flex",gap:0,marginBottom:20,border:"1px solid rgba(255,255,255,0.08)",borderRadius:"var(--radius)",overflow:"hidden"}}>
           {[
@@ -5770,7 +5770,7 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
 
-        <div style={{padding:"0 28px 28px"}}>
+        <div style={{padding:"0 28px 28px",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%),var(--bg,#0b0a08)"}}>
         {/* ── Net worth hero ───────────────────────── */}
         <div style={{ paddingBottom: 24, marginBottom: 24, borderBottom: "1px solid rgba(201,149,106,0.1)", position: "relative" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.8px", color: "var(--t3)", marginBottom: 10 }}>Total balance</div>

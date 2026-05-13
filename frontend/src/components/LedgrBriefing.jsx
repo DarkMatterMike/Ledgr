@@ -631,7 +631,7 @@ User's current finances:
                       value={aiInput}
                       onChange={e=>setAiInput(e.target.value)}
                       onKeyDown={handleAiKey}
-                      placeholder="Ask anything — "what if I got a $500 raise?" or "what if I cut dining?"…"
+                      placeholder="Ask anything — e.g. what if I got a $500 raise, or what if I cut dining this month?"
                       disabled={aiLoading}
                     />
                     {aiLoading?(

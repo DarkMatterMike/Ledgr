@@ -269,13 +269,7 @@ const VARS = [
   { key:"recurringColor", label:"Recurring stripe" },
 ];
 
-const NAV = [
-  { id:"dashboard",    icon:"◐" },
-  { id:"transactions", icon:"⇅" },
-  { id:"budgets",      icon:"▣" },
-  { id:"analytics",    icon:"◎" },
-  { id:"calendar",     icon:"▦" },
-];
+const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◈",id:"analytics"}];
 
 const TABS = [
   { id:"profile",      label:"Profile",      icon:"◈" },

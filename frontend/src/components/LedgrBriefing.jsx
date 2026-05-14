@@ -373,11 +373,18 @@ export default function LedgrBriefing({
   const pressureLabel=pressurePct>0.5?"safe":pressurePct>0.25?"moderate":"tight";
   const goalsSaved  =useMemo(()=>goals.reduce((s,g)=>s+(g.savedAmount||0),0),[goals]);
 
-  // Monthly expenses = sum of each category's budget OR actual spend, whichever is higher
+  // Projected spend = sum of max(category.limit, actual_spent) per category
   const budgetIncOverspent = useMemo(() => categories.reduce((s, c) => {
     const spent = monthTxns.filter(t => t.categoryId === c.id && t.amount < 0)
       .reduce((a, t) => a + Math.abs(t.amount), 0);
     return s + Math.max(c.limit || 0, spent);
+  }, 0), [categories, monthTxns]);
+  // Overspent = sum of how much each category has exceeded its limit
+  const overspentTotal = useMemo(() => categories.reduce((s, c) => {
+    if (!c.limit) return s;
+    const spent = monthTxns.filter(t => t.categoryId === c.id && t.amount < 0)
+      .reduce((a, t) => a + Math.abs(t.amount), 0);
+    return s + Math.max(0, spent - c.limit);
   }, 0), [categories, monthTxns]);
 
   const billDays=useMemo(()=>{const s=new Set();recurringItems.filter(r=>r.type!=="income"&&r.recurringDay).forEach(r=>s.add(parseInt(r.recurringDay)));return s;},[recurringItems]);
@@ -552,10 +559,10 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
             <aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
-                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(budgetIncOverspent)}</span></div>
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
-                <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(totalSpent)}</span></div>
-                <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
+                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
+                <div className="lb-mrow"><span className="l">Overspent</span><span className="v" style={{color:overspentTotal>0?"var(--debt)":"var(--ink-3)"}}>{overspentTotal>0?`−${fmt(overspentTotal)}`:"—"}</span></div>
+                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"var(--warn)"}}>{fmt(budgetIncOverspent)}</span></div>
               </div>
               <div className="lb-pc-lbl">Paycheck planning</div>
               {[

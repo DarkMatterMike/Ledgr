@@ -411,11 +411,17 @@ export default function LedgrBriefing({
 
   // Alloc bar uses displaySafe
   const allocFree =displaySafe;
-  const allocBill =billsTotal;
-  const allocCush =Math.round(checkingBal*0.1);
-  const allocGoal =Math.round(goalsSaved*0.1);
-  const allocFlex =Math.round(totalSpent*0.05);
-  const allocTotal=allocFree+allocBill+allocCush+allocGoal+allocFlex;
+  const allocBill  = billsTotal;
+  const allocGoal  = useMemo(()=>goals.reduce((s,g)=>{
+    const target=g.targetAmount||0;
+    const saved=g.savedAmount||0;
+    const remaining=Math.max(0,target-saved);
+    if(!g.deadline||remaining===0) return s;
+    const msLeft=new Date(g.deadline+"T12:00:00")-today;
+    const monthsLeft=Math.max(1,msLeft/(1000*60*60*24*30.44));
+    return s+Math.round(remaining/monthsLeft);
+  },0),[goals,today]);
+  const vaultTotal = allocBill + allocGoal;
 
   // Headline color based on pressure
   const safeColor=displayPct>0.5?"var(--safe)":displayPct>0.25?"var(--warn)":"var(--debt)";
@@ -657,9 +663,9 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                       <div className="lb-pool-stripe"/>
                       <div>
                         <div className="lb-pool-nm">Vault · spoken for</div>
-                        <div className="lb-pool-desc">bills, cushion, goals</div>
+                        <div className="lb-pool-desc">{allocGoal>0?"bills + goal contributions":"upcoming bills"}</div>
                       </div>
-                      <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
+                      <div className="lb-pool-v">{fmt(vaultTotal)}</div>
                     </div>
                   </div>
                 </div>

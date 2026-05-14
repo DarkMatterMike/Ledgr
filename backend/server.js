@@ -1220,9 +1220,13 @@ app.post("/api/plaid/create_link_token", async (req, res) => {
       user: { client_user_id: req.user.id },
       client_name: "Ledgr Finance",
       country_codes: COUNTRY_CODES, language: "en",
-      redirect_uri: process.env.FRONTEND_URL,
       webhook: `${process.env.BACKEND_URL || "https://ledgr-production-9e35.up.railway.app"}/api/plaid/webhook`,
     };
+    // redirect_uri is only required for OAuth institutions (update mode re-auth).
+    // Sending it on new link token requests causes INVALID_FIELD if not registered.
+    if (req.body?.item_id && process.env.FRONTEND_URL) {
+      params.redirect_uri = process.env.FRONTEND_URL;
+    }
 
     // Update mode — re-authenticate an existing item without creating a new one
     if (req.body?.item_id) {

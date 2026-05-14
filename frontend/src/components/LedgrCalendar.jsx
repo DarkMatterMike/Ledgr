@@ -217,10 +217,19 @@ export default function LedgrCalendar({
                     <div style={{fontSize:13}}>Add recurring items to see them here</div>
                   </div>
                 ) : agendaDays.map(d=>{
-                  const dayTxns=calendarTxnsByDay[d]||[];
-                  const dayRIs=recurringItems.filter(r=>parseInt(r.recurringDay)===d);
+                  // Split: synthetic recurring item entries vs real transactions
+                  const allEntries=calendarTxnsByDay[d]||[];
+                  const riEntries=allEntries.filter(t=>t.isRecurringItem);
+                  // Real transactions: not a synthetic entry AND not already represented by a ri entry
+                  const riItemIds=new Set(riEntries.map(t=>t.recurringItemId));
+                  const realTxns=allEntries.filter(t=>
+                    !t.isRecurringItem &&
+                    !riItemIds.has(t.recurringItemId)
+                  );
+                  const todayMidnight=new Date(today.getFullYear(),today.getMonth(),today.getDate());
                   const isToday=isCurMo&&d===today.getDate();
                   const dow=DN[new Date(cy,cm-1,d).getDay()];
+                  const isEmpty=riEntries.length===0&&realTxns.length===0;
                   return (
                     <div key={d} className="lc-aday">
                       {/* condensed day header */}
@@ -229,41 +238,19 @@ export default function LedgrCalendar({
                         {isToday&&<span className="lc-today-pill">today</span>}
                         <div className={`lc-day-rule${isToday?" today":""}`}/>
                       </div>
-                      {dayRIs.map(r=>{
-                        const isInc=r.type==="income";
-                        const barColor=isInc?"rgba(93,202,165,0.5)":r.recurringFreq?"rgba(108,140,255,0.4)":"rgba(240,176,76,0.4)";
+                      {/* recurring item entries — show posted/due based on postedThisMonth */}
+                      {riEntries.map(t=>{
+                        const isInc=t.type==="income";
+                        const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(108,140,255,0.4)";
+                        const posted=t.postedThisMonth;
                         return(
-                          <div key={r.id} className="lc-event" style={{cursor:"pointer"}} onClick={()=>openEditRecurringItem&&openEditRecurringItem(r)}>
-                            <div className="lc-event-bar" style={{background:barColor}}/>
+                          <div key={t.id} className="lc-event" style={{cursor:"pointer"}}
+                            onClick={()=>openEditRecurringItem&&openEditRecurringItem(recurringItems.find(r=>r.id===t.recurringItemId))}>
+                            <div className="lc-event-bar" style={{background:posted?barColor.replace("0.4","0.6").replace("0.5","0.7"):barColor}}/>
                             <div className="lc-event-body">
-                              <span className="lc-event-name">{r.name}</span>
+                              <span className="lc-event-name">{t.name}</span>
                               <span className="lc-event-tag rec">↻</span>
-                              <span className="lc-event-tag upcoming">due</span>
-                            </div>
-                            <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(r.amountMin||0)}</span>
-                          </div>
-                        );
-                      })}
-                      {dayTxns.map(t=>{
-                        const isInc=t.amount>0;
-                        const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
-                        // Recurring item entries have postedThisMonth flag
-                        // Real transactions: posted if date is today or earlier
-                        let hasPosted;
-                        if(t.isRecurringItem){
-                          hasPosted=t.postedThisMonth;
-                        } else {
-                          const txnDate=t.date?new Date(t.date+"T00:00:00"):null;
-                          const todayMidnight=new Date(today.getFullYear(),today.getMonth(),today.getDate());
-                          hasPosted=txnDate&&txnDate<=todayMidnight;
-                        }
-                        return(
-                          <div key={t.id} className="lc-event">
-                            <div className="lc-event-bar" style={{background:barColor}}/>
-                            <div className="lc-event-body">
-                              <span className="lc-event-name">{t.name||t.merchant}</span>
-                              {(t.recurring||t.isRecurringItem)&&<span className="lc-event-tag rec">↻</span>}
-                              {hasPosted
+                              {posted
                                 ? <span className="lc-event-tag posted">✓</span>
                                 : <span className="lc-event-tag upcoming">due</span>
                               }
@@ -272,7 +259,27 @@ export default function LedgrCalendar({
                           </div>
                         );
                       })}
-                      {dayTxns.length===0&&dayRIs.length===0&&<div className="lc-empty-day">no activity</div>}
+                      {/* real transactions not linked to any recurring item */}
+                      {realTxns.map(t=>{
+                        const isInc=t.amount>0;
+                        const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
+                        const txnDate=t.date?new Date(t.date+"T00:00:00"):null;
+                        const posted=txnDate&&txnDate<=todayMidnight;
+                        return(
+                          <div key={t.id} className="lc-event">
+                            <div className="lc-event-bar" style={{background:barColor}}/>
+                            <div className="lc-event-body">
+                              <span className="lc-event-name">{t.name||t.merchant}</span>
+                              {posted
+                                ? <span className="lc-event-tag posted">✓</span>
+                                : <span className="lc-event-tag upcoming">due</span>
+                              }
+                            </div>
+                            <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
+                          </div>
+                        );
+                      })}
+                      {isEmpty&&<div className="lc-empty-day">no activity</div>}
                     </div>
                   );
                 })}

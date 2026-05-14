@@ -348,6 +348,7 @@ export default function LedgrTransactions({
   deleteTxn,
   openAddTxn,
   bulkSetCategory,
+  bulkSetType,
   bulkDelete,
   bulkMarkReviewed,
   selectAllVisible,
@@ -373,7 +374,8 @@ export default function LedgrTransactions({
   const [panelName,   setPanelName]   = useState("");
   const [panelNotes,  setPanelNotes]  = useState("");
   const [panelSaved,  setPanelSaved]  = useState(false);
-  const [bulkCatOpen, setBulkCatOpen] = useState(false);
+  const [bulkCatOpen,  setBulkCatOpen]  = useState(false);
+  const [bulkTypeOpen, setBulkTypeOpen] = useState(false);
 
   /* Sync panel local state when selection changes */
   useEffect(() => {
@@ -925,6 +927,24 @@ export default function LedgrTransactions({
                         <span style={{ width:8, height:8, borderRadius:"50%", background:c.color, flexShrink:0 }}/>
                         {c.name}
                       </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {bulkSetType && (
+            <div style={{ position:"relative" }}>
+              <button className="lt-btn" onClick={() => setBulkTypeOpen(p => !p)}>Set type ▾</button>
+              {bulkTypeOpen && (
+                <>
+                  <div style={{ position:"fixed", inset:0, zIndex:49 }} onClick={() => setBulkTypeOpen(false)}/>
+                  <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:8, background:"var(--bg-3)", border:"1px solid var(--line-2)", borderRadius:"var(--r-lg)", minWidth:170, zIndex:50, boxShadow:"0 8px 32px rgba(0,0,0,0.5)" }}>
+                    {[["expense","Expense"],["income","Income"],["transfer","Transfer"],["reimbursement","Reimbursement"]].map(([v,l]) => (
+                      <button key={v}
+                        onClick={() => { bulkSetType(v); setBulkTypeOpen(false); }}
+                        style={{ display:"block", width:"100%", padding:"9px 14px", background:"none", border:"none", cursor:"pointer", fontSize:13, color:"var(--ink-1)", textAlign:"left" }}
+                      >{l}</button>
                     ))}
                   </div>
                 </>

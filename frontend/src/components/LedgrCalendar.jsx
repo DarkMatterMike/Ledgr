@@ -178,6 +178,7 @@ export default function LedgrCalendar({
   const now=calendarMonth||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
   const [cy,cm]=now.split("-").map(Number);
   const [selDay,setSelDay]=useState(cy===today.getFullYear()&&cm===today.getMonth()+1?today.getDate():1);
+  const [expandedRiDay,setExpandedRiDay]=useState(null);
   const isCurMo=cy===today.getFullYear()&&cm===today.getMonth()+1;
   const [selectedRiId,setSelectedRiId]=useState(null);    // which ri is selected for edit col
   const [selectedTxn,setSelectedTxn]=useState(null);      // which unlinked txn is selected for link search
@@ -288,7 +289,11 @@ export default function LedgrCalendar({
                   if(c.hasMix) cls+=" has-mix";
                   else if(c.hasBill) cls+=" has-bill";
                   else if(c.hasInc) cls+=" has-inc";
-                  return <div key={i} className={cls} onClick={()=>!c.muted&&setSelDay(c.d)}>{c.d}</div>;
+                  return <div key={i} className={cls} onClick={()=>{
+                  if(c.muted) return;
+                  setSelDay(c.d);
+                  setExpandedRiDay(p=>p===c.d?null:c.d);
+                }}>{c.d}</div>;
                 })}
               </div>
               <div className="lc-mstats">
@@ -299,32 +304,69 @@ export default function LedgrCalendar({
               </div>
 
               <div className="lc-ri-lbl">Recurring this month</div>
-              {[...recurringItems].filter(r=>r.recurringDay).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(r=>{
-                const isSel=selectedRiId===r.id;
-                const dow=DN[new Date(cy,cm-1,parseInt(r.recurringDay)).getDay()];
-                const isInc=r.type==="income";
-                return(
-                  <div key={r.id} className="lc-ri-row"
-                    style={{background:isSel?"rgba(93,202,165,0.04)":undefined,borderRadius:isSel?"var(--r-sm)":undefined,paddingLeft:isSel?6:0}}
-                    onClick={()=>openRiEdit(r)}>
-                    <div className="lc-ri-summary">
-                      <div>
-                        <div className="lc-ri-day" style={{color:isSel?"var(--safe)":undefined}}>{r.recurringDay}</div>
-                        <div className="lc-ri-dow">{dow}</div>
-                      </div>
-                      <div>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                          <span className="lc-ri-name" style={{color:isSel?"var(--safe)":undefined}}>{r.name}</span>
-                          <span style={{fontSize:9,color:isSel?"var(--safe)":"var(--ink-4)",fontFamily:"var(--font-mono)"}}>›</span>
+              {(() => {
+                // Group by day
+                const byDay = {};
+                [...recurringItems].filter(r=>r.recurringDay).forEach(r=>{
+                  const d = parseInt(r.recurringDay);
+                  if(!byDay[d]) byDay[d]=[];
+                  byDay[d].push(r);
+                });
+                return Object.keys(byDay).sort((a,b)=>Number(a)-Number(b)).map(dayStr=>{
+                  const day = Number(dayStr);
+                  const items = byDay[day];
+                  const dow = DN[new Date(cy,cm-1,day).getDay()];
+                  const isExpanded = expandedRiDay===day;
+                  const dayTotal = items.reduce((s,r)=>s+(r.type==="income"?0:-(r.amountMin||0)),0);
+                  const hasInc = items.some(r=>r.type==="income");
+                  const allInc = items.every(r=>r.type==="income");
+                  const amtColor = allInc?"var(--safe)":dayTotal<0?"var(--debt)":"var(--ink-2)";
+                  const isPast = isCurMo && day < today.getDate();
+                  return (
+                    <div key={day} style={{marginBottom:2}}>
+                      {/* Day group header */}
+                      <div
+                        onClick={()=>setExpandedRiDay(p=>p===day?null:day)}
+                        style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:"var(--r-sm)",cursor:"pointer",
+                          background:isExpanded?"rgba(93,202,165,0.04)":"transparent",
+                          borderLeft:isExpanded?"2px solid var(--safe)":"2px solid transparent",
+                          opacity:isPast?0.5:1,transition:".12s"}}
+                      >
+                        <div style={{textAlign:"center",minWidth:28,flexShrink:0}}>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:14,fontWeight:600,color:isExpanded?"var(--safe)":"var(--ink-1)",lineHeight:1}}>{day}</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:8,color:"var(--ink-4)",letterSpacing:"0.5px",textTransform:"uppercase"}}>{dow}</div>
                         </div>
-                        <div className="lc-ri-amt" style={{color:isInc?"var(--safe)":"var(--debt)"}}>
-                          {isInc?"+":"−"}{fmt(r.amountMin||0)}
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:11,color:"var(--ink-2)"}}>{items.length} item{items.length!==1?"s":""}</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:amtColor}}>
+                            {allInc?"+":dayTotal!==0?"-":""}{fmt(Math.abs(items.reduce((s,r)=>s+(r.amountMin||0),0)))}
+                          </div>
                         </div>
+                        <span style={{fontSize:10,color:"var(--ink-4)",transform:isExpanded?"rotate(90deg)":"rotate(0)",transition:".15s",display:"inline-block"}}>›</span>
                       </div>
+                      {/* Expanded items */}
+                      {isExpanded && items.map(r=>{
+                        const isSel=selectedRiId===r.id;
+                        const isInc=r.type==="income";
+                        return(
+                          <div key={r.id}
+                            onClick={()=>openRiEdit(r)}
+                            style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                              padding:"6px 8px 6px 44px",cursor:"pointer",borderRadius:"var(--r-sm)",
+                              background:isSel?"rgba(93,202,165,0.06)":"rgba(255,255,255,0.015)",
+                              marginBottom:1,transition:".1s"}}
+                          >
+                            <span style={{fontSize:12,color:isSel?"var(--safe)":"var(--ink-1)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</span>
+                            <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:isInc?"var(--safe)":"var(--debt)",flexShrink:0,marginLeft:8}}>
+                              {isInc?"+":"−"}{fmt(r.amountMin||0)}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
               <div className="lc-ri-add" onClick={()=>{setSelectedRiId('__new__');setSelectedTxn(null);setRiForm({name:"",amountMin:"",amountMax:"",recurringDay:"",recurringFreq:"monthly",recurringStart:"",categoryId:"",accountId:"",type:"expense"});}}>+ Add Recurring Item</div>
             </aside>
 

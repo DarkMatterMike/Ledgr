@@ -508,22 +508,34 @@ function useDashboardColumns(defaultCols, scheduleSaveRef, setDefaultCols) {
   return { cols, moveItem, moveToCol };
 }
 
-function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={} }) {
+function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState(null);
   const fetchToken = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
     try { const { link_token } = await api.createLinkToken(products, itemId); setLinkToken(link_token); }
-    catch (e) { setError(e.message); } finally { setLoading(false); }
-  }, [products, itemId]);
+    catch (e) {
+      const msg = e.message || "Failed to create link token";
+      if (showToast) showToast(msg);
+      else console.error("[PlaidButton]", msg);
+    } finally { setLoading(false); }
+  }, [products, itemId, showToast]);
   const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
-    <div>
-      <button style={{...S.btn("primary"), ...style}} onClick={fetchToken} disabled={loading}>{loading?"…":label}</button>
-      {error && <div style={{marginTop:8,fontSize:12,color:"var(--red)"}}>{error}</div>}
-    </div>
+    <button
+      style={{
+        padding:"7px 14px", borderRadius:8,
+        background:"var(--safe-bg)", border:"1px solid rgba(93,202,165,0.4)",
+        color:"var(--safe)", fontSize:12, fontWeight:500, cursor:"pointer",
+        fontFamily:"var(--font-ui)", transition:".15s", opacity: loading ? 0.6 : 1,
+        ...style
+      }}
+      onClick={fetchToken}
+      disabled={loading}
+    >
+      {loading ? "Opening…" : label}
+    </button>
   );
 }
 
@@ -3980,6 +3992,7 @@ function AppInner({ isDemo = false }) {
       deleteTxn={deleteTxn}
       openAddTxn={openAddTxn}
       bulkSetCategory={bulkSetCategory}
+      bulkSetType={bulkSetType}
       bulkDelete={bulkDelete}
       bulkMarkReviewed={bulkMarkReviewed}
       selectAllVisible={selectAllVisible}
@@ -4413,6 +4426,7 @@ function AppInner({ isDemo = false }) {
       setReconnectingItemId={setReconnectingItemId}
       handlePlaidSuccess={handlePlaidSuccess}
       PlaidButton={PlaidButton}
+      showToast={showToast}
       fmt={fmt}
       today={today}
       isMobile={isMobile}
@@ -5165,6 +5179,7 @@ function AppInner({ isDemo = false }) {
       deleteTxn={deleteTxn}
       openAddTxn={openAddTxn}
       bulkSetCategory={bulkSetCategory}
+      bulkSetType={bulkSetType}
       bulkDelete={bulkDelete}
       bulkMarkReviewed={bulkMarkReviewed}
       selectAllVisible={selectAllVisible}

@@ -465,7 +465,7 @@ export default function LedgrBudgets({
                         ? <><em className="over">{fmt(Math.abs(remaining))} over budget</em> this month</>
                         : remaining===0
                           ? <>Budget <em className="warn">fully spent</em> this month</>
-                          : <><em className="ok">{fmt(remaining)}</em> of your budget still on the runway</>
+                          : <><em className="ok">{fmt(remaining)}</em> left to spend within your budget</>
                       }
                     </h2>
                     <span className="lb-runway-meta">day {todayDay} of {daysInMonth}</span>

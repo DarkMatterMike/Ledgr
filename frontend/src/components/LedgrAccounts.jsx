@@ -85,7 +85,7 @@ function daysInMonth(y,m){return new Date(y,m,0).getDate();}
 export default function LedgrAccounts({
   accounts=[],plaidItems=[],staleItemIds=new Set(),spentByAcct={},monthTxns=[],
   openAddAcct,openEditAcct,deleteAcct,disconnectItem,doSync,syncing=false,
-  reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,
+  reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,showToast=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
 }) {
@@ -140,7 +140,7 @@ export default function LedgrAccounts({
                 </div>
                 <div className="la-tb-right">
                   <div className="la-avatar">{initials}</div>
-                  {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" style={{}}/>}
+                  {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" showToast={showToast} style={{}}/>}
                   <button className="la-btn" onClick={openAddAcct}>+ Manual</button>
                 </div>
               </div>
@@ -177,7 +177,7 @@ export default function LedgrAccounts({
                               <span className="la-group-total">{fmt(groupTotal)}</span>
                               {!isManual&&plaidItem&&(isStale?(
                                 <>
-                                  {PlaidButton&&<PlaidButton itemId={plaidItem.item_id} onSuccess={async(pt,inst)=>{await handlePlaidSuccess(pt,inst||label);setReconnectingItemId&&setReconnectingItemId(null);}} onExit={()=>setReconnectingItemId&&setReconnectingItemId(null)} label={reconnectingItemId===plaidItem.item_id?"Opening…":"Reconnect"} style={{fontSize:11,padding:"4px 10px"}}/>}
+                                  {PlaidButton&&<PlaidButton itemId={plaidItem.item_id} onSuccess={async(pt,inst)=>{await handlePlaidSuccess(pt,inst||label);setReconnectingItemId&&setReconnectingItemId(null);}} onExit={()=>setReconnectingItemId&&setReconnectingItemId(null)} label={reconnectingItemId===plaidItem.item_id?"Opening…":"Reconnect"} showToast={showToast} style={{fontSize:11,padding:"4px 10px"}}/>}
                                   <button className="la-btn danger" style={{fontSize:11}} onClick={()=>disconnectItem(plaidItem.item_id)}>Remove</button>
                                 </>
                               ):(

@@ -178,6 +178,14 @@ const CSS = `
 
   /* Color strip cell — 4 indicators */
   .lt-strip{width:3px;padding:0 !important;}
+  .lt-cb-col{width:32px;padding:0 4px 0 10px !important;}
+  .lt-cb{width:14px;height:14px;border-radius:3px;border:1px solid var(--line-2);
+    appearance:none;-webkit-appearance:none;background:var(--bg-2);cursor:pointer;
+    display:grid;place-content:center;transition:.1s;flex-shrink:0;}
+  .lt-cb:checked{background:var(--safe);border-color:var(--safe);}
+  .lt-cb:checked::after{content:'';width:4px;height:7px;border:1.5px solid #07090d;
+    border-top:none;border-left:none;transform:rotate(42deg) translateY(-1px);display:block;}
+  .lt-cb:hover:not(:checked){border-color:var(--safe);}
   .lt-strip-bar{width:3px;height:100%;min-height:42px;display:block;}
   .lt-strip-bar.unreviewed{background:#5dcaa5;}
   .lt-strip-bar.pending{background:var(--warn);}
@@ -269,6 +277,9 @@ const CSS = `
   .lt-panel-btn.recur:hover{background:rgba(249,115,22,0.14);}
   .lt-panel-btn.del{border-color:rgba(232,115,99,0.25);color:var(--debt);background:var(--debt-bg);}
   .lt-panel-btn.del:hover{background:rgba(232,115,99,0.14);}
+  .lt-panel-btn.saved{border-color:rgba(93,202,165,0.4);color:var(--safe);background:var(--safe-bg);pointer-events:none;}
+  @keyframes lt-check-pop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+  .lt-panel-btn.saved span{display:inline-block;animation:lt-check-pop .25s ease-out;}
   .lt-panel-row{display:flex;gap:8px;}
   .lt-panel-row .lt-panel-btn{flex:1;}
 
@@ -361,6 +372,7 @@ export default function LedgrTransactions({
   const [selectedTxn, setSelectedTxn] = useState(null);
   const [panelName,   setPanelName]   = useState("");
   const [panelNotes,  setPanelNotes]  = useState("");
+  const [panelSaved,  setPanelSaved]  = useState(false);
   const [bulkCatOpen, setBulkCatOpen] = useState(false);
 
   /* Sync panel local state when selection changes */
@@ -582,6 +594,13 @@ export default function LedgrTransactions({
                       <tr className="lt-thead-row">
                         {/* strip col — no header */}
                         <th className="lt-th" style={{ width:3, padding:0 }}/>
+                        {/* checkbox — select all */}
+                        <th className="lt-th lt-cb-col">
+                          <input type="checkbox" className="lt-cb"
+                            checked={sorted.length > 0 && sorted.every(t => selectedTxns.has(t.id))}
+                            onChange={e => e.target.checked ? selectAllVisible?.() : clearSelection?.()}
+                          />
+                        </th>
                         <Th col="date"     label="Date"        style={{ width:80 }}/>
                         <Th col="merchant" label="Description"/>
                         <Th col="category" label="Category"    style={{ width:150 }}/>
@@ -614,6 +633,18 @@ export default function LedgrTransactions({
                             {/* Color strip */}
                             <td className="lt-td lt-strip">
                               <span className={`lt-strip-bar ${sCls}`}/>
+                            </td>
+
+                            {/* Checkbox */}
+                            <td className="lt-td lt-cb-col" onClick={e => e.stopPropagation()}>
+                              <input type="checkbox" className="lt-cb"
+                                checked={selectedTxns.has(t.id)}
+                                onChange={() => setSelectedTxns(prev => {
+                                  const n = new Set(prev);
+                                  n.has(t.id) ? n.delete(t.id) : n.add(t.id);
+                                  return n;
+                                })}
+                              />
                             </td>
 
                             {/* Date */}
@@ -830,10 +861,15 @@ export default function LedgrTransactions({
                     </button>
                     <div className="lt-panel-row">
                       <button
-                        className="lt-panel-btn"
-                        onClick={() => { savePanelName(); savePanelNotes(); }}
+                        className={`lt-panel-btn${panelSaved ? " saved" : ""}`}
+                        onClick={() => {
+                          savePanelName();
+                          savePanelNotes();
+                          setPanelSaved(true);
+                          setTimeout(() => setPanelSaved(false), 1800);
+                        }}
                       >
-                        Save Changes
+                        {panelSaved ? <span>✓ Saved</span> : "Save Changes"}
                       </button>
                       <button
                         className="lt-panel-btn del"

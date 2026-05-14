@@ -4739,23 +4739,56 @@ function AppInner({ isDemo = false }) {
   );
 
 
-  /* ── CatModal ─────────────────────────────────── */
+  /* ── CatModal — lumen styled ──────────────────── */
   const CatModal = (
-    <Modal title={modal==="addCat"?"New Category":"Edit Category"} onClose={()=>setModal(null)}
-      actions={<><button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveCat}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Groceries" value={catForm.name} onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}/></div>
-        <div style={S.field}><label style={S.label}>Monthly Limit ($)</label><input style={S.input} type="number" placeholder="500" value={catForm.limit} onChange={e=>setCatForm(p=>({...p,limit:e.target.value}))}/></div>
-        <div style={S.field}>
-          <label style={S.label}>Color</label>
-          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-            {CAT_COLORS.map(c=>(
-              <div key={c} onClick={()=>setCatForm(p=>({...p,color:c}))} style={{width:32,height:32,borderRadius:6,background:c,cursor:"pointer",border:`2px solid ${catForm.color===c?"var(--t1)":"transparent"}`,transition:"transform 0.15s",transform:catForm.color===c?"scale(1.15)":"scale(1)"}}/>
-            ))}
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+      onClick={e=>{if(e.target===e.currentTarget)setModal(null);}}>
+      <div style={{background:"var(--bg-1)",border:"1px solid var(--line-2)",borderRadius:16,padding:24,width:"100%",maxWidth:380,display:"flex",flexDirection:"column",gap:16,boxShadow:"0 24px 60px rgba(0,0,0,0.6)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:11,letterSpacing:"1.5px",textTransform:"uppercase",color:"var(--ink-3)"}}>
+            {modal==="addCat"?"New Category":"Edit Category"}
+          </span>
+          <button onClick={()=>setModal(null)} style={{background:"none",border:"none",color:"var(--ink-3)",fontSize:18,cursor:"pointer",lineHeight:1,padding:"0 2px"}}>✕</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:11,color:"var(--ink-3)",letterSpacing:"0.5px"}}>Name</label>
+            <input style={{background:"var(--bg-2)",border:"1px solid var(--line)",borderRadius:8,padding:"8px 10px",fontSize:13,color:"var(--ink-0)",outline:"none",fontFamily:"var(--font-ui)",width:"100%"}}
+              placeholder="Groceries" value={catForm.name} autoFocus
+              onChange={e=>setCatForm(p=>({...p,name:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter"&&saveCat()}/>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+            <label style={{fontSize:11,color:"var(--ink-3)",letterSpacing:"0.5px"}}>Monthly budget ($)</label>
+            <input style={{background:"var(--bg-2)",border:"1px solid var(--line)",borderRadius:8,padding:"8px 10px",fontSize:13,color:"var(--ink-0)",outline:"none",fontFamily:"var(--font-mono)",width:"100%"}}
+              type="number" placeholder="500" value={catForm.limit}
+              onChange={e=>setCatForm(p=>({...p,limit:e.target.value}))}
+              onKeyDown={e=>e.key==="Enter"&&saveCat()}/>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <label style={{fontSize:11,color:"var(--ink-3)",letterSpacing:"0.5px"}}>Color</label>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {CAT_COLORS.map(col=>(
+                <div key={col} onClick={()=>setCatForm(p=>({...p,color:col}))}
+                  style={{width:28,height:28,borderRadius:6,background:col,cursor:"pointer",
+                    outline:catForm.color===col?`2px solid ${col}`:"2px solid transparent",
+                    outlineOffset:2,transition:"transform .12s",transform:catForm.color===col?"scale(1.18)":"scale(1)"}}/>
+              ))}
+            </div>
           </div>
         </div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <button onClick={()=>setModal(null)}
+            style={{padding:"7px 14px",borderRadius:8,background:"var(--bg-2)",border:"1px solid var(--line)",color:"var(--ink-2)",fontSize:12,cursor:"pointer",fontFamily:"var(--font-ui)"}}>
+            Cancel
+          </button>
+          <button onClick={saveCat}
+            style={{padding:"7px 14px",borderRadius:8,background:"var(--safe)",border:"none",color:"#07090d",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--font-ui)"}}>
+            {modal==="addCat"?"Create":"Save"}
+          </button>
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 
 

@@ -268,7 +268,7 @@ export default function LedgrBudgets({
 
     return(
       <>
-        <div className="lb-band-row" style={{background:expanded?"rgba(255,255,255,0.01)":"transparent",borderRadius:expanded?"var(--r-md) var(--r-md) 0 0":"var(--r-sm)"}}>
+        <div className="lb-band-row" style={{background:expanded?"rgba(255,255,255,0.01)":"transparent",borderRadius:expanded?"var(--r-md) var(--r-md) 0 0":"var(--r-sm)",cursor:"pointer"}} onClick={()=>{setExpandedId(p=>p===cat.id?null:cat.id);setDrillSearch("");}}>
           {/* name */}
           <div className="lb-band-name">
             <div className="lb-band-dot" style={{background:over?"var(--debt)":done?"var(--ink-4)":cat.color,boxShadow:over?"0 0 5px var(--debt)":warn?`0 0 4px ${cat.color}88`:"none"}}/>
@@ -276,7 +276,7 @@ export default function LedgrBudgets({
           </div>
 
           {/* runway band */}
-          <div className="lb-band-track" onClick={()=>{setExpandedId(p=>p===cat.id?null:cat.id);setDrillSearch("");}}>
+          <div className="lb-band-track" onClick={e=>e.stopPropagation()}>
             <div className="lb-band-fill" style={{width:`${Math.min(pct,100)}%`,background:fillColor,color:textColor}}>
               {pct>25?`${fmt(spent)} / ${fmt(limit)}`:""}
             </div>

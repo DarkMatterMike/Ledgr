@@ -395,10 +395,12 @@ export default function LedgrCalendar({
                   const items = byDay[day];
                   const dow = DN[new Date(cy,cm-1,day).getDay()];
                   const isExpanded = expandedRiDay===day;
-                  const dayTotal = items.reduce((s,r)=>s+(r.type==="income"?0:-(r.amountMin||0)),0);
-                  const hasInc = items.some(r=>r.type==="income");
+                  const dayIncome  = items.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0);
+                  const dayExpense = items.filter(r=>r.type!=="income").reduce((s,r)=>s+(r.amountMin||0),0);
+                  const dayTotal   = dayIncome - dayExpense;
+                  const hasInc = dayIncome > 0;
                   const allInc = items.every(r=>r.type==="income");
-                  const amtColor = allInc?"var(--safe)":dayTotal<0?"var(--debt)":"var(--ink-2)";
+                  const amtColor = dayTotal>0?"var(--safe)":dayTotal<0?"var(--debt)":"var(--ink-2)";
                   const isPast = isCurMo && day < today.getDate();
                   return (
                     <div key={day} style={{marginBottom:2}}>
@@ -416,10 +418,16 @@ export default function LedgrCalendar({
                           <div style={{fontFamily:"var(--font-mono)",fontSize:8,color:"var(--ink-4)",letterSpacing:"0.5px",textTransform:"uppercase"}}>{dow}</div>
                         </div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:11,color:"var(--ink-2)"}}>{items.length} item{items.length!==1?"s":""}</div>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:amtColor}}>
-                            {allInc?"+":dayTotal!==0?"-":""}{fmt(Math.abs(items.reduce((s,r)=>s+(r.amountMin||0),0)))}
+                          <div style={{fontSize:11,color:"var(--ink-2)",display:"flex",gap:8}}>
+                            {hasInc&&!allInc&&<span style={{color:"var(--safe)"}}>+{fmt(dayIncome)}</span>}
+                            {dayExpense>0&&<span style={{color:"var(--debt)"}}>−{fmt(dayExpense)}</span>}
+                            {allInc&&<span style={{color:"var(--safe)"}}>+{fmt(dayIncome)}</span>}
                           </div>
+                          {hasInc&&dayExpense>0&&(
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:amtColor,marginTop:1}}>
+                              net {dayTotal>=0?"+":"−"}{fmt(Math.abs(dayTotal))}
+                            </div>
+                          )}
                         </div>
                         <span style={{fontSize:10,color:"var(--ink-4)",transform:isExpanded?"rotate(90deg)":"rotate(0)",transition:".15s",display:"inline-block"}}>›</span>
                       </div>

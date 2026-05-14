@@ -24,12 +24,13 @@ export const NAV = [
 ];
 
 const CSS = `
-  .pn-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);flex-shrink:0;}
+  .pn-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);flex-shrink:0;align-self:stretch;min-height:100%;}
   .pn-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d,#0f6e56) 80%);margin-bottom:24px;flex-shrink:0;}
   .pn-item{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:18px;cursor:pointer;transition:.15s;user-select:none;flex-shrink:0;}
   .pn-item:hover{color:var(--ink-1);background:var(--bg-2);}
   .pn-item.active{color:var(--safe);background:var(--safe-bg,rgba(93,202,165,0.08));}
   .pn-spacer{flex:1;}
+  .pn-divider{width:32px;height:1px;background:var(--line-2);margin:4px 0;flex-shrink:0;}
   .pn-settings{color:var(--ink-3);}
 `;
 
@@ -51,6 +52,7 @@ export default function PageNav({ activeId, navigate, notifs=[], onDismissNotif=
         </div>
       ))}
       <div className="pn-spacer"/>
+      <div className="pn-divider"/>
       <NotifPanel notifs={notifs} onDismiss={onDismissNotif} onNavigate={navigate} onFilterReview={onFilterReview} fmt={fmt}/>
       <div
         className={`pn-item pn-settings${activeId === "settings" ? " active" : ""}`}

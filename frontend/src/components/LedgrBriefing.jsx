@@ -155,6 +155,10 @@ const CSS = `
   .lb-pool-v{font-family:var(--font-display);font-size:32px;letter-spacing:-1px;transition:color .3s;}
   .lb-pool-card.lb-pool-free .lb-pool-v{color:var(--safe);}
   .lb-pool-card.lb-pool-locked .lb-pool-v{color:var(--ink-0);}
+  .lb-pool-card.lb-pool-income{background:linear-gradient(180deg,rgba(108,140,255,0.06),rgba(108,140,255,0.01));border-color:rgba(108,140,255,0.2);}
+  .lb-pool-card.lb-pool-income .lb-pool-stripe{background:var(--calm);}
+  .lb-pool-card.lb-pool-income .lb-pool-nm{color:var(--calm);}
+  .lb-pool-card.lb-pool-income .lb-pool-v{color:var(--calm);}
 
   /* what-if section */
   .lb-whatif{margin-top:24px;}
@@ -379,6 +383,25 @@ export default function LedgrBriefing({
       .reduce((a, t) => a + Math.abs(t.amount), 0);
     return s + Math.max(c.limit || 0, spent);
   }, 0), [categories, monthTxns]);
+  // Income expected for the rest of the current month
+  const remainingMonthIncome = useMemo(() => {
+    const todayDay = today.getDate();
+    return recurringItems
+      .filter(r => r.type === "income" && r.recurringDay)
+      .filter(r => {
+        const day = parseInt(r.recurringDay);
+        // Include if not yet paid this month (no linked txn in current month)
+        const paidThisMonth = (r.linkedTxnIds || []).some(id => {
+          const t = monthTxns.find(x => x.id === id);
+          if (!t?.date) return false;
+          const [ty, tm] = t.date.split("-").map(Number);
+          return ty === curY && tm === curM;
+        });
+        return day > todayDay && !paidThisMonth;
+      })
+      .reduce((s, r) => s + (r.amountMin || 0), 0);
+  }, [recurringItems, monthTxns, today, curY, curM]);
+
   // Overspent = sum of how much each category has exceeded its limit
   const overspentTotal = useMemo(() => categories.reduce((s, c) => {
     if (!c.limit) return s;
@@ -688,6 +711,14 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                         <div className="lb-pool-desc">spoken for the rest of the month</div>
                       </div>
                       <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
+                    </div>
+                    <div className="lb-pool-card lb-pool-income">
+                      <div className="lb-pool-stripe"/>
+                      <div>
+                        <div className="lb-pool-nm">Income · incoming</div>
+                        <div className="lb-pool-desc">{remainingMonthIncome>0?`expected before ${MN[today.getMonth()]} ends`:"no more income expected"}</div>
+                      </div>
+                      <div className="lb-pool-v">{remainingMonthIncome>0?`+${fmt(remainingMonthIncome)}`:"—"}</div>
                     </div>
                   </div>
                 </div>

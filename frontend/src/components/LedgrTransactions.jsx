@@ -228,7 +228,7 @@ const CSS = `
   .lt-panel-name{font-size:14px;color:var(--ink-1);margin-bottom:2px;}
   .lt-panel-meta{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
 
-  .lt-panel-fields{padding:20px 22px;display:flex;flex-direction:column;gap:14px;flex:1;}
+  .lt-panel-fields{padding:20px 22px;display:flex;flex-direction:column;gap:14px;}
   .lt-field{display:flex;flex-direction:column;gap:5px;}
   .lt-field-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-3);font-family:var(--font-mono);}
   .lt-field-input{
@@ -250,7 +250,7 @@ const CSS = `
   .lt-panel-review-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);color:var(--warn);background:var(--warn-bg);padding:4px 10px;border-radius:99px;margin-top:6px;}
   .lt-panel-review-badge.done{color:var(--safe);background:var(--safe-bg);}
 
-  .lt-panel-actions{padding:18px 22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+  .lt-panel-actions{padding:0 22px 22px;display:flex;flex-direction:column;gap:8px;}
   .lt-panel-btn{
     width:100%;padding:9px 14px;border-radius:var(--r-md);font-size:12px;font-family:var(--font-ui);
     cursor:pointer;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);

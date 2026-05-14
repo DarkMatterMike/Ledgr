@@ -142,7 +142,7 @@ const CSS = `
   .lb-gauge-pct{font-family:var(--font-display);font-size:48px;letter-spacing:-1.5px;line-height:1;transition:color .3s;}
   .lb-gauge-sub{font-size:12px;color:var(--ink-2);margin-top:6px;font-family:var(--font-mono);}
   .lb-pools{display:flex;flex-direction:column;gap:12px;}
-  .lb-pool-card{display:grid;grid-template-columns:6px 1fr auto;gap:16px;align-items:center;padding:20px 20px;border-radius:var(--r-lg);border:1px solid var(--line);}
+  .lb-pool-card{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:16px 20px;border-radius:var(--r-lg);border:1px solid var(--line);position:relative;}
   .lb-pool-card.lb-pool-free{background:linear-gradient(180deg,rgba(93,202,165,0.06),rgba(93,202,165,0.01));border-color:rgba(93,202,165,0.22);}
   .lb-pool-card.lb-pool-locked{background:var(--bg-2);}
   .lb-pool-stripe{width:4px;border-radius:2px;height:40px;flex-shrink:0;}
@@ -718,34 +718,38 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
                   {/* Right: FREE + VAULT pool cards */}
                   <div className="lb-pools">
-                    <div className="lb-pool-card lb-pool-free" style={{position:"relative"}}>
+                    <div className="lb-pool-card lb-pool-free" style={{position:"relative",flexWrap:"wrap"}}>
                       <div className="lb-pool-stripe"/>
                       <div style={{flex:1,minWidth:0}}>
-                        <div className="lb-free-header">
-                          <div className="lb-pool-nm">Free · yours</div>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                          <div className="lb-pool-nm" style={{margin:0}}>Free · yours</div>
                           <button className="lb-acct-sel-btn" onClick={e=>{e.stopPropagation();setAcctPopoverOpen(p=>!p);}}>
                             {selectedAcctIds.length} acct{selectedAcctIds.length!==1?"s":""} ⚙
                           </button>
                         </div>
-                        <div className="lb-pool-desc">
+                        <div className="lb-pool-desc" style={{fontSize:11,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                           {accounts.filter(a=>selectedAcctIds.includes(a.id)).map(a=>a.name||a.type).join(", ")||"no accounts selected"}
                         </div>
-                        {acctPopoverOpen&&(
-                          <div className="lb-acct-popover" onClick={e=>e.stopPropagation()}>
-                            <div className="lb-acct-popover-title">Include in free balance</div>
-                            {accounts.map(a=>(
-                              <div key={a.id} className="lb-acct-row" onClick={()=>toggleAcct(a.id)}>
-                                <div className={`lb-acct-check${selectedAcctIds.includes(a.id)?" on":""}`}>
-                                  {selectedAcctIds.includes(a.id)&&<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="var(--bg-0)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                </div>
-                                <span className="lb-acct-label">{a.name||a.type}{a.mask?` ····${a.mask}`:""}</span>
-                                <span className="lb-acct-bal">{fmt(a.balance||0)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       <div className="lb-pool-v">{fmt(displaySafe)}</div>
+                      {acctPopoverOpen&&(
+                        <div className="lb-acct-popover" onClick={e=>e.stopPropagation()}
+                          style={{position:"absolute",top:"calc(100% + 6px)",left:0,right:0,zIndex:200,
+                            background:"var(--bg-2)",border:"1px solid var(--line-2)",borderRadius:"var(--r-md)",
+                            padding:"12px",boxShadow:"0 8px 24px rgba(0,0,0,0.5)"}}>
+                          <div className="lb-acct-popover-title">Include in free balance</div>
+                          {accounts.map(a=>(
+                            <div key={a.id} className="lb-acct-row" onClick={()=>toggleAcct(a.id)}
+                              style={{display:"flex",alignItems:"center",gap:8,padding:"6px 4px",borderRadius:4,cursor:"pointer"}}>
+                              <div className={`lb-acct-check${selectedAcctIds.includes(a.id)?" on":""}`}>
+                                {selectedAcctIds.includes(a.id)&&<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="var(--bg-0)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </div>
+                              <span className="lb-acct-label" style={{flex:1,fontSize:11,color:"var(--ink-1)"}}>{a.name||a.type}</span>
+                              <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--ink-3)"}}>{a.mask?`····${a.mask}  `:""}{fmt(a.balance||0)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="lb-pool-card lb-pool-locked">
                       <div className="lb-pool-stripe"/>

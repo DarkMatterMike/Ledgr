@@ -5652,8 +5652,8 @@ function AppInner({ isDemo = false }) {
   );
 
 
-  /* ── AnalyticsPage ─────────────────────────────────── */
-  const AnalyticsPage = useMemo(() => (
+  /* ── AnalyticsPage — full-screen bypass (same pattern as other Ledgr* views) ── */
+  if (view === "analytics") return (
     <Analytics
       transactions={allTransactions ?? transactions}
       categories={categories}
@@ -5680,7 +5680,6 @@ function AppInner({ isDemo = false }) {
       onSaveGoal={saveGoal}
       onDeleteGoal={deleteGoal}
       onMarkRecurring={ids => {
-        // Find the most common day-of-month across these transactions
         const txns = transactions.filter(t => ids.includes(t.id));
         const dayCounts = {};
         txns.forEach(t => {
@@ -5692,10 +5691,8 @@ function AppInner({ isDemo = false }) {
         const recurringDay = Object.keys(dayCounts).length > 0
           ? parseInt(Object.entries(dayCounts).sort((a,b) => b[1]-a[1])[0][0])
           : null;
-        // Use earliest transaction date as recurringStart
         const dates = txns.map(t => t.date).filter(Boolean).sort();
         const recurringStart = dates[0] || null;
-
         setTransactions(prev => prev.map(t => ids.includes(t.id) ? {
           ...t,
           recurring: true,
@@ -5703,7 +5700,6 @@ function AppInner({ isDemo = false }) {
           recurringFreq: t.recurringFreq || "monthly",
           recurringStart: t.recurringStart || recurringStart,
         } : t));
-
         ids.forEach(id => {
           const t = transactions.find(tx => tx.id === id);
           api.updateTransaction(id, {
@@ -5715,14 +5711,13 @@ function AppInner({ isDemo = false }) {
         });
       }}
       defaultTab={analyticsTab}
+      navigate={navigate}
     />
-  ), [allTransactions, transactions, categories, accounts, catMap, isMobile,
-       analyticsInsights, analyticsTab, insightsTodos, goals, userProfile,
-       aiChat.hasApiKey]);
+  );
 
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, analytics:AnalyticsPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
@@ -6037,9 +6032,7 @@ function AppInner({ isDemo = false }) {
       /* ── MOBILE — bottom nav ── */
       <>
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
-          {view === "analytics"
-            ? <div className="ledgr-view-enter"><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>
-            : view === "dashboard"
+          {view === "dashboard"
             ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
             : view === "calendar" || view === "rules"
             ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
@@ -6101,9 +6094,7 @@ function AppInner({ isDemo = false }) {
           <div style={{flex:1,minWidth:0,position:"relative"}}>
             
             
-            {view === "analytics"
-              ? <div className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{AnalyticsPage}</div></div>
-              : view === "dashboard"
+            {view === "dashboard"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>

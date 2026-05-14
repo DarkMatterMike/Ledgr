@@ -27,7 +27,7 @@ const CSS = `
   .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
-  .lb-brief{display:grid;grid-template-columns:64px 1fr;flex:1;min-height:0;}
+  .lb-brief{display:grid;grid-template-columns:64px 1fr;min-height:880px;}
   .lb-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lb-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
   .lb-nav-item{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:18px;cursor:pointer;transition:.15s;user-select:none;}
@@ -49,7 +49,7 @@ const CSS = `
   .lgs-tab:hover{color:var(--ink-2);}
   .lgs-tab.active{color:var(--safe);border-bottom-color:var(--safe);}
   .lgs-content{flex:1;overflow-y:auto;}
-  .lgs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:24px;align-content:start;}
+  .lgs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:24px;align-content:start;max-width:1016px;}
 
   /* Blocks */
   .lgs-block {

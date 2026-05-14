@@ -17,7 +17,12 @@ const CSS = `
   .la-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
   .la-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .la-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
-  .la-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .la-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .la-sync-btn{background:none;border:1px solid rgba(255,255,255,0.06);border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-3);transition:.15s;flex-shrink:0;}
+  .la-sync-btn:hover{border-color:rgba(255,255,255,0.18);color:var(--ink-0);}
+  .la-sync-btn svg{transition:transform .6s;}
+  .la-sync-btn.spinning svg{animation:la-spin .7s linear infinite;}
+  @keyframes la-spin{to{transform:rotate(360deg);}}
   .la-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
   .la-body{display:grid;grid-template-columns:64px 1fr;flex:1;}
   .la-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
@@ -109,7 +114,14 @@ export default function LedgrAccounts({
           <div className="la-bar">
             <div className="la-bar-dot"/><div className="la-bar-dot"/><div className="la-bar-dot"/>
             <span className="la-bar-url">app.ledgr.app / accounts</span>
-            <span className="la-bar-live">live · synced just now</span>
+            <span className="la-bar-live">
+              live · synced just now
+              {doSync && (
+                <button className={`la-sync-btn${syncing?" spinning":""}`} onClick={()=>!syncing&&doSync()} title="Sync now">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+              )}
+            </span>
           </div>
           <div className="la-body">
             <nav className="la-nav">

@@ -129,9 +129,9 @@ const CSS = `
   .lb-led.warn{background:var(--warn);}
 
   /* story headline */
-  .lb-story-head{font-family:var(--font-display);font-size:60px;line-height:0.98;letter-spacing:-2px;font-weight:400;margin-bottom:24px;}
+  .lb-story-head{font-family:var(--font-display);font-size:32px;line-height:1.15;letter-spacing:-0.8px;font-weight:400;margin-bottom:24px;white-space:nowrap;}
   .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
-  @media(max-width:900px){.lb-story-head{font-size:40px;letter-spacing:-1px;}}
+  @media(max-width:900px){.lb-story-head{font-size:22px;letter-spacing:-0.3px;white-space:normal;}}
 
   /* gauge + pool callout */
   .lb-story-callout{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;}
@@ -340,6 +340,7 @@ export default function LedgrBriefing({
   apiBase="https://ledgr-production-9e35.up.railway.app",
   authHeaders=()=>({}),
   doSync=null,syncing=false,
+  userName="",
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }){
   // ── Computed financials ────────────────────────────────────────
@@ -569,7 +570,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
   function clearCard(e,i){e.stopPropagation();if(selIdx===i)setSelIdx(null);}
 
   // ── Display helpers ────────────────────────────────────────────
-  const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
+  const initials=userName?userName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase():(accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME");
   const halfIncome=nextPay?(nextPay.amountMin||0):totalIncome/2;
   const halfBills=billsTotal/2;
   const timeLabel=`${DN[today.getDay()]}, ${MN[today.getMonth()]} ${today.getDate()} · ${today.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`;
@@ -676,22 +677,20 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                   <span className="lb-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="lb-tb-right">
-                  <div className="lb-avatar">{initials}</div>
+                  <div className="lb-avatar" onClick={()=>navigate("settings")} style={{cursor:"pointer"}} title="Settings">{initials}</div>
                 </div>
               </div>
 
               {/* hero */}
               <div style={{marginBottom:40}}>
                 <div className="lb-eyebrow">
-                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"} · the headline
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{userName?`, ${userName.split(" ")[0]}`:""} · the headline
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
 
                 {/* Story-style headline */}
                 <h2 className="lb-story-head">
-                  You’re sitting on<br/>
-                  <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span><br/>
-                  that’s actually yours.
+                  You’re sitting on <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span> that’s actually yours.
                 </h2>
 
                 {/* Narrative deck */}

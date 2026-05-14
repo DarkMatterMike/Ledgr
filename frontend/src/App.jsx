@@ -5172,6 +5172,7 @@ function AppInner({ isDemo = false }) {
       authHeaders={() => ({ "Authorization": `Bearer ${api.getToken()}`, "Content-Type": "application/json" })}
       doSync={doSync}
       syncing={syncing}
+      userName={api.getStoredUser()?.name || api.getStoredUser()?.email || ""}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}

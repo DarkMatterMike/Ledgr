@@ -125,6 +125,38 @@ export function useAppData({
         if (coreData.calendarSplitView) setCalendarSplitView(coreData.calendarSplitView);
         if (coreData.access) setAccess(coreData.access);
         if (onData) onData(coreData, txnPage.total || 0);
+
+        // Sync Plaid data while the loading screen is still showing so the
+        // dashboard appears with fresh data and never visibly reloads.
+        // Capped at 10s — if Plaid is slow the app still opens with DB data.
+        if ((coreData.plaidItems || []).length > 0) {
+          try {
+            await Promise.race([
+              api.syncTransactions(),
+              new Promise(r => setTimeout(r, 10000)),
+            ]);
+            // Re-fetch accounts (balances) and transactions from DB after sync
+            const [freshCoreRes, freshTxnRes] = await Promise.allSettled([
+              api.loadData(),
+              api.loadTransactions({ fromDate, limit: 1000 }),
+            ]);
+            if (freshCoreRes.status === "fulfilled" && freshCoreRes.value.accounts) {
+              setAccounts(freshCoreRes.value.accounts);
+            }
+            if (freshTxnRes.status === "fulfilled") {
+              const freshRaw  = freshTxnRes.value.transactions || [];
+              const freshIds  = new Set(freshRaw.map(t => t.id));
+              const merged    = [...freshRaw, ...recurringRaw.filter(t => !freshIds.has(t.id))];
+              const cleaned   = merged.map(t =>
+                NON_CAT_TYPES.has(t.type) && t.categoryId
+                  ? { ...t, categoryId: null, userCategorized: false } : t
+              );
+              setTransactions(applyRules(cleaned, loadedRules));
+            }
+          } catch (e) {
+            console.warn("Boot sync failed (non-fatal):", e.message);
+          }
+        }
       } catch (e) {
         console.warn("Load error:", e.message);
       } finally {

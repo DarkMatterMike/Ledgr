@@ -20,6 +20,7 @@ import LedgrBriefing from "./components/LedgrBriefing.jsx";
 import LedgrTransactions from "./components/LedgrTransactions.jsx";
 import LedgrAccounts from "./components/LedgrAccounts.jsx";
 import LedgrCalendar from "./components/LedgrCalendar.jsx";
+import LedgrBudgets from "./components/LedgrBudgets.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
@@ -5642,6 +5643,41 @@ function AppInner({ isDemo = false }) {
       today={today}
       isMobile={isMobile}
       navigate={navigate}
+    />
+  );
+
+  if (view === "budgets") return (
+    <LedgrBudgets
+      categories={categories}
+      sortedCategories={sortedCategories}
+      spentByCat={spentByCat}
+      monthTxns={monthTxns}
+      catMap={catMap}
+      selectedMonth={selectedMonth}
+      monthLabel={monthLabel}
+      totalSpent={totalSpent}
+      totalBudget={totalBudget}
+      today={today}
+      fmt={fmt}
+      isMobile={isMobile}
+      navigate={navigate}
+      openAddCat={openAddCat}
+      openEditCat={openEditCat}
+      deleteCat={deleteCat}
+      toggleCatComplete={toggleCatComplete}
+      updateTxnCat={updateTxnCat}
+      editingLimitId={editingLimitId}
+      setEditingLimitId={setEditingLimitId}
+      editingLimitVal={editingLimitVal}
+      setEditingLimitVal={setEditingLimitVal}
+      saveLimit={saveLimit}
+      startEditLimit={startEditLimit}
+      limitSuggestions={limitSuggestions}
+      setLimitSuggestions={setLimitSuggestions}
+      suggestingLimits={suggestingLimits}
+      runSuggestLimits={runSuggestLimits}
+      hasApiKey={aiChat.hasApiKey}
+      showToast={showToast}
     />
   );
 

@@ -27,7 +27,7 @@ import { usePortfolio } from "./hooks/usePortfolio.js";
 import { useAiChat } from "./hooks/useAiChat.js";
 import PortfolioView from "./PortfolioView.jsx";
 import AiChat from "./AiChat.jsx";
-import Analytics from "./Analytics.jsx";
+import Analytics from "./components/LedgrAnalytics.jsx";
 import DaniPage from "./DaniPage.jsx";
 import { DEMO_CATEGORIES, DEMO_ACCOUNTS, DEMO_TRANSACTIONS, DEMO_RULES, DEMO_GOALS, DEMO_USER_PROFILE } from "./demoData.js";
 

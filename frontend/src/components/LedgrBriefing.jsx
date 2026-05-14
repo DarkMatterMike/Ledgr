@@ -153,7 +153,7 @@ const CSS = `
 
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const NAV=[{icon:"◐",id:"dashboard",active:true},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
+const NAV=[{icon:"◐",id:"dashboard",active:true},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
 
 function daysUntil(d,today){
   const t=today.getDate(),dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();

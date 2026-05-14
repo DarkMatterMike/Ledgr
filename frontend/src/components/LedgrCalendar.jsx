@@ -95,7 +95,7 @@ const CSS = `
 
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"▦",id:"calendar",active:true},{icon:"◆",id:"goals"}];
+const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar",active:true},{icon:"◆",id:"goals"}];
 function daysInM(y,m){return new Date(y,m,0).getDate();}
 
 export default function LedgrCalendar({
@@ -209,7 +209,6 @@ export default function LedgrCalendar({
                   <span className="lc-tb-sub">{MN[cm-1]} {cy}</span>
                 </div>
                 <div className="lc-tb-right">
-                  <div className="lc-search"><span style={{color:"var(--ink-2)"}}>⌕</span> ask anything…<span className="lc-kbd">⌘K</span></div>
                   <div className="lc-avatar">{initials}</div>
                   <button className="lc-nav-btn" onClick={prevCalMonth}>‹</button>
                   {!isCurMo&&<button className="lc-nav-btn" onClick={nextCalMonth}>Today</button>}

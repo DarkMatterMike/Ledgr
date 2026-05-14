@@ -74,7 +74,7 @@ const CSS = `
 
 const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
-const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts",active:true},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
+const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts",active:true},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
 function daysInMonth(y,m){return new Date(y,m,0).getDate();}
 
 export default function LedgrAccounts({
@@ -127,7 +127,6 @@ export default function LedgrAccounts({
                   <span className="la-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="la-tb-right">
-                  <div className="la-search"><span style={{color:"var(--ink-2)"}}>⌕</span> ask anything…<span className="la-kbd">⌘K</span></div>
                   <div className="la-avatar">{initials}</div>
                   {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" style={{}}/>}
                   <button className="la-btn" onClick={openAddAcct}>+ Manual</button>

@@ -67,7 +67,7 @@ const CSS = `
 
 const DN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const NAV = [{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions",active:true},{icon:"▣",id:"accounts"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
+const NAV = [{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions",active:true},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
 
 export default function LedgrTransactions({
   transactions=[],filteredTxns=[],
@@ -153,11 +153,6 @@ export default function LedgrTransactions({
                   <span className="lt-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="lt-tb-right">
-                  <div className="lt-search-box">
-                    <span style={{color:"var(--ink-2)"}}>⌕</span>
-                    <input placeholder="ask anything…" value={search} onChange={handleTxnSearchChange}/>
-                    <span className="lt-kbd">⌘K</span>
-                  </div>
                   <div className="lt-avatar">{initials}</div>
                   <button className="lt-btn primary" onClick={openAddTxn}>+ Add</button>
                 </div>

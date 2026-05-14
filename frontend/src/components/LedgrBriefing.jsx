@@ -129,9 +129,9 @@ const CSS = `
   .lb-led.warn{background:var(--warn);}
 
   /* story headline */
-  .lb-story-head{font-family:var(--font-display);font-size:36px;line-height:1.2;letter-spacing:-1px;font-weight:400;margin-bottom:24px;white-space:nowrap;}
+  .lb-story-head{font-family:var(--font-display);font-size:60px;line-height:0.98;letter-spacing:-2px;font-weight:400;margin-bottom:24px;}
   .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
-  @media(max-width:900px){.lb-story-head{font-size:28px;letter-spacing:-0.5px;white-space:normal;}}
+  @media(max-width:900px){.lb-story-head{font-size:40px;letter-spacing:-1px;}}
 
   /* gauge + pool callout */
   .lb-story-callout{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;}
@@ -155,18 +155,6 @@ const CSS = `
   .lb-pool-v{font-family:var(--font-display);font-size:32px;letter-spacing:-1px;transition:color .3s;}
   .lb-pool-card.lb-pool-free .lb-pool-v{color:var(--safe);}
   .lb-pool-card.lb-pool-locked .lb-pool-v{color:var(--ink-0);}
-
-  /* recent transactions list */
-  .lb-rtxn-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;}
-  .lb-rtxn-lbl .link{font-size:10px;color:var(--ink-3);cursor:pointer;letter-spacing:0;text-transform:none;}
-  .lb-rtxn-lbl .link:hover{color:var(--ink-1);}
-  .lb-rtxn-row{display:flex;align-items:baseline;gap:0;padding:7px 0;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:11px;}
-  .lb-rtxn-row:last-child{border-bottom:none;}
-  .lb-rtxn-date{color:var(--ink-3);flex-shrink:0;width:44px;}
-  .lb-rtxn-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-1);}
-  .lb-rtxn-amt{flex-shrink:0;margin-left:8px;}
-  .lb-rtxn-amt.pos{color:var(--safe);}
-  .lb-rtxn-amt.neg{color:var(--debt);}
 
   /* what-if section */
   .lb-whatif{margin-top:24px;}
@@ -385,6 +373,13 @@ export default function LedgrBriefing({
   const pressureLabel=pressurePct>0.5?"safe":pressurePct>0.25?"moderate":"tight";
   const goalsSaved  =useMemo(()=>goals.reduce((s,g)=>s+(g.savedAmount||0),0),[goals]);
 
+  // Monthly expenses = sum of each category's budget OR actual spend, whichever is higher
+  const budgetIncOverspent = useMemo(() => categories.reduce((s, c) => {
+    const spent = monthTxns.filter(t => t.categoryId === c.id && t.amount < 0)
+      .reduce((a, t) => a + Math.abs(t.amount), 0);
+    return s + Math.max(c.limit || 0, spent);
+  }, 0), [categories, monthTxns]);
+
   const billDays=useMemo(()=>{const s=new Set();recurringItems.filter(r=>r.type!=="income"&&r.recurringDay).forEach(r=>s.add(parseInt(r.recurringDay)));return s;},[recurringItems]);
   const incDays =useMemo(()=>{const s=new Set();recurringItems.filter(r=>r.type==="income"&&r.recurringDay).forEach(r=>s.add(parseInt(r.recurringDay)));return s;},[recurringItems]);
   const mixDays =useMemo(()=>{const s=new Set();billDays.forEach(d=>{if(incDays.has(d))s.add(d);});return s;},[billDays,incDays]);
@@ -411,17 +406,11 @@ export default function LedgrBriefing({
 
   // Alloc bar uses displaySafe
   const allocFree =displaySafe;
-  const allocBill  = billsTotal;
-  const allocGoal  = useMemo(()=>goals.reduce((s,g)=>{
-    const target=g.targetAmount||0;
-    const saved=g.savedAmount||0;
-    const remaining=Math.max(0,target-saved);
-    if(!g.deadline||remaining===0) return s;
-    const msLeft=new Date(g.deadline+"T12:00:00")-today;
-    const monthsLeft=Math.max(1,msLeft/(1000*60*60*24*30.44));
-    return s+Math.round(remaining/monthsLeft);
-  },0),[goals,today]);
-  const vaultTotal = allocBill + allocGoal;
+  const allocBill =billsTotal;
+  const allocCush =Math.round(checkingBal*0.1);
+  const allocGoal =Math.round(goalsSaved*0.1);
+  const allocFlex =Math.round(totalSpent*0.05);
+  const allocTotal=allocFree+allocBill+allocCush+allocGoal+allocFlex;
 
   // Headline color based on pressure
   const safeColor=displayPct>0.5?"var(--safe)":displayPct>0.25?"var(--warn)":"var(--debt)";
@@ -563,42 +552,66 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
             <aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
-                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
+                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(budgetIncOverspent)}</span></div>
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
                 <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(totalSpent)}</span></div>
                 <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
               </div>
-              {/* Recent transactions — concept E mono */}
-              {(() => {
-                const MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                const recent=[...monthTxns]
-                  .filter(t=>t.date)
-                  .sort((a,b)=>b.date.localeCompare(a.date))
-                  .slice(0,5);
+              <div className="lb-pc-lbl">Paycheck planning</div>
+              {[
+                {label:"1 – 15",  income:halfIncome, bills:halfBills,            billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
+                {label:"16 – End",income:halfIncome, bills:billsTotal-halfBills, billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15)},
+              ].map((card,i)=>{
+                const isOpen=expandedCard===i;
+                const byAcct={};
+                card.billItems.forEach(b=>{
+                  const k=b.accountId||"__none__";
+                  if(!byAcct[k]) byAcct[k]={name:b.accountId?(accounts.find(a=>a.id===b.accountId)?.name||"Account"):"Unassigned",total:0,items:[]};
+                  byAcct[k].total+=(b.amountMin||0);
+                  byAcct[k].items.push(b);
+                });
+                const acctRows=Object.values(byAcct);
+                const net=card.income-card.bills;
                 return(
-                  <>
-                    <div className="lb-rtxn-lbl">
-                      <span>Recent</span>
-                      <span className="link" onClick={()=>navigate("transactions")}>all →</span>
+                  <div key={i} style={{marginBottom:8}}>
+                    <div className={`lb-pc-card${isOpen?" open":""}`} onClick={()=>setExpandedCard(isOpen?null:i)}>
+                      <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16,lineHeight:1.1}}>{card.label}</div></div>
+                      <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                        <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(card.income)}</span>
+                        <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(card.bills)}</span>
+                      </div>
+                      <span className={`lb-pc-chevron${isOpen?" open":""}`} style={{color:"var(--ink-3)",fontSize:11}}>▾</span>
                     </div>
-                    {recent.map((t,i)=>{
-                      const parts=t.date.split("-");
-                      const mo=MO[parseInt(parts[1])-1];
-                      const day=parseInt(parts[2]);
-                      const name=t.merchant||t.name||"Transaction";
-                      const isPos=t.amount>0;
-                      return(
-                        <div key={t.id||i} className="lb-rtxn-row">
-                          <span className="lb-rtxn-date">{mo} {day}</span>
-                          <span className="lb-rtxn-name">{name}</span>
-                          <span className={`lb-rtxn-amt ${isPos?"pos":"neg"}`}>{isPos?"+":"−"}{fmt(t.amount)}</span>
-                        </div>
-                      );
-                    })}
-                    {recent.length===0&&<div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)",padding:"12px 0"}}>No transactions yet.</div>}
-                  </>
+                    {isOpen&&(
+                      <div className="lb-pc-expand">
+                        {card.billItems.length===0 ? (
+                          <div style={{padding:"14px",fontSize:11,color:"var(--ink-3)",fontStyle:"italic"}}>No bills in this period.</div>
+                        ) : acctRows.map(row=>(
+                          <div key={row.name}>
+                            {acctRows.length>1&&(
+                              <div className="lb-pc-sect-lbl">{row.name}</div>
+                            )}
+                            {row.items.map(b=>(
+                              <div key={b.id||b.name} className="lb-pc-acct">
+                                <span className="l">{b.name}</span>
+                                <span className="v">−{fmt(b.amountMin||0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                        {card.billItems.length>0&&(
+                          <div style={{padding:"4px 8px 8px"}}>
+                            <div className="lb-pc-net">
+                              <span className="l">Period net</span>
+                              <span className={`v${net>=0?" ok":" neg"}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
-              })()}
+              })}
             </aside>
 
             {/* main */}
@@ -624,7 +637,9 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
                 {/* Story-style headline */}
                 <h2 className="lb-story-head">
-                  You’re sitting on <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span> that’s actually yours.
+                  You’re sitting on<br/>
+                  <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span><br/>
+                  that’s actually yours.
                 </h2>
 
                 {/* Narrative deck */}
@@ -663,9 +678,9 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                       <div className="lb-pool-stripe"/>
                       <div>
                         <div className="lb-pool-nm">Vault · spoken for</div>
-                        <div className="lb-pool-desc">{allocGoal>0?"bills + goal contributions":"upcoming bills"}</div>
+                        <div className="lb-pool-desc">spoken for the rest of the month</div>
                       </div>
-                      <div className="lb-pool-v">{fmt(vaultTotal)}</div>
+                      <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
                     </div>
                   </div>
                 </div>

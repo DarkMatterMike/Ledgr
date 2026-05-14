@@ -58,6 +58,22 @@ const CSS = `
   .lc-mrow .v{font-family:var(--font-mono);}
   .lc-ri-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
   .lc-ri-add{margin-top:12px;padding:10px;border:1px solid rgba(240,176,76,0.25);border-radius:var(--r-md);text-align:center;color:var(--warn);font-size:11px;cursor:pointer;font-family:var(--font-mono);}
+  /* paycheck planning */
+  .lc-pc-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;display:block;}
+  .lc-pc-card{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;grid-template-columns:60px 1fr 16px;gap:12px;align-items:center;margin-bottom:8px;cursor:pointer;}
+  .lc-pc-card.open{border-radius:8px 8px 0 0;border-bottom-color:transparent;}
+  .lc-pc-expand{background:var(--bg-1);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:0 0 4px;margin-top:-8px;overflow:hidden;margin-bottom:8px;}
+  .lc-pc-sect-lbl{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-4);padding:10px 14px 4px;border-top:1px solid var(--line);}
+  .lc-pc-sect-lbl:first-child{border-top:none;padding-top:12px;}
+  .lc-pc-acct{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;gap:8px;}
+  .lc-pc-acct .l{font-size:12px;color:var(--ink-2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lc-pc-acct .v{font-family:var(--font-mono);font-size:12px;color:var(--debt);flex-shrink:0;}
+  .lc-pc-acct .v.ok{color:var(--safe);}
+  .lc-pc-net{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;margin:4px 8px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line);}
+  .lc-pc-net .l{font-size:11px;color:var(--ink-3);}
+  .lc-pc-net .v{font-family:var(--font-mono);font-size:14px;font-weight:600;}
+  .lc-pc-net .v.ok{color:var(--safe);}
+  .lc-pc-net .v.neg{color:var(--debt);}
   /* left column ri item */
   .lc-ri-row{padding:10px 0;border-top:1px solid var(--line);cursor:pointer;}
   .lc-ri-row:hover .lc-ri-name{color:var(--ink-0);}
@@ -183,6 +199,7 @@ export default function LedgrCalendar({
   const [selectedRiId,setSelectedRiId]=useState(null);    // which ri is selected for edit col
   const [selectedTxn,setSelectedTxn]=useState(null);      // which unlinked txn is selected for link search
   const [linkSearch,setLinkSearch]=useState("");
+  const [expandedPcCard,setExpandedPcCard]=useState(null);
 
   // When navigated here from "Make Recurring → Calendar", open the new-item form
   useEffect(()=>{
@@ -215,6 +232,23 @@ export default function LedgrCalendar({
   const monthSpent=calMonthTxns.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
   const monthIncome=calMonthTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const billsLeft=recurringItems.filter(r=>r.type!=="income"&&r.recurringDay&&isCurMo&&parseInt(r.recurringDay)>today.getDate()).reduce((s,r)=>s+(r.amountMin||0),0);
+
+  // Paycheck planning data (current month only)
+  const curY=today.getFullYear(),curM=today.getMonth()+1;
+  const upcomingBillsCal=useMemo(()=>recurringItems.filter(r=>{
+    if(r.type==="income"||!r.recurringDay) return false;
+    return!(r.linkedTxnIds||[]).some(id=>{
+      const t=monthTxns.find(x=>x.id===id);
+      if(!t?.date) return false;
+      const[ty,tm]=t.date.split("-").map(Number);
+      return ty===curY&&tm===curM;
+    });
+  }).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)),[recurringItems,monthTxns,curY,curM]);
+  const upcomingIncomeCal=useMemo(()=>recurringItems.filter(r=>r.type==="income"&&r.recurringDay).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)),[recurringItems]);
+  const billsTotalCal=useMemo(()=>upcomingBillsCal.reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBillsCal]);
+  const nextPayCal=upcomingIncomeCal[0]||null;
+  const halfIncomeCal=nextPayCal?(nextPayCal.amountMin||0):0;
+  const halfBillsCal=billsTotalCal/2;
 
   const agendaDays=useMemo(()=>{
     const s=new Set();
@@ -290,11 +324,61 @@ export default function LedgrCalendar({
                 }}>{c.d}</div>;
                 })}
               </div>
-              <div className="lc-mstats">
-                <div className="lc-mrow"><span className="l">Month spent</span><span className="v" style={{color:"var(--debt)"}}>−{fmt(monthSpent)}</span></div>
-                <div className="lc-mrow"><span className="l">Month income</span><span className="v" style={{color:"var(--safe)"}}>+{fmt(monthIncome)}</span></div>
-                <div className="lc-mrow"><span className="l">Bills remaining</span><span className="v" style={{color:billsLeft>0?"var(--warn)":"var(--ink-3)"}}>{billsLeft>0?`−${fmt(billsLeft)}`:"—"}</span></div>
-                <div className="lc-mrow"><span className="l">Net</span><span className="v" style={{color:monthIncome-monthSpent>=0?"var(--safe)":"var(--debt)"}}>{monthIncome-monthSpent>=0?"+":"−"}{fmt(Math.abs(monthIncome-monthSpent))}</span></div>
+              {/* Paycheck planning */}
+              <div style={{borderTop:"1px solid var(--line)",paddingTop:16,marginTop:4}}>
+                <span className="lc-pc-lbl">Paycheck planning</span>
+                {[
+                  {label:"1 – 15",  income:halfIncomeCal, bills:halfBillsCal,                 billItems:upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
+                  {label:"16 – End",income:halfIncomeCal, bills:billsTotalCal-halfBillsCal,    billItems:upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)>15)},
+                ].map((card,i)=>{
+                  const isOpen=expandedPcCard===i;
+                  const byAcct={};
+                  card.billItems.forEach(b=>{
+                    const k=b.accountId||"__none__";
+                    if(!byAcct[k]) byAcct[k]={name:b.accountId?(accounts.find(a=>a.id===b.accountId)?.name||"Account"):"Unassigned",total:0,items:[]};
+                    byAcct[k].total+=(b.amountMin||0);
+                    byAcct[k].items.push(b);
+                  });
+                  const acctRows=Object.values(byAcct);
+                  const net=card.income-card.bills;
+                  return(
+                    <div key={i}>
+                      <div className={`lc-pc-card${isOpen?" open":""}`} onClick={()=>setExpandedPcCard(isOpen?null:i)}>
+                        <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16,lineHeight:1.1}}>{card.label}</div></div>
+                        <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                          <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(card.income)}</span>
+                          <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(card.bills)}</span>
+                        </div>
+                        <span style={{color:"var(--ink-3)",fontSize:11}}>{isOpen?"▴":"▾"}</span>
+                      </div>
+                      {isOpen&&(
+                        <div className="lc-pc-expand">
+                          {card.billItems.length===0?(
+                            <div style={{padding:"14px",fontSize:11,color:"var(--ink-3)",fontStyle:"italic"}}>No bills in this period.</div>
+                          ):acctRows.map(row=>(
+                            <div key={row.name}>
+                              {acctRows.length>1&&<div className="lc-pc-sect-lbl">{row.name}</div>}
+                              {row.items.map(b=>(
+                                <div key={b.id||b.name} className="lc-pc-acct">
+                                  <span className="l">{b.name}</span>
+                                  <span className="v">−{fmt(b.amountMin||0)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                          {card.billItems.length>0&&(
+                            <div style={{padding:"4px 8px 8px"}}>
+                              <div className="lc-pc-net">
+                                <span className="l">Period net</span>
+                                <span className={`v${net>=0?" ok":" neg"}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="lc-ri-lbl">Recurring this month</div>

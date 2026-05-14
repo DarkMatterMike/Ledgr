@@ -129,9 +129,9 @@ const CSS = `
   .lb-led.warn{background:var(--warn);}
 
   /* story headline */
-  .lb-story-head{font-family:var(--font-display);font-size:60px;line-height:0.98;letter-spacing:-2px;font-weight:400;margin-bottom:24px;}
+  .lb-story-head{font-family:var(--font-display);font-size:36px;line-height:1.2;letter-spacing:-1px;font-weight:400;margin-bottom:24px;white-space:nowrap;}
   .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
-  @media(max-width:900px){.lb-story-head{font-size:40px;letter-spacing:-1px;}}
+  @media(max-width:900px){.lb-story-head{font-size:28px;letter-spacing:-0.5px;white-space:normal;}}
 
   /* gauge + pool callout */
   .lb-story-callout{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;}
@@ -155,6 +155,18 @@ const CSS = `
   .lb-pool-v{font-family:var(--font-display);font-size:32px;letter-spacing:-1px;transition:color .3s;}
   .lb-pool-card.lb-pool-free .lb-pool-v{color:var(--safe);}
   .lb-pool-card.lb-pool-locked .lb-pool-v{color:var(--ink-0);}
+
+  /* recent transactions list */
+  .lb-rtxn-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;}
+  .lb-rtxn-lbl .link{font-size:10px;color:var(--ink-3);cursor:pointer;letter-spacing:0;text-transform:none;}
+  .lb-rtxn-lbl .link:hover{color:var(--ink-1);}
+  .lb-rtxn-row{display:flex;align-items:baseline;gap:0;padding:7px 0;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-size:11px;}
+  .lb-rtxn-row:last-child{border-bottom:none;}
+  .lb-rtxn-date{color:var(--ink-3);flex-shrink:0;width:44px;}
+  .lb-rtxn-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-1);}
+  .lb-rtxn-amt{flex-shrink:0;margin-left:8px;}
+  .lb-rtxn-amt.pos{color:var(--safe);}
+  .lb-rtxn-amt.neg{color:var(--debt);}
 
   /* what-if section */
   .lb-whatif{margin-top:24px;}
@@ -550,61 +562,37 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                 <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(totalSpent)}</span></div>
                 <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
               </div>
-              <div className="lb-pc-lbl">Paycheck planning</div>
-              {[
-                {label:"1 – 15",  income:halfIncome, bills:halfBills,            billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
-                {label:"16 – End",income:halfIncome, bills:billsTotal-halfBills, billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15)},
-              ].map((card,i)=>{
-                const isOpen=expandedCard===i;
-                const byAcct={};
-                card.billItems.forEach(b=>{
-                  const k=b.accountId||"__none__";
-                  if(!byAcct[k]) byAcct[k]={name:b.accountId?(accounts.find(a=>a.id===b.accountId)?.name||"Account"):"Unassigned",total:0,items:[]};
-                  byAcct[k].total+=(b.amountMin||0);
-                  byAcct[k].items.push(b);
-                });
-                const acctRows=Object.values(byAcct);
-                const net=card.income-card.bills;
+              {/* Recent transactions — concept E mono */}
+              {(() => {
+                const MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                const recent=[...monthTxns]
+                  .filter(t=>t.date)
+                  .sort((a,b)=>b.date.localeCompare(a.date))
+                  .slice(0,5);
                 return(
-                  <div key={i} style={{marginBottom:8}}>
-                    <div className={`lb-pc-card${isOpen?" open":""}`} onClick={()=>setExpandedCard(isOpen?null:i)}>
-                      <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16,lineHeight:1.1}}>{card.label}</div></div>
-                      <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                        <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(card.income)}</span>
-                        <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(card.bills)}</span>
-                      </div>
-                      <span className={`lb-pc-chevron${isOpen?" open":""}`} style={{color:"var(--ink-3)",fontSize:11}}>▾</span>
+                  <>
+                    <div className="lb-rtxn-lbl">
+                      <span>Recent</span>
+                      <span className="link" onClick={()=>navigate("transactions")}>all →</span>
                     </div>
-                    {isOpen&&(
-                      <div className="lb-pc-expand">
-                        {card.billItems.length===0 ? (
-                          <div style={{padding:"14px",fontSize:11,color:"var(--ink-3)",fontStyle:"italic"}}>No bills in this period.</div>
-                        ) : acctRows.map(row=>(
-                          <div key={row.name}>
-                            {acctRows.length>1&&(
-                              <div className="lb-pc-sect-lbl">{row.name}</div>
-                            )}
-                            {row.items.map(b=>(
-                              <div key={b.id||b.name} className="lb-pc-acct">
-                                <span className="l">{b.name}</span>
-                                <span className="v">−{fmt(b.amountMin||0)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
-                        {card.billItems.length>0&&(
-                          <div style={{padding:"4px 8px 8px"}}>
-                            <div className="lb-pc-net">
-                              <span className="l">Period net</span>
-                              <span className={`v${net>=0?" ok":" neg"}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                    {recent.map((t,i)=>{
+                      const parts=t.date.split("-");
+                      const mo=MO[parseInt(parts[1])-1];
+                      const day=parseInt(parts[2]);
+                      const name=t.merchant||t.name||"Transaction";
+                      const isPos=t.amount>0;
+                      return(
+                        <div key={t.id||i} className="lb-rtxn-row">
+                          <span className="lb-rtxn-date">{mo} {day}</span>
+                          <span className="lb-rtxn-name">{name}</span>
+                          <span className={`lb-rtxn-amt ${isPos?"pos":"neg"}`}>{isPos?"+":"−"}{fmt(t.amount)}</span>
+                        </div>
+                      );
+                    })}
+                    {recent.length===0&&<div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)",padding:"12px 0"}}>No transactions yet.</div>}
+                  </>
                 );
-              })}
+              })()}
             </aside>
 
             {/* main */}
@@ -630,9 +618,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
                 {/* Story-style headline */}
                 <h2 className="lb-story-head">
-                  You’re sitting on<br/>
-                  <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span><br/>
-                  that’s actually yours.
+                  You’re sitting on <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span> that’s actually yours.
                 </h2>
 
                 {/* Narrative deck */}

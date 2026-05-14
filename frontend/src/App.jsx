@@ -1610,15 +1610,6 @@ function AppInner({ isDemo = false }) {
   const [reconnectingItemId, setReconnectingItemId] = useState(null);
   const [rules,         setRules]         = useState([]);
   const [loading,       setLoading]       = useState(true);
-  // showLoading stays true for a brief window after data loads so the boot
-  // auto-sync can run behind the loading screen — prevents the visible data "reload"
-  const [showLoading,   setShowLoading]   = useState(true);
-  useEffect(() => {
-    if (!loading) {
-      const t = setTimeout(() => setShowLoading(false), 2500);
-      return () => clearTimeout(t);
-    }
-  }, [loading]);
   const [modal,         setModal]         = useState(null);
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
@@ -5141,7 +5132,7 @@ function AppInner({ isDemo = false }) {
     ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, admin:AdminPage, dani:DaniPageView }
     : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, admin:AdminPage, dani:DaniPageView };
 
-  if (showLoading) return (
+  if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#07090d",flexDirection:"column"}}>
       <div className="ll-orb" style={{width:44,height:44,borderRadius:"50%",background:"#085041",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20}}>
         <div style={{width:18,height:18,borderRadius:"50%",background:"#5dcaa5"}}/>

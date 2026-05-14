@@ -50,9 +50,39 @@ const CSS = `
   .lc-mrow .l{color:var(--ink-2);}
   .lc-mrow .v{font-family:var(--font-mono);}
   .lc-ri-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
-  .lc-ri-item{display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;}
-  .lc-ri-day{font-family:var(--font-display);font-size:20px;color:var(--ink-1);line-height:1;}
   .lc-ri-add{margin-top:12px;padding:10px;border:1px solid rgba(240,176,76,0.25);border-radius:var(--r-md);text-align:center;color:var(--warn);font-size:11px;cursor:pointer;font-family:var(--font-mono);}
+  /* left column ri item */
+  .lc-ri-row{padding:10px 0;border-top:1px solid var(--line);cursor:pointer;}
+  .lc-ri-row:hover .lc-ri-name{color:var(--ink-0);}
+  .lc-ri-summary{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;}
+  .lc-ri-day{font-family:var(--font-display);font-size:20px;color:var(--ink-1);line-height:1;}
+  .lc-ri-dow{font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.4px;margin-top:2px;}
+  .lc-ri-name{font-size:12px;color:var(--ink-1);transition:.1s;}
+  .lc-ri-amt{font-family:var(--font-mono);font-size:11px;}
+  .lc-ri-chevron{font-size:9px;color:var(--ink-4);margin-top:2px;transition:transform .15s;}
+  .lc-ri-chevron.open{transform:rotate(180deg);}
+  /* inline ri edit */
+  .lc-ri-edit{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;margin-top:6px;display:flex;flex-direction:column;gap:10px;}
+  .lc-field{display:flex;flex-direction:column;gap:4px;}
+  .lc-field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .lc-label{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-3);font-family:var(--font-mono);}
+  .lc-input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;}
+  .lc-input:focus{border-color:rgba(93,202,165,0.3);}
+  .lc-input::placeholder{color:var(--ink-4);}
+  .lc-select{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;}
+  .lc-ri-edit-actions{display:flex;gap:8px;padding-top:4px;border-top:1px solid var(--line);}
+  .lc-btn-save{background:var(--safe-bg);border:1px solid rgba(93,202,165,0.4);border-radius:8px;padding:5px 14px;font-size:11px;font-family:var(--font-mono);color:var(--safe);cursor:pointer;transition:.15s;}
+  .lc-btn-ghost{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;transition:.15s;}
+  .lc-btn-ghost:hover{border-color:var(--line-3);color:var(--ink-0);}
+  .lc-btn-danger{background:var(--debt-bg);border:1px solid rgba(232,115,99,0.3);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--debt);cursor:pointer;margin-left:auto;}
+  /* linked txns in ri edit */
+  .lc-linked-txn{display:flex;align-items:center;gap:8px;padding:5px 8px;background:rgba(255,255,255,0.02);border-radius:6px;}
+  .lc-linked-name{flex:1;font-size:11px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lc-linked-date{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);}
+  .lc-linked-amt{font-family:var(--font-mono);font-size:11px;font-weight:600;flex-shrink:0;}
+  .lc-unlink-btn{background:none;border:none;cursor:pointer;color:var(--ink-4);font-size:12px;padding:2px 4px;transition:.1s;}
+  .lc-unlink-btn:hover{color:var(--debt);}
+  /* right column */
   .lc-right{overflow-y:auto;display:flex;flex-direction:column;}
   .lc-topbar{height:60px;padding:0 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-1);z-index:10;flex-shrink:0;}
   .lc-tb-left{display:flex;align-items:baseline;gap:16px;}
@@ -61,12 +91,10 @@ const CSS = `
   .lc-tb-div{width:1px;height:14px;background:var(--line-2);flex-shrink:0;}
   .lc-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
   .lc-tb-right{display:flex;align-items:center;gap:10px;}
-  .lc-search{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--ink-3);font-family:var(--font-mono);display:flex;align-items:center;gap:8px;min-width:240px;}
-  .lc-kbd{margin-left:auto;font-size:10px;padding:1px 6px;background:var(--bg-3);border-radius:4px;color:var(--ink-3);}
-  .lc-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);font-weight:500;flex-shrink:0;}
   .lc-nav-btn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;transition:.15s;}
   .lc-nav-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
   .lc-agenda{padding:24px 32px;flex:1;}
+  /* condensed agenda */
   .lc-aday{margin-bottom:2px;}
   .lc-aday-hdr{display:flex;align-items:center;gap:8px;padding:5px 0;margin-bottom:2px;}
   .lc-day-chip{font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--ink-3);min-width:42px;white-space:nowrap;}
@@ -74,10 +102,11 @@ const CSS = `
   .lc-today-pill{font-family:var(--font-mono);font-size:9px;font-weight:600;background:var(--safe);color:#07090d;border-radius:99px;padding:2px 9px;letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;}
   .lc-day-rule{flex:1;height:1px;background:rgba(255,255,255,0.04);}
   .lc-day-rule.today{background:rgba(93,202,165,0.3);}
-  .lc-event{display:flex;align-items:center;gap:7px;padding:4px 0 4px 42px;}
+  .lc-event{display:flex;align-items:center;gap:7px;padding:4px 0 4px 42px;cursor:pointer;}
+  .lc-event:hover .lc-event-name{color:var(--ink-0);}
   .lc-event-bar{width:4px;height:26px;border-radius:2px;flex-shrink:0;}
   .lc-event-body{flex:1;min-width:0;display:flex;align-items:center;gap:5px;}
-  .lc-event-name{font-size:12px;color:var(--ink-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lc-event-name{font-size:12px;color:var(--ink-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:.1s;}
   .lc-event-tag{font-size:9px;padding:1px 5px;border-radius:4px;font-family:var(--font-mono);flex-shrink:0;}
   .lc-event-tag.posted{background:var(--safe-bg);color:var(--safe);}
   .lc-event-tag.upcoming{background:var(--warn-bg);color:var(--warn);}
@@ -86,7 +115,7 @@ const CSS = `
   .lc-event-amt.income{color:var(--safe);}
   .lc-event-amt.expense{color:var(--debt);}
   .lc-empty-day{padding:3px 0 3px 42px;font-size:11px;color:var(--ink-4);font-style:italic;}
-  .lc-event:hover .lc-event-name{color:var(--ink-0);}
+  /* agenda link expand */
   .lc-expand{margin:2px 0 6px 42px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;}
   .lc-expand-label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-3);margin-bottom:8px;}
   .lc-expand-input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;}
@@ -107,18 +136,25 @@ const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣
 function daysInM(y,m){return new Date(y,m,0).getDate();}
 
 export default function LedgrCalendar({
-  accounts=[],calendarMonth="",calendarTxnsByDay={},recurringItems=[],
-  transactions=[],monthTxns=[],catMap={},acctMap={},
-  prevCalMonth,nextCalMonth,openNewRecurringItem,openEditRecurringItem,
+  accounts=[],categories=[],calendarMonth="",calendarTxnsByDay={},
+  recurringItems=[],transactions=[],monthTxns=[],catMap={},acctMap={},
+  prevCalMonth,nextCalMonth,openNewRecurringItem,
   linkTxnToRecurringItem=()=>{},
+  unlinkTxnFromRecurringItem=()=>{},
+  deleteRecurringItem=()=>{},
+  saveRecurringItemForm=()=>{},
+  riForm={name:"",amountMin:"",amountMax:"",recurringDay:"",recurringFreq:"monthly",recurringStart:"",categoryId:"",accountId:"",type:"expense"},
+  setRiForm=()=>{},
+  setEditingRecurringItem=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
-}) {
+}){
   const now=calendarMonth||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
   const [cy,cm]=now.split("-").map(Number);
   const [selDay,setSelDay]=useState(cy===today.getFullYear()&&cm===today.getMonth()+1?today.getDate():1);
   const isCurMo=cy===today.getFullYear()&&cm===today.getMonth()+1;
-  const [expandedEntryId,setExpandedEntryId]=useState(null); // for agenda entry link search
+  const [expandedRiId,setExpandedRiId]=useState(null);   // left col ri inline edit
+  const [expandedEntryId,setExpandedEntryId]=useState(null); // agenda link search
   const [linkSearch,setLinkSearch]=useState("");
 
   const first=new Date(cy,cm-1,1).getDay();
@@ -153,6 +189,23 @@ export default function LedgrCalendar({
 
   const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
 
+  function openRiEdit(r){
+    if(expandedRiId===r.id){ setExpandedRiId(null); return; }
+    setExpandedRiId(r.id);
+    setEditingRecurringItem(r);
+    setRiForm({
+      name:r.name||"",
+      amountMin:r.amountMin!=null?String(r.amountMin):"",
+      amountMax:r.amountMax!=null?String(r.amountMax):"",
+      recurringDay:r.recurringDay||"",
+      recurringFreq:r.recurringFreq||"monthly",
+      recurringStart:r.recurringStart||"",
+      categoryId:r.categoryId||"",
+      accountId:r.accountId||"",
+      type:r.type||"expense",
+    });
+  }
+
   return (
     <>
       <style>{CSS}</style>
@@ -171,6 +224,7 @@ export default function LedgrCalendar({
               <div className="lc-nav-item" onClick={()=>navigate("settings")}>⚙</div>
             </nav>
 
+            {/* ── left aside ── */}
             <aside className="lc-aside">
               <div className="lc-cal-head">
                 <div className="lc-cal-title">{MN[cm-1]} {cy}</div>
@@ -195,22 +249,122 @@ export default function LedgrCalendar({
                 <div className="lc-mrow"><span className="l">Bills remaining</span><span className="v" style={{color:billsLeft>0?"var(--warn)":"var(--ink-3)"}}>{billsLeft>0?`−${fmt(billsLeft)}`:"—"}</span></div>
                 <div className="lc-mrow"><span className="l">Net</span><span className="v" style={{color:monthIncome-monthSpent>=0?"var(--safe)":"var(--debt)"}}>{monthIncome-monthSpent>=0?"+":"−"}{fmt(Math.abs(monthIncome-monthSpent))}</span></div>
               </div>
+
               <div className="lc-ri-lbl">Recurring this month</div>
-              {[...recurringItems].filter(r=>r.recurringDay).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(r=>(
-                <div key={r.id} className="lc-ri-item" onClick={()=>openEditRecurringItem&&openEditRecurringItem(r)}>
-                  <div>
-                    <div className="lc-ri-day">{r.recurringDay}</div>
-                    <div style={{fontSize:9,color:"var(--ink-3)",letterSpacing:"0.5px",textTransform:"uppercase",marginTop:2}}>{DN[new Date(cy,cm-1,r.recurringDay).getDay()]}</div>
+              {[...recurringItems].filter(r=>r.recurringDay).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(r=>{
+                const isOpen=expandedRiId===r.id;
+                const dow=DN[new Date(cy,cm-1,parseInt(r.recurringDay)).getDay()];
+                const isInc=r.type==="income";
+                const linkedTxns=(r.linkedTxnIds||[]).map(id=>transactions.find(t=>t.id===id)).filter(Boolean);
+                return(
+                  <div key={r.id} className="lc-ri-row">
+                    <div className="lc-ri-summary" onClick={()=>openRiEdit(r)}>
+                      <div>
+                        <div className="lc-ri-day">{r.recurringDay}</div>
+                        <div className="lc-ri-dow">{dow}</div>
+                      </div>
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <span className="lc-ri-name">{r.name}</span>
+                          <span className={`lc-ri-chevron${isOpen?" open":""}`}>▼</span>
+                        </div>
+                        <div className={`lc-ri-amt`} style={{color:isInc?"var(--safe)":"var(--debt)"}}>
+                          {isInc?"+":"−"}{fmt(r.amountMin||0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {isOpen&&(
+                      <div className="lc-ri-edit" onClick={e=>e.stopPropagation()}>
+                        {/* Name */}
+                        <div className="lc-field">
+                          <label className="lc-label">Name</label>
+                          <input className="lc-input" placeholder="e.g. Netflix" value={riForm.name} onChange={e=>setRiForm(p=>({...p,name:e.target.value}))}/>
+                        </div>
+                        {/* Type */}
+                        <div className="lc-field">
+                          <label className="lc-label">Type</label>
+                          <select className="lc-select" value={riForm.type||"expense"} onChange={e=>setRiForm(p=>({...p,type:e.target.value}))}>
+                            <option value="expense">Expense</option>
+                            <option value="income">Income</option>
+                            <option value="transfer">Transfer</option>
+                            <option value="reimbursement">Reimbursement</option>
+                          </select>
+                        </div>
+                        {/* Frequency + Day */}
+                        <div className="lc-field-row">
+                          <div className="lc-field">
+                            <label className="lc-label">Frequency</label>
+                            <select className="lc-select" value={riForm.recurringFreq||"monthly"} onChange={e=>setRiForm(p=>({...p,recurringFreq:e.target.value}))}>
+                              <option value="weekly">Weekly</option>
+                              <option value="biweekly">Bi-weekly</option>
+                              <option value="monthly">Monthly</option>
+                              <option value="annual">Annual</option>
+                            </select>
+                          </div>
+                          <div className="lc-field">
+                            <label className="lc-label">Day of Month</label>
+                            <input className="lc-input" type="number" min="1" max="31" placeholder="e.g. 15" value={riForm.recurringDay} onChange={e=>setRiForm(p=>({...p,recurringDay:e.target.value}))}/>
+                          </div>
+                        </div>
+                        {/* Amount */}
+                        <div className="lc-field">
+                          <label className="lc-label">Expected Amount</label>
+                          <input className="lc-input" type="number" step="0.01" placeholder="e.g. 14.99" value={riForm.amountMin} onChange={e=>setRiForm(p=>({...p,amountMin:e.target.value,amountMax:e.target.value}))}/>
+                        </div>
+                        {/* Category + Account */}
+                        <div className="lc-field-row">
+                          <div className="lc-field">
+                            <label className="lc-label">Category</label>
+                            <select className="lc-select" value={riForm.categoryId} onChange={e=>setRiForm(p=>({...p,categoryId:e.target.value}))}>
+                              <option value="">— None —</option>
+                              {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                          </div>
+                          <div className="lc-field">
+                            <label className="lc-label">Account</label>
+                            <select className="lc-select" value={riForm.accountId} onChange={e=>setRiForm(p=>({...p,accountId:e.target.value}))}>
+                              <option value="">— None —</option>
+                              {[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        {/* Start Date */}
+                        <div className="lc-field">
+                          <label className="lc-label">Start Date</label>
+                          <input className="lc-input" type="date" value={riForm.recurringStart} onChange={e=>setRiForm(p=>({...p,recurringStart:e.target.value}))}/>
+                        </div>
+                        {/* Linked transactions */}
+                        {linkedTxns.length>0&&(
+                          <div className="lc-field">
+                            <label className="lc-label">Linked ({linkedTxns.length})</label>
+                            <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                              {linkedTxns.map(t=>(
+                                <div key={t.id} className="lc-linked-txn">
+                                  <span className="lc-linked-name">{t.name||t.merchant}</span>
+                                  <span className="lc-linked-date">{t.date}</span>
+                                  <span className="lc-linked-amt" style={{color:t.amount<0?"var(--debt)":"var(--safe)"}}>{fmt(Math.abs(t.amount))}</span>
+                                  <button className="lc-unlink-btn" onClick={()=>unlinkTxnFromRecurringItem(t.id,r.id)}>✕</button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* Actions */}
+                        <div className="lc-ri-edit-actions">
+                          <button className="lc-btn-save" onClick={()=>{saveRecurringItemForm();setExpandedRiId(null);}}>Save</button>
+                          <button className="lc-btn-ghost" onClick={()=>setExpandedRiId(null)}>Cancel</button>
+                          <button className="lc-btn-danger" onClick={()=>{deleteRecurringItem(r.id);setExpandedRiId(null);}}>Delete</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <div style={{fontSize:12,color:"var(--ink-0)"}}>{r.name}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:r.type==="income"?"var(--safe)":"var(--debt)"}}>{r.type==="income"?"+":"−"}{fmt(r.amountMin||0)}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               <div className="lc-ri-add" onClick={openNewRecurringItem}>+ Add Recurring Item</div>
             </aside>
 
+            {/* ── right agenda ── */}
             <div className="lc-right">
               <div className="lc-topbar">
                 <div className="lc-tb-left">
@@ -220,63 +374,56 @@ export default function LedgrCalendar({
                   <span className="lc-tb-sub">{MN[cm-1]} {cy}</span>
                 </div>
                 <div className="lc-tb-right">
-                  <div className="lc-avatar">{initials}</div>
                   <button className="lc-nav-btn" onClick={prevCalMonth}>‹</button>
                   {!isCurMo&&<button className="lc-nav-btn" onClick={nextCalMonth}>Today</button>}
                   <button className="lc-nav-btn" onClick={nextCalMonth}>›</button>
                 </div>
               </div>
               <div className="lc-agenda">
-                {agendaDays.length===0 ? (
+                {agendaDays.length===0?(
                   <div style={{padding:"80px 0",textAlign:"center",color:"var(--ink-3)"}}>
                     <div style={{fontFamily:"var(--font-display)",fontSize:28,color:"var(--ink-2)",marginBottom:8}}>Nothing scheduled</div>
                     <div style={{fontSize:13}}>Add recurring items to see them here</div>
                   </div>
-                ) : agendaDays.map(d=>{
-                  // Split: synthetic recurring item entries vs real transactions
+                ):agendaDays.map(d=>{
                   const allEntries=calendarTxnsByDay[d]||[];
                   const riEntries=allEntries.filter(t=>t.isRecurringItem);
-                  // Real transactions: not a synthetic entry AND not already represented by a ri entry
                   const riItemIds=new Set(riEntries.map(t=>t.recurringItemId));
-                  const realTxns=allEntries.filter(t=>
-                    !t.isRecurringItem &&
-                    !riItemIds.has(t.recurringItemId)
-                  );
+                  const realTxns=allEntries.filter(t=>!t.isRecurringItem&&!riItemIds.has(t.recurringItemId));
                   const todayMidnight=new Date(today.getFullYear(),today.getMonth(),today.getDate());
                   const isToday=isCurMo&&d===today.getDate();
                   const dow=DN[new Date(cy,cm-1,d).getDay()];
                   const isEmpty=riEntries.length===0&&realTxns.length===0;
-                  return (
+                  return(
                     <div key={d} className="lc-aday">
-                      {/* condensed day header */}
                       <div className="lc-aday-hdr">
                         <span className={`lc-day-chip${isToday?" today":""}`}>{dow} {d}</span>
                         {isToday&&<span className="lc-today-pill">today</span>}
                         <div className={`lc-day-rule${isToday?" today":""}`}/>
                       </div>
-                      {/* recurring item entries — clickable → opens edit modal */}
+                      {/* recurring item entries — click opens ri edit in left column */}
                       {riEntries.map(t=>{
                         const isInc=t.type==="income";
-                        const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(108,140,255,0.4)";
                         const posted=t.postedThisMonth;
+                        const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(108,140,255,0.4)";
                         const riItem=recurringItems.find(r=>r.id===t.recurringItemId);
                         return(
-                          <div key={t.id} className="lc-event" style={{cursor:"pointer"}}
-                            onClick={()=>riItem&&openEditRecurringItem&&openEditRecurringItem(riItem)}>
+                          <div key={t.id} className="lc-event"
+                            onClick={()=>riItem&&openRiEdit(riItem)}>
                             <div className="lc-event-bar" style={{background:posted?barColor.replace("0.4","0.6").replace("0.5","0.7"):barColor}}/>
                             <div className="lc-event-body">
                               <span className="lc-event-name">{t.name}</span>
                               <span className="lc-event-tag rec">↻</span>
                               {posted
-                                ? <span className="lc-event-tag posted">✓</span>
-                                : <span className="lc-event-tag upcoming">due</span>
+                                ?<span className="lc-event-tag posted">✓</span>
+                                :<span className="lc-event-tag upcoming">due</span>
                               }
                             </div>
                             <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
                           </div>
                         );
                       })}
-                      {/* real transactions — clickable → expands link-to-recurring search */}
+                      {/* real unlinked transactions — click expands link search */}
                       {realTxns.map(t=>{
                         const isInc=t.amount>0;
                         const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
@@ -284,27 +431,20 @@ export default function LedgrCalendar({
                         const posted=txnDate&&txnDate<=todayMidnight;
                         const isExpanded=expandedEntryId===t.id;
                         const q=linkSearch.toLowerCase().trim();
-                        // candidates: recurring items of matching type, not yet linked this month
                         const candidates=recurringItems.filter(r=>{
                           if(isInc&&r.type!=="income") return false;
                           if(!isInc&&r.type==="income") return false;
-                          if(!q) return true;
-                          return (r.name||"").toLowerCase().includes(q);
+                          return !q||(r.name||"").toLowerCase().includes(q);
                         });
                         return(
                           <div key={t.id}>
-                            <div className="lc-event" style={{cursor:"pointer"}}
+                            <div className="lc-event"
                               onClick={()=>{setExpandedEntryId(p=>p===t.id?null:t.id);setLinkSearch("");}}>
                               <div className="lc-event-bar" style={{background:barColor}}/>
                               <div className="lc-event-body">
                                 <span className="lc-event-name">{t.name||t.merchant}</span>
-                                {posted
-                                  ? <span className="lc-event-tag posted">✓</span>
-                                  : <span className="lc-event-tag upcoming">due</span>
-                                }
-                                <span style={{fontSize:9,color:"var(--ink-4)",fontFamily:"var(--font-mono)",marginLeft:"auto"}}>
-                                  {isExpanded?"▲":"▾"} link
-                                </span>
+                                {posted?<span className="lc-event-tag posted">✓</span>:<span className="lc-event-tag upcoming">due</span>}
+                                <span style={{fontSize:9,color:"var(--ink-4)",fontFamily:"var(--font-mono)",marginLeft:"auto"}}>{isExpanded?"▲":"▾"} link</span>
                               </div>
                               <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
                             </div>
@@ -314,8 +454,8 @@ export default function LedgrCalendar({
                                 <input className="lc-expand-input" placeholder="Search recurring items…"
                                   value={linkSearch} onChange={e=>setLinkSearch(e.target.value)} autoFocus/>
                                 {candidates.length===0
-                                  ? <div className="lc-expand-none">No matching recurring items</div>
-                                  : candidates.slice(0,5).map(r=>(
+                                  ?<div className="lc-expand-none">No matching recurring items</div>
+                                  :candidates.slice(0,5).map(r=>(
                                     <div key={r.id} className="lc-expand-candidate"
                                       onClick={()=>{linkTxnToRecurringItem(t.id,r.id);setExpandedEntryId(null);setLinkSearch("");}}>
                                       <div style={{flex:1,minWidth:0}}>

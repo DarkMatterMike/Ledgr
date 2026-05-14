@@ -5761,6 +5761,7 @@ function AppInner({ isDemo = false }) {
     <>
       <LedgrCalendar
         accounts={accounts}
+        categories={categories}
         calendarMonth={calendarMonth}
         calendarTxnsByDay={calendarTxnsByDay}
         recurringItems={recurringItems}
@@ -5771,14 +5772,24 @@ function AppInner({ isDemo = false }) {
         prevCalMonth={prevCalMonth}
         nextCalMonth={nextCalMonth}
         openNewRecurringItem={openNewRecurringItem}
-        openEditRecurringItem={openEditRecurringItem}
         linkTxnToRecurringItem={linkTxnToRecurringItem}
+        unlinkTxnFromRecurringItem={unlinkTxnFromRecurringItem}
+        deleteRecurringItem={deleteRecurringItem}
+        saveRecurringItemForm={saveRecurringItemForm}
+        searchTxnsForRI={searchTxnsForRI}
+        riForm={riForm}
+        setRiForm={setRiForm}
+        riSearch={riSearch}
+        setRiSearch={setRiSearch}
+        riSearchResults={riSearchResults}
+        riSearchLoading={riSearchLoading}
+        editingRecurringItem={editingRecurringItem}
+        setEditingRecurringItem={setEditingRecurringItem}
         fmt={fmt}
         today={today}
         isMobile={isMobile}
         navigate={navigate}
       />
-      {RecurringItemModal}
     </>
   );
 

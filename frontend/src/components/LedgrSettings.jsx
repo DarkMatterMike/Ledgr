@@ -13,170 +13,43 @@ import { applyTheme, applyGlobalOpacity } from "../theme/index.js";
    CSS — scoped to .lgs-* namespace, Lumen dark tokens
 ───────────────────────────────────────────────────────── */
 const CSS = `
+  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--line:rgba(255,255,255,0.06);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;}
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
 
-  .lgs-wrap *,.lgs-wrap *::before,.lgs-wrap *::after { box-sizing:border-box; }
-  .lgs-wrap {
-    font-family:'Geist',-apple-system,sans-serif;
-    color:#c8cdd6;
-    background:#07090d;
-    min-height:100vh;
-    padding:40px 48px 80px;
-    -webkit-font-smoothing:antialiased;
-  }
-  @media(max-width:1000px){ .lgs-wrap { padding:20px 16px 60px; } }
-  @media(max-width:600px){ .lgs-wrap { padding:0; } }
+  /* ── Shared shell (matches LedgrBriefing lb-* exactly) ── */
+  .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
+  @media(max-width:1000px){.lb-wrap{padding:20px 16px 60px;}}
+  @media(max-width:600px){.lb-wrap{padding:0;}}
+  .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:20px;overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:80vh;}
+  @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
+  .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
+  .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
+  .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
+  .lb-brief{display:grid;grid-template-columns:64px 1fr;flex:1;min-height:0;}
+  .lb-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
+  .lb-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
+  .lb-nav-item{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:18px;cursor:pointer;transition:.15s;user-select:none;}
+  .lb-nav-item:hover{color:var(--ink-1);background:var(--bg-2);}
+  .lb-nav-item.active{color:var(--safe);background:rgba(93,202,165,0.08);}
+  .lb-nav-spacer{flex:1;}
 
-  /* Frame */
-  .lgs-frame {
-    background:#0b0e14;
-    border:1px solid rgba(255,255,255,0.06);
-    border-radius:20px;
-    overflow:hidden;
-    max-width:1200px;
-    margin:0 auto;
-    box-shadow:0 24px 80px rgba(0,0,0,0.5);
-    display:flex;
-    flex-direction:column;
-    min-height:80vh;
-  }
-  @media(max-width:600px){ .lgs-frame { border-radius:0; border:none; } }
-
-  /* Chrome bar */
-  .lgs-chrome {
-    height:40px;
-    background:#11151d;
-    border-bottom:1px solid rgba(255,255,255,0.06);
-    display:flex;
-    align-items:center;
-    padding:0 18px;
-    gap:8px;
-    flex-shrink:0;
-  }
-  .lgs-dot { width:9px; height:9px; border-radius:50%; background:#2e3340; }
-  .lgs-url { margin-left:14px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#4a5161; }
-  .lgs-live {
-    margin-left:auto;
-    font-family:'JetBrains Mono',monospace;
-    font-size:11px;
-    color:#4a5161;
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-  .lgs-live::before {
-    content:'';
-    width:6px; height:6px;
-    border-radius:50%;
-    background:#5dcaa5;
-    box-shadow:0 0 8px #5dcaa5;
-    display:inline-block;
-  }
-
-  /* Body grid: nav rail + main */
-  .lgs-body { display:grid; grid-template-columns:64px 1fr; flex:1; min-height:0; }
-
-  /* Nav rail */
-  .lgs-nav {
-    width:64px;
-    border-right:1px solid rgba(255,255,255,0.06);
-    padding:24px 0;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:4px;
-    background:#0b0e14;
-  }
-  .lgs-nav-logo {
-    width:28px; height:28px;
-    border-radius:50%;
-    background:radial-gradient(circle at 30% 30%,#5dcaa5,#0f6e56 80%);
-    margin-bottom:24px;
-    flex-shrink:0;
-  }
-  .lgs-ni {
-    width:40px; height:40px;
-    border-radius:10px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#4a5161;
-    font-size:18px;
-    cursor:pointer;
-    transition:.15s;
-    user-select:none;
-  }
-  .lgs-ni:hover { color:#c8cdd6; background:#11151d; }
-  .lgs-ni.active { color:#5dcaa5; background:rgba(93,202,165,0.08); }
-  .lgs-nav-spacer { flex:1; }
-
-  /* Main column */
-  .lgs-main { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
-
-  /* Topbar */
-  .lgs-topbar {
-    height:60px;
-    padding:0 32px;
-    border-bottom:1px solid rgba(255,255,255,0.06);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-shrink:0;
-  }
-  .lgs-tb-left { display:flex; align-items:baseline; gap:16px; }
-  .lgs-tb-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:#4a5161; }
-  .lgs-tb-title { font-family:'Instrument Serif',Georgia,serif; font-size:22px; letter-spacing:-0.3px; color:#f4f4f1; }
-  .lgs-tb-div { width:1px; height:14px; background:rgba(255,255,255,0.10); flex-shrink:0; }
-  .lgs-tb-sub { font-size:11px; color:#4a5161; letter-spacing:1.5px; text-transform:uppercase; }
-  .lgs-avatar {
-    width:30px; height:30px;
-    border-radius:50%;
-    background:linear-gradient(135deg,rgba(93,202,165,0.3),rgba(93,202,165,0.1));
-    border:1px solid rgba(93,202,165,0.3);
-    display:flex; align-items:center; justify-content:center;
-    font-size:11px; font-weight:600; color:#5dcaa5;
-    font-family:'JetBrains Mono',monospace;
-    flex-shrink:0;
-  }
-
-  /* Tab bar */
-  .lgs-tabbar {
-    border-bottom:1px solid rgba(255,255,255,0.06);
-    display:flex;
-    align-items:center;
-    padding:0 32px;
-    background:#0b0e14;
-    flex-shrink:0;
-    overflow-x:auto;
-  }
-  .lgs-tab {
-    padding:12px 16px;
-    font-family:'JetBrains Mono',monospace;
-    font-size:10px;
-    letter-spacing:1px;
-    text-transform:uppercase;
-    color:#4a5161;
-    cursor:pointer;
-    border-bottom:2px solid transparent;
-    transition:.12s;
-    white-space:nowrap;
-    display:flex;
-    align-items:center;
-    gap:6px;
-    flex-shrink:0;
-  }
-  .lgs-tab:hover { color:#7d8594; }
-  .lgs-tab.active { color:#5dcaa5; border-bottom-color:#5dcaa5; }
-
-  /* Content scroll area */
-  .lgs-content { flex:1; overflow-y:auto; }
-  .lgs-grid {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:14px;
-    padding:24px;
-    align-content:start;
-  }
+  /* ── Settings main column ── */
+  .lgs-main{display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .lgs-topbar{height:60px;padding:0 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .lgs-tb-left{display:flex;align-items:baseline;gap:16px;}
+  .lgs-tb-eyebrow{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lgs-tb-title{font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px;color:var(--ink-0);}
+  .lgs-tb-div{width:1px;height:14px;background:rgba(255,255,255,0.10);flex-shrink:0;}
+  .lgs-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
+  .lgs-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,rgba(93,202,165,0.3),rgba(93,202,165,0.1));border:1px solid rgba(93,202,165,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--safe);font-family:var(--font-mono);flex-shrink:0;}
+  .lgs-tabbar{border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 32px;background:var(--bg-1);flex-shrink:0;overflow-x:auto;}
+  .lgs-tab{padding:12px 16px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent;transition:.12s;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .lgs-tab:hover{color:var(--ink-2);}
+  .lgs-tab.active{color:var(--safe);border-bottom-color:var(--safe);}
+  .lgs-content{flex:1;overflow-y:auto;}
+  .lgs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:24px;align-content:start;}
 
   /* Blocks */
   .lgs-block {
@@ -603,29 +476,29 @@ export default function LedgrSettings({
      RENDER
   ───────────────────────────────────────────────── */
   return (
-    <div className="lgs-wrap">
+    <div className="lb-wrap">
       <style>{CSS}</style>
 
-      <div className="lgs-frame">
+      <div className="lb-frame">
 
-        {/* Chrome bar */}
-        <div className="lgs-chrome">
-          <div className="lgs-dot"/><div className="lgs-dot"/><div className="lgs-dot"/>
-          <span className="lgs-url">app.ledgr.app / settings</span>
-          <span className="lgs-live">live · synced just now</span>
+        {/* Chrome bar — identical to LedgrBriefing */}
+        <div className="lb-bar">
+          <div className="lb-bar-dot"/><div className="lb-bar-dot"/><div className="lb-bar-dot"/>
+          <span className="lb-bar-url">app.ledgr.app / settings</span>
+          <span className="lb-bar-live">live · synced just now</span>
         </div>
 
-        <div className="lgs-body">
+        <div className="lb-brief">
 
-          {/* Nav rail */}
-          <nav className="lgs-nav">
-            <div className="lgs-nav-logo"/>
+          {/* Nav rail — identical to LedgrBriefing */}
+          <nav className="lb-nav">
+            <div className="lb-nav-logo"/>
             {NAV.map(n => (
-              <div key={n.id} className={`lgs-ni${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>
+              <div key={n.id} className={`lb-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>
                 {n.icon}
               </div>
             ))}
-            <div className="lgs-nav-spacer"/>
+            <div className="lb-nav-spacer"/>
           </nav>
 
           {/* Main */}
@@ -634,7 +507,7 @@ export default function LedgrSettings({
             {/* Topbar */}
             <div className="lgs-topbar">
               <div className="lgs-tb-left">
-                <span className="lgs-tb-num">vi ·</span>
+                <span className="lgs-tb-eyebrow">settings ·</span>
                 <span className="lgs-tb-title">Settings</span>
                 <div className="lgs-tb-div"/>
                 <span className="lgs-tb-sub">{TABS.find(t=>t.id===settingsTab)?.label}</span>
@@ -1099,8 +972,8 @@ export default function LedgrSettings({
               </div>{/* /lgs-grid */}
             </div>{/* /lgs-content */}
           </div>{/* /lgs-main */}
-        </div>{/* /lgs-body */}
-      </div>{/* /lgs-frame */}
+        </div>{/* /lb-brief */}
+      </div>{/* /lb-frame */}
     </div>
   );
 }

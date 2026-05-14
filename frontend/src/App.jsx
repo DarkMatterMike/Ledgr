@@ -19,7 +19,7 @@ import { useAppData } from "./hooks/useAppData.js";
 import LedgrBriefing from "./components/LedgrBriefing.jsx";
 import LedgrSettings from "./components/LedgrSettings.jsx";
 import LedgrTransactions from "./components/LedgrTransactions.jsx";
-import LedgrAccounts from "./components/LedgrAccounts.jsx";
+import LedgrAccounts, { AccountModal } from "./components/LedgrAccounts.jsx";
 import LedgrCalendar from "./components/LedgrCalendar.jsx";
 import LedgrBudgets from "./components/LedgrBudgets.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
@@ -2772,17 +2772,16 @@ function AppInner({ isDemo = false }) {
   /* -- Account CRUD -- */
   function openAddAcct()   { setAcctForm({name:"",balance:"",type:"Checking"}); setModal("addAcct"); }
   function openEditAcct(a) { setAcctForm({name:a.name,balance:String(a.balance),type:a.type}); setEditTarget(a); setModal("editAcct"); }
-  function saveAcct() {
-    if (!acctForm.name.trim()) return;
+  function saveAcct({ name, type, balance }) {
     if (modal === "addAcct") {
-      const newAcct = { id:"a"+Date.now(), name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type, isManual:true };
+      const newAcct = { id:"a"+Date.now(), name, balance, type, isManual:true };
       setAccounts(p => [...p, newAcct]);
       api.createAccount(newAcct).catch(console.error);
     } else {
-      const patch = { name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type };
+      const patch = { name, balance, type };
       setAccounts(p => p.map(a => a.id === editTarget.id ? {...a, ...patch} : a));
       api.updateAccount(editTarget.id, patch).catch(e => console.warn("PATCH accounts failed:", e.message));
-      const updatedNames = { ...customAccountNames, [editTarget.id]: acctForm.name.trim() };
+      const updatedNames = { ...customAccountNames, [editTarget.id]: name };
       setCustomAccountNames(updatedNames);
       scheduleSaveRef.current?.({ customAccountNames: updatedNames });
     }
@@ -4834,18 +4833,14 @@ function AppInner({ isDemo = false }) {
 
 
   /* ── AcctModal ─────────────────────────────────── */
-  const AcctModal = (
-    <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
-      actions={<><button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveAcct}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
-        <div style={S.field}><label style={S.label}>Type</label>
-          <CustomSelect value={acctForm.type} onChange={v=>setAcctForm(p=>({...p,type:v}))} options={["Checking","Savings","Credit","Investment"].map(t=>({value:t,label:t}))} style={{width:"100%"}}/>
-        </div>
-        <div style={S.field}><label style={S.label}>Balance ($)</label><input style={S.input} type="number" placeholder="0.00" value={acctForm.balance} onChange={e=>setAcctForm(p=>({...p,balance:e.target.value}))}/></div>
-      </div>
-    </Modal>
-  );
+  const AcctModal = (modal==="addAcct"||modal==="editAcct") ? (
+    <AccountModal
+      mode={modal==="editAcct"?"edit":"add"}
+      acct={modal==="editAcct"?editTarget:null}
+      onClose={()=>setModal(null)}
+      onSave={saveAcct}
+    />
+  ) : null;
 
 
   /* ── TxnModal — Lumen themed ─────────────────── */

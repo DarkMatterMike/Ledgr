@@ -2,8 +2,143 @@
  * LedgrAccounts.jsx
  * src/components/LedgrAccounts.jsx
  */
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import PageNav from "./PageNav.jsx";
+
+/* ── Account Modal ────────────────────────────────────────────────────
+   Self-contained add/edit modal in Ledgr's dark design system.
+   Exported so App.jsx renders it: {acctModal && <AccountModal .../>}
+──────────────────────────────────────────────────────────────────── */
+const MODAL_CSS = `
+  .am-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .am-modal{background:#0b0e14;border:1px solid rgba(255,255,255,0.08);border-radius:16px;width:100%;max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,0.7);overflow:hidden;animation:am-in .2s cubic-bezier(0.22,1,0.36,1);}
+  @keyframes am-in{from{opacity:0;transform:translateY(10px) scale(0.97);}to{opacity:1;transform:none;}}
+  .am-head{padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:baseline;justify-content:space-between;}
+  .am-title{font-family:'Instrument Serif',Georgia,serif;font-size:20px;letter-spacing:-0.3px;color:#f4f4f1;}
+  .am-close{background:none;border:none;color:#4a5161;font-size:18px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px;transition:.15s;}
+  .am-close:hover{color:#f4f4f1;background:rgba(255,255,255,0.06);}
+  .am-body{padding:18px 20px;}
+  .am-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+  .am-field:last-child{margin-bottom:0;}
+  .am-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#4a5161;font-family:'JetBrains Mono',monospace;}
+  .am-input{background:#11151d;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;font-size:13px;color:#f4f4f1;font-family:'Geist',-apple-system,sans-serif;outline:none;transition:.15s;width:100%;box-sizing:border-box;}
+  .am-input:focus{border-color:rgba(93,202,165,0.5);background:#131820;}
+  .am-input::placeholder{color:#2e3340;}
+  .am-input[readonly]{color:#4a5161;cursor:default;}
+  .am-select{background:#11151d;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 32px 8px 12px;font-size:13px;color:#f4f4f1;font-family:'Geist',-apple-system,sans-serif;outline:none;transition:.15s;width:100%;box-sizing:border-box;appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a5161'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+  .am-select:focus{border-color:rgba(93,202,165,0.5);background-color:#131820;}
+  .am-hint{font-size:10px;color:#4a5161;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+  .am-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:flex-end;gap:8px;}
+  .am-btn{background:transparent;border:1px solid rgba(255,255,255,0.10);border-radius:7px;padding:6px 16px;font-size:11px;font-family:'JetBrains Mono',monospace;color:#7d8594;cursor:pointer;transition:.15s;}
+  .am-btn:hover{border-color:rgba(255,255,255,0.2);color:#f4f4f1;}
+  .am-btn.primary{background:rgba(93,202,165,0.1);border-color:rgba(93,202,165,0.45);color:#5dcaa5;}
+  .am-btn.primary:hover{background:rgba(93,202,165,0.18);}
+`;
+
+export function AccountModal({ mode="add", acct=null, onSave, onClose }) {
+  const nameRef = useRef(null);
+  const isEdit  = mode === "edit";
+  const isPlaid = !!(acct?.plaidId);
+
+  const [name,    setName]    = useState(acct?.name || "");
+  const [type,    setType]    = useState(acct?.type || "Checking");
+  const [balance, setBalance] = useState(acct ? String(Math.abs(acct.balance || 0)) : "");
+
+  useEffect(() => { if (!isPlaid) nameRef.current?.focus(); }, []);
+  useEffect(() => {
+    const handler = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  function handleSave() {
+    if (!name.trim()) { nameRef.current?.focus(); return; }
+    onSave({ name: name.trim(), type, balance: parseFloat(balance) || 0 });
+  }
+
+  const isCreditType = /credit/i.test(type);
+
+  return (
+    <>
+      <style>{MODAL_CSS}</style>
+      <div className="am-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="am-modal">
+          <div className="am-head">
+            <span className="am-title">{isEdit ? "Edit Account" : "Add Account"}</span>
+            <button className="am-close" onClick={onClose}>✕</button>
+          </div>
+          <div className="am-body">
+
+            {/* Name */}
+            <div className="am-field">
+              <label className="am-label">Name</label>
+              <input
+                ref={nameRef}
+                className="am-input"
+                placeholder="Chase Checking"
+                value={name}
+                readOnly={isPlaid}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSave()}
+              />
+              {isPlaid && <span className="am-hint">Rename via your bank connection or edit directly on this page.</span>}
+            </div>
+
+            {/* Type */}
+            <div className="am-field">
+              <label className="am-label">Type</label>
+              {isPlaid ? (
+                <input className="am-input" value={acct.type || "—"} readOnly/>
+              ) : (
+                <select className="am-select" value={type} onChange={e => setType(e.target.value)}>
+                  {["Checking","Savings","Credit","Investment","Cash"].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Balance */}
+            <div className="am-field">
+              <label className="am-label">{isCreditType ? "Amount Owed ($)" : "Balance ($)"}</label>
+              <input
+                className="am-input"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={balance}
+                readOnly={isPlaid}
+                onChange={e => setBalance(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSave()}
+              />
+              {isPlaid
+                ? <span className="am-hint">Balance syncs automatically from your bank.</span>
+                : isCreditType
+                  ? <span className="am-hint">Enter the amount you currently owe — treated as a liability.</span>
+                  : null}
+            </div>
+
+            {/* Last 4 — read-only info for Plaid accounts */}
+            {isPlaid && acct?.mask && (
+              <div className="am-field">
+                <label className="am-label">Account</label>
+                <input className="am-input" value={"••••" + acct.mask} readOnly style={{fontFamily:"'JetBrains Mono',monospace"}}/>
+              </div>
+            )}
+
+          </div>
+          <div className="am-foot">
+            <button className="am-btn" onClick={onClose}>Cancel</button>
+            <button className="am-btn primary" onClick={handleSave}>
+              {isEdit ? "Save Changes" : "Add Account"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
@@ -131,7 +266,8 @@ export default function LedgrAccounts({
   today=new Date(),isMobile=false,navigate=()=>{},
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }) {
-  const totalBalance  = accounts.reduce((s,a)=>s+(a.balance||0),0);
+  const isCredit = a => /(credit)/i.test(a.type||"");
+  const totalBalance  = accounts.reduce((s,a)=>s+(isCredit(a)?-(a.balance||0):(a.balance||0)),0);
   const totalSpentAc  = accounts.reduce((s,a)=>s+(spentByAcct[a.id]||0),0);
   const totalIncome   = monthTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const totalAccounts = accounts.length;
@@ -239,7 +375,7 @@ export default function LedgrAccounts({
                     const plaidItem = plaidItems.find(i=>i.item_id===key);
                     const isStale   = plaidItem&&staleItemIds.has(plaidItem.item_id);
                     const isManual  = key==="__manual__";
-                    const groupTotal= accts.reduce((s,a)=>s+(a.balance||0),0);
+                    const groupTotal= accts.reduce((s,a)=>s+(isCredit(a)?-(a.balance||0):(a.balance||0)),0);
                     const color     = instColor(label,isManual);
 
                     return (
@@ -281,7 +417,12 @@ export default function LedgrAccounts({
                           const proj   = daily*daysInMonth(today.getFullYear(),today.getMonth()+1);
                           const isNeg  = (acct.balance||0)<0;
                           const isInvestment = /invest|401|ira|brokerage|retirement/i.test(acct.type||"");
-                          const balColor = isNeg?"var(--debt)":isInvestment?"var(--goal)":"var(--ink-0)";
+                          const isCreditAcct = isCredit(acct);
+                          // For credit cards: Plaid current balance is positive = amount owed (a liability)
+                          // For manual credit entries: user may enter positive; treat as owed
+                          const effectiveBal = isCreditAcct ? -(Math.abs(acct.balance||0)) : (acct.balance||0);
+                          const balColor = effectiveBal<0?"var(--debt)":isInvestment?"var(--goal)":"var(--ink-0)";
+                          const availLabel = isCreditAcct ? "credit left" : "avail";
                           const initials = instInitials(isManual?(acct.name||"ME"):label);
                           const iconBg   = isManual?"var(--bg-3)":`color-mix(in srgb, ${color} 15%, transparent)`;
 
@@ -297,7 +438,7 @@ export default function LedgrAccounts({
                                   <div className="la-acct-sub">
                                     {acct.mask&&`••${acct.mask}`}
                                     {acct.mask&&acct.available!=null&&" · "}
-                                    {acct.available!=null&&`avail ${fmt(acct.available)}`}
+                                    {acct.available!=null&&`${availLabel} ${fmt(acct.available)}`}
                                   </div>
                                 )}
                               </div>
@@ -321,7 +462,7 @@ export default function LedgrAccounts({
                                   <button className="la-act-btn danger" onClick={()=>deleteAcct(acct.id)}>✕</button>
                                 </div>
                                 <div className="la-cell" style={{color:balColor,minWidth:72,textAlign:"right"}}>
-                                  {isNeg?"−":""}{fmt(Math.abs(acct.balance||0))}
+                                  {effectiveBal<0?"−":""}{fmt(Math.abs(effectiveBal))}
                                 </div>
                               </div>
                             </div>

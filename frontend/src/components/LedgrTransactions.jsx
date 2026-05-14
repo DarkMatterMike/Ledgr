@@ -119,13 +119,6 @@ const CSS = `
   .lt-tb-right{display:flex;align-items:center;gap:10px;}
   .lt-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);font-weight:500;flex-shrink:0;}
 
-  /* Summary strip */
-  .lt-summary{display:grid;grid-template-columns:repeat(4,1fr);flex-shrink:0;border-bottom:1px solid var(--line);}
-  .lt-sum-cell{padding:12px 28px;border-right:1px solid var(--line);}
-  .lt-sum-cell:last-child{border-right:none;}
-  .lt-sum-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px;}
-  .lt-sum-val{font-family:var(--font-mono);font-size:18px;font-weight:500;}
-
   /* Filter bar */
   .lt-filters {
     padding:10px 28px;border-bottom:1px solid var(--line);
@@ -394,12 +387,6 @@ export default function LedgrTransactions({
     });
   }, [filteredTxns, txnTypeFilter, txnSortCol, txnSortDir, catMap, acctMap]);
 
-  /* ── Summary numbers ── */
-  const totalSpent = sorted.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
-  const totalInc   = sorted.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
-  const netAmt     = totalInc - totalSpent;
-  const toReview   = transactions.filter(t => needsReview(t)).length;
-
   /* ── Sort toggle ── */
   function toggleSort(col) {
     if (txnSortCol === col) setTxnSortDir(d => d === "asc" ? "desc" : "asc");
@@ -504,21 +491,6 @@ export default function LedgrTransactions({
                   <div className="lt-avatar">{initials}</div>
                   <button className="lt-btn primary" onClick={openAddTxn}>+ Add</button>
                 </div>
-              </div>
-
-              {/* Summary strip */}
-              <div className="lt-summary">
-                {[
-                  { lbl:"Spent",     val: fmt(totalSpent),  color:"var(--debt)" },
-                  { lbl:"Income",    val: fmt(totalInc),    color:"var(--safe)" },
-                  { lbl:"Net",       val: (netAmt >= 0 ? "+" : "−") + fmt(Math.abs(netAmt)), color: netAmt >= 0 ? "var(--safe)" : "var(--debt)" },
-                  { lbl:"To review", val: String(toReview), color: toReview > 0 ? "var(--warn)" : "var(--ink-3)" },
-                ].map(c => (
-                  <div key={c.lbl} className="lt-sum-cell">
-                    <div className="lt-sum-lbl">{c.lbl}</div>
-                    <div className="lt-sum-val" style={{ color: c.color }}>{c.val}</div>
-                  </div>
-                ))}
               </div>
 
               {/* Filter bar */}
@@ -814,7 +786,7 @@ export default function LedgrTransactions({
                         className="lt-panel-btn"
                         onClick={() => { savePanelName(); savePanelNotes(); }}
                       >
-                        Save
+                        Save Changes
                       </button>
                       <button
                         className="lt-panel-btn del"

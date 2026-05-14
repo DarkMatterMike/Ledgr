@@ -2,7 +2,7 @@
  * LedgrCalendar.jsx
  * src/components/LedgrCalendar.jsx
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
@@ -164,6 +164,7 @@ export default function LedgrCalendar({
   setEditingRecurringItem=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
+  calendarOpenNewRi=false,onCalendarOpenNewRiConsumed=()=>{},
 }){
   const now=calendarMonth||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
   const [cy,cm]=now.split("-").map(Number);
@@ -172,6 +173,16 @@ export default function LedgrCalendar({
   const [selectedRiId,setSelectedRiId]=useState(null);    // which ri is selected for edit col
   const [selectedTxn,setSelectedTxn]=useState(null);      // which unlinked txn is selected for link search
   const [linkSearch,setLinkSearch]=useState("");
+
+  // When navigated here from "Make Recurring → Calendar", open the new-item form
+  useEffect(()=>{
+    if(calendarOpenNewRi){
+      setSelectedRiId('__new__');
+      setSelectedTxn(null);
+      setLinkSearch('');
+      onCalendarOpenNewRiConsumed();
+    }
+  },[calendarOpenNewRi]);
 
   const first=new Date(cy,cm-1,1).getDay();
   const dim=daysInM(cy,cm);
@@ -393,7 +404,71 @@ export default function LedgrCalendar({
                   <div className="lc-edit-empty-text">Select a recurring item or transaction to edit or link</div>
                 </div>
               )}
-              {selectedRiId&&(()=>{
+              {selectedRiId==='__new__'&&(
+                <>
+                  <div className="lc-edit-header">
+                    <span className="lc-edit-title" style={{fontStyle:'italic',color:'var(--safe)'}}>New recurring item</span>
+                    <button className="lc-edit-close" onClick={()=>setSelectedRiId(null)}>✕</button>
+                  </div>
+                  <div className="lc-field">
+                    <label className="lc-label">Name</label>
+                    <input className="lc-input" value={riForm.name} autoFocus onChange={e=>setRiForm(p=>({...p,name:e.target.value}))}/>
+                  </div>
+                  <div className="lc-field">
+                    <label className="lc-label">Type</label>
+                    <select className="lc-select" value={riForm.type||'expense'} onChange={e=>setRiForm(p=>({...p,type:e.target.value}))}>
+                      <option value="expense">Expense</option>
+                      <option value="income">Income</option>
+                      <option value="transfer">Transfer</option>
+                      <option value="reimbursement">Reimbursement</option>
+                    </select>
+                  </div>
+                  <div className="lc-field-row">
+                    <div className="lc-field">
+                      <label className="lc-label">Frequency</label>
+                      <select className="lc-select" value={riForm.recurringFreq||'monthly'} onChange={e=>setRiForm(p=>({...p,recurringFreq:e.target.value}))}>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Bi-weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="annual">Annual</option>
+                      </select>
+                    </div>
+                    <div className="lc-field">
+                      <label className="lc-label">Day of Month</label>
+                      <input className="lc-input" type="number" min="1" max="31" value={riForm.recurringDay} onChange={e=>setRiForm(p=>({...p,recurringDay:e.target.value}))}/>
+                    </div>
+                  </div>
+                  <div className="lc-field">
+                    <label className="lc-label">Expected Amount</label>
+                    <input className="lc-input" type="number" step="0.01" placeholder="e.g. 14.99" value={riForm.amountMin} onChange={e=>setRiForm(p=>({...p,amountMin:e.target.value,amountMax:e.target.value}))}/>
+                  </div>
+                  <div className="lc-field-row">
+                    <div className="lc-field">
+                      <label className="lc-label">Category</label>
+                      <select className="lc-select" value={riForm.categoryId} onChange={e=>setRiForm(p=>({...p,categoryId:e.target.value}))}>
+                        <option value="">— None —</option>
+                        {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(cat=><option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="lc-field">
+                      <label className="lc-label">Account</label>
+                      <select className="lc-select" value={riForm.accountId} onChange={e=>setRiForm(p=>({...p,accountId:e.target.value}))}>
+                        <option value="">— None —</option>
+                        {[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="lc-field">
+                    <label className="lc-label">Start Date</label>
+                    <input className="lc-input" type="date" value={riForm.recurringStart} onChange={e=>setRiForm(p=>({...p,recurringStart:e.target.value}))}/>
+                  </div>
+                  <div className="lc-edit-actions">
+                    <button className="lc-btn-save" onClick={()=>{saveRecurringItemForm();setSelectedRiId(null);}}>Save</button>
+                    <button className="lc-btn-ghost" onClick={()=>setSelectedRiId(null)}>Cancel</button>
+                  </div>
+                </>
+              )}
+              {selectedRiId&&selectedRiId!=='__new__'&&(()=>{
                 const r=recurringItems.find(x=>x.id===selectedRiId);
                 if(!r) return null;
                 const isInc=r.type==="income";

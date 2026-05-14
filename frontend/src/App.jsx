@@ -2304,6 +2304,7 @@ function AppInner({ isDemo = false }) {
   const [recurringItemModal, setRecurringItemModal] = useState(false);
   const [editingRecurringItem, setEditingRecurringItem] = useState(null);
   const [riForm, setRiForm] = useState({ name:"", amountMin:"", amountMax:"", recurringDay:"", recurringFreq:"monthly", recurringStart:"", categoryId:"", accountId:"", type:"expense" });
+  const [calendarOpenNewRi, setCalendarOpenNewRi] = useState(false);
   const [riSearch, setRiSearch] = useState("");
   const [riSearchResults, setRiSearchResults] = useState([]);
   const [riSearchLoading, setRiSearchLoading] = useState(false);
@@ -4641,6 +4642,8 @@ function AppInner({ isDemo = false }) {
       updateTxnName={updateTxnName}
       markReviewed={markReviewed}
       onMakeRecurring={(t) => {
+        const raw = t.date || '';
+        const day = raw.includes('-') ? raw.split('-')[2] : raw.split('/')[1] || '';
         setRiForm({
           name:           t.name || t.merchant || '',
           amountMin:      t.amount != null ? String(Math.abs(t.amount)) : '',
@@ -4649,10 +4652,11 @@ function AppInner({ isDemo = false }) {
           categoryId:     t.categoryId  || '',
           accountId:      t.accountId   || '',
           recurringFreq:  'monthly',
-          recurringDay:   '',
-          recurringStart: '',
+          recurringDay:   day ? String(parseInt(day)) : '',
+          recurringStart: raw,
         });
-        openNewRecurringItem();
+        setCalendarOpenNewRi(true);
+        navigate('calendar');
       }}
     />
   );
@@ -5094,16 +5098,27 @@ function AppInner({ isDemo = false }) {
   const Calendar = (
     <LedgrCalendar
       accounts={accounts}
+      categories={categories}
       calendarMonth={calendarMonth}
       calendarTxnsByDay={calendarTxnsByDay}
       recurringItems={recurringItems}
       transactions={transactions}
+      monthTxns={Object.values(calendarTxnsByDay).flat()}
       catMap={catMap}
       acctMap={acctMap}
       prevCalMonth={prevCalMonth}
       nextCalMonth={nextCalMonth}
       openNewRecurringItem={openNewRecurringItem}
       openEditRecurringItem={openEditRecurringItem}
+      saveRecurringItemForm={saveRecurringItemForm}
+      riForm={riForm}
+      setRiForm={setRiForm}
+      setEditingRecurringItem={setEditingRecurringItem}
+      linkTxnToRecurringItem={linkTxnToRecurringItem}
+      unlinkTxnFromRecurringItem={unlinkTxnFromRecurringItem}
+      deleteRecurringItem={deleteRecurringItem}
+      calendarOpenNewRi={calendarOpenNewRi}
+      onCalendarOpenNewRiConsumed={() => setCalendarOpenNewRi(false)}
       fmt={fmt}
       today={today}
       isMobile={isMobile}
@@ -5719,6 +5734,8 @@ function AppInner({ isDemo = false }) {
       updateTxnName={updateTxnName}
       markReviewed={markReviewed}
       onMakeRecurring={(t) => {
+        const raw = t.date || '';
+        const day = raw.includes('-') ? raw.split('-')[2] : raw.split('/')[1] || '';
         setRiForm({
           name:           t.name || t.merchant || '',
           amountMin:      t.amount != null ? String(Math.abs(t.amount)) : '',
@@ -5727,10 +5744,11 @@ function AppInner({ isDemo = false }) {
           categoryId:     t.categoryId  || '',
           accountId:      t.accountId   || '',
           recurringFreq:  'monthly',
-          recurringDay:   '',
-          recurringStart: '',
+          recurringDay:   day ? String(parseInt(day)) : '',
+          recurringStart: raw,
         });
-        openNewRecurringItem();
+        setCalendarOpenNewRi(true);
+        navigate('calendar');
       }}
     />
       {modal==="addTxn" && TxnModal}

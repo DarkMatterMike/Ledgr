@@ -19,7 +19,7 @@ const CSS = `
   .lc-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lc-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lc-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
-  .lc-body{display:grid;grid-template-columns:64px 280px 1fr;flex:1;}
+  .lc-body{display:grid;grid-template-columns:64px 320px 1fr;flex:1;}
   @media(max-width:900px){.lc-body{grid-template-columns:64px 1fr;}}
   .lc-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lc-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
@@ -86,6 +86,19 @@ const CSS = `
   .lc-event-amt.income{color:var(--safe);}
   .lc-event-amt.expense{color:var(--debt);}
   .lc-empty-day{padding:3px 0 3px 42px;font-size:11px;color:var(--ink-4);font-style:italic;}
+  .lc-event:hover .lc-event-name{color:var(--ink-0);}
+  .lc-expand{margin:2px 0 6px 42px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;}
+  .lc-expand-label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-3);margin-bottom:8px;}
+  .lc-expand-input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;}
+  .lc-expand-input:focus{border-color:rgba(93,202,165,0.3);}
+  .lc-expand-input::placeholder{color:var(--ink-4);}
+  .lc-expand-candidate{display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:6px;margin-top:4px;cursor:pointer;transition:background .1s;}
+  .lc-expand-candidate:hover{background:rgba(255,255,255,0.05);}
+  .lc-expand-cname{flex:1;font-size:12px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lc-expand-cmeta{font-size:10px;color:var(--ink-3);font-family:var(--font-mono);}
+  .lc-expand-camt{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--debt);flex-shrink:0;}
+  .lc-expand-link{background:rgba(93,202,165,0.1);border:1px solid rgba(93,202,165,0.25);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);color:var(--safe);cursor:pointer;flex-shrink:0;}
+  .lc-expand-none{font-size:11px;color:var(--ink-4);padding:4px 0;}
 `;
 
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -95,8 +108,9 @@ function daysInM(y,m){return new Date(y,m,0).getDate();}
 
 export default function LedgrCalendar({
   accounts=[],calendarMonth="",calendarTxnsByDay={},recurringItems=[],
-  transactions=[],catMap={},acctMap={},
+  transactions=[],monthTxns=[],catMap={},acctMap={},
   prevCalMonth,nextCalMonth,openNewRecurringItem,openEditRecurringItem,
+  linkTxnToRecurringItem=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
 }) {
@@ -104,6 +118,8 @@ export default function LedgrCalendar({
   const [cy,cm]=now.split("-").map(Number);
   const [selDay,setSelDay]=useState(cy===today.getFullYear()&&cm===today.getMonth()+1?today.getDate():1);
   const isCurMo=cy===today.getFullYear()&&cm===today.getMonth()+1;
+  const [expandedEntryId,setExpandedEntryId]=useState(null); // for agenda entry link search
+  const [linkSearch,setLinkSearch]=useState("");
 
   const first=new Date(cy,cm-1,1).getDay();
   const dim=daysInM(cy,cm);
@@ -238,14 +254,15 @@ export default function LedgrCalendar({
                         {isToday&&<span className="lc-today-pill">today</span>}
                         <div className={`lc-day-rule${isToday?" today":""}`}/>
                       </div>
-                      {/* recurring item entries — show posted/due based on postedThisMonth */}
+                      {/* recurring item entries — clickable → opens edit modal */}
                       {riEntries.map(t=>{
                         const isInc=t.type==="income";
                         const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(108,140,255,0.4)";
                         const posted=t.postedThisMonth;
+                        const riItem=recurringItems.find(r=>r.id===t.recurringItemId);
                         return(
                           <div key={t.id} className="lc-event" style={{cursor:"pointer"}}
-                            onClick={()=>openEditRecurringItem&&openEditRecurringItem(recurringItems.find(r=>r.id===t.recurringItemId))}>
+                            onClick={()=>riItem&&openEditRecurringItem&&openEditRecurringItem(riItem)}>
                             <div className="lc-event-bar" style={{background:posted?barColor.replace("0.4","0.6").replace("0.5","0.7"):barColor}}/>
                             <div className="lc-event-body">
                               <span className="lc-event-name">{t.name}</span>
@@ -259,23 +276,59 @@ export default function LedgrCalendar({
                           </div>
                         );
                       })}
-                      {/* real transactions not linked to any recurring item */}
+                      {/* real transactions — clickable → expands link-to-recurring search */}
                       {realTxns.map(t=>{
                         const isInc=t.amount>0;
                         const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
                         const txnDate=t.date?new Date(t.date+"T00:00:00"):null;
                         const posted=txnDate&&txnDate<=todayMidnight;
+                        const isExpanded=expandedEntryId===t.id;
+                        const q=linkSearch.toLowerCase().trim();
+                        // candidates: recurring items of matching type, not yet linked this month
+                        const candidates=recurringItems.filter(r=>{
+                          if(isInc&&r.type!=="income") return false;
+                          if(!isInc&&r.type==="income") return false;
+                          if(!q) return true;
+                          return (r.name||"").toLowerCase().includes(q);
+                        });
                         return(
-                          <div key={t.id} className="lc-event">
-                            <div className="lc-event-bar" style={{background:barColor}}/>
-                            <div className="lc-event-body">
-                              <span className="lc-event-name">{t.name||t.merchant}</span>
-                              {posted
-                                ? <span className="lc-event-tag posted">✓</span>
-                                : <span className="lc-event-tag upcoming">due</span>
-                              }
+                          <div key={t.id}>
+                            <div className="lc-event" style={{cursor:"pointer"}}
+                              onClick={()=>{setExpandedEntryId(p=>p===t.id?null:t.id);setLinkSearch("");}}>
+                              <div className="lc-event-bar" style={{background:barColor}}/>
+                              <div className="lc-event-body">
+                                <span className="lc-event-name">{t.name||t.merchant}</span>
+                                {posted
+                                  ? <span className="lc-event-tag posted">✓</span>
+                                  : <span className="lc-event-tag upcoming">due</span>
+                                }
+                                <span style={{fontSize:9,color:"var(--ink-4)",fontFamily:"var(--font-mono)",marginLeft:"auto"}}>
+                                  {isExpanded?"▲":"▾"} link
+                                </span>
+                              </div>
+                              <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
                             </div>
-                            <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
+                            {isExpanded&&(
+                              <div className="lc-expand" onClick={e=>e.stopPropagation()}>
+                                <div className="lc-expand-label">Link to a recurring item</div>
+                                <input className="lc-expand-input" placeholder="Search recurring items…"
+                                  value={linkSearch} onChange={e=>setLinkSearch(e.target.value)} autoFocus/>
+                                {candidates.length===0
+                                  ? <div className="lc-expand-none">No matching recurring items</div>
+                                  : candidates.slice(0,5).map(r=>(
+                                    <div key={r.id} className="lc-expand-candidate"
+                                      onClick={()=>{linkTxnToRecurringItem(t.id,r.id);setExpandedEntryId(null);setLinkSearch("");}}>
+                                      <div style={{flex:1,minWidth:0}}>
+                                        <div className="lc-expand-cname">{r.name}</div>
+                                        <div className="lc-expand-cmeta">day {r.recurringDay} · {r.recurringFreq||"monthly"}</div>
+                                      </div>
+                                      <span className="lc-expand-camt">{fmt(r.amountMin||0)}</span>
+                                      <button className="lc-expand-link">Link ↗</button>
+                                    </div>
+                                  ))
+                                }
+                              </div>
+                            )}
                           </div>
                         );
                       })}

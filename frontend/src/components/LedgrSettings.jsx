@@ -275,7 +275,6 @@ const NAV = [
   { id:"budgets",      icon:"▣" },
   { id:"analytics",    icon:"◎" },
   { id:"calendar",     icon:"▦" },
-  { id:"settings",     icon:"⚙", active:true },
 ];
 
 const TABS = [
@@ -499,6 +498,7 @@ export default function LedgrSettings({
               </div>
             ))}
             <div className="lb-nav-spacer"/>
+            <div className="lb-nav-item active" title="settings">⚙</div>
           </nav>
 
           {/* Main */}

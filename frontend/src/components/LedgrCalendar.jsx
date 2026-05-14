@@ -138,9 +138,9 @@ export default function LedgrCalendar({
     return arr;
   },[cy,cm,calendarTxnsByDay,first,dim,dimp,isCurMo,today,selDay]);
 
-  const monthTxns=Object.values(calendarTxnsByDay).flat();
-  const monthSpent=monthTxns.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
-  const monthIncome=monthTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const calMonthTxns=Object.values(calendarTxnsByDay).flat();
+  const monthSpent=calMonthTxns.filter(t=>t.amount<0).reduce((s,t)=>s+Math.abs(t.amount),0);
+  const monthIncome=calMonthTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
   const billsLeft=recurringItems.filter(r=>r.type!=="income"&&r.recurringDay&&isCurMo&&parseInt(r.recurringDay)>today.getDate()).reduce((s,r)=>s+(r.amountMin||0),0);
 
   const agendaDays=useMemo(()=>{

@@ -86,7 +86,13 @@ const CSS = `
   .la-grade-name{font-size:11px;color:var(--ink-1);flex:1;}
   .la-grade-val{font-family:var(--fm);font-size:10px;color:var(--ink-3);}
   /* narrative summary */
-  .la-summary-col{padding:24px 28px;display:flex;flex-direction:column;justify-content:center;gap:16px;}
+  .la-summary-col{padding:24px 28px;display:flex;flex-direction:column;gap:16px;}
+  .la-ai-headline-divider{border:none;border-top:1px solid var(--line);margin:0;}
+  .la-ai-headline-area{display:flex;flex-direction:column;gap:8px;}
+  .la-ai-headline-label{font-family:var(--fm);font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:6px;}
+  .la-ai-headline-dot{width:5px;height:5px;border-radius:50%;background:var(--safe);box-shadow:0 0 6px var(--safe);flex-shrink:0;}
+  .la-ai-headline-box{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--rm);padding:12px 14px;font-size:13px;line-height:1.6;color:var(--ink-1);}
+  .la-ai-headline-box.empty{color:var(--ink-3);font-family:var(--fm);font-size:11px;font-style:italic;}
   .la-summary-hl{font-family:var(--fd);font-size:24px;letter-spacing:-0.5px;line-height:1.25;color:var(--ink-0);}
   .la-summary-hl em{font-style:italic;}
   .la-sstats{display:flex;gap:20px;flex-wrap:wrap;}
@@ -757,6 +763,20 @@ export default function LedgrAnalytics({
                       {worstChronic?.cat?.name} has been over limit {worstChronic?.overCount}/6 months. At this pace you're on track to overspend that budget by approximately <strong style={{color:"var(--debt)"}}>{fmt(Math.round((worstChronic?.cat?.limit||0)*0.15*6))}</strong> this year.
                     </div>
                   )}
+                  <hr className="la-ai-headline-divider"/>
+                  <div className="la-ai-headline-area">
+                    <div className="la-ai-headline-label">
+                      <div className="la-ai-headline-dot"/>
+                      ✦ AI Summary
+                    </div>
+                    {aiLoading ? (
+                      <div className="la-ai-headline-box empty">Analyzing your finances…</div>
+                    ) : aiInsights?.headline ? (
+                      <div className="la-ai-headline-box">{aiInsights.headline}</div>
+                    ) : (
+                      <div className="la-ai-headline-box empty">Generate insights to see a summary here.</div>
+                    )}
+                  </div>
                 </div>
               </div>
 

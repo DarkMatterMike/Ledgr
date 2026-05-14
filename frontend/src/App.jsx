@@ -2642,6 +2642,19 @@ function AppInner({ isDemo = false }) {
         const reg = await navigator.serviceWorker.register("/sw.js");
         await navigator.serviceWorker.ready;
         let sub = await reg.pushManager.getSubscription();
+
+        // If we have a local sub, verify the server still knows about it.
+        // iOS APNs endpoints expire silently — a 410/404 from the server means
+        // the endpoint is dead and we need to force a fresh subscription.
+        if (sub) {
+          const result = await api.subscribePush(sub).catch(() => null);
+          if (!result?.ok) {
+            // Server rejected or endpoint is dead — unsubscribe so we re-create below
+            await sub.unsubscribe().catch(() => {});
+            sub = null;
+          }
+        }
+
         if (!sub) {
           const permission = await Notification.requestPermission();
           if (permission !== "granted") return;
@@ -2649,8 +2662,9 @@ function AppInner({ isDemo = false }) {
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
           });
+          await api.subscribePush(sub);
         }
-        await api.subscribePush(sub);
+
         navigator.serviceWorker.addEventListener("message", e => {
           if (e.data?.type === "NEW_TRANSACTIONS") setView("transactions");
         });
@@ -6210,20 +6224,7 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
 
-      {undoAction&&(
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:500,
-          background:"var(--card)",border:"none",borderRadius:12,
-          padding:"10px 12px",boxShadow:"0 8px 32px #00000080",
-          display:"flex",alignItems:"center",gap:10,maxWidth:380,width:"90vw"}}>
-          <span style={{fontSize:13,color:"var(--t1)",flex:1}}>{undoAction.label}</span>
-          <button onClick={()=>{ undoAction.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}
-            style={{...S.btn("primary",true),flexShrink:0}}>
-            Undo
-          </button>
-          <button onClick={()=>setUndoAction(null)}
-            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px"}}>✕</button>
-        </div>
-      )}
+
 
       {showTrash && (
         <div style={S.overlay} className="ledgr-overlay-anim" onClick={()=>setShowTrash(false)}>
@@ -6306,7 +6307,13 @@ function AppInner({ isDemo = false }) {
           </div>
         </div>
       )}
-      <Toast msg={toast}/>
+      <Toast
+        msg={undoAction ? "" : toast}
+        undoAction={undoAction}
+        onUndo={() => { undoAction?.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}
+        onDismiss={() => setUndoAction(null)}
+        isMobile={isMobile}
+      />
       {showOnboarding && (
         <OnboardingWizard
           onComplete={cats => {

@@ -82,12 +82,13 @@ input, select, textarea, button { font-family: var(--font-body); }
 .ledgr-overlay-anim { animation: ledgr-overlay-in 0.18s ease both; }
 .ledgr-modal-anim   { animation: ledgr-modal-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
 
-/* ── Toast animation ─────────────────────────────────────────────── */
+/* ── Toast animation (Ledger Line — handled by component CSS) ──── */
+/* ledgr-toast-anim kept for any legacy references */
 @keyframes ledgr-toast-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
-.ledgr-toast-anim { animation: ledgr-toast-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+.ledgr-toast-anim { animation: ledgr-toast-in 0.18s ease both; }
 
 /* ── Inline monospace amounts ────────────────────────────────────── */
 .ledgr-amt { font-family: var(--font-mono); }
@@ -158,14 +159,12 @@ input, select, textarea, button { font-family: var(--font-body); }
   animation: ledgr-txn-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ── Toast slide-out ─────────────────────────────────────────────────── */
+/* ── Toast slide-out (legacy, no longer used) ───────────────────────── */
 @keyframes ledgr-toast-out {
-  from { opacity: 1; transform: translateY(0)    scale(1);    }
-  to   { opacity: 0; transform: translateY(8px)  scale(0.97); }
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
-.ledgr-toast-exit {
-  animation: ledgr-toast-out 0.18s ease both;
-}
+.ledgr-toast-exit { animation: ledgr-toast-out 0.18s ease both; }
 
 @keyframes sigpulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(224,112,112,0.5); }

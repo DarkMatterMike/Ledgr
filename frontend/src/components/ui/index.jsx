@@ -26,36 +26,139 @@ Modal.propTypes = {
   actions:  PropTypes.node,
 };
 
-export function Toast({ msg }) {
-  const [visible, setVisible] = useState(false);
-  const [exiting, setExiting] = useState(false);
-  const prevMsg = useRef(null);
+/* ── Ledger Line Toast ─────────────────────────────────────────────
+   Concept 1: a slim ruled line rising from the bottom of the viewport.
+   Handles both regular toasts (msg) and undo toasts (undoAction).
+   On mobile sits above the bottom nav (isMobile=true adds bottom offset).
+────────────────────────────────────────────────────────────────── */
+function toastType(msg) {
+  if (!msg) return 'safe';
+  const m = msg.toLowerCase();
+  if (m.includes('error') || m.includes('fail') || m.includes('delet') || m.includes('disconnect')) return 'debt';
+  if (m.includes('sync') || m.includes('review') || m.includes('pending') || m.includes('categoriz')) return 'warn';
+  return 'safe';
+}
 
+const TOAST_CSS = `
+  .lt-toast-wrap {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 999;
+    pointer-events: none;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .lt-toast-wrap.mobile { bottom: 58px; }
+  .lt-toast {
+    height: 38px;
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-2, #11151d);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+    color: var(--ink-1, #c8cdd6);
+    transform: translateY(100%);
+    transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
+    pointer-events: auto;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .lt-toast.visible { transform: translateY(0); }
+  .lt-pip {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .lt-pip.safe { background: #5dcaa5; box-shadow: 0 0 7px #5dcaa5; animation: lt-pip-pulse 1.1s ease-out forwards; }
+  .lt-pip.warn { background: #f0b04c; box-shadow: 0 0 7px #f0b04c; animation: lt-pip-pulse 1.1s ease-out forwards; }
+  .lt-pip.debt { background: #e87363; box-shadow: 0 0 7px #e87363; animation: lt-pip-pulse 1.1s ease-out forwards; }
+  @keyframes lt-pip-pulse {
+    0%  { transform: scale(1.9); }
+    60% { transform: scale(1); }
+    100%{ transform: scale(1); }
+  }
+  .lt-toast-msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .lt-undo-btn {
+    background: none; border: none; cursor: pointer;
+    font-family: inherit; font-size: 12px;
+    color: #6c8cff; padding: 0; margin-left: 8px; flex-shrink: 0;
+  }
+  .lt-undo-btn:hover { text-decoration: underline; }
+  .lt-close-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--ink-4, #2e3340); font-size: 14px; line-height: 1;
+    padding: 0; margin-left: 10px; flex-shrink: 0;
+  }
+  .lt-close-btn:hover { color: var(--ink-0, #f4f4f1); }
+`;
+
+export function Toast({ msg, undoAction, onUndo, onDismiss, isMobile = false }) {
+  const [visible, setVisible]     = useState(false);
+  const [type,    setType]        = useState('safe');
+  const [display, setDisplay]     = useState('');
+  const [hasUndo, setHasUndo]     = useState(false);
+  const hideTimer = useRef(null);
+  const pipRef    = useRef(null);
+
+  // Active content is either the undo action label or the regular msg
   useEffect(() => {
-    if (msg && msg !== prevMsg.current) {
-      prevMsg.current = msg;
-      setExiting(false);
+    const active = undoAction ? undoAction.label : msg;
+    if (active) {
+      const t = undoAction ? 'safe' : toastType(active);
+      setDisplay(active);
+      setType(t);
+      setHasUndo(!!undoAction);
       setVisible(true);
-    } else if (!msg && visible) {
-      setExiting(true);
-      const t = setTimeout(() => { setVisible(false); setExiting(false); }, 180);
-      return () => clearTimeout(t);
+      // Re-trigger pip animation
+      if (pipRef.current) {
+        pipRef.current.style.animation = 'none';
+        void pipRef.current.offsetHeight;
+        pipRef.current.style.animation = '';
+      }
+      clearTimeout(hideTimer.current);
+      hideTimer.current = setTimeout(() => {
+        setVisible(false);
+        if (undoAction) onDismiss?.();
+      }, undoAction ? 4200 : 2800);
+    } else {
+      setVisible(false);
     }
-  }, [msg, visible]);
+    return () => clearTimeout(hideTimer.current);
+  }, [msg, undoAction]);
 
-  if (!visible && !msg) return null;
+  function handleUndo() {
+    clearTimeout(hideTimer.current);
+    setVisible(false);
+    onUndo?.();
+  }
+  function handleClose() {
+    clearTimeout(hideTimer.current);
+    setVisible(false);
+    if (undoAction) onDismiss?.();
+  }
+
   return (
-    <div style={S.toast} className={exiting ? "ledgr-toast-exit" : "ledgr-toast-anim"}>
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" style={{flexShrink:0}}>
-        <circle cx="11" cy="11" r="10" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"/>
-        <path d="M7 11l3 3 5-5" stroke="var(--t1)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-      {prevMsg.current || msg}
-    </div>
+    <>
+      <style>{TOAST_CSS}</style>
+      <div className={`lt-toast-wrap${isMobile ? ' mobile' : ''}`}>
+        <div className={`lt-toast${visible ? ' visible' : ''}`}>
+          <span ref={pipRef} className={`lt-pip ${type}`} />
+          <span className="lt-toast-msg">{display}</span>
+          {hasUndo && (
+            <button className="lt-undo-btn" onClick={handleUndo}>Undo</button>
+          )}
+          <button className="lt-close-btn" onClick={handleClose}>✕</button>
+        </div>
+      </div>
+    </>
   );
 }
 Toast.propTypes = {
-  msg: PropTypes.string,
+  msg:        PropTypes.string,
+  undoAction: PropTypes.shape({ label: PropTypes.string, fn: PropTypes.func }),
+  onUndo:     PropTypes.func,
+  onDismiss:  PropTypes.func,
+  isMobile:   PropTypes.bool,
 };
 
 export function CustomSelect({ value, onChange, options, style = {}, compact = false }) {

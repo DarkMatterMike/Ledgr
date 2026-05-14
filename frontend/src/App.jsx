@@ -2690,7 +2690,7 @@ function AppInner({ isDemo = false }) {
   useEffect(() => {
     if (!initialized.current) return;
     if (plaidItems.length === 0) return;
-    if (Date.now() - lastSyncedAt.current > 4 * 60 * 60 * 1000) {
+    if (Date.now() - lastSyncedAt.current > 24 * 60 * 60 * 1000) {
       doSync();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

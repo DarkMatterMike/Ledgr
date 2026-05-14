@@ -76,17 +76,19 @@ export function useAppData({
         const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const fromDate = firstOfLastMonth.toISOString().slice(0, 10);
 
-        const [coreResult, txnResult, recurringResult, meResult] = await Promise.allSettled([
+        const [coreResult, txnResult, recurringResult, meResult, plaidAcctsResult] = await Promise.allSettled([
           api.loadData(),
           api.loadTransactions({ fromDate, limit: 1000 }),
           api.loadTransactions({ recurring: true }),
           api.fetchMe(),
+          api.getAccounts(), // fresh Plaid balances in parallel — avoids post-load reload
         ]);
 
         const coreData    = coreResult.status      === "fulfilled" ? coreResult.value      : {};
         const txnPage     = txnResult.status       === "fulfilled" ? txnResult.value       : { transactions: [], total: 0 };
         const recurringTx = recurringResult.status === "fulfilled" ? recurringResult.value : { transactions: [] };
         const meData      = meResult.status        === "fulfilled" ? meResult.value        : null;
+        const freshPlaidAccts = plaidAcctsResult.status === "fulfilled" ? (plaidAcctsResult.value?.accounts || []) : [];
 
         if (coreResult.status      === "rejected") console.warn("Core data load failed:",   coreResult.reason?.message);
         if (txnResult.status       === "rejected") console.warn("Transactions load failed:", txnResult.reason?.message);
@@ -116,7 +118,26 @@ export function useAppData({
             : t
         );
 
-        setAccounts(coreData.accounts              || []);
+        // Use live Plaid balances if available, fall back to DB cache
+        if (freshPlaidAccts.length > 0) {
+          const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
+          const manualAccts = (coreData.accounts || []).filter(a => a.isManual || !a.plaidId);
+          const plaidMapped = freshPlaidAccts.map(pa => ({
+            id: "a" + pa.account_id,
+            plaidId: pa.account_id,
+            plaidItemId: pa.item_id,
+            name: pa.name,
+            balance: pa.balance,
+            available: pa.available,
+            type: cap(pa.subtype || pa.type),
+            institution: pa.institution,
+            mask: pa.mask,
+            isManual: false,
+          }));
+          setAccounts([...manualAccts, ...plaidMapped]);
+        } else {
+          setAccounts(coreData.accounts || []);
+        }
         setCategories(coreData.categories          || []);
         setTransactions(applyRules(cleanedTxns, loadedRules));
         setPlaidItems(coreData.plaidItems          || []);

@@ -372,32 +372,23 @@ export default function LedgrBriefing({
         totalIncome,totalSpent,
       };
 
-      const systemPrompt=`You are a financial scenario calculator for a personal finance app. 
-The user will ask a "what if" financial question. 
-Respond with ONLY a JSON object in this exact format, no other text:
-{
-  "name": "short scenario name (max 8 words)",
-  "description": "what changes financially",
-  "delta": <number — positive dollar amount of change>,
-  "positive": <true if this adds to safe-to-spend, false if it reduces it>
-}
+      // Embed JSON instruction in the message itself — backend system prompt is fixed
+      // so we can't override it, but the user message content gets processed faithfully.
+      const enrichedMessage=`Analyze this financial what-if and respond with ONLY a raw JSON object, no markdown or explanation.
 
-User's current finances:
-- Safe to spend: $${safeToSpend}
-- Checking balance: $${checkingBal}  
-- Upcoming bills total: $${billsTotal}
-- Monthly income: $${totalIncome}
-- Monthly expenses: $${totalSpent}
-- Upcoming bills: ${upcomingBills.map(b=>`${b.name} $${b.amountMin}`).join(", ")||"none"}
-- Top spending: ${context.topCategories.map(c=>`${c.name} $${Math.round(c.spent)}`).join(", ")||"none"}`;
+My finances: safe-to-spend $${safeToSpend}, checking $${checkingBal}, upcoming bills $${billsTotal} (${upcomingBills.map(b=>b.name+" $"+b.amountMin).join(", ")||"none"}), monthly income $${totalIncome}, monthly expenses $${totalSpent}, top spending: ${context.topCategories.map(c=>c.name+" $"+Math.round(c.spent)).join(", ")||"none"}.
+
+Scenario: "${q}"
+
+Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":trueOrFalse}`;
 
       const res=await fetch(`${apiBase}/api/ai/chat`,{
         method:"POST",
         headers:{...authHeaders(),"Content-Type":"application/json"},
         body:JSON.stringify({
-          message:q,
+          message:enrichedMessage,
           history:[],
-          context:{systemOverride:systemPrompt,...context},
+          context,
         }),
       });
 
@@ -420,13 +411,25 @@ User's current finances:
         }
       }
 
-      // Parse JSON from response
-      const jsonMatch=full.match(/\{[\s\S]*\}/);
-      if(!jsonMatch) throw new Error("No JSON in response");
-      const parsed=JSON.parse(jsonMatch[0]);
+      // Parse JSON — try strict match first, then fallback extraction
+      let parsed=null;
+      const jsonMatch=full.match(/\{[^{}]*"name"[^{}]*"delta"[^{}]*\}/s)||full.match(/\{[\s\S]*?\}/);
+      if(jsonMatch){
+        try{ parsed=JSON.parse(jsonMatch[0]); }catch(e){
+          // try to clean up common issues: unquoted values, trailing commas
+          try{ parsed=JSON.parse(jsonMatch[0].replace(/,\s*}/g,"}").replace(/([{,]\s*)(\w+):/g,'$1"$2:')); }catch{}
+        }
+      }
+      // If JSON failed entirely, try to extract a dollar amount from plain text
+      if(!parsed||!parsed.delta){
+        const amtMatch=full.match(/\$([\d,]+)/);
+        const amt=amtMatch?parseInt(amtMatch[1].replace(/,/g,"")):0;
+        const isPositive=!/spend|cost|buy|purchase|trip|vacation|lose|reduce|cut/i.test(full)||/save|earn|raise|income|gain/i.test(full);
+        parsed={ name:q.slice(0,40), delta:amt, positive:isPositive };
+      }
 
       const newScenario={
-        nm:parsed.name||q.slice(0,40),
+        nm:(parsed.name||q).slice(0,50),
         delta:Math.round(Math.abs(parsed.delta||0)),
         pos:parsed.positive!==false,
         source:"ai",

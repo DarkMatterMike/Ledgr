@@ -736,16 +736,24 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                               background:"var(--bg-2)",border:"1px solid var(--line-2)",borderRadius:"var(--r-md)",
                               padding:"12px",boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
                             <div style={{fontSize:9,letterSpacing:"1.4px",textTransform:"uppercase",color:"var(--ink-3)",marginBottom:10}}>Include in free balance</div>
-                            {accounts.map(a=>(
-                              <div key={a.id} onClick={()=>toggleAcct(a.id)}
-                                style={{display:"flex",alignItems:"center",gap:8,padding:"6px 4px",borderRadius:4,cursor:"pointer"}}>
-                                <div className={`lb-acct-check${selectedAcctIds.includes(a.id)?" on":""}`}>
-                                  {selectedAcctIds.includes(a.id)&&<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="var(--bg-0)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            {accounts.map(a=>{
+                              const on=selectedAcctIds.includes(a.id);
+                              return(
+                                <div key={a.id} onClick={()=>toggleAcct(a.id)}
+                                  style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:6,cursor:"pointer",
+                                    background:on?"rgba(93,202,165,0.1)":"transparent",
+                                    border:`1px solid ${on?"rgba(93,202,165,0.3)":"transparent"}`,
+                                    marginBottom:3}}>
+                                  <div style={{width:14,height:14,borderRadius:3,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
+                                    background:on?"var(--safe)":"transparent",
+                                    border:`1.5px solid ${on?"var(--safe)":"var(--ink-4)"}`}}>
+                                    {on&&<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="#07090d" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                  </div>
+                                  <span style={{flex:1,fontSize:11,color:on?"var(--safe)":"var(--ink-2)",fontWeight:on?500:400}}>{a.name||a.type}</span>
+                                  <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:on?"var(--safe)":"var(--ink-4)"}}>{fmt(a.balance||0)}</span>
                                 </div>
-                                <span style={{flex:1,fontSize:11,color:"var(--ink-1)"}}>{a.name||a.type}</span>
-                                <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--ink-3)"}}>{a.mask?`····${a.mask}  `:""}{fmt(a.balance||0)}</span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>

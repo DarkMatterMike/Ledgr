@@ -100,7 +100,7 @@ const CSS = `
   .la-sstat .sl{font-family:var(--fm);font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink-3);}
   .la-sstat .sv{font-family:var(--fd);font-size:22px;letter-spacing:-0.5px;line-height:1;}
   .la-sstat .ss{font-family:var(--fm);font-size:9px;color:var(--ink-3);}
-  .la-verdict{font-size:12px;color:var(--ink-2);line-height:1.65;padding:10px 14px;background:var(--bg-3);border-radius:var(--rm);border-left:2px solid rgba(93,202,165,0.3);}
+  .la-verdict{font-size:12px;color:var(--ink-2);line-height:1.65;padding:10px 14px;background:var(--bg-3);border-radius:0 var(--rm) var(--rm) 0;border-left:2px solid rgba(93,202,165,0.3);}
   /* analytics layout */
   .la-analytics-body{display:grid;grid-template-columns:1fr 272px;}
   .la-left{border-right:1px solid var(--line);padding:22px 22px 36px;display:flex;flex-direction:column;gap:18px;}
@@ -148,7 +148,7 @@ const CSS = `
   .la-hc.over{background:rgba(232,115,99,0.30);color:var(--debt);}
   .la-hc.none{background:rgba(255,255,255,0.03);}
   .la-adh-count{font-family:var(--fm);font-size:9px;margin-left:4px;flex-shrink:0;}
-  .la-verdict-box{margin-top:10px;padding:9px 12px;background:var(--bg-3);border-radius:var(--rm);border-left:2px solid rgba(232,115,99,0.4);font-size:11px;color:var(--ink-2);line-height:1.6;}
+  .la-verdict-box{margin-top:10px;padding:9px 12px;background:var(--bg-3);border-radius:0 var(--rm) var(--rm) 0;border-left:2px solid rgba(232,115,99,0.4);font-size:11px;color:var(--ink-2);line-height:1.6;}
   /* net worth */
   .la-nw-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
   .la-nw-stat .eye{font-family:var(--fm);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px;}
@@ -441,7 +441,7 @@ function CFBars({ data }) {
 const NAV = [
   {icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},
   {icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◈",id:"analytics",active:true},
-  {icon:"◆",id:"goals"},
+
 ];
 
 export default function LedgrAnalytics({
@@ -590,14 +590,41 @@ export default function LedgrAnalytics({
   /* ── subscriptions ────────────────────────────────────── */
   const subscriptions = useMemo(() => {
     const SUB_KEYWORDS = [
-      "netflix","hulu","disney","hbo","max","spotify","apple","youtube","amazon prime",
-      "peacock","paramount","crunchyroll","twitch","patreon","discord","slack","zoom",
-      "dropbox","icloud","google one","microsoft","adobe","notion","figma","github",
-      "linear","vercel","heroku","aws","digitalocean","cloudflare",
-      "openai","anthropic","chatgpt","midjourney","canva","grammarly",
-      "duolingo","headspace","calm","strava","peloton","nytimes","wsj",
-      "audible","xbox","playstation","nintendo",
-      "t-mobile","verizon","comcast","xfinity","spectrum",
+      // Streaming video
+      "netflix","hulu","disney","hbo","max","amazon prime","apple tv","paramount","peacock",
+      "youtube premium","crunchyroll",
+      // Music & audio
+      "spotify","apple music","amazon music","pandora","siriusxm","audible","kindle unlimited",
+      // Shopping memberships
+      "walmart+","walmart plus","target circle","instacart","dashpass","doordash","uber one",
+      "grubhub","costco","sam's club","sams club",
+      // Fitness & wellness
+      "peloton","planet fitness","ymca","apple fitness","strava","headspace","calm",
+      // Cloud & storage
+      "icloud","google one","dropbox","microsoft 365","microsoft one",
+      // Productivity & creative
+      "adobe","canva","notion","evernote","grammarly",
+      // AI & software
+      "chatgpt","openai","midjourney","anthropic",
+      // Security & privacy
+      "ring protect","simplisafe","blink","nordvpn","expressvpn","vpn","antivirus",
+      "1password","lastpass","dashlane","bitwarden","applecare",
+      // Gaming
+      "xbox","playstation","nintendo","apple arcade","game pass",
+      // News & learning
+      "nytimes","wsj","masterclass","coursera","skillshare","duolingo","abcmouse",
+      // Food delivery & meal kits
+      "hellofresh","blue apron","home chef","factor","butcherbox",
+      // Pet
+      "barkbox","chewy",
+      // Beauty & grooming
+      "ipsy","birchbox","dollar shave","quip",
+      // Dating
+      "tinder","bumble","hinge",
+      // Auto & home
+      "aaa","ring",
+      // Misc
+      "tanning","patreon","twitch",
     ];
     // Scope to current month only — avoids listing the same service multiple times
     const now = new Date();

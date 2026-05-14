@@ -1096,24 +1096,25 @@ function SettingRow({ label, hint, children, danger }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false, isMobile = false, settingsTab = "profile", setSettingsTab = () => {} }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false, isMobile = false, settingsTab = "profile", setSettingsTab = () => {}, hasApiKey = false, saveApiKey = async()=>{} }) {
   const user = api.getStoredUser();
-  const [name,       setName]       = useState(user?.name || "");
-  const [savingName, setSavingName] = useState(false);
-  const [currPw,     setCurrPw]     = useState("");
-  const [newPw,      setNewPw]      = useState("");
-  const [confirmPw,  setConfirmPw]  = useState("");
-  const [pwError,    setPwError]    = useState("");
-  const [pwSuccess,  setPwSuccess]  = useState(false);
-  const [savingPw,   setSavingPw]   = useState(false);
-  const [legalDoc,   setLegalDoc]   = useState(null);
-  const [household,      setHousehold]      = useState(null);
+  const [name,         setName]         = useState(user?.name || "");
+  const [savingName,   setSavingName]   = useState(false);
+  const [currPw,       setCurrPw]       = useState("");
+  const [newPw,        setNewPw]        = useState("");
+  const [confirmPw,    setConfirmPw]    = useState("");
+  const [pwError,      setPwError]      = useState("");
+  const [pwSuccess,    setPwSuccess]    = useState(false);
+  const [savingPw,     setSavingPw]     = useState(false);
+  const [household,    setHousehold]    = useState(null);
   const [householdLoaded, setHouseholdLoaded] = useState(false);
-  const [inviteEmail,    setInviteEmail]    = useState("");
-  const [inviting,       setInviting]       = useState(false);
-  const [profileForm, setProfileForm] = useState(null);
+  const [inviteEmail,  setInviteEmail]  = useState("");
+  const [inviting,     setInviting]     = useState(false);
+  const [profileForm,  setProfileForm]  = useState(null);
   const [saveThemeName, setSaveThemeName] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
+  const [apiKeyVal,    setApiKeyVal]    = useState("");
+  const [savingApiKey, setSavingApiKey] = useState(false);
 
   useEffect(() => {
     api.getHousehold().then(d => { setHousehold(d?.household || null); setHouseholdLoaded(true); }).catch(() => setHouseholdLoaded(true));
@@ -1151,6 +1152,19 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     catch(e) { setPwError(e.message || "Failed to update password"); }
     finally { setSavingPw(false); }
   }
+  async function handleSaveApiKey() {
+    if (!apiKeyVal.trim()) return;
+    setSavingApiKey(true);
+    try { await saveApiKey(apiKeyVal.trim()); showToast("API key saved"); setApiKeyVal(""); }
+    catch(e) { showToast(e.message || "Failed to save key"); }
+    finally { setSavingApiKey(false); }
+  }
+  async function handleRemoveApiKey() {
+    setSavingApiKey(true);
+    try { await saveApiKey(""); showToast("API key removed"); }
+    catch(e) { showToast(e.message || "Failed to remove key"); }
+    finally { setSavingApiKey(false); }
+  }
   function exportCSV() {
     const headers = ["Date","Name","Merchant","Amount","Type","Category","Account","Recurring"];
     const rows = transactions.map(t => [t.date||"",t.name||"",t.merchant||"",t.amount??"",t.type||"",catMap[t.categoryId]?.name||"",acctMap[t.accountId]?.name||"",t.recurring?"Yes":"No"]);
@@ -1174,7 +1188,6 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     showToast("All data cleared");
   }
 
-  // ── Theme data ──
   const PRESETS = [
     { name:"Obsidian",  bg:"#0b0a08", surface:"#1a1612", card:"#181511", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
     { name:"Midnight",  bg:"#09090f", surface:"#111120", card:"#18181e", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)",  t3:"rgba(232,232,255,0.3)" },
@@ -1253,491 +1266,514 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
   const inputSt = { ...S.input, marginBottom:0 };
   const STABS = [
     { id:"profile",      label:"Profile",      icon:"◈" },
+    { id:"ai",           label:"AI & API",     icon:"✦" },
     { id:"appearance",   label:"Appearance",   icon:"◑" },
     { id:"household",    label:"Household",    icon:"⬡" },
     { id:"data",         label:"Data",         icon:"⊟" },
     { id:"subscription", label:"Subscription", icon:"◆" },
   ];
 
-  const Section = ({ title, children }) => (
-    <div style={{ paddingBottom:28, marginBottom:28, borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-      <SettingsSection title={title}>{children}</SettingsSection>
+  /* ── shared sub-components ── */
+  const Block = ({ children, wide=false, danger=false, style={} }) => (
+    <div style={{
+      background:"var(--surface)", border:`1px solid ${danger?"rgba(224,112,112,0.18)":"rgba(255,255,255,0.06)"}`,
+      borderRadius:"var(--radius-lg)", overflow:"hidden", gridColumn: wide?"span 2":"span 1", ...style,
+    }}>{children}</div>
+  );
+  const BlockHeader = ({ title, action, danger=false }) => (
+    <div style={{ padding:"13px 18px", borderBottom:"1px solid rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+      <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"1.6px", textTransform:"uppercase", color: danger?"rgba(224,112,112,0.5)":"var(--t3)" }}>{title}</span>
+      {action}
+    </div>
+  );
+  const Row = ({ children, style={} }) => (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"11px 18px", borderBottom:"1px solid rgba(255,255,255,0.03)", gap:12, flexWrap:"wrap", ...style }}>
+      {children}
+    </div>
+  );
+  const RowLabel = ({ label, hint }) => (
+    <div>
+      <div style={{ fontSize:12, color:"var(--t2)" }}>{label}</div>
+      {hint && <div style={{ fontSize:10, color:"var(--t3)", marginTop:2 }}>{hint}</div>}
+    </div>
+  );
+  const ConnectedBadge = () => (
+    <div style={{ display:"inline-flex", alignItems:"center", gap:5, background:"rgba(93,202,165,0.08)", border:"1px solid rgba(93,202,165,0.2)", color:"#5dcaa5", fontFamily:"var(--font-mono)", fontSize:9, padding:"2px 8px", borderRadius:99 }}>
+      <span style={{ width:5, height:5, borderRadius:"50%", background:"#5dcaa5", boxShadow:"0 0 6px #5dcaa5", display:"inline-block" }}/>
+      connected
     </div>
   );
 
   return (
     <>
-    {/* ── Page header ── */}
-    <div style={{ position:"relative", overflow:"hidden",
-      background:"radial-gradient(ellipse 55% 80% at 0% 40%,rgba(201,149,106,0.04) 0%,transparent 65%),var(--bg,#0b0a08)",
-      borderBottom:"1px solid rgba(0,0,0,0.35)" }}>
-      <div style={{ position:"absolute", top:0, left:0, right:0, height:1,
-        background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)" }}/>
-      {!isMobile && <div style={{ position:"absolute", fontFamily:"'Playfair Display',serif", fontStyle:"italic",
-        fontSize:80, fontWeight:500, color:"rgba(201,149,106,0.06)", top:"50%", transform:"translateY(-50%)",
-        left:6, lineHeight:1, pointerEvents:"none", userSelect:"none" }}>IV</div>}
-      <div style={{ padding:"14px 28px 0", position:"relative", zIndex:1 }}>
-        <div style={{ display:"flex", alignItems:"baseline", gap:12, paddingBottom:12,
-          borderBottom:"1px solid rgba(201,149,106,0.12)" }}>
-          <span style={{ fontFamily:"var(--font-mono)", fontSize:10, fontWeight:600,
-            color:"rgba(201,149,106,0.45)", letterSpacing:"1px" }}>IV ·</span>
-          <span style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
-            fontWeight:400, fontSize:20, color:"var(--t1)" }}>Settings</span>
-          <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(201,149,106,0.12),transparent)" }}/>
-          <div style={{ width:28, height:28, borderRadius:"50%", background:avatarColor+"22",
-            border:`1.5px solid ${avatarColor}`, display:"flex", alignItems:"center",
-            justifyContent:"center", fontFamily:"var(--font-disp)", fontSize:12,
-            fontWeight:800, color:avatarColor }}>{avatarLetter}</div>
-        </div>
-        <div style={{ display:"flex", gap:0, ...(isMobile?{overflowX:"auto",scrollbarWidth:"none"}:{}) }}>
-          {STABS.map(t => (
-            <button key={t.id} onClick={()=>setSettingsTab(t.id)} style={{
-              padding:"10px 16px", fontSize:11, cursor:"pointer", border:"none",
-              background:"transparent", color:settingsTab===t.id?"var(--cyan)":"var(--t3)",
-              fontFamily:"var(--font-body)", display:"flex", alignItems:"center", gap:6,
-              borderBottom:settingsTab===t.id?"2px solid var(--cyan)":"2px solid transparent",
-              transition:"all .15s", marginBottom:-1, flexShrink:0,
-              ...(isMobile?{flex:1,padding:"10px 8px",fontSize:10,justifyContent:"center"}:{}),
-            }}>
-              {!isMobile && <span style={{ fontSize:9, opacity:0.5 }}>{t.icon}</span>}
-              {t.label}
-            </button>
-          ))}
-        </div>
+    <style>{`
+      .ls-tabbar { border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; padding: 0 0; background: transparent; }
+      .ls-tab { padding: 12px 16px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); cursor: pointer; border-bottom: 2px solid transparent; transition: .12s; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+      .ls-tab:hover { color: var(--t2); }
+      .ls-tab.active { color: var(--green); border-bottom-color: var(--green); }
+      .ls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 24px; align-content: start; }
+      .ls-theme-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; padding: 14px 18px; }
+      .ls-theme-swatch { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: var(--radius); background: var(--card); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; font-size: 11px; color: var(--t2); transition: .12s; }
+      .ls-theme-swatch:hover { border-color: var(--green); color: var(--t1); }
+      .ls-stat-row { display: grid; grid-template-columns: repeat(4,1fr); }
+      .ls-stat { padding: 14px 18px; border-right: 1px solid rgba(255,255,255,0.04); }
+      .ls-stat:last-child { border-right: none; }
+    `}</style>
+
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", background:"var(--bg)" }}>
+
+      {/* Tab bar */}
+      <div className="ls-tabbar">
+        {STABS.map(t => (
+          <div key={t.id} className={`ls-tab${settingsTab===t.id?" active":""}`} onClick={()=>setSettingsTab(t.id)}>
+            {t.icon} {t.label}
+          </div>
+        ))}
       </div>
-    </div>
 
-    {/* ── Tab content ── */}
-    <div style={{ maxWidth:640, padding:"28px 28px" }}>
-      <div key={settingsTab} className="ledgr-panel-in">
+      {/* Content */}
+      <div style={{ flex:1, overflowY:"auto", padding:0 }}>
+        <div className="ls-grid">
 
-      {/* ══ PROFILE ═══════════════════════════════════════════ */}
-      {settingsTab === "profile" && <>
-        <Section title="Identity">
-          <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20 }}>
-            <div style={{ width:52, height:52, borderRadius:"50%", flexShrink:0,
-              background:avatarColor+"22", border:`2px solid ${avatarColor}`,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontFamily:"var(--font-disp)", fontSize:22, fontWeight:800, color:avatarColor }}>
-              {avatarLetter}
-            </div>
-            <div>
-              <div style={{ fontSize:15, fontWeight:700, color:"var(--t1)" }}>{user?.name || user?.email}</div>
-              <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>{user?.email}</div>
-              {user?.role === "owner" && (
-                <div style={{ marginTop:5, display:"inline-flex", alignItems:"center", gap:5,
-                  background:"rgba(201,149,106,0.1)", border:"1px solid rgba(201,149,106,0.25)",
-                  borderRadius:99, padding:"2px 9px", fontSize:9, fontWeight:700,
-                  color:"var(--cyan)", letterSpacing:"0.5px" }}>◈ OWNER</div>
-              )}
-            </div>
-          </div>
-          <SettingRow label="Display name" hint="Shown in the app header">
-            <div style={{ display:"flex", gap:8 }}>
-              <input style={{ ...inputSt, width:180 }} placeholder="Your name"
-                value={name} onChange={e=>setName(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&saveName()} />
-              <button style={S.btn("primary",true)} onClick={saveName} disabled={savingName}>
-                {savingName?"…":"Save"}
-              </button>
-            </div>
-          </SettingRow>
-        </Section>
+          {/* ══ PROFILE ══ */}
+          {settingsTab === "profile" && <>
+            <Block>
+              <BlockHeader title="Identity"/>
+              <Row>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <div style={{ width:44, height:44, borderRadius:"var(--radius)", flexShrink:0, background:"rgba(93,202,165,0.1)", border:"1px solid rgba(93,202,165,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-mono)", fontSize:16, fontWeight:700, color:"var(--green)" }}>
+                    {avatarLetter}
+                  </div>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>{user?.name || user?.email}</div>
+                    <div style={{ fontSize:10, color:"var(--t3)", marginTop:2 }}>{user?.email}</div>
+                    {user?.role === "owner" && (
+                      <div style={{ marginTop:5, display:"inline-flex", alignItems:"center", gap:4, background:"rgba(93,202,165,0.08)", border:"1px solid rgba(93,202,165,0.2)", borderRadius:99, padding:"2px 8px", fontFamily:"var(--font-mono)", fontSize:9, color:"var(--green)", letterSpacing:"0.5px" }}>◈ OWNER</div>
+                    )}
+                  </div>
+                </div>
+              </Row>
+              <Row>
+                <RowLabel label="Display name" hint="Shown in app header"/>
+                <div style={{ display:"flex", gap:6 }}>
+                  <input style={{ ...inputSt, width:150 }} value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveName()}/>
+                  <button style={S.btn("primary",true)} className="ledgr-btn" onClick={saveName} disabled={savingName}>{savingName?"…":"Save"}</button>
+                </div>
+              </Row>
+            </Block>
 
-        <Section title="Security">
-          <div style={{ display:"flex", flexDirection:"column", gap:10, maxWidth:360 }}>
-            {[["Current password","password",currPw,v=>{setCurrPw(v);setPwError("");setPwSuccess(false);},"••••••••"],
-              ["New password","password",newPw,v=>{setNewPw(v);setPwError("");setPwSuccess(false);},"Min. 8 characters"],
-              ["Confirm new password","password",confirmPw,v=>{setConfirmPw(v);setPwError("");setPwSuccess(false);},"••••••••"]
-            ].map(([label,type,val,fn,ph])=>(
-              <div key={label}>
-                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:5 }}>{label}</div>
-                <input style={inputSt} type={type} placeholder={ph} value={val} onChange={e=>fn(e.target.value)} />
-              </div>
-            ))}
-            {pwError   && <div style={{ fontSize:12, color:"var(--red)" }}>{pwError}</div>}
-            {pwSuccess && <div style={{ fontSize:12, color:"var(--green)" }}>Password updated ✓</div>}
-            <button style={{ ...S.btn("primary"), alignSelf:"flex-start" }} onClick={changePassword} disabled={savingPw}>
-              {savingPw?"Updating…":"Update password"}
-            </button>
-          </div>
-        </Section>
+            <Block>
+              <BlockHeader title="Security"/>
+              <Row>
+                <RowLabel label="Current password"/>
+                <input style={{ ...inputSt, width:170 }} type="password" placeholder="••••••••" value={currPw} onChange={e=>{setCurrPw(e.target.value);setPwError("");}}/>
+              </Row>
+              <Row>
+                <RowLabel label="New password"/>
+                <input style={{ ...inputSt, width:170 }} type="password" placeholder="Min. 8 characters" value={newPw} onChange={e=>{setNewPw(e.target.value);setPwError("");}}/>
+              </Row>
+              <Row>
+                <RowLabel label="Confirm new password"/>
+                <input style={{ ...inputSt, width:170 }} type="password" placeholder="••••••••" value={confirmPw} onChange={e=>{setConfirmPw(e.target.value);setPwError("");}}/>
+              </Row>
+              {pwError   && <div style={{ padding:"4px 18px 8px", fontSize:11, color:"var(--red)" }}>{pwError}</div>}
+              {pwSuccess && <div style={{ padding:"4px 18px 8px", fontSize:11, color:"var(--green)" }}>Password updated ✓</div>}
+              <Row style={{ justifyContent:"flex-end", borderBottom:"none" }}>
+                <button style={S.btn("primary",true)} className="ledgr-btn" onClick={changePassword} disabled={savingPw}>{savingPw?"Updating…":"Update password"}</button>
+              </Row>
+            </Block>
 
-        <Section title="Financial Profile">
-          {profileForm ? (
-            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              <div>
-                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:6 }}>Monthly income (after tax)</div>
-                <input type="number" style={{ ...inputSt, maxWidth:200 }} placeholder="0"
-                  value={profileForm.monthlyIncome||""} onChange={e=>setProfileForm(p=>({...p,monthlyIncome:parseFloat(e.target.value)||0}))} />
-              </div>
-              <div>
-                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:8 }}>Targets</div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                  {[["savingsGoal","Monthly savings goal"],["emergencyFund","Emergency fund"],["netWorthTarget","Net worth target"],["retirementTargetAmount","Retirement nest egg"],["retirementAge","Retirement age"]].map(([k,l])=>(
+            <Block wide>
+              <BlockHeader title="Financial Profile" action={
+                <button style={{ ...S.btn("ghost",true), fontSize:11 }} className="ledgr-btn" onClick={()=>setProfileForm(profileForm?null:{...userProfile})}>
+                  {profileForm?"Cancel":"Edit"}
+                </button>
+              }/>
+              {profileForm ? (
+                <div style={{ padding:"16px 18px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+                  <div>
+                    <div style={{ fontSize:10, color:"var(--t3)", marginBottom:5, textTransform:"uppercase", letterSpacing:"0.8px" }}>Monthly income</div>
+                    <input type="number" style={inputSt} placeholder="0" value={profileForm.monthlyIncome||""} onChange={e=>setProfileForm(p=>({...p,monthlyIncome:parseFloat(e.target.value)||0}))}/>
+                  </div>
+                  {[["savingsGoal","Savings goal"],["emergencyFund","Emergency fund"],["netWorthTarget","Net worth target"],["retirementTargetAmount","Retirement nest egg"],["retirementAge","Retirement age"]].map(([k,l])=>(
                     <div key={k}>
-                      <div style={{ fontSize:11, color:"var(--t3)", marginBottom:4 }}>{l}</div>
-                      <input type="number" style={{ ...inputSt, fontSize:13 }} placeholder="0"
+                      <div style={{ fontSize:10, color:"var(--t3)", marginBottom:5, textTransform:"uppercase", letterSpacing:"0.8px" }}>{l}</div>
+                      <input type="number" style={inputSt} placeholder="0"
                         value={k==="retirementAge"?profileForm.targets?.retirementAge||"":profileForm.targets?.[k]||""}
-                        onChange={e=>setProfileForm(p=>({...p,targets:{...p.targets,[k]:(k==="retirementAge"?parseInt:parseFloat)(e.target.value)||0}}))} />
+                        onChange={e=>setProfileForm(p=>({...p,targets:{...p.targets,[k]:(k==="retirementAge"?parseInt:parseFloat)(e.target.value)||0}}))}/>
+                    </div>
+                  ))}
+                  <div style={{ gridColumn:"span 3", display:"flex", gap:8, justifyContent:"flex-end", paddingTop:4 }}>
+                    <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setProfileForm(null)}>Cancel</button>
+                    <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save profile</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)" }}>
+                  {[
+                    ["Monthly income",    userProfile?.monthlyIncome ? `$${(userProfile.monthlyIncome).toLocaleString()}` : "Not set"],
+                    ["Retirement age",    userProfile?.targets?.retirementAge || "Not set"],
+                    ["Net worth target",  userProfile?.targets?.netWorthTarget ? `$${(userProfile.targets.netWorthTarget).toLocaleString()}` : "Not set"],
+                    ["Retirement target", userProfile?.targets?.retirementTargetAmount ? `$${(userProfile.targets.retirementTargetAmount).toLocaleString()}` : "Not set"],
+                    ["Savings goal",      userProfile?.targets?.savingsGoal ? `$${(userProfile.targets.savingsGoal).toLocaleString()}/mo` : "Not set"],
+                    ["Emergency fund",    userProfile?.targets?.emergencyFund ? `$${(userProfile.targets.emergencyFund).toLocaleString()}` : "Not set"],
+                  ].map(([label,value])=>(
+                    <Row key={label} style={{ flexDirection:"column", alignItems:"flex-start", gap:3 }}>
+                      <div style={{ fontSize:9, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"0.8px" }}>{label}</div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:13, color:"var(--t1)" }}>{value}</div>
+                    </Row>
+                  ))}
+                </div>
+              )}
+            </Block>
+
+            <Block wide>
+              <BlockHeader title="Manual Assets & Liabilities" action={
+                <button style={{ ...S.btn("ghost",true), fontSize:11 }} className="ledgr-btn" onClick={()=>setProfileForm(profileForm?null:{...userProfile})}>Edit</button>
+              }/>
+              {profileForm ? (
+                <div style={{ padding:"14px 18px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+                  <div>
+                    <div style={{ fontSize:10, color:"var(--t3)", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.8px" }}>Assets</div>
+                    {(profileForm.manualAssets||[]).map((a,i)=>(
+                      <div key={i} style={{ display:"flex", gap:6, marginBottom:6 }}>
+                        <input style={{ ...inputSt, flex:2 }} placeholder="Name (e.g. Home)" value={a.name} onChange={e=>setProfileForm(p=>{const assets=[...p.manualAssets];assets[i]={...assets[i],name:e.target.value};return{...p,manualAssets:assets};})}/>
+                        <input type="number" style={{ ...inputSt, flex:1 }} placeholder="Value" value={a.value||""} onChange={e=>setProfileForm(p=>{const assets=[...p.manualAssets];assets[i]={...assets[i],value:parseFloat(e.target.value)||0};return{...p,manualAssets:assets};})}/>
+                        <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualAssets:p.manualAssets.filter((_,j)=>j!==i)}))}>✕</button>
+                      </div>
+                    ))}
+                    <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualAssets:[...(p.manualAssets||[]),{name:"",value:0}]}))}>+ Add asset</button>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:10, color:"var(--t3)", marginBottom:8, textTransform:"uppercase", letterSpacing:"0.8px" }}>Liabilities</div>
+                    {(profileForm.manualLiabilities||[]).map((l,i)=>(
+                      <div key={i} style={{ display:"flex", gap:6, marginBottom:6 }}>
+                        <input style={{ ...inputSt, flex:2 }} placeholder="Name (e.g. Loan)" value={l.name} onChange={e=>setProfileForm(p=>{const liabs=[...p.manualLiabilities];liabs[i]={...liabs[i],name:e.target.value};return{...p,manualLiabilities:liabs};})}/>
+                        <input type="number" style={{ ...inputSt, flex:1 }} placeholder="Amount" value={l.value||""} onChange={e=>setProfileForm(p=>{const liabs=[...p.manualLiabilities];liabs[i]={...liabs[i],value:parseFloat(e.target.value)||0};return{...p,manualLiabilities:liabs};})}/>
+                        <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualLiabilities:p.manualLiabilities.filter((_,j)=>j!==i)}))}>✕</button>
+                      </div>
+                    ))}
+                    <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualLiabilities:[...(p.manualLiabilities||[]),{name:"",value:0}]}))}>+ Add liability</button>
+                  </div>
+                  <div style={{ gridColumn:"span 2", display:"flex", gap:8, justifyContent:"flex-end" }}>
+                    <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setProfileForm(null)}>Cancel</button>
+                    <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save</button>
+                  </div>
+                </div>
+              ) : (
+                <Row style={{ borderBottom:"none" }}>
+                  <div style={{ fontSize:12, color:"var(--t3)", fontStyle:"italic" }}>
+                    {((userProfile?.manualAssets||[]).length + (userProfile?.manualLiabilities||[]).length) === 0
+                      ? "No manual assets or liabilities added."
+                      : `${(userProfile?.manualAssets||[]).length} assets · ${(userProfile?.manualLiabilities||[]).length} liabilities`}
+                  </div>
+                </Row>
+              )}
+            </Block>
+          </>}
+
+          {/* ══ AI & API ══ */}
+          {settingsTab === "ai" && <>
+            <Block wide>
+              <BlockHeader title="Claude API Key" action={hasApiKey ? <ConnectedBadge/> : null}/>
+              <div style={{ padding:"16px 18px", display:"flex", flexDirection:"column", gap:12 }}>
+                <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.65, maxWidth:520 }}>
+                  Powers AI financial summaries on the Analytics page and daily Briefing insights.
+                  Your key is encrypted at rest and never exposed in the UI or shared with third parties.{" "}
+                  <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color:"var(--green)", textDecoration:"none" }}>Get a key → console.anthropic.com</a>
+                </div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  <input style={{ ...inputSt, flex:1, maxWidth:400, fontFamily:"var(--font-mono)", fontSize:11 }}
+                    type="password" placeholder="sk-ant-api03-…"
+                    value={apiKeyVal} onChange={e=>setApiKeyVal(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&handleSaveApiKey()}/>
+                  <button style={S.btn("primary",true)} className="ledgr-btn" onClick={handleSaveApiKey} disabled={savingApiKey||!apiKeyVal.trim()}>
+                    {savingApiKey?"Saving…":"Save key"}
+                  </button>
+                  {hasApiKey && (
+                    <button style={{ ...S.btn("ghost",true), color:"var(--red)" }} className="ledgr-btn" onClick={handleRemoveApiKey} disabled={savingApiKey}>Remove</button>
+                  )}
+                </div>
+              </div>
+            </Block>
+          </>}
+
+          {/* ══ APPEARANCE ══ */}
+          {settingsTab === "appearance" && <>
+            <Block wide>
+              <BlockHeader title="Themes" action={
+                <button style={{ ...S.btn("ghost",true), fontSize:11 }} className="ledgr-btn" onClick={()=>setShowSaveInput(p=>!p)}>
+                  {showSaveInput?"Cancel":"+ Save current"}
+                </button>
+              }/>
+              {showSaveInput && (
+                <div style={{ padding:"10px 18px 0", display:"flex", gap:8 }}>
+                  <input autoFocus value={saveThemeName} onChange={e=>setSaveThemeName(e.target.value)}
+                    onKeyDown={e=>{if(e.key==="Enter")saveCurrentTheme();if(e.key==="Escape")setShowSaveInput(false);}}
+                    placeholder="Theme name…" style={{ ...inputSt, flex:1, fontSize:12 }}/>
+                  <button style={S.btn("primary",true)} onClick={saveCurrentTheme} disabled={!saveThemeName.trim()}>Save</button>
+                </div>
+              )}
+              {savedThemes.length > 0 && (
+                <div style={{ padding:"10px 18px 0" }}>
+                  <div style={{ fontSize:10, color:"var(--t3)", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.8px" }}>My themes</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:5, marginBottom:4 }}>
+                    {savedThemes.map(t=>(
+                      <div key={t.name} style={{ display:"flex", borderRadius:"var(--radius)", overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)" }}>
+                        <button onClick={()=>applyPreset(t)} style={{ flex:1, display:"flex", alignItems:"center", gap:5, padding:"6px 8px", background:"var(--surface)", color:"var(--t2)", border:"none", cursor:"pointer", fontSize:11, overflow:"hidden", textAlign:"left" }}>
+                          <span style={{ display:"inline-flex", gap:2, flexShrink:0 }}>
+                            {["bg","accent","t1"].map(k=><span key={k} style={{ width:7,height:7,borderRadius:"50%",background:t[k]||"#888",display:"inline-block" }}/>)}
+                          </span>
+                          <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name}</span>
+                        </button>
+                        <button onClick={()=>deleteCustomTheme(t.name)} style={{ background:"var(--surface)", border:"none", borderLeft:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)", cursor:"pointer", padding:"0 8px", fontSize:14 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="ls-theme-grid">
+                {PRESETS.map(p=>(
+                  <div key={p.name} className="ls-theme-swatch" onClick={()=>applyPreset(p)}>
+                    <span style={{ display:"inline-flex", gap:2, flexShrink:0 }}>
+                      {["bg","accent","t1"].map(k=><span key={k} style={{ width:7,height:7,borderRadius:"50%",background:p[k],display:"inline-block" }}/>)}
+                    </span>
+                    <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            </Block>
+
+            <Block>
+              <BlockHeader title="Custom Colors"/>
+              {VARS.map(({ key, label })=>(
+                <Row key={key}>
+                  <div style={{ fontSize:12, color:"var(--t2)" }}>{label}</div>
+                  <input type="color"
+                    value={current[key]?.startsWith("rgba")||current[key]?.startsWith("rgb")?"#888888":current[key]||"#888888"}
+                    onChange={e=>patch(key,e.target.value)}
+                    style={{ width:36, height:28, borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"none", cursor:"pointer", padding:2 }}/>
+                </Row>
+              ))}
+            </Block>
+
+            <Block>
+              <BlockHeader title="Typography"/>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5, padding:"12px 18px" }}>
+                {FONTS.map(f=>{
+                  const active=(current.fontDisp||"'Syne', sans-serif")===f.value;
+                  return (
+                    <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
+                      padding:"8px 10px", borderRadius:"var(--radius)", fontSize:12, fontFamily:f.value, cursor:"pointer", border:"none",
+                      background: active?"rgba(93,202,165,0.1)":"var(--card)", color: active?"var(--green)":"var(--t2)",
+                      outline: active?"1px solid rgba(93,202,165,0.3)":"none", transition:"all .12s",
+                    }}>{f.label}</button>
+                  );
+                })}
+              </div>
+            </Block>
+
+            <Block>
+              <BlockHeader title="Fine Tuning"/>
+              {[
+                ["Surface contrast","Brightness between card layers",gradSteps,0,30,v=>patchGradSteps(Number(v)),""],
+                ["Card angle","Gradient direction",gradAngle,0,360,v=>patchGradAngle(Number(v)),"°"],
+                ["Global opacity","UI transparency",globalOpacity,20,100,v=>patchGlobalOpacity(Number(v)),"%"],
+              ].map(([label,hint,val,min,max,fn,unit])=>(
+                <Row key={label}>
+                  <RowLabel label={label} hint={hint}/>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <input type="range" min={min} max={max} value={val} onChange={e=>fn(e.target.value)} style={{ width:100, accentColor:"var(--green)" }}/>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t2)", width:36, textAlign:"right" }}>{val}{unit}</span>
+                  </div>
+                </Row>
+              ))}
+            </Block>
+
+            <Block>
+              <BlockHeader title="Background Image"/>
+              <Row style={{ borderBottom:"none" }}>
+                <input id="ledgr-bg-upload" type="file" accept="image/*" style={{ display:"none" }}
+                  onChange={e=>{
+                    const file=e.target.files?.[0]; if(!file) return;
+                    if(file.size>8*1024*1024) alert("Image is very large and may slow down the app.");
+                    const reader=new FileReader();
+                    reader.onload=ev=>onSaveTheme({...current,bgImage:ev.target.result});
+                    reader.readAsDataURL(file); e.target.value="";
+                  }}/>
+                <button onClick={()=>document.getElementById("ledgr-bg-upload").click()} style={{ ...S.btn("ghost",true), display:"flex", alignItems:"center", gap:8 }}>
+                  🖼 {current.bgImage?"Change image":"Choose image"}
+                </button>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  {current.bgImage && (
+                    <>
+                      <div style={{ width:48, height:30, borderRadius:"var(--radius)", overflow:"hidden", flexShrink:0 }}>
+                        <img src={current.bgImage} alt="bg" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                      </div>
+                      <button onClick={()=>{const next={...current};delete next.bgImage;onSaveTheme(next);}} style={{ ...S.btn("ghost",true), color:"var(--t3)" }}>Remove</button>
+                    </>
+                  )}
+                  <button style={{ ...S.btn("ghost",true), color:"var(--t3)" }} onClick={reset}>Reset theme</button>
+                </div>
+              </Row>
+            </Block>
+          </>}
+
+          {/* ══ HOUSEHOLD ══ */}
+          {settingsTab === "household" && <>
+            {!householdLoaded ? (
+              <Block wide><Row style={{ borderBottom:"none" }}><div style={{ fontSize:13, color:"var(--t3)" }}>Loading…</div></Row></Block>
+            ) : household ? (
+              <>
+                <Block>
+                  <BlockHeader title="Members"/>
+                  {(household.members||[]).map(m=>(
+                    <Row key={m.id}>
+                      <RowLabel label={m.name||m.email} hint={m.role==="owner"?"Owner":m.status||""}/>
+                      {m.role !== "owner" && (
+                        <button style={{ ...S.btn("ghost",true), color:"var(--red)", fontSize:11 }} onClick={()=>removeMember(m.id)}>Remove</button>
+                      )}
+                    </Row>
+                  ))}
+                  <Row style={{ borderBottom:"none" }}>
+                    <button style={{ ...S.btn("ghost"), color:"var(--red)" }} onClick={leaveHousehold}>Leave household</button>
+                  </Row>
+                </Block>
+                <Block>
+                  <BlockHeader title="Invite Member"/>
+                  <div style={{ padding:"12px 18px", display:"flex", gap:8 }}>
+                    <input style={{ ...inputSt, flex:1 }} type="email" placeholder="Email address" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendInvite()}/>
+                    <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>{inviting?"Sending…":"Send invite"}</button>
+                  </div>
+                </Block>
+              </>
+            ) : (
+              <Block wide>
+                <BlockHeader title="Family Sharing"/>
+                <Row><div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6 }}>Share Ledgr with up to 2 household members. Each person keeps their own settings and theme.</div></Row>
+                <div style={{ padding:"12px 18px", display:"flex", gap:8 }}>
+                  <input style={{ ...inputSt, flex:1, maxWidth:300 }} type="email" placeholder="Invite by email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendInvite()}/>
+                  <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>{inviting?"Sending…":"Invite"}</button>
+                </div>
+              </Block>
+            )}
+          </>}
+
+          {/* ══ DATA ══ */}
+          {settingsTab === "data" && <>
+            <Block wide>
+              <BlockHeader title="Overview"/>
+              <div className="ls-stat-row">
+                {[["Transactions",transactions.length],["Accounts",accounts.length],["Categories",categories.length],["Bank connections",plaidItems?.length||0]].map(([label,val])=>(
+                  <div key={label} className="ls-stat">
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"1.2px", textTransform:"uppercase", color:"var(--t3)", marginBottom:5 }}>{label}</div>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:20, fontWeight:700, color:"var(--t1)" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            </Block>
+
+            <Block>
+              <BlockHeader title="Export"/>
+              <Row>
+                <RowLabel label="Download CSV" hint="All transactions with categories, accounts, and dates"/>
+                <button style={S.btn("primary",true)} onClick={exportCSV}>Export CSV</button>
+              </Row>
+              <Row style={{ borderBottom:"none" }}>
+                <RowLabel label="Deleted transactions" hint={`${deletedTransactions?.length||0} items in trash`}/>
+                <button style={S.btn("ghost",true)} onClick={()=>setShowTrash(p=>!p)}>{showTrash?"Hide trash":"View trash"}</button>
+              </Row>
+              {showTrash && (
+                <div style={{ padding:"0 18px 12px" }}>
+                  {(deletedTransactions||[]).length === 0 ? (
+                    <div style={{ fontSize:12, color:"var(--t3)", padding:"10px 0" }}>Trash is empty</div>
+                  ) : (deletedTransactions||[]).slice(0,20).map(t=>(
+                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"7px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:12, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
+                        <div style={{ fontSize:10, color:"var(--t3)", marginTop:2 }}>{t.date}</div>
+                      </div>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:t.amount<0?"var(--red)":"var(--green)", flexShrink:0 }}>
+                        {t.amount<0?"-":"+"}{`$${Math.abs(t.amount).toFixed(2)}`}
+                      </div>
+                      <button style={{ ...S.btn("ghost",true), fontSize:11, flexShrink:0 }} onClick={()=>{
+                        const restored={...t}; delete restored.deletedAt;
+                        setTransactions(p=>[restored,...p]);
+                        setDeletedTransactions(p=>{const next=p.filter(x=>x.id!==t.id);scheduleSaveRef.current?.({deletedTransactions:next});return next;});
+                        api.createTransaction(restored).catch(console.error);
+                        showToast("Restored");
+                      }}>Restore</button>
                     </div>
                   ))}
                 </div>
-              </div>
-              <div>
-                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:8 }}>Manual assets</div>
-                {(profileForm.manualAssets||[]).map((a,i)=>(
-                  <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
-                    <input style={{ ...inputSt, flex:2 }} placeholder="Name (e.g. Home)" value={a.name}
-                      onChange={e=>setProfileForm(p=>{const assets=[...p.manualAssets];assets[i]={...assets[i],name:e.target.value};return{...p,manualAssets:assets};})} />
-                    <input type="number" style={{ ...inputSt, flex:1 }} placeholder="Value" value={a.value||""}
-                      onChange={e=>setProfileForm(p=>{const assets=[...p.manualAssets];assets[i]={...assets[i],value:parseFloat(e.target.value)||0};return{...p,manualAssets:assets};})} />
-                    <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualAssets:p.manualAssets.filter((_,j)=>j!==i)}))}>✕</button>
-                  </div>
-                ))}
-                <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
-                  onClick={()=>setProfileForm(p=>({...p,manualAssets:[...(p.manualAssets||[]),{name:"",value:0}]}))}>+ Add asset</button>
-              </div>
-              <div>
-                <div style={{ fontSize:11, color:"var(--t3)", marginBottom:8 }}>Manual liabilities</div>
-                {(profileForm.manualLiabilities||[]).map((l,i)=>(
-                  <div key={i} style={{ display:"flex", gap:8, marginBottom:6 }}>
-                    <input style={{ ...inputSt, flex:2 }} placeholder="Name (e.g. Loan)" value={l.name}
-                      onChange={e=>setProfileForm(p=>{const liabs=[...p.manualLiabilities];liabs[i]={...liabs[i],name:e.target.value};return{...p,manualLiabilities:liabs};})} />
-                    <input type="number" style={{ ...inputSt, flex:1 }} placeholder="Amount" value={l.value||""}
-                      onChange={e=>setProfileForm(p=>{const liabs=[...p.manualLiabilities];liabs[i]={...liabs[i],value:parseFloat(e.target.value)||0};return{...p,manualLiabilities:liabs};})} />
-                    <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setProfileForm(p=>({...p,manualLiabilities:p.manualLiabilities.filter((_,j)=>j!==i)}))}>✕</button>
-                  </div>
-                ))}
-                <button style={{ ...S.btn("ghost",true), width:"100%" }} className="ledgr-btn"
-                  onClick={()=>setProfileForm(p=>({...p,manualLiabilities:[...(p.manualLiabilities||[]),{name:"",value:0}]}))}>+ Add liability</button>
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setProfileForm(null)}>Cancel</button>
-                <button style={S.btn("primary")} className="ledgr-btn-primary"
-                  onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save profile</button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
-                {[
-                  ["Monthly income",    userProfile?.monthlyIncome ? `$${(userProfile.monthlyIncome).toLocaleString()}` : "Not set"],
-                  ["Retirement age",    userProfile?.targets?.retirementAge||"Not set"],
-                  ["Net worth target",  userProfile?.targets?.netWorthTarget ? `$${(userProfile.targets.netWorthTarget).toLocaleString()}` : "Not set"],
-                  ["Retirement target", userProfile?.targets?.retirementTargetAmount ? `$${(userProfile.targets.retirementTargetAmount).toLocaleString()}` : "Not set"],
-                ].map(([label,value])=>(
-                  <div key={label} style={{ padding:"10px 12px", background:"rgba(255,255,255,0.03)", borderRadius:"var(--radius)", border:"1px solid rgba(255,255,255,0.05)" }}>
-                    <div style={{ fontSize:10, color:"var(--t3)", marginBottom:4, textTransform:"uppercase", letterSpacing:"0.5px" }}>{label}</div>
-                    <div style={{ fontSize:14, fontWeight:700, color:"var(--t1)", fontFamily:"var(--font-mono)" }}>{value}</div>
-                  </div>
-                ))}
-              </div>
-              <button style={{ ...S.btn("ghost"), width:"100%" }} onClick={()=>setProfileForm({...userProfile})}>Edit profile</button>
-            </div>
-          )}
-        </Section>
-      </>}
+              )}
+            </Block>
 
-      {/* ══ APPEARANCE ════════════════════════════════════════ */}
-      {settingsTab === "appearance" && <>
-        <Section title="Themes">
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:5, marginBottom:16 }}>
-            {PRESETS.map(p=>(
-              <button key={p.name} onClick={()=>applyPreset(p)} style={{
-                display:"flex", alignItems:"center", gap:6, padding:"6px 10px",
-                borderRadius:"var(--radius)", fontSize:11, fontWeight:500,
-                border:"1px solid rgba(255,255,255,0.07)", background:"var(--surface)",
-                color:"var(--t2)", cursor:"pointer", transition:"all .12s",
-                whiteSpace:"nowrap", overflow:"hidden",
-              }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=current.accent||"var(--cyan)";e.currentTarget.style.color="var(--t1)";}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.07)";e.currentTarget.style.color="var(--t2)";}}>
-                <span style={{ display:"inline-flex", gap:2, flexShrink:0 }}>
-                  {["bg","accent","t1"].map(k=><span key={k} style={{ width:7,height:7,borderRadius:"50%",background:p[k],display:"inline-block" }}/>)}
-                </span>
-                <span style={{ overflow:"hidden", textOverflow:"ellipsis" }}>{p.name}</span>
-              </button>
-            ))}
-          </div>
-          <div>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-              <div style={{ fontSize:11, color:"var(--t3)" }}>My themes</div>
-              <button style={{ ...S.btn("ghost",true), fontSize:11 }} className="ledgr-btn"
-                onClick={()=>setShowSaveInput(p=>!p)}>{showSaveInput?"Cancel":"+ Save current"}</button>
-            </div>
-            {showSaveInput && (
-              <div style={{ display:"flex", gap:8, marginBottom:10 }}>
-                <input autoFocus value={saveThemeName} onChange={e=>setSaveThemeName(e.target.value)}
-                  onKeyDown={e=>{if(e.key==="Enter")saveCurrentTheme();if(e.key==="Escape")setShowSaveInput(false);}}
-                  placeholder="Theme name…" style={{ ...inputSt, flex:1, fontSize:12 }} />
-                <button style={S.btn("primary",true)} onClick={saveCurrentTheme} disabled={!saveThemeName.trim()}>Save</button>
-              </div>
-            )}
-            {savedThemes.length===0&&!showSaveInput && <div style={{ fontSize:11, color:"var(--t3)", padding:"6px 0" }}>No saved themes yet.</div>}
-            {savedThemes.length>0 && (
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,minmax(0,1fr))", gap:5 }}>
-                {savedThemes.map(t=>(
-                  <div key={t.name} style={{ display:"flex", borderRadius:"var(--radius)", overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)" }}>
-                    <button onClick={()=>applyPreset(t)} style={{ flex:1, display:"flex", alignItems:"center", gap:5, padding:"6px 8px", background:"var(--surface)", color:"var(--t2)", border:"none", cursor:"pointer", fontSize:11, overflow:"hidden", textAlign:"left" }}
-                      onMouseEnter={e=>e.currentTarget.style.color="var(--t1)"}
-                      onMouseLeave={e=>e.currentTarget.style.color="var(--t2)"}>
-                      <span style={{ display:"inline-flex", gap:2, flexShrink:0 }}>
-                        {["bg","accent","t1"].map(k=><span key={k} style={{ width:7,height:7,borderRadius:"50%",background:t[k]||"#888",display:"inline-block" }}/>)}
-                      </span>
-                      <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name}</span>
-                    </button>
-                    <button onClick={()=>deleteCustomTheme(t.name)} style={{ background:"var(--surface)", border:"none", borderLeft:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)", cursor:"pointer", padding:"0 8px", fontSize:14 }}
-                      onMouseEnter={e=>e.currentTarget.style.color="var(--red)"}
-                      onMouseLeave={e=>e.currentTarget.style.color="var(--t3)"}>×</button>
+            <Block danger>
+              <BlockHeader title="Danger Zone" danger/>
+              <Row>
+                <RowLabel label="Delete all transactions" hint="Cannot be undone"/>
+                <button style={{ ...S.btn("ghost",true), color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" }} onClick={deleteAllTransactions}>Delete all</button>
+              </Row>
+              <Row style={{ borderBottom:"none" }}>
+                <RowLabel label="Clear all data" hint="Removes all transactions, accounts, categories, rules, and bank connections"/>
+                <button style={{ ...S.btn("ghost",true), color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" }} onClick={clearAllData}>Clear everything</button>
+              </Row>
+            </Block>
+          </>}
+
+          {/* ══ SUBSCRIPTION ══ */}
+          {settingsTab === "subscription" && <>
+            <Block wide>
+              <BlockHeader title="Current Plan"/>
+              <Row>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:700, color:"var(--t1)", marginBottom:3 }}>
+                    {access==="full" ? (isFamilyPlan ? "Family Plan" : "Personal Plan") : "Free"}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Section>
-
-        <Section title="Custom Colors">
-          <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-            {VARS.map(({ key, label })=>(
-              <SettingRow key={key} label={label}>
-                <input type="color" value={current[key]?.startsWith("rgba")||current[key]?.startsWith("rgb")?"#888888":current[key]||"#888888"}
-                  onChange={e=>patch(key,e.target.value)}
-                  style={{ width:36, height:28, borderRadius:6, border:"1px solid rgba(255,255,255,0.1)", background:"none", cursor:"pointer", padding:2 }} />
-              </SettingRow>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Typography">
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,minmax(0,1fr))", gap:5 }}>
-            {FONTS.map(f=>{
-              const active=(current.fontDisp||"'Syne', sans-serif")===f.value;
-              return (
-                <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
-                  padding:"8px 10px", borderRadius:"var(--radius)", fontSize:12,
-                  fontFamily:f.value, cursor:"pointer", border:"none",
-                  background: active?"rgba(201,149,106,0.12)":"var(--surface)",
-                  color: active?"var(--cyan)":"var(--t2)",
-                  outline: active?"1px solid rgba(201,149,106,0.3)":"none",
-                  transition:"all .12s",
-                }}>{f.label}</button>
-              );
-            })}
-          </div>
-        </Section>
-
-        <Section title="Fine Tuning">
-          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-            {[
-              ["Surface contrast","Brightness step between card layers",gradSteps,0,30,v=>patchGradSteps(Number(v)),""],
-              ["Card angle","Gradient direction on obsidian cards",gradAngle,0,360,v=>patchGradAngle(Number(v)),"°"],
-              ["Global opacity","Overall UI transparency",globalOpacity,20,100,v=>patchGlobalOpacity(Number(v)),"%"],
-            ].map(([label,hint,val,min,max,fn,unit])=>(
-              <SettingRow key={label} label={label} hint={hint}>
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <input type="range" min={min} max={max} value={val} onChange={e=>fn(e.target.value)}
-                    style={{ width:120, accentColor:"var(--cyan)" }} />
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t2)", width:36, textAlign:"right" }}>{val}{unit}</span>
+                  <div style={{ fontSize:12, color:"var(--t3)" }}>
+                    {access==="full" ? "Full access to all features" : "Limited to dashboard and settings"}
+                  </div>
                 </div>
-              </SettingRow>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Background Image">
-          <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-            <input id="ledgr-bg-upload" type="file" accept="image/*" style={{ display:"none" }}
-              onChange={e=>{
-                const file=e.target.files?.[0]; if(!file) return;
-                if(file.size>8*1024*1024) alert("Image is very large and may slow down the app.");
-                const reader=new FileReader();
-                reader.onload=ev=>onSaveTheme({...current,bgImage:ev.target.result});
-                reader.readAsDataURL(file); e.target.value="";
-              }} />
-            <button onClick={()=>document.getElementById("ledgr-bg-upload").click()}
-              style={{ ...S.btn("ghost",true), display:"flex", alignItems:"center", gap:8 }}>
-              <span>🖼</span><span>{current.bgImage?"Change image":"Choose image"}</span>
-            </button>
-            {current.bgImage && (
-              <>
-                <div style={{ width:60, height:36, borderRadius:"var(--radius)", overflow:"hidden", flexShrink:0 }}>
-                  <img src={current.bgImage} alt="bg" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                {access==="full" && <ConnectedBadge/>}
+              </Row>
+              {access !== "full" && (
+                <div style={{ padding:"0 18px 14px" }}>
+                  {["Unlimited transactions & accounts","Budget tracking & categories","Recurring calendar","Analytics & spending trends","AI-powered insights","Bank sync via Plaid"].map(f=>(
+                    <div key={f} style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, color:"var(--t2)", padding:"4px 0" }}>
+                      <span style={{ color:"var(--green)", fontSize:10 }}>✓</span>{f}
+                    </div>
+                  ))}
                 </div>
-                <button onClick={()=>{const next={...current};delete next.bgImage;onSaveTheme(next);}}
-                  style={{ ...S.btn("ghost",true), color:"var(--t3)" }}>Remove</button>
-              </>
-            )}
-          </div>
-        </Section>
+              )}
+              <Row style={{ borderBottom:"none" }}>
+                <a href="https://www.useledgr.com/#pricing" target="_blank" rel="noreferrer"
+                  style={{ ...S.btn("primary"), textDecoration:"none", display:"inline-flex" }}>
+                  {access==="full" ? "Manage subscription" : "Upgrade plan"}
+                </a>
+              </Row>
+            </Block>
 
-        <div style={{ paddingBottom:8 }}>
-          <button style={{ ...S.btn("ghost"), color:"var(--t3)" }} onClick={reset}>Reset to default theme</button>
+            <Block>
+              <BlockHeader title="Legal"/>
+              <Row>
+                <div style={{ fontSize:12, color:"var(--t2)" }}>Privacy Policy</div>
+                <a href="https://www.useledgr.com/privacy" target="_blank" rel="noreferrer" style={{ fontSize:12, color:"var(--green)", textDecoration:"none" }}>View →</a>
+              </Row>
+              <Row style={{ borderBottom:"none" }}>
+                <div style={{ fontSize:12, color:"var(--t2)" }}>Terms of Service</div>
+                <a href="https://www.useledgr.com/terms" target="_blank" rel="noreferrer" style={{ fontSize:12, color:"var(--green)", textDecoration:"none" }}>View →</a>
+              </Row>
+            </Block>
+          </>}
+
         </div>
-      </>}
-
-      {/* ══ HOUSEHOLD ════════════════════════════════════════ */}
-      {settingsTab === "household" && <>
-        {!householdLoaded ? (
-          <div style={{ color:"var(--t3)", fontSize:13, padding:"24px 0" }}>Loading…</div>
-        ) : household ? (
-          <>
-            <Section title="Household">
-              <div style={{ fontSize:13, color:"var(--t2)", marginBottom:14 }}>
-                Sharing with <strong style={{ color:"var(--t1)" }}>{household.members?.length||0} member{household.members?.length!==1?"s":""}</strong>.
-              </div>
-              <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-                {(household.members||[]).map(m=>(
-                  <SettingRow key={m.id} label={m.name||m.email} hint={m.role==="owner"?"Owner":m.status||""}>
-                    {m.role !== "owner" && (
-                      <button style={{ ...S.btn("ghost",true), color:"var(--red)", fontSize:11 }} onClick={()=>removeMember(m.id)}>Remove</button>
-                    )}
-                  </SettingRow>
-                ))}
-              </div>
-            </Section>
-            <Section title="Invite member">
-              <div style={{ display:"flex", gap:8 }}>
-                <input style={{ ...inputSt, flex:1 }} type="email" placeholder="Email address"
-                  value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}
-                  onKeyDown={e=>e.key==="Enter"&&sendInvite()} />
-                <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>
-                  {inviting?"Sending…":"Send invite"}
-                </button>
-              </div>
-            </Section>
-            <button style={{ ...S.btn("ghost"), color:"var(--red)" }} onClick={leaveHousehold}>Leave household</button>
-          </>
-        ) : (
-          <Section title="Family Sharing">
-            <div style={{ fontSize:13, color:"var(--t2)", marginBottom:16, lineHeight:1.6 }}>
-              Share Ledgr with up to 2 household members. Each person keeps their own settings and theme.
-            </div>
-            <div style={{ display:"flex", gap:8 }}>
-              <input style={{ ...inputSt, flex:1 }} type="email" placeholder="Invite by email"
-                value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&sendInvite()} />
-              <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>
-                {inviting?"Sending…":"Invite"}
-              </button>
-            </div>
-          </Section>
-        )}
-      </>}
-
-      {/* ══ DATA ════════════════════════════════════════════ */}
-      {settingsTab === "data" && <>
-        <Section title="Overview">
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-            {[["Transactions",transactions.length],["Accounts",accounts.length],["Categories",categories.length],["Bank connections",plaidItems?.length||0]].map(([label,val])=>(
-              <div key={label} style={{ padding:"12px 14px", background:"rgba(255,255,255,0.03)", borderRadius:"var(--radius)", border:"1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ fontSize:10, color:"var(--t3)", marginBottom:5, textTransform:"uppercase", letterSpacing:"0.5px" }}>{label}</div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:20, fontWeight:700, color:"var(--t1)" }}>{val}</div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Export">
-          <SettingRow label="Download CSV" hint="All transactions with categories, accounts, and dates">
-            <button style={S.btn("primary",true)} onClick={exportCSV}>Export CSV</button>
-          </SettingRow>
-        </Section>
-
-        <Section title="Trash">
-          <SettingRow label="Deleted transactions" hint={`${deletedTransactions?.length||0} items in trash`}>
-            <button style={S.btn("ghost",true)} onClick={()=>setShowTrash(p=>!p)}>
-              {showTrash?"Hide trash":"View trash"}
-            </button>
-          </SettingRow>
-          {showTrash && (
-            <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:0 }}>
-              {(deletedTransactions||[]).length === 0 ? (
-                <div style={{ fontSize:12, color:"var(--t3)", padding:"12px 0" }}>Trash is empty</div>
-              ) : (deletedTransactions||[]).slice(0,20).map(t=>(
-                <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
-                    <div style={{ fontSize:10, color:"var(--t3)", marginTop:2 }}>{t.date}</div>
-                  </div>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:t.amount<0?"var(--red)":"var(--green)", flexShrink:0 }}>
-                    {t.amount<0?"-":"+"}{`$${Math.abs(t.amount).toFixed(2)}`}
-                  </div>
-                  <button style={{ ...S.btn("ghost",true), fontSize:11, flexShrink:0 }}
-                    onClick={()=>{
-                      const restored={...t}; delete restored.deletedAt;
-                      setTransactions(p=>[restored,...p]);
-                      setDeletedTransactions(p=>{const next=p.filter(x=>x.id!==t.id);scheduleSaveRef.current?.({deletedTransactions:next});return next;});
-                      api.createTransaction(restored).catch(console.error);
-                      showToast("Restored");
-                    }}>Restore</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        <Section title="Danger Zone">
-          <SettingRow label="Delete all transactions" hint="Cannot be undone" danger>
-            <button style={{ ...S.btn("ghost",true), color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" }}
-              onClick={deleteAllTransactions}>Delete all</button>
-          </SettingRow>
-          <SettingRow label="Clear all data" hint="Removes all transactions, accounts, categories, rules, and bank connections" danger>
-            <button style={{ ...S.btn("ghost",true), color:"var(--red)", borderColor:"rgba(224,112,112,0.3)" }}
-              onClick={clearAllData}>Clear everything</button>
-          </SettingRow>
-        </Section>
-      </>}
-
-      {/* ══ SUBSCRIPTION ════════════════════════════════════ */}
-      {settingsTab === "subscription" && <>
-        <Section title="Current Plan">
-          <div style={{ padding:"16px 18px", background:"rgba(201,149,106,0.06)", borderRadius:"var(--radius)", border:"1px solid rgba(201,149,106,0.15)", marginBottom:16 }}>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"1px", color:"rgba(201,149,106,0.5)", marginBottom:6 }}>Active plan</div>
-            <div style={{ fontSize:16, fontWeight:700, color:"var(--t1)", marginBottom:3 }}>
-              {access==="full" ? (isFamilyPlan ? "Family Plan" : "Personal Plan") : "Free"}
-            </div>
-            <div style={{ fontSize:12, color:"var(--t3)" }}>
-              {access==="full" ? "Full access to all features" : "Limited to dashboard and settings"}
-            </div>
-          </div>
-          {access !== "full" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
-              {["Unlimited transactions & accounts","Budget tracking & categories","Recurring calendar","Analytics & spending trends","AI-powered insights","Bank sync via Plaid"].map(f=>(
-                <div key={f} style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, color:"var(--t2)" }}>
-                  <span style={{ color:"var(--cyan)", fontSize:10 }}>✓</span>{f}
-                </div>
-              ))}
-            </div>
-          )}
-          <a href="https://www.useledgr.com/#pricing" target="_blank" rel="noreferrer"
-            style={{ display:"inline-block", padding:"9px 18px", borderRadius:"var(--radius)", background:"var(--cyan)", color:"#000", fontWeight:700, fontSize:13, textDecoration:"none" }}>
-            {access==="full" ? "Manage subscription" : "Upgrade plan"}
-          </a>
-        </Section>
-        <Section title="Legal">
-          <SettingRow label="Privacy Policy">
-            <a href="https://www.useledgr.com/privacy" target="_blank" rel="noreferrer"
-              style={{ fontSize:12, color:"var(--cyan)", textDecoration:"none" }}>View →</a>
-          </SettingRow>
-          <SettingRow label="Terms of Service">
-            <a href="https://www.useledgr.com/terms" target="_blank" rel="noreferrer"
-              style={{ fontSize:12, color:"var(--cyan)", textDecoration:"none" }}>View →</a>
-          </SettingRow>
-        </Section>
-      </>}
-
       </div>
     </div>
     </>
   );
 }
 
-
-/* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
-   MAIN APP
-✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
-/* ── useCountUp — animates a number from its previous value to the new one ── */
 function useCountUp(value, duration = 650) {
   const [display, setDisplay] = useState(value);
   const prev    = useRef(value);
@@ -5573,6 +5609,8 @@ function AppInner({ isDemo = false }) {
       isMobile={isMobile}
       settingsTab={settingsTab}
       setSettingsTab={setSettingsTab}
+      hasApiKey={aiChat.hasApiKey}
+      saveApiKey={aiChat.saveApiKey}
     />
   );
 

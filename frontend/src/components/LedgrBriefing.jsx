@@ -66,6 +66,19 @@ const CSS = `
   .lb-pc-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--line);}
   .lb-pc-card{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;grid-template-columns:60px 1fr 16px;gap:12px;align-items:center;margin-bottom:8px;}
   .lb-pc-add{margin-top:14px;padding:14px;border:1px solid rgba(240,176,76,0.25);border-radius:8px;text-align:center;color:var(--warn);font-size:12px;cursor:pointer;font-family:var(--font-mono);}
+  .lb-pc-expand{background:var(--bg-1);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:0 0 4px;margin-top:-8px;overflow:hidden;}
+  .lb-pc-sect-lbl{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-4);padding:10px 14px 4px;border-top:1px solid var(--line);}
+  .lb-pc-sect-lbl:first-child{border-top:none;padding-top:12px;}
+  .lb-pc-acct{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;gap:8px;}
+  .lb-pc-acct .l{font-size:12px;color:var(--ink-2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lb-pc-acct .v{font-family:var(--font-mono);font-size:12px;color:var(--debt);flex-shrink:0;}
+  .lb-pc-acct .v.ok{color:var(--safe);}
+  .lb-pc-net{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;margin:4px 8px;background:var(--bg-2);border-radius:6px;border:1px solid var(--line);}
+  .lb-pc-net .l{font-size:11px;color:var(--ink-3);letter-spacing:0.5px;}
+  .lb-pc-net .v{font-family:var(--font-mono);font-size:14px;font-weight:600;}
+  .lb-pc-net .v.ok{color:var(--safe);}
+  .lb-pc-net .v.neg{color:var(--debt);}
+  .lb-pc-card.open{border-radius:8px 8px 0 0;border-bottom-color:transparent;}
   .lb-main{padding:36px 40px;overflow-y:auto;min-width:0;}
   .lb-topbar{display:flex;align-items:center;justify-content:space-between;padding:0 0 20px;margin-bottom:28px;border-bottom:1px solid var(--line);}
   .lb-tb-left{display:flex;align-items:baseline;gap:16px;}
@@ -539,24 +552,27 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                     </div>
                     {isOpen&&(
                       <div className="lb-pc-expand">
-                        {card.billItems.length===0
-                          ?<div style={{fontSize:11,color:"var(--ink-3)"}}>No bills in this period.</div>
-                          :acctRows.map(row=>(
-                            <div key={row.name}>
-                              {acctRows.length>1&&<div style={{fontSize:9,letterSpacing:"1.2px",textTransform:"uppercase",color:"var(--ink-4)",marginBottom:3,marginTop:4}}>{row.name}</div>}
-                              {row.items.map(b=>(
-                                <div key={b.id||b.name} className="lb-pc-acct">
-                                  <span className="l">{b.name}</span>
-                                  <span className="v">−{fmt(b.amountMin||0)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ))
-                        }
+                        {card.billItems.length===0 ? (
+                          <div style={{padding:"14px",fontSize:11,color:"var(--ink-3)",fontStyle:"italic"}}>No bills in this period.</div>
+                        ) : acctRows.map(row=>(
+                          <div key={row.name}>
+                            {acctRows.length>1&&(
+                              <div className="lb-pc-sect-lbl">{row.name}</div>
+                            )}
+                            {row.items.map(b=>(
+                              <div key={b.id||b.name} className="lb-pc-acct">
+                                <span className="l">{b.name}</span>
+                                <span className="v">−{fmt(b.amountMin||0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
                         {card.billItems.length>0&&(
-                          <div className="lb-pc-acct" style={{borderTop:"1px solid var(--line)",paddingTop:6,marginTop:2}}>
-                            <span className="l" style={{color:"var(--ink-3)"}}>Period net</span>
-                            <span className={`v${net>=0?" ok":""}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
+                          <div style={{padding:"4px 8px 8px"}}>
+                            <div className="lb-pc-net">
+                              <span className="l">Period net</span>
+                              <span className={`v${net>=0?" ok":" neg"}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
+                            </div>
                           </div>
                         )}
                       </div>

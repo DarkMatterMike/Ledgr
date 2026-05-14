@@ -2513,9 +2513,10 @@ function AppInner({ isDemo = false }) {
         setNotifOpen(true);
       }
       setTransactions(prev => {
-        // Normalise merchant name for fingerprinting — matches server logic
+        // Normalise merchant name for fingerprinting.
+        // Must stay byte-for-byte identical to computeFingerprint() in db.js.
         function normMerchant(t) {
-          return (t.merchant || t.name || "")
+          return (t.merchant || t.merchant_name || t.name || "")
             .toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
         }
         function fp(t) {

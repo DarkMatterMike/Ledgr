@@ -473,7 +473,9 @@ const KNOWN_TXN_FIELDS = new Set([
 ]);
 
 function computeFingerprint(t) {
-  const date = t.date || "";
+  // Use authorized_date when present — matches how the frontend deduplicates.
+  // Both sides must be identical or the same transaction gets two fingerprints.
+  const date = t.authorized_date || t.date || "";
   const raw  = (t.merchant || t.merchant_name || t.name || "")
     .toLowerCase()
     .replace(/[^a-z0-9 ]/g, " ")
@@ -626,12 +628,9 @@ async function upsertTransactionsBatch(userId, transactions) {
           currency, logo_url, institution, fingerprint, metadata, updated_at
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
         ON CONFLICT (id, user_id) DO UPDATE SET
-          merchant         = EXCLUDED.merchant,
-          name             = EXCLUDED.name,
-          amount           = EXCLUDED.amount,
+          -- User-owned fields: always take the incoming value
           category_id      = EXCLUDED.category_id,
           user_categorized = EXCLUDED.user_categorized,
-          pending          = EXCLUDED.pending,
           type             = EXCLUDED.type,
           recurring        = EXCLUDED.recurring,
           recurring_day    = EXCLUDED.recurring_day,
@@ -639,11 +638,18 @@ async function upsertTransactionsBatch(userId, transactions) {
           recurring_start  = EXCLUDED.recurring_start,
           notes            = EXCLUDED.notes,
           reviewed         = EXCLUDED.reviewed,
-          date             = EXCLUDED.date,
-          authorized_date  = EXCLUDED.authorized_date,
-          fingerprint      = EXCLUDED.fingerprint,
+          name             = EXCLUDED.name,
           metadata         = EXCLUDED.metadata,
-          updated_at       = EXCLUDED.updated_at
+          updated_at       = EXCLUDED.updated_at,
+          -- Plaid-owned fields: only update when the row has no Plaid data yet
+          -- (i.e. this is a manual transaction, plaid_account_id is null).
+          -- This prevents a stale client PATCH from clobbering a fresh sync.
+          merchant         = CASE WHEN transactions.plaid_account_id IS NULL THEN EXCLUDED.merchant        ELSE transactions.merchant        END,
+          amount           = CASE WHEN transactions.plaid_account_id IS NULL THEN EXCLUDED.amount          ELSE transactions.amount          END,
+          date             = CASE WHEN transactions.plaid_account_id IS NULL THEN EXCLUDED.date            ELSE transactions.date            END,
+          authorized_date  = CASE WHEN transactions.plaid_account_id IS NULL THEN EXCLUDED.authorized_date ELSE transactions.authorized_date END,
+          pending          = CASE WHEN transactions.plaid_account_id IS NULL THEN EXCLUDED.pending         ELSE transactions.pending         END,
+          fingerprint      = CASE WHEN transactions.plaid_account_id IS NULL THEN EXCLUDED.fingerprint     ELSE transactions.fingerprint     END
       `, [
         t.id,              userId,
         t.plaidAccountId   ?? null, t.plaidItemId    ?? null, t.accountId       ?? null,
@@ -840,8 +846,21 @@ async function syncItemTransactions(userId, targetItemId = null) {
   const allAdded = [], allModified = [], allRemoved = [];
 
   for (const item of items) {
-    let cursor = item.cursor || undefined, hasMore = true;
-    while (hasMore) {
+    // Track whether this sync started from scratch (null cursor) so
+    // applySyncResultsToDB knows whether removes are authoritative.
+    const isFullResync = !item.cursor;
+
+    // Collect ALL pages before touching the DB or advancing the cursor.
+    // This makes the sync atomic: either all pages land or none do.
+    // If we crash mid-pagination the cursor stays at its pre-sync position
+    // and the next sync replays from there — no missing transactions.
+    const pageAdded = [], pageModified = [], pageRemoved = [];
+    let cursor = item.cursor || undefined;
+    let paginationDone = false;
+    let mutationRetries = 0;
+    const MAX_MUTATION_RETRIES = 3;
+
+    while (!paginationDone) {
       try {
         const syncRes = await plaidClient.transactionsSync({
           access_token: item.access_token, cursor, count: 500,
@@ -856,28 +875,54 @@ async function syncItemTransactions(userId, targetItemId = null) {
           category: t.personal_finance_category?.primary || (t.category?.[0] || null),
           pending: t.pending, currency: t.iso_currency_code, logo_url: t.logo_url || null,
         });
-        allAdded.push(...added.map(mapTxn));
-        allModified.push(...modified.map(mapTxn));
-        allRemoved.push(...removed.map(t => ({ transaction_id: t.transaction_id })));
-        cursor = next_cursor; hasMore = has_more;
-        await updateCursor(item.item_id, cursor);
-        await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [item.item_id]);
+        pageAdded.push(...added.map(mapTxn));
+        pageModified.push(...modified.map(mapTxn));
+        pageRemoved.push(...removed.map(t => ({ transaction_id: t.transaction_id })));
+        cursor = next_cursor;
+
+        if (!has_more) {
+          // All pages collected — now atomically commit cursor + mark healthy.
+          await updateCursor(item.item_id, cursor);
+          await pool.query("UPDATE plaid_items SET needs_reauth = false WHERE item_id = $1", [item.item_id]);
+          paginationDone = true;
+        }
+        // else: keep looping to fetch the next page before committing anything
       } catch (err) {
         const code = err.response?.data?.error_code;
         if (code === "ITEM_LOGIN_REQUIRED" || code === "ITEM_NOT_FOUND") {
           await pool.query("UPDATE plaid_items SET needs_reauth = true WHERE item_id = $1", [item.item_id]);
           console.error(`Item ${item.item_id} needs re-auth (${code})`);
+          paginationDone = true; // stop, user must fix auth
         } else if (code === "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION") {
-          await updateCursor(item.item_id, null);
-          console.warn(`Item ${item.item_id} cursor reset due to mutation during pagination`);
+          // Plaid mutated data while we were paginating — the cursor is now
+          // invalid. Reset it and restart pagination from scratch for this item,
+          // discarding the partial pages collected so far.
+          mutationRetries++;
+          if (mutationRetries > MAX_MUTATION_RETRIES) {
+            console.error(`Item ${item.item_id} exceeded mutation retry limit — skipping this sync cycle`);
+            paginationDone = true;
+          } else {
+            console.warn(`Item ${item.item_id} mutation during pagination (attempt ${mutationRetries}/${MAX_MUTATION_RETRIES}) — resetting cursor and retrying`);
+            await updateCursor(item.item_id, null);
+            cursor = undefined;
+            pageAdded.length = 0;
+            pageModified.length = 0;
+            pageRemoved.length = 0;
+            // loop continues from the top with a fresh cursor
+          }
         } else if (code === "PRODUCT_NOT_READY") {
           console.info(`Item ${item.item_id} transactions not ready yet`);
+          paginationDone = true;
         } else {
           console.error(`sync error for item ${item.item_id}:`, err.response?.data || err.message);
+          paginationDone = true;
         }
-        hasMore = false;
       }
     }
+
+    allAdded.push(...pageAdded);
+    allModified.push(...pageModified);
+    allRemoved.push(...pageRemoved.map(r => ({ ...r, _isFullResync: isFullResync })));
   }
   return { added: allAdded, modified: allModified, removed: allRemoved };
 }
@@ -890,26 +935,41 @@ async function applySyncResultsToDB(userId, added, modified, removed) {
   const fingerprints = new Set(existing.map(r => r.fingerprint).filter(Boolean));
 
   if (removed.length > 0) {
-    const removeIds = removed.map(r => r.transaction_id);
-    // Always remove pending transactions — Plaid removes them when they settle,
-    // replacing with a new posted transaction_id. Keeping the old pending row
-    // causes ghost transactions that reappear/disappear across syncs.
-    // For non-pending transactions, guard against wiping user edits on cursor resets.
-    await pool.query(
-      `DELETE FROM transactions
-       WHERE user_id = $1
-       AND id = ANY($2::text[])
-       AND (
-         pending = true
-         OR (
-           user_categorized = false
-           AND reviewed = false
-           AND notes IS NULL
-         )
-       )`,
-      [userId, removeIds]
-    );
-    removeIds.forEach(id => existingIds.delete(id));
+    // Plaid's removed list is authoritative for incremental syncs — delete
+    // unconditionally so pending→posted transitions never leave ghost rows.
+    //
+    // For full resyncs (cursor was null, _isFullResync=true), be conservative:
+    // skip rows the user has already edited to avoid wiping their work on a
+    // clean re-fetch. Plaid does full history on a cursor reset so we'd
+    // re-add the transaction anyway in the `added` pass below.
+    const hardRemoveIds   = removed.filter(r => !r._isFullResync).map(r => r.transaction_id);
+    const softRemoveIds   = removed.filter(r =>  r._isFullResync).map(r => r.transaction_id);
+
+    if (hardRemoveIds.length > 0) {
+      await pool.query(
+        `DELETE FROM transactions WHERE user_id = $1 AND id = ANY($2::text[])`,
+        [userId, hardRemoveIds]
+      );
+      hardRemoveIds.forEach(id => existingIds.delete(id));
+    }
+    if (softRemoveIds.length > 0) {
+      // Soft remove: delete only untouched rows; user-edited rows survive.
+      await pool.query(
+        `DELETE FROM transactions
+         WHERE user_id = $1
+         AND id = ANY($2::text[])
+         AND (
+           pending = true
+           OR (
+             user_categorized = false
+             AND reviewed = false
+             AND notes IS NULL
+           )
+         )`,
+        [userId, softRemoveIds]
+      );
+      softRemoveIds.forEach(id => existingIds.delete(id));
+    }
   }
 
   for (const m of modified) {

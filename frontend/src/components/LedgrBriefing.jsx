@@ -344,6 +344,16 @@ export default function LedgrBriefing({
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
+  // Account selector state — must be declared before selectedBal useMemo
+  const[acctPopoverOpen,setAcctPopoverOpen]=useState(false);
+  const[selectedAcctIds,setSelectedAcctIds]=useState(()=>{
+    try{
+      const saved=localStorage.getItem("ledgr_free_accts");
+      if(saved) return JSON.parse(saved);
+    }catch{}
+    return accounts.map(a=>a.id);
+  });
+
   // Balance based on user-selected accounts for the Free calculation
   const selectedBal = useMemo(()=>
     accounts.filter(a=>selectedAcctIds.includes(a.id)).reduce((s,a)=>s+(a.balance||0),0),
@@ -421,15 +431,6 @@ export default function LedgrBriefing({
   // ── What-if state ──────────────────────────────────────────────
   const initScenarios=useMemo(()=>generateScenarios(categories,monthTxns,upcomingBills,accounts,safeToSpend),[]);
   const[scenarios,setScenarios]=useState(initScenarios);
-  const[acctPopoverOpen,setAcctPopoverOpen]=useState(false);
-  // Default: all accounts selected; persisted to localStorage
-  const[selectedAcctIds,setSelectedAcctIds]=useState(()=>{
-    try{
-      const saved=localStorage.getItem("ledgr_free_accts");
-      if(saved) return JSON.parse(saved);
-    }catch{}
-    return accounts.map(a=>a.id);
-  });
   const[selIdx,setSelIdx]=useState(null); // null = none active
   const[expandedCard,setExpandedCard]=useState(null); // 0 | 1 | null
   const[aiLoading,setAiLoading]=useState(false);

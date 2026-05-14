@@ -125,39 +125,6 @@ export function useAppData({
         if (coreData.calendarSplitView) setCalendarSplitView(coreData.calendarSplitView);
         if (coreData.access) setAccess(coreData.access);
         if (onData) onData(coreData, txnPage.total || 0);
-
-        // Run Plaid sync during initial load so fresh data is ready before
-        // the dashboard appears — prevents the visible "reload" after login.
-        // Races against an 8s timeout so slow Plaid responses never block the app.
-        const plaidItemsList = coreData.plaidItems || [];
-        if (plaidItemsList.length > 0) {
-          try {
-            await Promise.race([
-              api.syncTransactions(),
-              new Promise(r => setTimeout(r, 8000)),
-            ]);
-            // Reload transactions and accounts to pick up anything the sync changed
-            const [freshCore, freshTxns] = await Promise.allSettled([
-              api.loadData(),
-              api.loadTransactions({ fromDate, limit: 1000 }),
-            ]);
-            if (freshCore.status === "fulfilled" && freshCore.value.accounts) {
-              setAccounts(freshCore.value.accounts);
-            }
-            if (freshTxns.status === "fulfilled") {
-              const freshRaw = freshTxns.value.transactions || [];
-              const freshIds = new Set(freshRaw.map(t => t.id));
-              const freshMerged = [...freshRaw, ...recurringRaw.filter(t => !freshIds.has(t.id))];
-              const freshCleaned = freshMerged.map(t =>
-                NON_CAT_TYPES.has(t.type) && t.categoryId
-                  ? { ...t, categoryId: null, userCategorized: false } : t
-              );
-              setTransactions(applyRules(freshCleaned, loadedRules));
-            }
-          } catch (e) {
-            console.warn("Boot sync failed (non-fatal):", e.message);
-          }
-        }
       } catch (e) {
         console.warn("Load error:", e.message);
       } finally {

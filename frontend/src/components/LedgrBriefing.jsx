@@ -344,7 +344,11 @@ export default function LedgrBriefing({
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
-  const checkingBal =useMemo(()=>accounts.filter(a=>a.type==="checking").reduce((s,a)=>s+(a.balance||0),0),[accounts]);
+  // Balance based on user-selected accounts for the Free calculation
+  const selectedBal = useMemo(()=>
+    accounts.filter(a=>selectedAcctIds.includes(a.id)).reduce((s,a)=>s+(a.balance||0),0),
+  [accounts,selectedAcctIds]);
+  const checkingBal = selectedBal; // keep downstream references intact
   const curY=today.getFullYear(),curM=today.getMonth()+1;
 
   const upcomingBills=useMemo(()=>recurringItems.filter(r=>{
@@ -417,6 +421,15 @@ export default function LedgrBriefing({
   // ── What-if state ──────────────────────────────────────────────
   const initScenarios=useMemo(()=>generateScenarios(categories,monthTxns,upcomingBills,accounts,safeToSpend),[]);
   const[scenarios,setScenarios]=useState(initScenarios);
+  const[acctPopoverOpen,setAcctPopoverOpen]=useState(false);
+  // Default: all accounts selected; persisted to localStorage
+  const[selectedAcctIds,setSelectedAcctIds]=useState(()=>{
+    try{
+      const saved=localStorage.getItem("ledgr_free_accts");
+      if(saved) return JSON.parse(saved);
+    }catch{}
+    return accounts.map(a=>a.id);
+  });
   const[selIdx,setSelIdx]=useState(null); // null = none active
   const[expandedCard,setExpandedCard]=useState(null); // 0 | 1 | null
   const[aiLoading,setAiLoading]=useState(false);
@@ -542,6 +555,14 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
   },[aiInput,aiLoading,safeToSpend,checkingBal,billsTotal,upcomingBills,categories,monthTxns,totalIncome,totalSpent,apiBase,authHeaders]);
 
   function handleAiKey(e){if(e.key==="Enter") askScenario();}
+
+  function toggleAcct(id){
+    setSelectedAcctIds(prev=>{
+      const next=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];
+      try{localStorage.setItem("ledgr_free_accts",JSON.stringify(next));}catch{}
+      return next;
+    });
+  }
 
   function selectCard(i){setSelIdx(prev=>prev===i?null:i);}
   function clearCard(e,i){e.stopPropagation();if(selIdx===i)setSelIdx(null);}
@@ -681,7 +702,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                 </p>
 
                 {/* Gauge + Pool cards side by side */}
-                <div className="lb-story-callout">
+                <div className="lb-story-callout" onClick={()=>setAcctPopoverOpen(false)}>
                   {/* Left: pressure gauge with % readout */}
                   <div className="lb-gauge-card">
                     <div className="lb-gauge-lbl">Pressure · how tight things feel</div>
@@ -696,11 +717,32 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
                   {/* Right: FREE + VAULT pool cards */}
                   <div className="lb-pools">
-                    <div className="lb-pool-card lb-pool-free">
+                    <div className="lb-pool-card lb-pool-free" style={{position:"relative"}}>
                       <div className="lb-pool-stripe"/>
-                      <div>
-                        <div className="lb-pool-nm">Free · yours</div>
-                        <div className="lb-pool-desc">spend without thinking</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div className="lb-free-header">
+                          <div className="lb-pool-nm">Free · yours</div>
+                          <button className="lb-acct-sel-btn" onClick={e=>{e.stopPropagation();setAcctPopoverOpen(p=>!p);}}>
+                            {selectedAcctIds.length} acct{selectedAcctIds.length!==1?"s":""} ⚙
+                          </button>
+                        </div>
+                        <div className="lb-pool-desc">
+                          {accounts.filter(a=>selectedAcctIds.includes(a.id)).map(a=>a.name||a.type).join(", ")||"no accounts selected"}
+                        </div>
+                        {acctPopoverOpen&&(
+                          <div className="lb-acct-popover" onClick={e=>e.stopPropagation()}>
+                            <div className="lb-acct-popover-title">Include in free balance</div>
+                            {accounts.map(a=>(
+                              <div key={a.id} className="lb-acct-row" onClick={()=>toggleAcct(a.id)}>
+                                <div className={`lb-acct-check${selectedAcctIds.includes(a.id)?" on":""}`}>
+                                  {selectedAcctIds.includes(a.id)&&<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="var(--bg-0)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                </div>
+                                <span className="lb-acct-label">{a.name||a.type}{a.mask?` ····${a.mask}`:""}</span>
+                                <span className="lb-acct-bal">{fmt(a.balance||0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="lb-pool-v">{fmt(displaySafe)}</div>
                     </div>
@@ -712,14 +754,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                       </div>
                       <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
                     </div>
-                    <div className="lb-pool-card lb-pool-income">
-                      <div className="lb-pool-stripe"/>
-                      <div>
-                        <div className="lb-pool-nm">Income · incoming</div>
-                        <div className="lb-pool-desc">{remainingMonthIncome>0?`expected before ${MN[today.getMonth()]} ends`:"no more income expected"}</div>
-                      </div>
-                      <div className="lb-pool-v">{remainingMonthIncome>0?`+${fmt(remainingMonthIncome)}`:"—"}</div>
-                    </div>
+
                   </div>
                 </div>
               </div>

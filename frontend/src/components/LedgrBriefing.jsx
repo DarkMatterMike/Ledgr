@@ -122,6 +122,10 @@ const CSS = `
   .lb-wi-card.sel{border-color:rgba(93,202,165,0.4);background:rgba(93,202,165,0.04);}
   .lb-wi-card.ai-card{border-color:rgba(108,140,255,0.3);background:rgba(108,140,255,0.04);}
   .lb-wi-card.ai-card.sel{border-color:rgba(108,140,255,0.5);background:rgba(108,140,255,0.08);}
+  .lb-wi-card.impossible{border-color:rgba(232,115,99,0.25);background:rgba(232,115,99,0.04);}
+  .lb-wi-card.impossible:hover{border-color:rgba(232,115,99,0.35);}
+  .lb-wi-card.impossible.sel{border-color:rgba(232,115,99,0.5);background:rgba(232,115,99,0.08);}
+  .lb-wi-impossible{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--debt);font-family:var(--font-mono);margin-top:4px;}
   .lb-wi-tag{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--calm);font-family:var(--font-mono);margin-bottom:6px;}
   .lb-wi-nm{font-size:13px;color:var(--ink-1);line-height:1.4;margin-bottom:8px;}
   .lb-wi-delta{display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-3);}
@@ -489,9 +493,9 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
             <aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
-                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">{fmt(totalSpent)}</span></div>
-                <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(totalIncome)}</span></div>
-                <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(Math.abs(totalBalance-safeToSpend))}</span></div>
+                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
+                <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
+                <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(totalSpent)}</span></div>
                 <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
               </div>
               <div className="lb-pc-lbl">Paycheck planning</div>
@@ -608,21 +612,35 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                 </div>
 
                 <div className="lb-wi-row">
-                  {scenarios.map((s,i)=>(
-                    <div key={i} className={`lb-wi-card${s.isAi?" ai-card":""}${selIdx===i?" sel":""}`} onClick={()=>selectCard(i)}>
-                      {s.isAi&&<div className="lb-wi-tag">✦ your question</div>}
-                      {selIdx===i&&<span className="lb-wi-clear" onClick={e=>clearCard(e,i)}>× clear</span>}
-                      <div className="lb-wi-nm">{s.nm}</div>
-                      {s.error?(
-                        <div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)"}}>couldn't compute delta</div>
-                      ):(
-                        <div className="lb-wi-delta">
-                          <span>Safe-to-spend</span>
-                          <span className={`v ${s.pos?"pos":"neg"}`}>{s.pos?"+":"−"}${s.delta.toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {scenarios.map((s,i)=>{
+                    // A negative scenario is impossible if it would exceed current safe-to-spend
+                    const wouldResult=displaySafe+(s.pos?s.delta:-s.delta);
+                    const impossible=!s.pos&&s.delta>displaySafe;
+                    const classes=["lb-wi-card",s.isAi?"ai-card":"",impossible?"impossible":"",selIdx===i?"sel":""].filter(Boolean).join(" ");
+                    return(
+                      <div key={i} className={classes} onClick={()=>!impossible?selectCard(i):null}>
+                        {s.isAi&&<div className="lb-wi-tag">✦ your question</div>}
+                        {selIdx===i&&!impossible&&<span className="lb-wi-clear" onClick={e=>clearCard(e,i)}>× clear</span>}
+                        <div className="lb-wi-nm" style={{color:impossible?"var(--ink-3)":undefined}}>{s.nm}</div>
+                        {s.error?(
+                          <div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)"}}>couldn't compute delta</div>
+                        ):impossible?(
+                          <>
+                            <div className="lb-wi-delta">
+                              <span>Safe-to-spend</span>
+                              <span className="v neg">−${s.delta.toLocaleString()}</span>
+                            </div>
+                            <div className="lb-wi-impossible">✕ not enough free cash</div>
+                          </>
+                        ):(
+                          <div className="lb-wi-delta">
+                            <span>Safe-to-spend</span>
+                            <span className={`v ${s.pos?"pos":"neg"}`}>{s.pos?"+":"−"}${s.delta.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* AI ask bar */}

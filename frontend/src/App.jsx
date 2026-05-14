@@ -4867,6 +4867,15 @@ function AppInner({ isDemo = false }) {
   const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
 
 
+  /* ── Portfolio Plaid handler — must be declared before any early returns ── */
+  const handlePortfolioPlaidSuccess = useCallback(async (publicToken, institutionName) => {
+    try {
+      const { item_id } = await api.exchangePublicToken(publicToken, institutionName);
+      setPlaidItems(p => [...p.filter(i => i.item_id !== item_id), { item_id, institution: institutionName }]);
+      showToast(`${institutionName} connected!`);
+    } catch(e) { showToast("Connection failed: " + e.message); }
+  }, []);
+
   /* ── SettingsPage ─────────────────────────────────── */
   if (view === "settings") return (
     <LedgrSettings
@@ -4932,13 +4941,6 @@ function AppInner({ isDemo = false }) {
 
   // Free-tier users get read-only dashboard + settings, paywall for everything else
   const paywallView = <Paywall />;
-  const handlePortfolioPlaidSuccess = useCallback(async (publicToken, institutionName) => {
-    try {
-      const { item_id } = await api.exchangePublicToken(publicToken, institutionName);
-      setPlaidItems(p => [...p.filter(i => i.item_id !== item_id), { item_id, institution: institutionName }]);
-      showToast(`${institutionName} connected!`);
-    } catch(e) { showToast("Connection failed: " + e.message); }
-  }, []);
 
 
   /* ── PortfolioPage ─────────────────────────────────── */

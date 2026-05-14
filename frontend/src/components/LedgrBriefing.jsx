@@ -336,6 +336,7 @@ export default function LedgrBriefing({
   authHeaders=()=>({}),
   doSync=null,syncing=false,
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
+  displayName="",
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
@@ -623,15 +624,13 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               {/* hero */}
               <div style={{marginBottom:40}}>
                 <div className="lb-eyebrow">
-                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"} · the headline
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{displayName?`, ${displayName}`:""} · the headline
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
 
                 {/* Story-style headline */}
                 <h2 className="lb-story-head">
-                  You’re sitting on<br/>
-                  <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span><br/>
-                  that’s actually yours.
+                  You’re sitting on <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span> that’s actually yours.
                 </h2>
 
                 {/* Narrative deck */}

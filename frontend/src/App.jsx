@@ -5185,6 +5185,7 @@ function AppInner({ isDemo = false }) {
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
+      displayName={(api.getStoredUser()?.name || "").split(" ")[0]}
     />
   );
 

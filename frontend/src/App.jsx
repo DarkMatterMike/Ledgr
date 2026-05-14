@@ -1096,7 +1096,7 @@ function SettingRow({ label, hint, children, danger }) {
   );
 }
 
-function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false, isMobile = false, settingsTab = "profile", setSettingsTab = () => {}, hasApiKey = false, saveApiKey = async()=>{} }) {
+function SettingsView({ transactions, accounts, categories, catMap, acctMap, avatarColor, avatarLetter, showToast, setTransactions, setAccounts, setCategories, setRules, setPlaidItems, plaidItems, access, userProfile, onSaveProfile, theme = {}, onSaveTheme, deletedTransactions, setDeletedTransactions, showTrash, setShowTrash, scheduleSaveRef, isFamilyPlan = false, isMobile = false, settingsTab = "profile", setSettingsTab = () => {}, hasApiKey = false, saveApiKey = async()=>{}, navigate = ()=>{} }) {
   const user = api.getStoredUser();
   const [name,         setName]         = useState(user?.name || "");
   const [savingName,   setSavingName]   = useState(false);
@@ -1408,14 +1408,14 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               <BlockHeader title="Identity"/>
               <Row>
                 <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <div style={{ width:44, height:44, borderRadius:"var(--radius)", flexShrink:0, background:"rgba(93,202,165,0.1)", border:"1px solid rgba(93,202,165,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-mono)", fontSize:16, fontWeight:700, color:"var(--green)" }}>
+                  <div style={{ width:44, height:44, borderRadius:"var(--radius)", flexShrink:0, background:"rgba(93,202,165,0.1)", border:"1px solid rgba(93,202,165,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-mono)", fontSize:16, fontWeight:700, color:"#5dcaa5" }}>
                     {avatarLetter}
                   </div>
                   <div>
                     <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)" }}>{user?.name || user?.email}</div>
                     <div style={{ fontSize:10, color:"var(--t3)", marginTop:2 }}>{user?.email}</div>
                     {user?.role === "owner" && (
-                      <div style={{ marginTop:5, display:"inline-flex", alignItems:"center", gap:4, background:"rgba(93,202,165,0.08)", border:"1px solid rgba(93,202,165,0.2)", borderRadius:99, padding:"2px 8px", fontFamily:"var(--font-mono)", fontSize:9, color:"var(--green)", letterSpacing:"0.5px" }}>◈ OWNER</div>
+                      <div style={{ marginTop:5, display:"inline-flex", alignItems:"center", gap:4, background:"rgba(93,202,165,0.08)", border:"1px solid rgba(93,202,165,0.2)", borderRadius:99, padding:"2px 8px", fontFamily:"var(--font-mono)", fontSize:9, color:"#5dcaa5", letterSpacing:"0.5px" }}>◈ OWNER</div>
                     )}
                   </div>
                 </div>
@@ -1424,7 +1424,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 <RowLabel label="Display name" hint="Shown in app header"/>
                 <div style={{ display:"flex", gap:6 }}>
                   <input style={{ ...inputSt, width:150 }} value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveName()}/>
-                  <button style={S.btn("primary",true)} className="ledgr-btn" onClick={saveName} disabled={savingName}>{savingName?"…":"Save"}</button>
+                  <button style={{...S.btn("primary",true), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} className="ledgr-btn" onClick={saveName} disabled={savingName}>{savingName?"…":"Save"}</button>
                 </div>
               </Row>
             </Block>
@@ -1444,9 +1444,9 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 <input style={{ ...inputSt, width:170 }} type="password" placeholder="••••••••" value={confirmPw} onChange={e=>{setConfirmPw(e.target.value);setPwError("");}}/>
               </Row>
               {pwError   && <div style={{ padding:"4px 18px 8px", fontSize:11, color:"var(--red)" }}>{pwError}</div>}
-              {pwSuccess && <div style={{ padding:"4px 18px 8px", fontSize:11, color:"var(--green)" }}>Password updated ✓</div>}
+              {pwSuccess && <div style={{ padding:"4px 18px 8px", fontSize:11, color:"#5dcaa5" }}>Password updated ✓</div>}
               <Row style={{ justifyContent:"flex-end", borderBottom:"none" }}>
-                <button style={S.btn("primary",true)} className="ledgr-btn" onClick={changePassword} disabled={savingPw}>{savingPw?"Updating…":"Update password"}</button>
+                <button style={{...S.btn("primary",true), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} className="ledgr-btn" onClick={changePassword} disabled={savingPw}>{savingPw?"Updating…":"Update password"}</button>
               </Row>
             </Block>
 
@@ -1472,7 +1472,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   ))}
                   <div style={{ gridColumn:"span 3", display:"flex", gap:8, justifyContent:"flex-end", paddingTop:4 }}>
                     <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setProfileForm(null)}>Cancel</button>
-                    <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save profile</button>
+                    <button style={{...S.btn("primary"), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} className="ledgr-btn-primary" onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save profile</button>
                   </div>
                 </div>
               ) : (
@@ -1524,7 +1524,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   </div>
                   <div style={{ gridColumn:"span 2", display:"flex", gap:8, justifyContent:"flex-end" }}>
                     <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setProfileForm(null)}>Cancel</button>
-                    <button style={S.btn("primary")} className="ledgr-btn-primary" onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save</button>
+                    <button style={{...S.btn("primary"), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} className="ledgr-btn-primary" onClick={()=>{onSaveProfile(profileForm);setProfileForm(null);showToast("Profile saved");}}>Save</button>
                   </div>
                 </div>
               ) : (
@@ -1547,14 +1547,14 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.65, maxWidth:520 }}>
                   Powers AI financial summaries on the Analytics page and daily Briefing insights.
                   Your key is encrypted at rest and never exposed in the UI or shared with third parties.{" "}
-                  <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color:"var(--green)", textDecoration:"none" }}>Get a key → console.anthropic.com</a>
+                  <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color:"#5dcaa5", textDecoration:"none" }}>Get a key → console.anthropic.com</a>
                 </div>
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                   <input style={{ ...inputSt, flex:1, maxWidth:400, fontFamily:"var(--font-mono)", fontSize:11 }}
                     type="password" placeholder="sk-ant-api03-…"
                     value={apiKeyVal} onChange={e=>setApiKeyVal(e.target.value)}
                     onKeyDown={e=>e.key==="Enter"&&handleSaveApiKey()}/>
-                  <button style={S.btn("primary",true)} className="ledgr-btn" onClick={handleSaveApiKey} disabled={savingApiKey||!apiKeyVal.trim()}>
+                  <button style={{...S.btn("primary",true), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} className="ledgr-btn" onClick={handleSaveApiKey} disabled={savingApiKey||!apiKeyVal.trim()}>
                     {savingApiKey?"Saving…":"Save key"}
                   </button>
                   {hasApiKey && (
@@ -1578,7 +1578,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   <input autoFocus value={saveThemeName} onChange={e=>setSaveThemeName(e.target.value)}
                     onKeyDown={e=>{if(e.key==="Enter")saveCurrentTheme();if(e.key==="Escape")setShowSaveInput(false);}}
                     placeholder="Theme name…" style={{ ...inputSt, flex:1, fontSize:12 }}/>
-                  <button style={S.btn("primary",true)} onClick={saveCurrentTheme} disabled={!saveThemeName.trim()}>Save</button>
+                  <button style={{...S.btn("primary",true), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} onClick={saveCurrentTheme} disabled={!saveThemeName.trim()}>Save</button>
                 </div>
               )}
               {savedThemes.length > 0 && (
@@ -1632,7 +1632,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   return (
                     <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
                       padding:"8px 10px", borderRadius:"var(--radius)", fontSize:12, fontFamily:f.value, cursor:"pointer", border:"none",
-                      background: active?"rgba(93,202,165,0.1)":"var(--card)", color: active?"var(--green)":"var(--t2)",
+                      background: active?"rgba(93,202,165,0.1)":"var(--card)", color: active?"#5dcaa5":"var(--t2)",
                       outline: active?"1px solid rgba(93,202,165,0.3)":"none", transition:"all .12s",
                     }}>{f.label}</button>
                   );
@@ -1650,7 +1650,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 <Row key={label}>
                   <RowLabel label={label} hint={hint}/>
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <input type="range" min={min} max={max} value={val} onChange={e=>fn(e.target.value)} style={{ width:100, accentColor:"var(--green)" }}/>
+                    <input type="range" min={min} max={max} value={val} onChange={e=>fn(e.target.value)} style={{ width:100, accentColor:"#5dcaa5" }}/>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--t2)", width:36, textAlign:"right" }}>{val}{unit}</span>
                   </div>
                 </Row>
@@ -1710,7 +1710,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                   <BlockHeader title="Invite Member"/>
                   <div style={{ padding:"12px 18px", display:"flex", gap:8 }}>
                     <input style={{ ...inputSt, flex:1 }} type="email" placeholder="Email address" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendInvite()}/>
-                    <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>{inviting?"Sending…":"Send invite"}</button>
+                    <button style={{...S.btn("primary",true), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>{inviting?"Sending…":"Send invite"}</button>
                   </div>
                 </Block>
               </>
@@ -1720,7 +1720,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 <Row><div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.6 }}>Share Ledgr with up to 2 household members. Each person keeps their own settings and theme.</div></Row>
                 <div style={{ padding:"12px 18px", display:"flex", gap:8 }}>
                   <input style={{ ...inputSt, flex:1, maxWidth:300 }} type="email" placeholder="Invite by email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendInvite()}/>
-                  <button style={S.btn("primary",true)} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>{inviting?"Sending…":"Invite"}</button>
+                  <button style={{...S.btn("primary",true), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} onClick={sendInvite} disabled={inviting||!inviteEmail.trim()}>{inviting?"Sending…":"Invite"}</button>
                 </div>
               </Block>
             )}
@@ -1744,7 +1744,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               <BlockHeader title="Export"/>
               <Row>
                 <RowLabel label="Download CSV" hint="All transactions with categories, accounts, and dates"/>
-                <button style={S.btn("primary",true)} onClick={exportCSV}>Export CSV</button>
+                <button style={{...S.btn("primary",true), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}} onClick={exportCSV}>Export CSV</button>
               </Row>
               <Row style={{ borderBottom:"none" }}>
                 <RowLabel label="Deleted transactions" hint={`${deletedTransactions?.length||0} items in trash`}/>
@@ -1760,7 +1760,7 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                         <div style={{ fontSize:12, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{t.name||t.merchant}</div>
                         <div style={{ fontSize:10, color:"var(--t3)", marginTop:2 }}>{t.date}</div>
                       </div>
-                      <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:t.amount<0?"var(--red)":"var(--green)", flexShrink:0 }}>
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:t.amount<0?"var(--red)":"#5dcaa5", flexShrink:0 }}>
                         {t.amount<0?"-":"+"}{`$${Math.abs(t.amount).toFixed(2)}`}
                       </div>
                       <button style={{ ...S.btn("ghost",true), fontSize:11, flexShrink:0 }} onClick={()=>{
@@ -1808,14 +1808,14 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
                 <div style={{ padding:"0 18px 14px" }}>
                   {["Unlimited transactions & accounts","Budget tracking & categories","Recurring calendar","Analytics & spending trends","AI-powered insights","Bank sync via Plaid"].map(f=>(
                     <div key={f} style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, color:"var(--t2)", padding:"4px 0" }}>
-                      <span style={{ color:"var(--green)", fontSize:10 }}>✓</span>{f}
+                      <span style={{ color:"#5dcaa5", fontSize:10 }}>✓</span>{f}
                     </div>
                   ))}
                 </div>
               )}
               <Row style={{ borderBottom:"none" }}>
                 <a href="https://www.useledgr.com/#pricing" target="_blank" rel="noreferrer"
-                  style={{ ...S.btn("primary"), textDecoration:"none", display:"inline-flex" }}>
+                  style={{ ...{...S.btn("primary"), background:"#5dcaa5", borderColor:"#5dcaa5", color:"#07090d"}, textDecoration:"none", display:"inline-flex" }}>
                   {access==="full" ? "Manage subscription" : "Upgrade plan"}
                 </a>
               </Row>
@@ -1825,11 +1825,11 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
               <BlockHeader title="Legal"/>
               <Row>
                 <div style={{ fontSize:12, color:"var(--t2)" }}>Privacy Policy</div>
-                <a href="https://www.useledgr.com/privacy" target="_blank" rel="noreferrer" style={{ fontSize:12, color:"var(--green)", textDecoration:"none" }}>View →</a>
+                <a href="https://www.useledgr.com/privacy" target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#5dcaa5", textDecoration:"none" }}>View →</a>
               </Row>
               <Row style={{ borderBottom:"none" }}>
                 <div style={{ fontSize:12, color:"var(--t2)" }}>Terms of Service</div>
-                <a href="https://www.useledgr.com/terms" target="_blank" rel="noreferrer" style={{ fontSize:12, color:"var(--green)", textDecoration:"none" }}>View →</a>
+                <a href="https://www.useledgr.com/terms" target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#5dcaa5", textDecoration:"none" }}>View →</a>
               </Row>
             </Block>
           </>}
@@ -5681,6 +5681,7 @@ function AppInner({ isDemo = false }) {
       setSettingsTab={setSettingsTab}
       hasApiKey={aiChat.hasApiKey}
       saveApiKey={aiChat.saveApiKey}
+      navigate={navigate}
     />
   );
 

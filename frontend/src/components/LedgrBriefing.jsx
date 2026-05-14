@@ -128,6 +128,34 @@ const CSS = `
   .lb-led.goal{background:var(--goal);}
   .lb-led.warn{background:var(--warn);}
 
+  /* story headline */
+  .lb-story-head{font-family:var(--font-display);font-size:60px;line-height:0.98;letter-spacing:-2px;font-weight:400;margin-bottom:24px;}
+  .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
+  @media(max-width:900px){.lb-story-head{font-size:40px;letter-spacing:-1px;}}
+
+  /* gauge + pool callout */
+  .lb-story-callout{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;}
+  @media(max-width:900px){.lb-story-callout{grid-template-columns:1fr;}}
+  .lb-gauge-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-xl);padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center;}
+  .lb-gauge-lbl{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;align-self:flex-start;}
+  .lb-gauge-readout{text-align:center;margin-top:6px;}
+  .lb-gauge-pct{font-family:var(--font-display);font-size:48px;letter-spacing:-1.5px;line-height:1;transition:color .3s;}
+  .lb-gauge-sub{font-size:12px;color:var(--ink-2);margin-top:6px;font-family:var(--font-mono);}
+  .lb-pools{display:flex;flex-direction:column;gap:12px;}
+  .lb-pool-card{display:grid;grid-template-columns:6px 1fr auto;gap:16px;align-items:center;padding:20px 20px;border-radius:var(--r-lg);border:1px solid var(--line);}
+  .lb-pool-card.lb-pool-free{background:linear-gradient(180deg,rgba(93,202,165,0.06),rgba(93,202,165,0.01));border-color:rgba(93,202,165,0.22);}
+  .lb-pool-card.lb-pool-locked{background:var(--bg-2);}
+  .lb-pool-stripe{width:4px;border-radius:2px;height:40px;flex-shrink:0;}
+  .lb-pool-card.lb-pool-free .lb-pool-stripe{background:var(--safe);box-shadow:0 0 10px var(--safe);}
+  .lb-pool-card.lb-pool-locked .lb-pool-stripe{background:var(--ink-4);}
+  .lb-pool-nm{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;margin-bottom:4px;}
+  .lb-pool-card.lb-pool-free .lb-pool-nm{color:var(--safe);}
+  .lb-pool-card.lb-pool-locked .lb-pool-nm{color:var(--ink-3);}
+  .lb-pool-desc{font-size:12px;color:var(--ink-1);}
+  .lb-pool-v{font-family:var(--font-display);font-size:32px;letter-spacing:-1px;transition:color .3s;}
+  .lb-pool-card.lb-pool-free .lb-pool-v{color:var(--safe);}
+  .lb-pool-card.lb-pool-locked .lb-pool-v{color:var(--ink-0);}
+
   /* what-if section */
   .lb-whatif{margin-top:24px;}
   .lb-wi-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
@@ -599,72 +627,55 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                   Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"} · the headline
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
-                <h2 className="lb-headline">
-                  After everything you owe, you have{" "}
-                  <em style={{color:safeColor}}>{fmt(displaySafe)}</em> truly free.
+
+                {/* Story-style headline */}
+                <h2 className="lb-story-head">
+                  You’re sitting on<br/>
+                  <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span><br/>
+                  that’s actually yours.
                 </h2>
+
+                {/* Narrative deck */}
                 <p className="lb-deck">
-                  <span style={{display:"block"}}>
-                    {daysLeft!=null?<>That's <em className="amt">{daysLeft} day{daysLeft!==1?"s":""}</em> of room until your next paycheck{nextPayDay?` on ${MN[today.getMonth()]} ${nextPayDay}`:""}.&nbsp;</>:<>Your funds are calculated across all accounts.</>}
-                  </span>
-                  <span style={{display:"block"}}>
-                    You've got <em style={{fontStyle:"normal",fontFamily:"var(--font-mono)",color:"var(--debt)"}}>{fmt(billsTotal)}</em> in scheduled bills accounted for.
-                  </span>
-                  <span style={{display:"block"}}>
-                    The pressure gauge is <em style={{fontStyle:"normal",fontFamily:"var(--font-mono)",color:displayLabel==="safe"?"var(--safe)":displayLabel==="ahead"?"var(--calm)":"var(--debt)"}}>{displayLabel}</em>.{" "}
-                    {upcomingBills.length===0?"No surprises in the queue.":`${upcomingBills.length} item${upcomingBills.length>1?"s":""} upcoming.`}
-                  </span>
+                  After every bill that’s already promised{daysLeft!=null?<> over the next <em className="amt">{daysLeft} day{daysLeft!==1?"s":""}</em>,</>:","} this is what’s left.
+                  {" "}The pressure gauge reads <em className="amt" style={{color:displayLabel==="safe"?"var(--safe)":displayLabel==="tight"?"var(--debt)":"var(--warn)"}}>{displayLabel}</em>.
+                  {" "}Bills total <em className="debt">{fmt(billsTotal)}</em>{upcomingBills.length>0?` and ${upcomingBills.length===1?"it’s":"they’re"} spaced across the period`:""}.
+                  {nextPay&&daysLeft!=null?<> Your next paycheck is <em style={{fontStyle:"normal",fontFamily:"var(--font-mono)",color:"var(--calm)"}}>+{fmt(nextPay.amountMin||0)}</em> on {MN[today.getMonth()]} {nextPayDay}.</>:null}
                 </p>
 
-                {/* callout */}
-                <div className="lb-callout">
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:160}}>
-                    <Gauge pct={displayPct}/>
-                  </div>
-                  <div className="lb-cstats">
-                    <div className="lb-stat">
-                      <div className="l">Safe to spend</div>
-                      <div className="v" style={{color:safeColor}}>{fmt(displaySafe)}</div>
-                      <div className="s">{daysLeft!=null?`over ${daysLeft} days`:"right now"}</div>
+                {/* Gauge + Pool cards side by side */}
+                <div className="lb-story-callout">
+                  {/* Left: pressure gauge with % readout */}
+                  <div className="lb-gauge-card">
+                    <div className="lb-gauge-lbl">Pressure · how tight things feel</div>
+                    <div style={{width:"100%",maxWidth:260}}>
+                      <Gauge pct={displayPct}/>
                     </div>
-                    <div className="lb-stat">
-                      <div className="l">Daily pace</div>
-                      <div className="v">{displayPace!=null?`$${displayPace.toLocaleString()}`:"—"}<span style={{fontSize:12,color:"var(--ink-3)"}}>/d</span></div>
-                      <div className="s">if spread evenly</div>
-                    </div>
-                    <div className="lb-stat">
-                      <div className="l">Bills incoming</div>
-                      <div className="v debt">{fmt(billsTotal)}</div>
-                      <div className="s">{upcomingBills.length} scheduled · all expected</div>
-                    </div>
-                    <div className="lb-stat">
-                      <div className="l">Next paycheck</div>
-                      <div className="v calm">{nextPay?`+${fmt(nextPay.amountMin||0)}`:"—"}</div>
-                      <div className="s">{nextPayDay&&daysLeft!=null?`${MN[today.getMonth()]} ${nextPayDay} · ${daysLeft} days`:"check calendar"}</div>
+                    <div className="lb-gauge-readout">
+                      <div className="lb-gauge-pct" style={{color:safeColor}}>{Math.round(displayPct*100)}%</div>
+                      <div className="lb-gauge-sub">of your typical comfort · {displayLabel} this month</div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* allocation bar */}
-              <div className="lb-alloc">
-                <div className="lb-alloc-head">
-                  <h4>Where your <em>{fmt(allocTotal)}</em> is going</h4>
-                  <span className="tot">total across checking + buffer</span>
-                </div>
-                <div className="lb-track">
-                  <div className="seg free"    style={{flex:allocFree||1}}>{allocFree>allocTotal*0.15?`${fmt(allocFree)} free`:""}</div>
-                  <div className="seg bills"   style={{flex:allocBill||1}}>{allocBill>allocTotal*0.15?`${fmt(allocBill)} bills`:""}</div>
-                  {allocCush>0&&<div className="seg cushion" style={{flex:allocCush}}>{allocCush>allocTotal*0.12?`${fmt(allocCush)} cushion`:""}</div>}
-                  {allocGoal>0&&<div className="seg goals"   style={{flex:allocGoal}}>{allocGoal>allocTotal*0.1?`${fmt(allocGoal)} goals`:""}</div>}
-                  {allocFlex>0&&<div className="seg flex"    style={{flex:allocFlex}}>{allocFlex>allocTotal*0.08?`${fmt(allocFlex)} flex`:""}</div>}
-                </div>
-                <div className="lb-legend">
-                  <span><span className="lb-led safe"/>&nbsp;Free · safe to spend</span>
-                  <span><span className="lb-led debt"/>&nbsp;Bills ahead</span>
-                  <span><span className="lb-led calm"/>&nbsp;Cushion (auto)</span>
-                  {goals.length>0&&<span><span className="lb-led goal"/>&nbsp;Goals</span>}
-                  <span><span className="lb-led warn"/>&nbsp;Flex pool</span>
+                  {/* Right: FREE + VAULT pool cards */}
+                  <div className="lb-pools">
+                    <div className="lb-pool-card lb-pool-free">
+                      <div className="lb-pool-stripe"/>
+                      <div>
+                        <div className="lb-pool-nm">Free · yours</div>
+                        <div className="lb-pool-desc">spend without thinking</div>
+                      </div>
+                      <div className="lb-pool-v">{fmt(displaySafe)}</div>
+                    </div>
+                    <div className="lb-pool-card lb-pool-locked">
+                      <div className="lb-pool-stripe"/>
+                      <div>
+                        <div className="lb-pool-nm">Vault · spoken for</div>
+                        <div className="lb-pool-desc">bills, cushion, goals</div>
+                      </div>
+                      <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

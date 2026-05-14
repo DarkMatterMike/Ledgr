@@ -44,7 +44,6 @@ const CSS = `
   .lgs-tb-title{font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px;color:var(--ink-0);}
   .lgs-tb-div{width:1px;height:14px;background:rgba(255,255,255,0.10);flex-shrink:0;}
   .lgs-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
-  .lgs-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,rgba(93,202,165,0.3),rgba(93,202,165,0.1));border:1px solid rgba(93,202,165,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--safe);font-family:var(--font-mono);flex-shrink:0;}
   .lgs-tabbar{border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 32px;background:var(--bg-1);flex-shrink:0;overflow-x:auto;}
   .lgs-tab{padding:12px 16px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent;transition:.12s;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;}
   .lgs-tab:hover{color:var(--ink-2);}
@@ -179,16 +178,6 @@ const CSS = `
   }
 
   /* Identity avatar */
-  .lgs-id-avatar {
-    width:44px; height:44px;
-    border-radius:8px;
-    background:rgba(93,202,165,0.1);
-    border:1px solid rgba(93,202,165,0.2);
-    display:flex; align-items:center; justify-content:center;
-    font-weight:700; color:#5dcaa5; font-size:16px;
-    font-family:'JetBrains Mono',monospace;
-    flex-shrink:0;
-  }
 
   /* Stats strip */
   .lgs-stats { display:grid; grid-template-columns:repeat(4,1fr); }
@@ -499,7 +488,6 @@ export default function LedgrSettings({
                 <div className="lgs-tb-div"/>
                 <span className="lgs-tb-sub">{TABS.find(t=>t.id===settingsTab)?.label}</span>
               </div>
-              <div className="lgs-avatar">{avatarLetter}</div>
             </div>
 
             {/* Tab bar */}
@@ -521,7 +509,6 @@ export default function LedgrSettings({
                     <BH title="Identity"/>
                     <Row>
                       <div style={{display:"flex",alignItems:"center",gap:12}}>
-                        <div className="lgs-id-avatar">{avatarLetter}</div>
                         <div>
                           <div style={{fontSize:14,fontWeight:600,color:"#f4f4f1"}}>{user?.name||user?.email}</div>
                           <div style={{fontSize:10,color:"#4a5161",marginTop:2}}>{user?.email}</div>

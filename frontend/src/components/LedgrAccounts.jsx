@@ -42,38 +42,37 @@ const CSS = `
   .la-tb-right{display:flex;align-items:center;gap:14px;}
   .la-search{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--ink-3);font-family:var(--font-mono);display:flex;align-items:center;gap:8px;min-width:240px;}
   .la-kbd{margin-left:auto;font-size:10px;padding:1px 6px;background:var(--bg-3);border-radius:4px;color:var(--ink-3);}
-  .la-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);font-weight:500;flex-shrink:0;}
   .la-btn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 14px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;transition:.15s;}
   .la-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
   .la-btn.primary{background:var(--safe-bg);border-color:rgba(93,202,165,0.4);color:var(--safe);}
   .la-btn.danger{background:var(--debt-bg);border-color:rgba(232,115,99,0.3);color:var(--debt);}
-  .la-content{padding:24px 32px;}
-  .la-hero{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--line);}
+  .la-content{padding:40px;}
+  .la-hero{margin-bottom:40px;padding-bottom:32px;border-bottom:1px solid var(--line);}
   .la-hero-eye{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;}
-  .la-hero-num{font-family:var(--font-display);font-size:48px;line-height:0.9;letter-spacing:-1.5px;color:var(--ink-0);margin-bottom:8px;}
+  .la-hero-num{font-family:var(--font-display);font-size:72px;line-height:0.9;letter-spacing:-2px;color:var(--ink-0);margin-bottom:12px;}
   .la-hero-sub{font-size:14px;color:var(--ink-2);line-height:1.6;}
-  .la-groups{display:flex;flex-direction:column;gap:10px;}
+  .la-groups{display:flex;flex-direction:column;gap:16px;}
   .la-group{border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;}
   .la-group-seam{height:2px;}
-  .la-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--line);}
+  .la-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--line);}
   .la-group-left{display:flex;align-items:center;gap:10px;}
-  .la-group-name{font-size:13px;font-weight:600;}
+  .la-group-name{font-size:14px;font-weight:600;}
   .la-group-count{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);}
   .la-group-right{display:flex;align-items:center;gap:10px;}
-  .la-group-total{font-family:var(--font-mono);font-size:13px;font-weight:500;color:var(--ink-1);}
+  .la-group-total{font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--ink-1);}
   .la-stale-bar{padding:10px 20px;background:rgba(232,115,99,0.05);border-bottom:1px solid rgba(232,115,99,0.1);font-size:12px;color:var(--ink-3);}
   .la-acct-grid{display:grid;}
-  .la-acct-card{padding:12px 16px;border-bottom:1px solid var(--line);}
+  .la-acct-card{padding:20px 24px;border-bottom:1px solid var(--line);}
   .la-acct-card:last-child{border-bottom:none;}
-  .la-acct-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
+  .la-acct-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
   .la-acct-name{font-size:13px;color:var(--ink-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .la-acct-actions{display:flex;gap:6px;flex-shrink:0;}
-  .la-balance{font-family:var(--font-display);font-size:26px;line-height:1;letter-spacing:-0.5px;color:var(--ink-0);margin-bottom:4px;}
+  .la-balance{font-family:var(--font-display);font-size:40px;line-height:1;letter-spacing:-1px;color:var(--ink-0);margin-bottom:6px;}
   .la-balance.neg{color:var(--debt);}
-  .la-acct-type{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);margin-bottom:6px;}
+  .la-acct-type{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);margin-bottom:12px;}
   .la-pills{display:flex;gap:6px;flex-wrap:wrap;}
   .la-pill{display:inline-flex;align-items:center;font-size:10px;padding:3px 10px;border-radius:99px;font-family:var(--font-mono);}
-  .la-empty{padding:48px;text-align:center;color:var(--ink-3);}
+  .la-empty{padding:80px;text-align:center;color:var(--ink-3);}
   .la-empty-title{font-family:var(--font-display);font-size:28px;color:var(--ink-2);margin-bottom:6px;}
   @media(max-width:700px){.la-wrap{padding:0;}.la-topbar,.la-content{padding-left:16px;padding-right:16px;}.la-hero-num{font-size:48px;}.la-balance{font-size:28px;}}
 `;
@@ -86,7 +85,7 @@ function daysInMonth(y,m){return new Date(y,m,0).getDate();}
 export default function LedgrAccounts({
   accounts=[],plaidItems=[],staleItemIds=new Set(),spentByAcct={},monthTxns=[],
   openAddAcct,openEditAcct,deleteAcct,disconnectItem,doSync,syncing=false,
-  reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,existingInstitutions=[],showToast=()=>{},
+  reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,showToast=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
@@ -136,8 +135,7 @@ export default function LedgrAccounts({
                   <span className="la-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="la-tb-right">
-                  <div className="la-avatar">{initials}</div>
-                  {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" showToast={showToast} existingInstitutions={existingInstitutions} style={{}}/>}
+                  {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" showToast={showToast} style={{}}/>}
                   <button className="la-btn" onClick={openAddAcct}>+ Manual</button>
                 </div>
               </div>

@@ -123,7 +123,6 @@ const CSS = `
   .lt-tb-div{width:1px;height:14px;background:var(--line-2);flex-shrink:0;}
   .lt-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
   .lt-tb-right{display:flex;align-items:center;gap:10px;}
-  .lt-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);font-weight:500;flex-shrink:0;}
 
   /* Filter bar */
   .lt-filters {
@@ -519,7 +518,6 @@ export default function LedgrTransactions({
                   <span className="lt-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="lt-tb-right">
-                  <div className="lt-avatar">{initials}</div>
                   <button className="lt-btn primary" onClick={openAddTxn}>+ Add</button>
                 </div>
               </div>

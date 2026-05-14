@@ -41,7 +41,7 @@ const CSS = `
   .lb-nav-item:hover{color:var(--ink-1);background:var(--bg-2);}
   .lb-nav-item.active{color:var(--safe);background:var(--safe-bg);}
   .lb-nav-spacer{flex:1;}
-  .lb-agenda{border-right:1px solid var(--line);background:var(--bg-1);padding:24px 22px;overflow-y:auto;}
+  .lb-agenda{border-right:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;}
   @media(max-width:1100px){.lb-agenda{display:none;}}
   .lb-cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .lb-cal-title{font-family:var(--font-display);font-size:20px;letter-spacing:-0.3px;}
@@ -88,7 +88,6 @@ const CSS = `
   .lb-tb-div{width:1px;height:14px;background:var(--line-2);flex-shrink:0;}
   .lb-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
   .lb-tb-right{display:flex;align-items:center;gap:14px;}
-  .lb-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);font-weight:500;flex-shrink:0;}
   .lb-eyebrow{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:8px;}
   .lb-headline{font-family:var(--font-display);font-size:56px;line-height:1.02;letter-spacing:-1.5px;font-weight:400;margin-bottom:24px;transition:color .3s;}
   .lb-headline em{font-style:italic;color:var(--safe);}
@@ -129,9 +128,9 @@ const CSS = `
   .lb-led.warn{background:var(--warn);}
 
   /* story headline */
-  .lb-story-head{font-family:var(--font-display);font-size:32px;line-height:1.15;letter-spacing:-0.8px;font-weight:400;margin-bottom:24px;white-space:nowrap;}
+  .lb-story-head{font-family:var(--font-display);font-size:60px;line-height:0.98;letter-spacing:-2px;font-weight:400;margin-bottom:24px;}
   .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
-  @media(max-width:900px){.lb-story-head{font-size:22px;letter-spacing:-0.3px;white-space:normal;}}
+  @media(max-width:900px){.lb-story-head{font-size:40px;letter-spacing:-1px;}}
 
   /* gauge + pool callout */
   .lb-story-callout{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;}
@@ -142,7 +141,7 @@ const CSS = `
   .lb-gauge-pct{font-family:var(--font-display);font-size:48px;letter-spacing:-1.5px;line-height:1;transition:color .3s;}
   .lb-gauge-sub{font-size:12px;color:var(--ink-2);margin-top:6px;font-family:var(--font-mono);}
   .lb-pools{display:flex;flex-direction:column;gap:12px;}
-  .lb-pool-card{display:grid;grid-template-columns:6px 1fr auto;gap:16px;align-items:center;padding:16px 20px;border-radius:var(--r-lg);border:1px solid var(--line);position:relative;overflow:visible;}
+  .lb-pool-card{display:grid;grid-template-columns:6px 1fr auto;gap:16px;align-items:center;padding:20px 20px;border-radius:var(--r-lg);border:1px solid var(--line);}
   .lb-pool-card.lb-pool-free{background:linear-gradient(180deg,rgba(93,202,165,0.06),rgba(93,202,165,0.01));border-color:rgba(93,202,165,0.22);}
   .lb-pool-card.lb-pool-locked{background:var(--bg-2);}
   .lb-pool-stripe{width:4px;border-radius:2px;height:40px;flex-shrink:0;}
@@ -155,10 +154,6 @@ const CSS = `
   .lb-pool-v{font-family:var(--font-display);font-size:32px;letter-spacing:-1px;transition:color .3s;}
   .lb-pool-card.lb-pool-free .lb-pool-v{color:var(--safe);}
   .lb-pool-card.lb-pool-locked .lb-pool-v{color:var(--ink-0);}
-  .lb-pool-card.lb-pool-income{background:linear-gradient(180deg,rgba(108,140,255,0.06),rgba(108,140,255,0.01));border-color:rgba(108,140,255,0.2);}
-  .lb-pool-card.lb-pool-income .lb-pool-stripe{background:var(--calm);}
-  .lb-pool-card.lb-pool-income .lb-pool-nm{color:var(--calm);}
-  .lb-pool-card.lb-pool-income .lb-pool-v{color:var(--calm);}
 
   /* what-if section */
   .lb-whatif{margin-top:24px;}
@@ -340,26 +335,11 @@ export default function LedgrBriefing({
   apiBase="https://ledgr-production-9e35.up.railway.app",
   authHeaders=()=>({}),
   doSync=null,syncing=false,
-  userName="",
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
-  // Account selector state — must be declared before selectedBal useMemo
-  const[acctPopoverOpen,setAcctPopoverOpen]=useState(false);
-  const[selectedAcctIds,setSelectedAcctIds]=useState(()=>{
-    try{
-      const saved=localStorage.getItem("ledgr_free_accts");
-      if(saved) return JSON.parse(saved);
-    }catch{}
-    return accounts.map(a=>a.id);
-  });
-
-  // Balance based on user-selected accounts for the Free calculation
-  const selectedBal = useMemo(()=>
-    accounts.filter(a=>selectedAcctIds.includes(a.id)).reduce((s,a)=>s+(a.balance||0),0),
-  [accounts,selectedAcctIds]);
-  const checkingBal = selectedBal; // keep downstream references intact
+  const checkingBal =useMemo(()=>accounts.filter(a=>a.type==="checking").reduce((s,a)=>s+(a.balance||0),0),[accounts]);
   const curY=today.getFullYear(),curM=today.getMonth()+1;
 
   const upcomingBills=useMemo(()=>recurringItems.filter(r=>{
@@ -391,39 +371,6 @@ export default function LedgrBriefing({
   const pressurePct =checkingBal>0?Math.max(0,Math.min(1,safeToSpend/checkingBal)):0;
   const pressureLabel=pressurePct>0.5?"safe":pressurePct>0.25?"moderate":"tight";
   const goalsSaved  =useMemo(()=>goals.reduce((s,g)=>s+(g.savedAmount||0),0),[goals]);
-
-  // Projected spend = sum of max(category.limit, actual_spent) per category
-  const budgetIncOverspent = useMemo(() => categories.reduce((s, c) => {
-    const spent = monthTxns.filter(t => t.categoryId === c.id && t.amount < 0)
-      .reduce((a, t) => a + Math.abs(t.amount), 0);
-    return s + Math.max(c.limit || 0, spent);
-  }, 0), [categories, monthTxns]);
-  // Income expected for the rest of the current month
-  const remainingMonthIncome = useMemo(() => {
-    const todayDay = today.getDate();
-    return recurringItems
-      .filter(r => r.type === "income" && r.recurringDay)
-      .filter(r => {
-        const day = parseInt(r.recurringDay);
-        // Include if not yet paid this month (no linked txn in current month)
-        const paidThisMonth = (r.linkedTxnIds || []).some(id => {
-          const t = monthTxns.find(x => x.id === id);
-          if (!t?.date) return false;
-          const [ty, tm] = t.date.split("-").map(Number);
-          return ty === curY && tm === curM;
-        });
-        return day > todayDay && !paidThisMonth;
-      })
-      .reduce((s, r) => s + (r.amountMin || 0), 0);
-  }, [recurringItems, monthTxns, today, curY, curM]);
-
-  // Overspent = sum of how much each category has exceeded its limit
-  const overspentTotal = useMemo(() => categories.reduce((s, c) => {
-    if (!c.limit) return s;
-    const spent = monthTxns.filter(t => t.categoryId === c.id && t.amount < 0)
-      .reduce((a, t) => a + Math.abs(t.amount), 0);
-    return s + Math.max(0, spent - c.limit);
-  }, 0), [categories, monthTxns]);
 
   const billDays=useMemo(()=>{const s=new Set();recurringItems.filter(r=>r.type!=="income"&&r.recurringDay).forEach(r=>s.add(parseInt(r.recurringDay)));return s;},[recurringItems]);
   const incDays =useMemo(()=>{const s=new Set();recurringItems.filter(r=>r.type==="income"&&r.recurringDay).forEach(r=>s.add(parseInt(r.recurringDay)));return s;},[recurringItems]);
@@ -558,19 +505,11 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
   function handleAiKey(e){if(e.key==="Enter") askScenario();}
 
-  function toggleAcct(id){
-    setSelectedAcctIds(prev=>{
-      const next=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];
-      try{localStorage.setItem("ledgr_free_accts",JSON.stringify(next));}catch{}
-      return next;
-    });
-  }
-
   function selectCard(i){setSelIdx(prev=>prev===i?null:i);}
   function clearCard(e,i){e.stopPropagation();if(selIdx===i)setSelIdx(null);}
 
   // ── Display helpers ────────────────────────────────────────────
-  const initials=userName?userName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase():(accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME");
+  const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
   const halfIncome=nextPay?(nextPay.amountMin||0):totalIncome/2;
   const halfBills=billsTotal/2;
   const timeLabel=`${DN[today.getDay()]}, ${MN[today.getMonth()]} ${today.getDate()} · ${today.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`;
@@ -605,10 +544,10 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
             <aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
-                <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
                 <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
-                <div className="lb-mrow"><span className="l">Overspent</span><span className="v" style={{color:overspentTotal>0?"var(--debt)":"var(--ink-3)"}}>{overspentTotal>0?`−${fmt(overspentTotal)}`:"—"}</span></div>
-                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"var(--warn)"}}>{fmt(budgetIncOverspent)}</span></div>
+                <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
+                <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(totalSpent)}</span></div>
+                <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
               </div>
               <div className="lb-pc-lbl">Paycheck planning</div>
               {[
@@ -677,20 +616,21 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                   <span className="lb-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="lb-tb-right">
-                  <div className="lb-avatar" onClick={()=>navigate("settings")} style={{cursor:"pointer"}} title="Settings">{initials}</div>
                 </div>
               </div>
 
               {/* hero */}
               <div style={{marginBottom:40}}>
                 <div className="lb-eyebrow">
-                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{userName?`, ${userName.split(" ")[0]}`:""} · the headline
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"} · the headline
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
 
                 {/* Story-style headline */}
                 <h2 className="lb-story-head">
-                  You’re sitting on <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span> that’s actually yours.
+                  You’re sitting on<br/>
+                  <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span><br/>
+                  that’s actually yours.
                 </h2>
 
                 {/* Narrative deck */}
@@ -702,7 +642,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                 </p>
 
                 {/* Gauge + Pool cards side by side */}
-                <div className="lb-story-callout" onClick={()=>setAcctPopoverOpen(false)}>
+                <div className="lb-story-callout">
                   {/* Left: pressure gauge with % readout */}
                   <div className="lb-gauge-card">
                     <div className="lb-gauge-lbl">Pressure · how tight things feel</div>
@@ -719,42 +659,9 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                   <div className="lb-pools">
                     <div className="lb-pool-card lb-pool-free">
                       <div className="lb-pool-stripe"/>
-                      <div style={{minWidth:0}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                          <div className="lb-pool-nm" style={{margin:0}}>Free · yours</div>
-                          <button className="lb-acct-sel-btn" onClick={e=>{e.stopPropagation();setAcctPopoverOpen(p=>!p);}}>
-                            {selectedAcctIds.length} acct{selectedAcctIds.length!==1?"s":""} ⚙
-                          </button>
-                        </div>
-                        <div className="lb-pool-desc" style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:11}}>
-                          {accounts.filter(a=>selectedAcctIds.includes(a.id)).map(a=>a.name||a.type).join(", ")||"no accounts selected"}
-                        </div>
-                        {acctPopoverOpen&&(
-                          <div onClick={e=>e.stopPropagation()}
-                            style={{position:"absolute",top:"calc(100% + 6px)",left:0,width:280,zIndex:300,
-                              background:"var(--bg-2)",border:"1px solid var(--line-2)",borderRadius:"var(--r-md)",
-                              padding:"12px",boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
-                            <div style={{fontSize:9,letterSpacing:"1.4px",textTransform:"uppercase",color:"var(--ink-3)",marginBottom:10}}>Include in free balance</div>
-                            {accounts.map(a=>{
-                              const on=selectedAcctIds.includes(a.id);
-                              return(
-                                <div key={a.id} onClick={()=>toggleAcct(a.id)}
-                                  style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:6,cursor:"pointer",
-                                    background:on?"rgba(93,202,165,0.1)":"transparent",
-                                    border:`1px solid ${on?"rgba(93,202,165,0.3)":"transparent"}`,
-                                    marginBottom:3}}>
-                                  <div style={{width:14,height:14,borderRadius:3,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
-                                    background:on?"var(--safe)":"transparent",
-                                    border:`1.5px solid ${on?"var(--safe)":"var(--ink-4)"}`}}>
-                                    {on&&<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="#07090d" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                  </div>
-                                  <span style={{flex:1,fontSize:11,color:on?"var(--safe)":"var(--ink-2)",fontWeight:on?500:400}}>{a.name||a.type}</span>
-                                  <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:on?"var(--safe)":"var(--ink-4)"}}>{fmt(a.balance||0)}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                      <div>
+                        <div className="lb-pool-nm">Free · yours</div>
+                        <div className="lb-pool-desc">spend without thinking</div>
                       </div>
                       <div className="lb-pool-v">{fmt(displaySafe)}</div>
                     </div>
@@ -762,11 +669,10 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                       <div className="lb-pool-stripe"/>
                       <div>
                         <div className="lb-pool-nm">Vault · spoken for</div>
-                        <div className="lb-pool-desc">spoken for the rest of the month</div>
+                        <div className="lb-pool-desc">bills, cushion, goals</div>
                       </div>
                       <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
                     </div>
-
                   </div>
                 </div>
               </div>

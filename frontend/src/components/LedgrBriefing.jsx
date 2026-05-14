@@ -607,9 +607,16 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                   <em style={{color:safeColor}}>{fmt(displaySafe)}</em> truly free.
                 </h2>
                 <p className="lb-deck">
-                  {daysLeft!=null?<>That's <em className="amt">{daysLeft} day{daysLeft!==1?"s":""}</em> of room until your next paycheck{nextPayDay?` on ${MN[today.getMonth()]} ${nextPayDay}`:""}.&nbsp;</>:<>Your funds are calculated across all accounts.&nbsp;</>}
-                  You've got <em className="debt">{fmt(billsTotal)}</em> in scheduled bills accounted for. The pressure gauge is <em className="amt">{displayLabel}</em>.{" "}
-                  {upcomingBills.length===0?"No surprises in the queue.":`${upcomingBills.length} item${upcomingBills.length>1?"s":""} upcoming.`}
+                  <span style={{display:"block"}}>
+                    {daysLeft!=null?<>That's <em className="amt">{daysLeft} day{daysLeft!==1?"s":""}</em> of room until your next paycheck{nextPayDay?` on ${MN[today.getMonth()]} ${nextPayDay}`:""}.&nbsp;</>:<>Your funds are calculated across all accounts.</>}
+                  </span>
+                  <span style={{display:"block"}}>
+                    You've got <em style={{fontStyle:"normal",fontFamily:"var(--font-mono)",color:"var(--debt)"}}>{fmt(billsTotal)}</em> in scheduled bills accounted for.
+                  </span>
+                  <span style={{display:"block"}}>
+                    The pressure gauge is <em style={{fontStyle:"normal",fontFamily:"var(--font-mono)",color:displayLabel==="safe"?"var(--safe)":displayLabel==="ahead"?"var(--calm)":"var(--debt)"}}>{displayLabel}</em>.{" "}
+                    {upcomingBills.length===0?"No surprises in the queue.":`${upcomingBills.length} item${upcomingBills.length>1?"s":""} upcoming.`}
+                  </span>
                 </p>
 
                 {/* callout */}

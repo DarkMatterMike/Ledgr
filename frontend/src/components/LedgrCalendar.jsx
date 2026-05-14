@@ -322,7 +322,7 @@ export default function LedgrCalendar({
                   </div>
                 );
               })}
-              <div className="lc-ri-add" onClick={openNewRecurringItem}>+ Add Recurring Item</div>
+              <div className="lc-ri-add" onClick={()=>{setSelectedRiId('__new__');setSelectedTxn(null);setRiForm({name:"",amountMin:"",amountMax:"",recurringDay:"",recurringFreq:"monthly",recurringStart:"",categoryId:"",accountId:"",type:"expense"});}}>+ Add Recurring Item</div>
             </aside>
 
             {/* ── right agenda ── */}

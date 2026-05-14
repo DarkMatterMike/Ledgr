@@ -600,14 +600,18 @@ export default function LedgrAnalytics({
 
   /* ── narrative headline ───────────────────────────────── */
   const narrativeHL = useMemo(() => {
-    const sr = savingsRate!=null ? `saving ${savingsRate}%` : "tracking spending";
-    const budgetOk = chronicCats.length===0 ? "budget is on track" : null;
+    const budgetOk = chronicCats.length === 0;
+    const savingsOk = savingsRate == null || savingsRate >= 0;
     const worstName = worstChronic?.cat?.name;
     const worstMonths = worstChronic?.overCount;
-    if (worstName && !budgetOk) {
-      return {text: `You're ${sr} of income — but ${worstName} has been over limit for ${worstMonths} of the last 6 months.`, warn: worstName};
-    }
-    return {text: `You're ${sr} of income and your budget is on track across all categories.`, warn: null};
+    const savingsCopy = savingsRate == null
+      ? null
+      : savingsRate < 0
+        ? `spending ${Math.abs(savingsRate)}% more than you earn`
+        : `saving ${savingsRate}% of income`;
+    return { savingsCopy, warnCategory: !budgetOk ? worstName : null,
+             warnSavings: savingsRate != null && savingsRate < 0,
+             worstMonths, budgetOk, savingsOk };
   }, [savingsRate, chronicCats, worstChronic]);
 
   /* ── AI insights ──────────────────────────────────────── */
@@ -727,14 +731,22 @@ export default function LedgrAnalytics({
                 {/* narrative summary */}
                 <div className="la-summary-col">
                   <div className="la-summary-hl">
-                    {savingsRate!=null
-                      ? <>You're saving <em style={{color:"var(--safe)"}}>{savingsRate}%</em> of income
-                          {narrativeHL.warn
-                            ? <> — but <em style={{color:"var(--warn)"}}>{narrativeHL.warn}</em> has been over budget <em style={{color:"var(--debt)"}}>{worstChronic?.overCount} months straight.</em></>
+                    {narrativeHL.savingsCopy != null ? (
+                      <>
+                        You're{" "}
+                        <em style={{color: narrativeHL.warnSavings ? "var(--debt)" : "var(--safe)"}}>
+                          {narrativeHL.savingsCopy}
+                        </em>
+                        {narrativeHL.warnCategory
+                          ? <> — and <em style={{color:"var(--warn)"}}>{narrativeHL.warnCategory}</em> <em style={{color:"var(--debt)"}}>has been over budget {narrativeHL.worstMonths} months straight.</em></>
+                          : narrativeHL.warnSavings
+                            ? <> — <em style={{color:"var(--debt)"}}>you're spending more than you earn.</em></>
                             : <> and your <em style={{color:"var(--safe)"}}>budget is on track.</em></>
-                          }</>
-                      : <>Set a monthly income target to unlock full financial insights.</>
-                    }
+                        }
+                      </>
+                    ) : (
+                      <>Set a monthly income target to unlock full financial insights.</>
+                    )}
                   </div>
                   <div className="la-sstats">
                     <div className="la-sstat" style={{borderColor:"var(--debt)"}}>
@@ -742,17 +754,17 @@ export default function LedgrAnalytics({
                       <div className="sv" style={{color:"var(--debt)"}}>{fmt(thisMonthD?.spending||0)}</div>
                       <div className="ss">day {dayOfMonth} of {daysInMonth}</div>
                     </div>
-                    <div className="la-sstat" style={{borderColor:"var(--warn)"}}>
+                    <div className="la-sstat" style={{borderColor:totalBudget>0&&projectedSpend>totalBudget?"var(--debt)":"var(--warn)"}}>
                       <div className="sl">Projected month</div>
-                      <div className="sv" style={{color:"var(--warn)"}}>{fmt(projectedSpend)}</div>
+                      <div className="sv" style={{color:totalBudget>0&&projectedSpend>totalBudget?"var(--debt)":"var(--warn)"}}>{fmt(projectedSpend)}</div>
                       <div className="ss">of {fmt(totalBudget)} budget</div>
                     </div>
-                    <div className="la-sstat" style={{borderColor:"var(--calm)"}}>
+                    <div className="la-sstat" style={{borderColor:currentNetWorth>=0?"var(--calm)":"var(--debt)"}}>
                       <div className="sl">Net worth</div>
-                      <div className="sv" style={{color:"var(--calm)"}}>{fmt(currentNetWorth)}</div>
+                      <div className="sv" style={{color:currentNetWorth>=0?"var(--calm)":"var(--debt)"}}>{fmt(currentNetWorth)}</div>
                       <div className="ss">all accounts</div>
                     </div>
-                    <div className="la-sstat" style={{borderColor:"var(--safe)"}}>
+                    <div className="la-sstat" style={{borderColor:monthlySv>=0?"var(--safe)":"var(--debt)"}}>
                       <div className="sl">Avg saved/mo</div>
                       <div className="sv" style={{color:monthlySv>=0?"var(--safe)":"var(--debt)"}}>{monthlySv>=0?"+":""}{fmt(monthlySv)}</div>
                       <div className="ss">income − expenses</div>

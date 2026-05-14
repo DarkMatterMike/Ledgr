@@ -231,8 +231,13 @@ function useIsMobile() {
     @keyframes ledgr-modal-in { from { opacity:0; transform:scale(0.97) translateY(6px); } to { opacity:1; transform:scale(1) translateY(0); } }
     .ledgr-modal-anim { animation: ledgr-modal-in 0.2s cubic-bezier(0.22,1,0.36,1) both; }
 
-    @keyframes ledgr-logo-pulse { 0%,100% { opacity:1; } 50% { opacity:0.75; } }
-    .ledgr-logo-pulse { animation: ledgr-logo-pulse 3s ease-in-out infinite; }
+    @keyframes ll-orb-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.94)} }
+    @keyframes ll-bar-slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
+    @keyframes ll-fade-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .ll-orb{animation:ll-orb-pulse 2.4s ease-in-out infinite;}
+    .ll-bar{animation:ll-bar-slide 1.4s ease-in-out infinite;}
+    .ll-fade{animation:ll-fade-in .5s ease both;}
+    .ll-fade2{animation:ll-fade-in .5s .15s ease both;}
 
     @keyframes ledgr-pulse-glow {
       0%,100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
@@ -508,7 +513,7 @@ function useDashboardColumns(defaultCols, scheduleSaveRef, setDefaultCols) {
   return { cols, moveItem, moveToCol };
 }
 
-function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast, existingInstitutions=[] }) {
+function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const fetchToken = useCallback(async () => {
@@ -520,15 +525,7 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null,
       else console.error("[PlaidButton]", msg);
     } finally { setLoading(false); }
   }, [products, itemId, showToast]);
-  const handleSuccess = useCallback((pt, meta) => {
-    const instName = meta?.institution?.name || "";
-    // Warn if this institution is already connected — prevents accidental duplicates
-    if (instName && existingInstitutions.some(i => i.toLowerCase() === instName.toLowerCase())) {
-      if (!window.confirm(`${instName} is already connected. Link again anyway? This may create duplicate accounts.`)) return;
-    }
-    onSuccess(pt, instName);
-  }, [onSuccess, existingInstitutions]);
-  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:handleSuccess, onExit });
+  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
     <button
@@ -1613,6 +1610,15 @@ function AppInner({ isDemo = false }) {
   const [reconnectingItemId, setReconnectingItemId] = useState(null);
   const [rules,         setRules]         = useState([]);
   const [loading,       setLoading]       = useState(true);
+  // showLoading stays true for a brief window after data loads so the boot
+  // auto-sync can run behind the loading screen — prevents the visible data "reload"
+  const [showLoading,   setShowLoading]   = useState(true);
+  useEffect(() => {
+    if (!loading) {
+      const t = setTimeout(() => setShowLoading(false), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [loading]);
   const [modal,         setModal]         = useState(null);
   const [editTarget,    setEditTarget]    = useState(null);
   const [toast,         setToast]         = useState("");
@@ -4448,7 +4454,6 @@ function AppInner({ isDemo = false }) {
       setReconnectingItemId={setReconnectingItemId}
       handlePlaidSuccess={handlePlaidSuccess}
       PlaidButton={PlaidButton}
-      existingInstitutions={plaidItems.map(i=>i.institution||"")}
       showToast={showToast}
       fmt={fmt}
       today={today}
@@ -5136,14 +5141,23 @@ function AppInner({ isDemo = false }) {
     ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, admin:AdminPage, dani:DaniPageView }
     : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, admin:AdminPage, dani:DaniPageView };
 
-  if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>
-      <div style={{fontFamily:"var(--font-script)",fontSize:52,fontWeight:700,lineHeight:1,background:"linear-gradient(135deg, var(--grad-a), var(--grad-b))",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}} className="ledgr-logo-pulse">ℓ</div>
-      <div style={{position:"relative",display:"inline-block"}}>
-        <div style={{fontFamily:"'Syne', sans-serif",fontSize:20,fontWeight:700,color:"var(--t1)",letterSpacing:"-0.5px"}}>ledgr<span style={{color:"var(--cyan)"}}>.</span></div>
-        <div className="ledgr-loading-bar"/>
+  if (showLoading) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#07090d",flexDirection:"column"}}>
+      <div className="ll-orb" style={{width:44,height:44,borderRadius:"50%",background:"#085041",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20}}>
+        <div style={{width:18,height:18,borderRadius:"50%",background:"#5dcaa5"}}/>
       </div>
-      <div style={{fontSize:12,color:"var(--t3)",marginTop:4}}>Loading your data…</div>
+      <div className="ll-fade" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:36,letterSpacing:"-1px",color:"#f4f4f1",lineHeight:1,marginBottom:6}}>
+        your <em style={{fontStyle:"italic",color:"#5dcaa5"}}>money</em>, told plainly.
+      </div>
+      <div className="ll-fade2" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:"2px",textTransform:"uppercase",color:"#4a5161",marginBottom:28}}>
+        ledgr finance
+      </div>
+      <div style={{width:120,height:1,background:"#161c26",borderRadius:1,overflow:"hidden",position:"relative"}}>
+        <div className="ll-bar" style={{position:"absolute",inset:0,width:40,background:"#5dcaa5",borderRadius:1}}/>
+      </div>
+      <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#2e3340",marginTop:16,letterSpacing:"0.5px"}}>
+        loading your data…
+      </div>
     </div>
   );
 
@@ -5172,7 +5186,6 @@ function AppInner({ isDemo = false }) {
       authHeaders={() => ({ "Authorization": `Bearer ${api.getToken()}`, "Content-Type": "application/json" })}
       doSync={doSync}
       syncing={syncing}
-      userName={api.getStoredUser()?.name || api.getStoredUser()?.email || ""}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}

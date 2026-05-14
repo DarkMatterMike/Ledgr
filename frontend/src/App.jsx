@@ -5652,7 +5652,8 @@ function AppInner({ isDemo = false }) {
   );
 
   if (view === "transactions") return (
-    <LedgrTransactions
+    <>
+      <LedgrTransactions
       transactions={transactions}
       filteredTxns={filteredTxns}
       categories={categories}
@@ -5687,10 +5688,13 @@ function AppInner({ isDemo = false }) {
       isMobile={isMobile}
       navigate={navigate}
     />
+      {modal==="addTxn" && TxnModal}
+    </>
   );
 
   if (view === "accounts") return (
-    <LedgrAccounts
+    <>
+      <LedgrAccounts
       accounts={accounts}
       plaidItems={plaidItems}
       staleItemIds={staleItemIds}
@@ -5711,10 +5715,13 @@ function AppInner({ isDemo = false }) {
       isMobile={isMobile}
       navigate={navigate}
     />
+      {(modal==="addAcct"||modal==="editAcct") && AcctModal}
+    </>
   );
 
   if (view === "budgets") return (
-    <LedgrBudgets
+    <>
+      <LedgrBudgets
       categories={categories}
       sortedCategories={sortedCategories}
       spentByCat={spentByCat}
@@ -5746,28 +5753,33 @@ function AppInner({ isDemo = false }) {
       hasApiKey={aiChat.hasApiKey}
       showToast={showToast}
     />
+      {(modal==="addCat"||modal==="editCat") && CatModal}
+    </>
   );
 
   if (view === "calendar") return (
-    <LedgrCalendar
-      accounts={accounts}
-      calendarMonth={calendarMonth}
-      calendarTxnsByDay={calendarTxnsByDay}
-      recurringItems={recurringItems}
-      transactions={transactions}
-      monthTxns={monthTxns}
-      catMap={catMap}
-      acctMap={acctMap}
-      prevCalMonth={prevCalMonth}
-      nextCalMonth={nextCalMonth}
-      openNewRecurringItem={openNewRecurringItem}
-      openEditRecurringItem={openEditRecurringItem}
-      linkTxnToRecurringItem={linkTxnToRecurringItem}
-      fmt={fmt}
-      today={today}
-      isMobile={isMobile}
-      navigate={navigate}
-    />
+    <>
+      <LedgrCalendar
+        accounts={accounts}
+        calendarMonth={calendarMonth}
+        calendarTxnsByDay={calendarTxnsByDay}
+        recurringItems={recurringItems}
+        transactions={transactions}
+        monthTxns={monthTxns}
+        catMap={catMap}
+        acctMap={acctMap}
+        prevCalMonth={prevCalMonth}
+        nextCalMonth={nextCalMonth}
+        openNewRecurringItem={openNewRecurringItem}
+        openEditRecurringItem={openEditRecurringItem}
+        linkTxnToRecurringItem={linkTxnToRecurringItem}
+        fmt={fmt}
+        today={today}
+        isMobile={isMobile}
+        navigate={navigate}
+      />
+      {RecurringItemModal}
+    </>
   );
 
   return (

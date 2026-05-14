@@ -66,31 +66,26 @@ const CSS = `
   .lc-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);font-weight:500;flex-shrink:0;}
   .lc-nav-btn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;transition:.15s;}
   .lc-nav-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
-  .lc-agenda{padding:32px 40px;flex:1;}
-  .lc-aday{margin-bottom:24px;}
-  .lc-aday-hdr{display:grid;grid-template-columns:56px 1fr;gap:0;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:12px;}
-  .lc-aday-num{font-family:var(--font-display);font-size:32px;line-height:1;color:var(--ink-2);}
-  .lc-aday-num.today{color:var(--safe);}
-  .lc-aday-dow{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-3);margin-top:4px;}
-  .lc-event{display:flex;justify-content:space-between;align-items:center;padding:8px 0 8px 56px;}
-  .lc-event-left{display:flex;align-items:center;gap:10px;}
-  .lc-event-ico{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
-  .lc-event-ico.bill{background:var(--debt-bg);color:var(--debt);}
-  .lc-event-ico.income{background:var(--safe-bg);color:var(--safe);}
-  .lc-event-ico.rec{background:var(--calm-bg);color:var(--calm);}
-  .lc-event-ico.txn{background:rgba(255,255,255,0.05);color:var(--ink-2);}
-  .lc-event-name{font-size:13px;color:var(--ink-0);line-height:1.2;}
-  .lc-event-sub{font-size:10px;color:var(--ink-3);}
-  .lc-event-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
-  .lc-event-amt{font-family:var(--font-mono);font-size:12px;}
+  .lc-agenda{padding:24px 32px;flex:1;}
+  .lc-aday{margin-bottom:2px;}
+  .lc-aday-hdr{display:flex;align-items:center;gap:8px;padding:5px 0;margin-bottom:2px;}
+  .lc-day-chip{font-family:var(--font-mono);font-size:11px;font-weight:500;color:var(--ink-3);min-width:42px;white-space:nowrap;}
+  .lc-day-chip.today{color:var(--safe);}
+  .lc-today-pill{font-family:var(--font-mono);font-size:9px;font-weight:600;background:var(--safe);color:#07090d;border-radius:99px;padding:2px 9px;letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;}
+  .lc-day-rule{flex:1;height:1px;background:rgba(255,255,255,0.04);}
+  .lc-day-rule.today{background:rgba(93,202,165,0.3);}
+  .lc-event{display:flex;align-items:center;gap:7px;padding:4px 0 4px 42px;}
+  .lc-event-bar{width:4px;height:26px;border-radius:2px;flex-shrink:0;}
+  .lc-event-body{flex:1;min-width:0;display:flex;align-items:center;gap:5px;}
+  .lc-event-name{font-size:12px;color:var(--ink-1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lc-event-tag{font-size:9px;padding:1px 5px;border-radius:4px;font-family:var(--font-mono);flex-shrink:0;}
+  .lc-event-tag.posted{background:var(--safe-bg);color:var(--safe);}
+  .lc-event-tag.upcoming{background:var(--warn-bg);color:var(--warn);}
+  .lc-event-tag.rec{background:var(--calm-bg);color:var(--calm);}
+  .lc-event-amt{font-family:var(--font-mono);font-size:12px;font-weight:500;flex-shrink:0;}
   .lc-event-amt.income{color:var(--safe);}
   .lc-event-amt.expense{color:var(--debt);}
-  .lc-event-status{font-size:9px;padding:1px 6px;border-radius:4px;}
-  .lc-event-status.posted{background:var(--safe-bg);color:var(--safe);}
-  .lc-event-status.upcoming{background:var(--warn-bg);color:var(--warn);}
-  .lc-today-marker{background:rgba(93,202,165,0.05);border-left:2px solid var(--safe);padding:6px 12px;margin:0 0 8px 56px;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--safe);display:inline-flex;align-items:center;gap:8px;}
-  .lc-today-marker::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);}
-  .lc-empty-day{padding:6px 0 6px 56px;font-size:12px;color:var(--ink-4);font-style:italic;}
+  .lc-empty-day{padding:3px 0 3px 42px;font-size:11px;color:var(--ink-4);font-style:italic;}
 `;
 
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -228,43 +223,43 @@ export default function LedgrCalendar({
                   const dow=DN[new Date(cy,cm-1,d).getDay()];
                   return (
                     <div key={d} className="lc-aday">
+                      {/* condensed day header */}
                       <div className="lc-aday-hdr">
-                        <div>
-                          <div className={`lc-aday-num${isToday?" today":""}`}>{d}</div>
-                          <div className="lc-aday-dow" style={{color:isToday?"var(--safe)":"var(--ink-3)"}}>{dow}</div>
-                        </div>
-                        <div/>
+                        <span className={`lc-day-chip${isToday?" today":""}`}>{dow} {d}</span>
+                        {isToday&&<span className="lc-today-pill">today</span>}
+                        <div className={`lc-day-rule${isToday?" today":""}`}/>
                       </div>
-                      {isToday&&<div className="lc-today-marker">today</div>}
-                      {dayRIs.map(r=>(
-                        <div key={r.id} className="lc-event" style={{cursor:"pointer"}} onClick={()=>openEditRecurringItem&&openEditRecurringItem(r)}>
-                          <div className="lc-event-left">
-                            <div className={`lc-event-ico ${r.type==="income"?"income":"rec"}`}>{r.type==="income"?"↗":"↻"}</div>
-                            <div><div className="lc-event-name">{r.name}</div><div className="lc-event-sub">recurring · {r.recurringFreq||"monthly"}</div></div>
-                          </div>
-                          <div className="lc-event-right">
-                            <span className={`lc-event-amt ${r.type==="income"?"income":"expense"}`}>{r.type==="income"?"+":"−"}{fmt(r.amountMin||0)}</span>
-                            <span className="lc-event-status upcoming">upcoming</span>
-                          </div>
-                        </div>
-                      ))}
-                      {dayTxns.map(t=>{
-                        const cat=catMap[t.categoryId];
-                        const isInc=t.amount>0;
-                        return (
-                          <div key={t.id} className="lc-event">
-                            <div className="lc-event-left">
-                              <div className={`lc-event-ico ${isInc?"income":"bill"}`}>{isInc?"↗":"↙"}</div>
-                              <div><div className="lc-event-name">{t.name||t.merchant}</div><div className="lc-event-sub">{cat?cat.name:"uncategorized"}{t.recurring?" · ↻":""}</div></div>
+                      {dayRIs.map(r=>{
+                        const isInc=r.type==="income";
+                        const barColor=isInc?"rgba(93,202,165,0.5)":r.recurringFreq?"rgba(108,140,255,0.4)":"rgba(240,176,76,0.4)";
+                        return(
+                          <div key={r.id} className="lc-event" style={{cursor:"pointer"}} onClick={()=>openEditRecurringItem&&openEditRecurringItem(r)}>
+                            <div className="lc-event-bar" style={{background:barColor}}/>
+                            <div className="lc-event-body">
+                              <span className="lc-event-name">{r.name}</span>
+                              <span className="lc-event-tag rec">↻</span>
+                              <span className="lc-event-tag upcoming">due</span>
                             </div>
-                            <div className="lc-event-right">
-                              <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
-                              <span className="lc-event-status posted">posted ✓</span>
-                            </div>
+                            <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(r.amountMin||0)}</span>
                           </div>
                         );
                       })}
-                      {dayTxns.length===0&&dayRIs.length===0&&<div className="lc-empty-day">No activity</div>}
+                      {dayTxns.map(t=>{
+                        const isInc=t.amount>0;
+                        const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
+                        return(
+                          <div key={t.id} className="lc-event">
+                            <div className="lc-event-bar" style={{background:barColor}}/>
+                            <div className="lc-event-body">
+                              <span className="lc-event-name">{t.name||t.merchant}</span>
+                              {t.recurring&&<span className="lc-event-tag rec">↻</span>}
+                              <span className="lc-event-tag posted">✓</span>
+                            </div>
+                            <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
+                          </div>
+                        );
+                      })}
+                      {dayTxns.length===0&&dayRIs.length===0&&<div className="lc-empty-day">no activity</div>}
                     </div>
                   );
                 })}

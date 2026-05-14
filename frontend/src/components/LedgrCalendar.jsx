@@ -19,7 +19,8 @@ const CSS = `
   .lc-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lc-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lc-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
-  .lc-body{display:grid;grid-template-columns:64px 320px 1fr;flex:1;}
+  .lc-body{display:grid;grid-template-columns:64px 280px 1fr 300px;flex:1;}
+  @media(max-width:1200px){.lc-body{grid-template-columns:64px 280px 1fr;}}
   @media(max-width:900px){.lc-body{grid-template-columns:64px 1fr;}}
   .lc-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lc-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
@@ -27,7 +28,7 @@ const CSS = `
   .lc-nav-item:hover{color:var(--ink-1);background:var(--bg-2);}
   .lc-nav-item.active{color:var(--safe);background:var(--safe-bg);}
   .lc-nav-spacer{flex:1;}
-  .lc-aside{border-right:1px solid var(--line);background:var(--bg-1);padding:24px 20px;overflow-y:auto;}
+  .lc-aside{border-right:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;}
   @media(max-width:900px){.lc-aside{display:none;}}
   .lc-cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .lc-cal-title{font-family:var(--font-display);font-size:20px;letter-spacing:-0.3px;}
@@ -61,27 +62,42 @@ const CSS = `
   .lc-ri-amt{font-family:var(--font-mono);font-size:11px;}
   .lc-ri-chevron{font-size:9px;color:var(--ink-4);margin-top:2px;transition:transform .15s;}
   .lc-ri-chevron.open{transform:rotate(180deg);}
-  /* inline ri edit */
-  .lc-ri-edit{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;margin-top:6px;display:flex;flex-direction:column;gap:10px;}
-  .lc-field{display:flex;flex-direction:column;gap:4px;}
-  .lc-field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  /* third column — edit panel */
+  .lc-edit-col{border-left:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:0;}
+  @media(max-width:1200px){.lc-edit-col{display:none;}}
+  .lc-edit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;padding:40px 20px;text-align:center;}
+  .lc-edit-empty-icon{font-size:28px;color:var(--ink-4);}
+  .lc-edit-empty-text{font-size:12px;color:var(--ink-4);line-height:1.6;}
+  .lc-edit-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:16px;}
+  .lc-edit-title{font-family:var(--font-display);font-size:18px;letter-spacing:-0.2px;}
+  .lc-edit-close{background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:16px;padding:2px;line-height:1;}
+  .lc-edit-close:hover{color:var(--ink-0);}
+  .lc-field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+  .lc-field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  .lc-field-row .lc-field{margin-bottom:0;}
   .lc-label{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-3);font-family:var(--font-mono);}
   .lc-input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;}
   .lc-input:focus{border-color:rgba(93,202,165,0.3);}
   .lc-input::placeholder{color:var(--ink-4);}
   .lc-select{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;}
-  .lc-ri-edit-actions{display:flex;gap:8px;padding-top:4px;border-top:1px solid var(--line);}
-  .lc-btn-save{background:var(--safe-bg);border:1px solid rgba(93,202,165,0.4);border-radius:8px;padding:5px 14px;font-size:11px;font-family:var(--font-mono);color:var(--safe);cursor:pointer;transition:.15s;}
-  .lc-btn-ghost{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;transition:.15s;}
-  .lc-btn-ghost:hover{border-color:var(--line-3);color:var(--ink-0);}
-  .lc-btn-danger{background:var(--debt-bg);border:1px solid rgba(232,115,99,0.3);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--debt);cursor:pointer;margin-left:auto;}
-  /* linked txns in ri edit */
-  .lc-linked-txn{display:flex;align-items:center;gap:8px;padding:5px 8px;background:rgba(255,255,255,0.02);border-radius:6px;}
+  .lc-edit-section{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-3);font-family:var(--font-mono);margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
+  .lc-linked-txn{display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:4px;}
   .lc-linked-name{flex:1;font-size:11px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .lc-linked-date{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);}
   .lc-linked-amt{font-family:var(--font-mono);font-size:11px;font-weight:600;flex-shrink:0;}
   .lc-unlink-btn{background:none;border:none;cursor:pointer;color:var(--ink-4);font-size:12px;padding:2px 4px;transition:.1s;}
   .lc-unlink-btn:hover{color:var(--debt);}
+  .lc-link-candidate{display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:4px;cursor:pointer;transition:background .1s;}
+  .lc-link-candidate:hover{background:rgba(255,255,255,0.05);}
+  .lc-link-cname{flex:1;font-size:11px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lc-link-cmeta{font-size:10px;color:var(--ink-3);font-family:var(--font-mono);}
+  .lc-link-camt{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--debt);flex-shrink:0;}
+  .lc-link-btn{background:rgba(93,202,165,0.1);border:1px solid rgba(93,202,165,0.25);border-radius:6px;padding:2px 8px;font-size:10px;font-family:var(--font-mono);color:var(--safe);cursor:pointer;flex-shrink:0;}
+  .lc-edit-actions{display:flex;gap:8px;padding-top:14px;margin-top:4px;border-top:1px solid var(--line);}
+  .lc-btn-save{background:var(--safe-bg);border:1px solid rgba(93,202,165,0.4);border-radius:8px;padding:5px 14px;font-size:11px;font-family:var(--font-mono);color:var(--safe);cursor:pointer;}
+  .lc-btn-ghost{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;}
+  .lc-btn-ghost:hover{border-color:var(--line-3);color:var(--ink-0);}
+  .lc-btn-danger{background:var(--debt-bg);border:1px solid rgba(232,115,99,0.3);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--debt);cursor:pointer;margin-left:auto;}
   /* right column */
   .lc-right{overflow-y:auto;display:flex;flex-direction:column;}
   .lc-topbar{height:60px;padding:0 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-1);z-index:10;flex-shrink:0;}
@@ -153,8 +169,8 @@ export default function LedgrCalendar({
   const [cy,cm]=now.split("-").map(Number);
   const [selDay,setSelDay]=useState(cy===today.getFullYear()&&cm===today.getMonth()+1?today.getDate():1);
   const isCurMo=cy===today.getFullYear()&&cm===today.getMonth()+1;
-  const [expandedRiId,setExpandedRiId]=useState(null);   // left col ri inline edit
-  const [expandedEntryId,setExpandedEntryId]=useState(null); // agenda link search
+  const [selectedRiId,setSelectedRiId]=useState(null);    // which ri is selected for edit col
+  const [selectedTxnId,setSelectedTxnId]=useState(null);  // which unlinked txn is selected for link search
   const [linkSearch,setLinkSearch]=useState("");
 
   const first=new Date(cy,cm-1,1).getDay();
@@ -190,8 +206,9 @@ export default function LedgrCalendar({
   const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
 
   function openRiEdit(r){
-    if(expandedRiId===r.id){ setExpandedRiId(null); return; }
-    setExpandedRiId(r.id);
+    setSelectedRiId(r.id);
+    setSelectedTxnId(null);
+    setLinkSearch("");
     setEditingRecurringItem(r);
     setRiForm({
       name:r.name||"",
@@ -252,112 +269,28 @@ export default function LedgrCalendar({
 
               <div className="lc-ri-lbl">Recurring this month</div>
               {[...recurringItems].filter(r=>r.recurringDay).sort((a,b)=>(parseInt(a.recurringDay)||0)-(parseInt(b.recurringDay)||0)).map(r=>{
-                const isOpen=expandedRiId===r.id;
+                const isSel=selectedRiId===r.id;
                 const dow=DN[new Date(cy,cm-1,parseInt(r.recurringDay)).getDay()];
                 const isInc=r.type==="income";
-                const linkedTxns=(r.linkedTxnIds||[]).map(id=>transactions.find(t=>t.id===id)).filter(Boolean);
                 return(
-                  <div key={r.id} className="lc-ri-row">
-                    <div className="lc-ri-summary" onClick={()=>openRiEdit(r)}>
+                  <div key={r.id} className="lc-ri-row"
+                    style={{background:isSel?"rgba(93,202,165,0.04)":undefined,borderRadius:isSel?"var(--r-sm)":undefined,paddingLeft:isSel?6:0}}
+                    onClick={()=>openRiEdit(r)}>
+                    <div className="lc-ri-summary">
                       <div>
-                        <div className="lc-ri-day">{r.recurringDay}</div>
+                        <div className="lc-ri-day" style={{color:isSel?"var(--safe)":undefined}}>{r.recurringDay}</div>
                         <div className="lc-ri-dow">{dow}</div>
                       </div>
                       <div>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                          <span className="lc-ri-name">{r.name}</span>
-                          <span className={`lc-ri-chevron${isOpen?" open":""}`}>▼</span>
+                          <span className="lc-ri-name" style={{color:isSel?"var(--safe)":undefined}}>{r.name}</span>
+                          <span style={{fontSize:9,color:isSel?"var(--safe)":"var(--ink-4)",fontFamily:"var(--font-mono)"}}>›</span>
                         </div>
-                        <div className={`lc-ri-amt`} style={{color:isInc?"var(--safe)":"var(--debt)"}}>
+                        <div className="lc-ri-amt" style={{color:isInc?"var(--safe)":"var(--debt)"}}>
                           {isInc?"+":"−"}{fmt(r.amountMin||0)}
                         </div>
                       </div>
                     </div>
-
-                    {isOpen&&(
-                      <div className="lc-ri-edit" onClick={e=>e.stopPropagation()}>
-                        {/* Name */}
-                        <div className="lc-field">
-                          <label className="lc-label">Name</label>
-                          <input className="lc-input" placeholder="e.g. Netflix" value={riForm.name} onChange={e=>setRiForm(p=>({...p,name:e.target.value}))}/>
-                        </div>
-                        {/* Type */}
-                        <div className="lc-field">
-                          <label className="lc-label">Type</label>
-                          <select className="lc-select" value={riForm.type||"expense"} onChange={e=>setRiForm(p=>({...p,type:e.target.value}))}>
-                            <option value="expense">Expense</option>
-                            <option value="income">Income</option>
-                            <option value="transfer">Transfer</option>
-                            <option value="reimbursement">Reimbursement</option>
-                          </select>
-                        </div>
-                        {/* Frequency + Day */}
-                        <div className="lc-field-row">
-                          <div className="lc-field">
-                            <label className="lc-label">Frequency</label>
-                            <select className="lc-select" value={riForm.recurringFreq||"monthly"} onChange={e=>setRiForm(p=>({...p,recurringFreq:e.target.value}))}>
-                              <option value="weekly">Weekly</option>
-                              <option value="biweekly">Bi-weekly</option>
-                              <option value="monthly">Monthly</option>
-                              <option value="annual">Annual</option>
-                            </select>
-                          </div>
-                          <div className="lc-field">
-                            <label className="lc-label">Day of Month</label>
-                            <input className="lc-input" type="number" min="1" max="31" placeholder="e.g. 15" value={riForm.recurringDay} onChange={e=>setRiForm(p=>({...p,recurringDay:e.target.value}))}/>
-                          </div>
-                        </div>
-                        {/* Amount */}
-                        <div className="lc-field">
-                          <label className="lc-label">Expected Amount</label>
-                          <input className="lc-input" type="number" step="0.01" placeholder="e.g. 14.99" value={riForm.amountMin} onChange={e=>setRiForm(p=>({...p,amountMin:e.target.value,amountMax:e.target.value}))}/>
-                        </div>
-                        {/* Category + Account */}
-                        <div className="lc-field-row">
-                          <div className="lc-field">
-                            <label className="lc-label">Category</label>
-                            <select className="lc-select" value={riForm.categoryId} onChange={e=>setRiForm(p=>({...p,categoryId:e.target.value}))}>
-                              <option value="">— None —</option>
-                              {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                          </div>
-                          <div className="lc-field">
-                            <label className="lc-label">Account</label>
-                            <select className="lc-select" value={riForm.accountId} onChange={e=>setRiForm(p=>({...p,accountId:e.target.value}))}>
-                              <option value="">— None —</option>
-                              {[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                        {/* Start Date */}
-                        <div className="lc-field">
-                          <label className="lc-label">Start Date</label>
-                          <input className="lc-input" type="date" value={riForm.recurringStart} onChange={e=>setRiForm(p=>({...p,recurringStart:e.target.value}))}/>
-                        </div>
-                        {/* Linked transactions */}
-                        {linkedTxns.length>0&&(
-                          <div className="lc-field">
-                            <label className="lc-label">Linked ({linkedTxns.length})</label>
-                            <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              {linkedTxns.map(t=>(
-                                <div key={t.id} className="lc-linked-txn">
-                                  <span className="lc-linked-name">{t.name||t.merchant}</span>
-                                  <span className="lc-linked-date">{t.date}</span>
-                                  <span className="lc-linked-amt" style={{color:t.amount<0?"var(--debt)":"var(--safe)"}}>{fmt(Math.abs(t.amount))}</span>
-                                  <button className="lc-unlink-btn" onClick={()=>unlinkTxnFromRecurringItem(t.id,r.id)}>✕</button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {/* Actions */}
-                        <div className="lc-ri-edit-actions">
-                          <button className="lc-btn-save" onClick={()=>{saveRecurringItemForm();setExpandedRiId(null);}}>Save</button>
-                          <button className="lc-btn-ghost" onClick={()=>setExpandedRiId(null)}>Cancel</button>
-                          <button className="lc-btn-danger" onClick={()=>{deleteRecurringItem(r.id);setExpandedRiId(null);}}>Delete</button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -401,14 +334,16 @@ export default function LedgrCalendar({
                         {isToday&&<span className="lc-today-pill">today</span>}
                         <div className={`lc-day-rule${isToday?" today":""}`}/>
                       </div>
-                      {/* recurring item entries — click opens ri edit in left column */}
+                      {/* recurring item entries — click selects for edit col */}
                       {riEntries.map(t=>{
                         const isInc=t.type==="income";
                         const posted=t.postedThisMonth;
                         const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(108,140,255,0.4)";
                         const riItem=recurringItems.find(r=>r.id===t.recurringItemId);
+                        const isSel=selectedRiId===t.recurringItemId;
                         return(
                           <div key={t.id} className="lc-event"
+                            style={{background:isSel?"rgba(93,202,165,0.04)":undefined,borderRadius:isSel?"4px":undefined}}
                             onClick={()=>riItem&&openRiEdit(riItem)}>
                             <div className="lc-event-bar" style={{background:posted?barColor.replace("0.4","0.6").replace("0.5","0.7"):barColor}}/>
                             <div className="lc-event-body">
@@ -423,52 +358,24 @@ export default function LedgrCalendar({
                           </div>
                         );
                       })}
-                      {/* real unlinked transactions — click expands link search */}
+                      {/* real unlinked transactions — click selects for link search in edit col */}
                       {realTxns.map(t=>{
                         const isInc=t.amount>0;
                         const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
                         const txnDate=t.date?new Date(t.date+"T00:00:00"):null;
                         const posted=txnDate&&txnDate<=todayMidnight;
-                        const isExpanded=expandedEntryId===t.id;
-                        const q=linkSearch.toLowerCase().trim();
-                        const candidates=recurringItems.filter(r=>{
-                          if(isInc&&r.type!=="income") return false;
-                          if(!isInc&&r.type==="income") return false;
-                          return !q||(r.name||"").toLowerCase().includes(q);
-                        });
+                        const isSel=selectedTxnId===t.id;
                         return(
-                          <div key={t.id}>
-                            <div className="lc-event"
-                              onClick={()=>{setExpandedEntryId(p=>p===t.id?null:t.id);setLinkSearch("");}}>
-                              <div className="lc-event-bar" style={{background:barColor}}/>
-                              <div className="lc-event-body">
-                                <span className="lc-event-name">{t.name||t.merchant}</span>
-                                {posted?<span className="lc-event-tag posted">✓</span>:<span className="lc-event-tag upcoming">due</span>}
-                                <span style={{fontSize:9,color:"var(--ink-4)",fontFamily:"var(--font-mono)",marginLeft:"auto"}}>{isExpanded?"▲":"▾"} link</span>
-                              </div>
-                              <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
+                          <div key={t.id} className="lc-event"
+                            style={{background:isSel?"rgba(108,140,255,0.04)":undefined,borderRadius:isSel?"4px":undefined}}
+                            onClick={()=>{setSelectedTxnId(p=>p===t.id?null:t.id);setSelectedRiId(null);setLinkSearch("");}}>
+                            <div className="lc-event-bar" style={{background:barColor}}/>
+                            <div className="lc-event-body">
+                              <span className="lc-event-name">{t.name||t.merchant}</span>
+                              {posted?<span className="lc-event-tag posted">✓</span>:<span className="lc-event-tag upcoming">due</span>}
+                              <span style={{fontSize:9,color:isSel?"var(--calm)":"var(--ink-4)",fontFamily:"var(--font-mono)",marginLeft:"auto"}}>link ›</span>
                             </div>
-                            {isExpanded&&(
-                              <div className="lc-expand" onClick={e=>e.stopPropagation()}>
-                                <div className="lc-expand-label">Link to a recurring item</div>
-                                <input className="lc-expand-input" placeholder="Search recurring items…"
-                                  value={linkSearch} onChange={e=>setLinkSearch(e.target.value)} autoFocus/>
-                                {candidates.length===0
-                                  ?<div className="lc-expand-none">No matching recurring items</div>
-                                  :candidates.slice(0,5).map(r=>(
-                                    <div key={r.id} className="lc-expand-candidate"
-                                      onClick={()=>{linkTxnToRecurringItem(t.id,r.id);setExpandedEntryId(null);setLinkSearch("");}}>
-                                      <div style={{flex:1,minWidth:0}}>
-                                        <div className="lc-expand-cname">{r.name}</div>
-                                        <div className="lc-expand-cmeta">day {r.recurringDay} · {r.recurringFreq||"monthly"}</div>
-                                      </div>
-                                      <span className="lc-expand-camt">{fmt(r.amountMin||0)}</span>
-                                      <button className="lc-expand-link">Link ↗</button>
-                                    </div>
-                                  ))
-                                }
-                              </div>
-                            )}
+                            <span className={`lc-event-amt ${isInc?"income":"expense"}`}>{isInc?"+":"−"}{fmt(Math.abs(t.amount))}</span>
                           </div>
                         );
                       })}
@@ -477,6 +384,137 @@ export default function LedgrCalendar({
                   );
                 })}
               </div>
+            </div>
+            {/* ── edit column ── */}
+            <div className="lc-edit-col">
+              {!selectedRiId&&!selectedTxnId&&(
+                <div className="lc-edit-empty">
+                  <div className="lc-edit-empty-icon">↻</div>
+                  <div className="lc-edit-empty-text">Select a recurring item or transaction to edit or link</div>
+                </div>
+              )}
+              {selectedRiId&&(()=>{
+                const r=recurringItems.find(x=>x.id===selectedRiId);
+                if(!r) return null;
+                const isInc=r.type==="income";
+                const linkedTxns=(r.linkedTxnIds||[]).map(id=>transactions.find(t=>t.id===id)).filter(Boolean);
+                return(
+                  <>
+                    <div className="lc-edit-header">
+                      <span className="lc-edit-title">{r.name}</span>
+                      <button className="lc-edit-close" onClick={()=>setSelectedRiId(null)}>✕</button>
+                    </div>
+                    <div className="lc-field">
+                      <label className="lc-label">Name</label>
+                      <input className="lc-input" value={riForm.name} onChange={e=>setRiForm(p=>({...p,name:e.target.value}))}/>
+                    </div>
+                    <div className="lc-field">
+                      <label className="lc-label">Type</label>
+                      <select className="lc-select" value={riForm.type||"expense"} onChange={e=>setRiForm(p=>({...p,type:e.target.value}))}>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                        <option value="transfer">Transfer</option>
+                        <option value="reimbursement">Reimbursement</option>
+                      </select>
+                    </div>
+                    <div className="lc-field-row">
+                      <div className="lc-field">
+                        <label className="lc-label">Frequency</label>
+                        <select className="lc-select" value={riForm.recurringFreq||"monthly"} onChange={e=>setRiForm(p=>({...p,recurringFreq:e.target.value}))}>
+                          <option value="weekly">Weekly</option>
+                          <option value="biweekly">Bi-weekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="annual">Annual</option>
+                        </select>
+                      </div>
+                      <div className="lc-field">
+                        <label className="lc-label">Day of Month</label>
+                        <input className="lc-input" type="number" min="1" max="31" value={riForm.recurringDay} onChange={e=>setRiForm(p=>({...p,recurringDay:e.target.value}))}/>
+                      </div>
+                    </div>
+                    <div className="lc-field">
+                      <label className="lc-label">Expected Amount</label>
+                      <input className="lc-input" type="number" step="0.01" placeholder="e.g. 14.99" value={riForm.amountMin} onChange={e=>setRiForm(p=>({...p,amountMin:e.target.value,amountMax:e.target.value}))}/>
+                    </div>
+                    <div className="lc-field-row">
+                      <div className="lc-field">
+                        <label className="lc-label">Category</label>
+                        <select className="lc-select" value={riForm.categoryId} onChange={e=>setRiForm(p=>({...p,categoryId:e.target.value}))}>
+                          <option value="">— None —</option>
+                          {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(cat=><option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="lc-field">
+                        <label className="lc-label">Account</label>
+                        <select className="lc-select" value={riForm.accountId} onChange={e=>setRiForm(p=>({...p,accountId:e.target.value}))}>
+                          <option value="">— None —</option>
+                          {[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="lc-field">
+                      <label className="lc-label">Start Date</label>
+                      <input className="lc-input" type="date" value={riForm.recurringStart} onChange={e=>setRiForm(p=>({...p,recurringStart:e.target.value}))}/>
+                    </div>
+                    {linkedTxns.length>0&&(
+                      <>
+                        <div className="lc-edit-section">Linked transactions</div>
+                        {linkedTxns.map(t=>(
+                          <div key={t.id} className="lc-linked-txn">
+                            <span className="lc-linked-name">{t.name||t.merchant}</span>
+                            <span className="lc-linked-date">{t.date}</span>
+                            <span className="lc-linked-amt" style={{color:t.amount<0?"var(--debt)":"var(--safe)"}}>{fmt(Math.abs(t.amount))}</span>
+                            <button className="lc-unlink-btn" onClick={()=>unlinkTxnFromRecurringItem(t.id,r.id)}>✕</button>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    <div className="lc-edit-actions">
+                      <button className="lc-btn-save" onClick={()=>{saveRecurringItemForm();setSelectedRiId(null);}}>Save</button>
+                      <button className="lc-btn-ghost" onClick={()=>setSelectedRiId(null)}>Cancel</button>
+                      <button className="lc-btn-danger" onClick={()=>{deleteRecurringItem(r.id);setSelectedRiId(null);}}>Delete</button>
+                    </div>
+                  </>
+                );
+              })()}
+              {selectedTxnId&&!selectedRiId&&(()=>{
+                const t=transactions.find(x=>x.id===selectedTxnId)||monthTxns.find(x=>x.id===selectedTxnId);
+                if(!t) return null;
+                const isInc=t.amount>0;
+                const q=linkSearch.toLowerCase().trim();
+                const candidates=recurringItems.filter(r=>{
+                  if(isInc&&r.type!=="income") return false;
+                  if(!isInc&&r.type==="income") return false;
+                  return !q||(r.name||"").toLowerCase().includes(q);
+                });
+                return(
+                  <>
+                    <div className="lc-edit-header">
+                      <span className="lc-edit-title">{t.name||t.merchant}</span>
+                      <button className="lc-edit-close" onClick={()=>setSelectedTxnId(null)}>✕</button>
+                    </div>
+                    <div style={{fontSize:12,color:"var(--ink-2)",marginBottom:4}}>{fmt(Math.abs(t.amount))} · {t.date}</div>
+                    <div style={{fontSize:11,color:"var(--ink-3)",marginBottom:16}}>Link this transaction to a recurring item so it shows as posted on the calendar.</div>
+                    <div className="lc-edit-section" style={{marginTop:0,paddingTop:0,borderTop:"none"}}>Link to recurring item</div>
+                    <input className="lc-input" placeholder="Search by name…" value={linkSearch}
+                      onChange={e=>setLinkSearch(e.target.value)} style={{marginBottom:8}}/>
+                    {candidates.length===0
+                      ?<div style={{fontSize:11,color:"var(--ink-4)",padding:"8px 0"}}>No matching recurring items</div>
+                      :candidates.slice(0,8).map(r=>(
+                        <div key={r.id} className="lc-link-candidate"
+                          onClick={()=>{linkTxnToRecurringItem(t.id,r.id);setSelectedTxnId(null);setLinkSearch("");}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div className="lc-link-cname">{r.name}</div>
+                            <div className="lc-link-cmeta">day {r.recurringDay} · {r.recurringFreq||"monthly"}</div>
+                          </div>
+                          <span className="lc-link-camt">{fmt(r.amountMin||0)}</span>
+                          <button className="lc-link-btn">Link ↗</button>
+                        </div>
+                      ))
+                    }
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

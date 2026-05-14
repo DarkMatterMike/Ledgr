@@ -1304,36 +1304,103 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
     </div>
   );
 
+  const LS_NAV = [
+    { id:"dashboard",    icon:"◐" },
+    { id:"transactions", icon:"⇅" },
+    { id:"budgets",      icon:"▣" },
+    { id:"analytics",    icon:"◎" },
+    { id:"calendar",     icon:"▦" },
+    { id:"settings",     icon:"⚙", active:true },
+  ];
+
   return (
     <>
     <style>{`
-      .ls-tabbar { border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; padding: 0 0; background: transparent; }
-      .ls-tab { padding: 12px 16px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); cursor: pointer; border-bottom: 2px solid transparent; transition: .12s; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
-      .ls-tab:hover { color: var(--t2); }
-      .ls-tab.active { color: var(--green); border-bottom-color: var(--green); }
-      .ls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 24px; align-content: start; }
-      .ls-theme-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; padding: 14px 18px; }
-      .ls-theme-swatch { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: var(--radius); background: var(--card); border: 1px solid rgba(255,255,255,0.05); cursor: pointer; font-size: 11px; color: var(--t2); transition: .12s; }
-      .ls-theme-swatch:hover { border-color: var(--green); color: var(--t1); }
-      .ls-stat-row { display: grid; grid-template-columns: repeat(4,1fr); }
-      .ls-stat { padding: 14px 18px; border-right: 1px solid rgba(255,255,255,0.04); }
-      .ls-stat:last-child { border-right: none; }
+      @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
+      .ls-wrap{font-family:var(--font-body);color:var(--t1);background:#07090d;min-height:100vh;padding:40px 48px 80px;}
+      @media(max-width:1000px){.ls-wrap{padding:20px 16px 60px;}}
+      @media(max-width:600px){.ls-wrap{padding:0;}}
+      .ls-frame{background:#0b0e14;border:1px solid rgba(255,255,255,0.06);border-radius:20px;overflow:hidden;max-width:1200px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;}
+      @media(max-width:600px){.ls-frame{border-radius:0;border:none;}}
+      .ls-chrome{height:40px;background:#11151d;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
+      .ls-chrome-dot{width:9px;height:9px;border-radius:50%;background:#2e3340;}
+      .ls-chrome-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:#4a5161;}
+      .ls-chrome-live{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:#4a5161;display:flex;align-items:center;gap:6px;}
+      .ls-chrome-live::before{content:'';width:6px;height:6px;border-radius:50%;background:#5dcaa5;box-shadow:0 0 8px #5dcaa5;display:inline-block;}
+      .ls-body{display:grid;grid-template-columns:64px 1fr;flex:1;min-height:0;}
+      .ls-nav{width:64px;border-right:1px solid rgba(255,255,255,0.06);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:#0b0e14;}
+      .ls-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#5dcaa5,#0f6e56 80%);margin-bottom:24px;}
+      .ls-ni{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#4a5161;font-size:18px;cursor:pointer;transition:.15s;user-select:none;}
+      .ls-ni:hover{color:#c8cdd6;background:#11151d;}
+      .ls-ni.active{color:#5dcaa5;background:rgba(93,202,165,0.08);}
+      .ls-nav-spacer{flex:1;}
+      .ls-main{display:flex;flex-direction:column;min-height:0;}
+      .ls-topbar{height:60px;padding:0 32px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+      .ls-tb-left{display:flex;align-items:baseline;gap:16px;}
+      .ls-tb-num{font-family:var(--font-mono);font-size:11px;color:#4a5161;}
+      .ls-tb-title{font-family:var(--font-disp);font-size:22px;letter-spacing:-0.3px;}
+      .ls-tb-div{width:1px;height:14px;background:rgba(255,255,255,0.10);flex-shrink:0;}
+      .ls-tb-sub{font-size:11px;color:#4a5161;letter-spacing:1.5px;text-transform:uppercase;}
+      .ls-tb-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,rgba(93,202,165,0.3),rgba(93,202,165,0.1));border:1px solid rgba(93,202,165,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#5dcaa5;font-family:var(--font-mono);}
+      .ls-tabbar{border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 32px;background:#0b0e14;flex-shrink:0;}
+      .ls-tab{padding:12px 16px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#4a5161;cursor:pointer;border-bottom:2px solid transparent;transition:.12s;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+      .ls-tab:hover{color:#7d8594;}
+      .ls-tab.active{color:#5dcaa5;border-bottom-color:#5dcaa5;}
+      .ls-content{flex:1;overflow-y:auto;}
+      .ls-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:24px;align-content:start;}
+      .ls-theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:14px 18px;}
+      .ls-theme-swatch{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--radius);background:var(--card);border:1px solid rgba(255,255,255,0.05);cursor:pointer;font-size:11px;color:var(--t2);transition:.12s;}
+      .ls-theme-swatch:hover{border-color:#5dcaa5;color:var(--t1);}
+      .ls-stat-row{display:grid;grid-template-columns:repeat(4,1fr);}
+      .ls-stat{padding:14px 18px;border-right:1px solid rgba(255,255,255,0.04);}
+      .ls-stat:last-child{border-right:none;}
     `}</style>
 
-    <div style={{ display:"flex", flexDirection:"column", height:"100%", background:"var(--bg)" }}>
+    <div className="ls-wrap">
+      <div className="ls-frame">
 
-      {/* Tab bar */}
-      <div className="ls-tabbar">
-        {STABS.map(t => (
-          <div key={t.id} className={`ls-tab${settingsTab===t.id?" active":""}`} onClick={()=>setSettingsTab(t.id)}>
-            {t.icon} {t.label}
-          </div>
-        ))}
-      </div>
+        {/* Chrome bar */}
+        <div className="ls-chrome">
+          <div className="ls-chrome-dot"/><div className="ls-chrome-dot"/><div className="ls-chrome-dot"/>
+          <span className="ls-chrome-url">app.ledgr.app / settings</span>
+          <span className="ls-chrome-live">live · synced just now</span>
+        </div>
 
-      {/* Content */}
-      <div style={{ flex:1, overflowY:"auto", padding:0 }}>
-        <div className="ls-grid">
+        <div className="ls-body">
+          {/* Left nav rail */}
+          <nav className="ls-nav">
+            <div className="ls-nav-logo"/>
+            {LS_NAV.map(n => (
+              <div key={n.id} className={`ls-ni${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>
+            ))}
+            <div className="ls-nav-spacer"/>
+          </nav>
+
+          {/* Main */}
+          <div className="ls-main">
+            {/* Topbar */}
+            <div className="ls-topbar">
+              <div className="ls-tb-left">
+                <span className="ls-tb-num">vi ·</span>
+                <span className="ls-tb-title">Settings</span>
+                <div className="ls-tb-div"/>
+                <span className="ls-tb-sub">{STABS.find(t=>t.id===settingsTab)?.label}</span>
+              </div>
+              <div className="ls-tb-avatar">{avatarLetter}</div>
+            </div>
+
+            {/* Tab bar */}
+            <div className="ls-tabbar">
+              {STABS.map(t => (
+                <div key={t.id} className={`ls-tab${settingsTab===t.id?" active":""}`} onClick={()=>setSettingsTab(t.id)}>
+                  {t.icon} {t.label}
+                </div>
+              ))}
+            </div>
+
+            {/* Content */}
+            <div className="ls-content">
+              <div className="ls-grid">
 
           {/* ══ PROFILE ══ */}
           {settingsTab === "profile" && <>
@@ -1767,9 +1834,12 @@ function SettingsView({ transactions, accounts, categories, catMap, acctMap, ava
             </Block>
           </>}
 
-        </div>
-      </div>
-    </div>
+        </div>{/* /ls-grid */}
+            </div>{/* /ls-content */}
+          </div>{/* /ls-main */}
+        </div>{/* /ls-body */}
+      </div>{/* /ls-frame */}
+    </div>{/* /ls-wrap */}
     </>
   );
 }
@@ -5753,9 +5823,11 @@ function AppInner({ isDemo = false }) {
     />
   );
 
+  if (view === "settings") return SettingsPage;
+
   const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, settings:SettingsPage, admin:AdminPage, dani:DaniPageView };
+    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, admin:AdminPage, dani:DaniPageView }
+    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, admin:AdminPage, dani:DaniPageView };
 
   if (loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)",flexDirection:"column",gap:10}}>

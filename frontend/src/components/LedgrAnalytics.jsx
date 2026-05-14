@@ -579,7 +579,7 @@ export default function LedgrAnalytics({
       const warnCount  = months.filter(m=>m.limit>0&&m.spent/m.limit>=0.8&&m.spent<=m.limit).length;
       const totalWith  = months.filter(m=>m.limit>0).length;
       return {cat, months, overCount, warnCount, totalWith,
-        status: overCount>=3?"chronic": overCount===0&&totalWith>=3?"consistent":"mixed"};
+        status: overCount>=2?"chronic": overCount===0&&totalWith>=3?"consistent":"mixed"};
     }).filter(r=>r.months.some(m=>m.spent>0)||r.cat.limit>0);
   }, [categories, monthlyData]);
 
@@ -589,12 +589,32 @@ export default function LedgrAnalytics({
 
   /* ── subscriptions ────────────────────────────────────── */
   const subscriptions = useMemo(() => {
+    const SUB_KEYWORDS = [
+      "netflix","hulu","disney","hbo","max","spotify","apple","youtube","amazon prime",
+      "peacock","paramount","crunchyroll","twitch","patreon","discord","slack","zoom",
+      "dropbox","icloud","google one","microsoft","adobe","notion","figma","github",
+      "linear","vercel","heroku","aws","digitalocean","cloudflare",
+      "openai","anthropic","chatgpt","midjourney","canva","grammarly",
+      "duolingo","headspace","calm","strava","peloton","nytimes","wsj",
+      "audible","xbox","playstation","nintendo",
+      "t-mobile","verizon","comcast","xfinity","spectrum",
+    ];
+    // Scope to current month only — avoids listing the same service multiple times
+    const now = new Date();
+    const thisYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    const thisMonthTxns = transactions.filter(t => t.date?.startsWith(thisYM) && t.amount < 0);
     const seen = {};
-    transactions.filter(t=>t.recurring&&t.amount<0).forEach(t=>{
-      const key=(t.merchant||t.name||"").toLowerCase();
-      if(!seen[key]) seen[key]={name:t.merchant||t.name||key, amount:Math.abs(t.amount)};
+    thisMonthTxns.forEach(t => {
+      const raw = (t.merchant || t.name || "").toLowerCase();
+      const matched = SUB_KEYWORDS.find(k => raw.includes(k));
+      if (matched || t.recurring) {
+        const key = matched || raw;
+        if (!seen[key] || Math.abs(t.amount) > seen[key].amount) {
+          seen[key] = { name: t.merchant || t.name || raw, amount: Math.abs(t.amount) };
+        }
+      }
     });
-    return Object.values(seen).sort((a,b)=>b.amount-a.amount);
+    return Object.values(seen).sort((a,b) => b.amount - a.amount);
   }, [transactions]);
   const subTotal = subscriptions.reduce((s,r)=>s+r.amount,0);
 
@@ -740,7 +760,7 @@ export default function LedgrAnalytics({
                         {narrativeHL.warnCategory
                           ? <> — and <em style={{color:"var(--warn)"}}>{narrativeHL.warnCategory}</em> <em style={{color:"var(--debt)"}}>has been over budget {narrativeHL.worstMonths} months straight.</em></>
                           : narrativeHL.warnSavings
-                            ? <> — <em style={{color:"var(--debt)"}}>you're spending more than you earn.</em></>
+                            ? <> — <em style={{color:"var(--debt)"}}>review your budget categories.</em></>
                             : <> and your <em style={{color:"var(--safe)"}}>budget is on track.</em></>
                         }
                       </>
@@ -900,9 +920,9 @@ export default function LedgrAnalytics({
                         <div className="la-adh-sections">
                           {/* Chronic offenders */}
                           <div>
-                            <div className="la-adh-sect-lbl" style={{color:"var(--debt)"}}>⚠ Chronic offenders</div>
+                            <div className="la-adh-sect-lbl" style={{color:"var(--debt)"}}>⚠ Chronic Overspent</div>
                             {chronicCats.length===0
-                              ? <div style={{fontSize:11,color:"var(--safe)",fontStyle:"italic"}}>No chronic offenders ✓</div>
+                              ? <div style={{fontSize:11,color:"var(--safe)",fontStyle:"italic"}}>No chronic overspend ✓</div>
                               : chronicCats.map(r=>(
                                 <div key={r.cat.id} className="la-adh-cat-row">
                                   <div className="la-adh-dot" style={{background:"var(--debt)"}}/>

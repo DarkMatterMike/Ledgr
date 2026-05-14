@@ -3430,6 +3430,13 @@ function AppInner({ isDemo = false }) {
     api.updateTransaction(id, { name: newName }).catch(console.error);
     setEditingId(null); showToast("Name updated");
   }
+  function updateTxnName(id, name) {
+    const n = (name || "").trim();
+    if (!n) return;
+    setTransactions(p => p.map(t => t.id === id ? { ...t, name: n } : t));
+    api.updateTransaction(id, { name: n }).catch(console.error);
+    showToast("Name updated");
+  }
   function updateTxnType(id,val) {
     const clearCat = ["income","transfer","reimbursement"].includes(val);
     setTransactions(p=>{
@@ -4628,6 +4635,25 @@ function AppInner({ isDemo = false }) {
       today={today}
       isMobile={isMobile}
       navigate={navigate}
+      updateTxnType={updateTxnType}
+      updateTxnCat={updateTxnCat}
+      updateTxnNotes={updateTxnNotes}
+      updateTxnName={updateTxnName}
+      markReviewed={markReviewed}
+      onMakeRecurring={(t) => {
+        setRiForm({
+          name:           t.name || t.merchant || '',
+          amountMin:      t.amount != null ? String(Math.abs(t.amount)) : '',
+          amountMax:      t.amount != null ? String(Math.abs(t.amount)) : '',
+          type:           t.amount >= 0 ? 'income' : 'expense',
+          categoryId:     t.categoryId  || '',
+          accountId:      t.accountId   || '',
+          recurringFreq:  'monthly',
+          recurringDay:   '',
+          recurringStart: '',
+        });
+        openNewRecurringItem();
+      }}
     />
   );
 
@@ -5687,6 +5713,25 @@ function AppInner({ isDemo = false }) {
       today={today}
       isMobile={isMobile}
       navigate={navigate}
+      updateTxnType={updateTxnType}
+      updateTxnCat={updateTxnCat}
+      updateTxnNotes={updateTxnNotes}
+      updateTxnName={updateTxnName}
+      markReviewed={markReviewed}
+      onMakeRecurring={(t) => {
+        setRiForm({
+          name:           t.name || t.merchant || '',
+          amountMin:      t.amount != null ? String(Math.abs(t.amount)) : '',
+          amountMax:      t.amount != null ? String(Math.abs(t.amount)) : '',
+          type:           t.amount >= 0 ? 'income' : 'expense',
+          categoryId:     t.categoryId  || '',
+          accountId:      t.accountId   || '',
+          recurringFreq:  'monthly',
+          recurringDay:   '',
+          recurringStart: '',
+        });
+        openNewRecurringItem();
+      }}
     />
       {modal==="addTxn" && TxnModal}
     </>

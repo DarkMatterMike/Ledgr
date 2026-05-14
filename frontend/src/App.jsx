@@ -4589,6 +4589,30 @@ function AppInner({ isDemo = false }) {
   );
 
 
+  function saveCatName(id) {
+    const trimmed = editingCatName.trim();
+    if (trimmed) {
+      setCategories(p=>p.map(c=>c.id===id?{...c,name:trimmed}:c));
+      showToast("Category renamed");
+    }
+    setEditingCatNameId(null);
+  }
+
+  function startEditLimit(cat, e) {
+    e.stopPropagation();
+    setEditingLimitId(cat.id);
+    setEditingLimitVal(String(cat.limit));
+  }
+
+  function saveLimit(id) {
+    const val = parseFloat(editingLimitVal);
+    if (!isNaN(val) && val > 0) {
+      setCategories(p=>p.map(c=>c.id===id?{...c,limit:val}:c));
+      showToast("Budget updated");
+    }
+    setEditingLimitId(null);
+  }
+
   async function runSuggestLimits() {
     if (!categories.length) return;
     setSuggestingLimits(true);

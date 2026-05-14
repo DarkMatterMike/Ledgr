@@ -65,7 +65,7 @@ const CSS = `
   /* Frame */
   .lt-frame {
     background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);
-    overflow:hidden;max-width:1400px;margin:0 auto;
+    overflow:clip;max-width:1400px;margin:0 auto;
     box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:820px;
   }
   @media(max-width:600px){.lt-frame{border-radius:0;border:none;}}
@@ -86,7 +86,7 @@ const CSS = `
   .lt-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
 
   /* 3-column body */
-  .lt-body { display:grid;grid-template-columns:64px 1fr 360px;flex:1;min-height:0; }
+  .lt-body { display:grid;grid-template-columns:64px 1fr 360px;flex:1;min-height:0;align-items:start; }
   @media(max-width:1100px){.lt-body{grid-template-columns:64px 1fr;}}
 
   /* Left nav */
@@ -215,7 +215,10 @@ const CSS = `
   /* ── Edit panel (right column) ── */
   .lt-panel {
     border-left:1px solid var(--line);background:var(--bg-2);
-    display:flex;flex-direction:column;overflow-y:auto;
+    display:flex;flex-direction:column;
+    position:sticky;top:0;
+    height:calc(100vh - 40px);
+    overflow-y:auto;
   }
   @media(max-width:1100px){.lt-panel{display:none;}}
 
@@ -282,7 +285,7 @@ const MN = ["January","February","March","April","May","June","July","August","S
 const NAV_ITEMS = [
   {icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions",active:true},
   {icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},
-  {icon:"▦",id:"calendar"},{icon:"◆",id:"goals"},
+  {icon:"▦",id:"calendar"},{icon:"◈",id:"analytics"},
 ];
 const TYPE_OPTIONS = [
   {value:"expense",label:"Expense"},

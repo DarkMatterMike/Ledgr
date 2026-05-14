@@ -74,7 +74,7 @@ const CSS = `
 
 const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
-const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts",active:true},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
+const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts",active:true},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◈",id:"analytics"}];
 function daysInMonth(y,m){return new Date(y,m,0).getDate();}
 
 export default function LedgrAccounts({

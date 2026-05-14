@@ -25,7 +25,12 @@ const CSS = `
   .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
   .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
-  .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lb-sync-btn{background:none;border:1px solid rgba(255,255,255,0.06);border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-3);transition:.15s;flex-shrink:0;}
+  .lb-sync-btn:hover{border-color:rgba(255,255,255,0.18);color:var(--ink-0);}
+  .lb-sync-btn svg{transition:transform .6s;}
+  .lb-sync-btn.spinning svg{animation:lb-brspin .7s linear infinite;}
+  @keyframes lb-brspin{to{transform:rotate(360deg);}}
   .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
   .lb-brief{display:grid;grid-template-columns:64px 320px 1fr;min-height:880px;}
   @media(max-width:1100px){.lb-brief{grid-template-columns:64px 1fr;}}
@@ -153,7 +158,7 @@ const CSS = `
 
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const NAV=[{icon:"◐",id:"dashboard",active:true},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◆",id:"goals"}];
+const NAV=[{icon:"◐",id:"dashboard",active:true},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◈",id:"analytics"}];
 
 function daysUntil(d,today){
   const t=today.getDate(),dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
@@ -288,6 +293,7 @@ export default function LedgrBriefing({
   hasApiKey=false,
   apiBase="https://ledgr-production-9e35.up.railway.app",
   authHeaders=()=>({}),
+  doSync=null,syncing=false,
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
@@ -475,7 +481,14 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
           <div className="lb-bar">
             <div className="lb-bar-dot"/><div className="lb-bar-dot"/><div className="lb-bar-dot"/>
             <span className="lb-bar-url">app.ledgr.app / home</span>
-            <span className="lb-bar-live">live · synced just now</span>
+            <span className="lb-bar-live">
+              live · synced just now
+              {doSync && (
+                <button className={`lb-sync-btn${syncing?" spinning":""}`} onClick={()=>!syncing&&doSync()} title="Sync now">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+              )}
+            </span>
           </div>
 
           {/* brief grid */}
@@ -499,23 +512,57 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                 <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
               </div>
               <div className="lb-pc-lbl">Paycheck planning</div>
-              <div className="lb-pc-card">
-                <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16}}>1 – 15</div></div>
-                <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                  <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(halfIncome)}</span>
-                  <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(halfBills)}</span>
-                </div>
-                <span style={{color:"var(--ink-3)",fontSize:14}}>▾</span>
-              </div>
-              <div className="lb-pc-card">
-                <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16,lineHeight:1.1}}>16 –<br/>End</div></div>
-                <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                  <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(halfIncome)}</span>
-                  <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(billsTotal-halfBills)}</span>
-                </div>
-                <span style={{color:"var(--ink-3)",fontSize:14}}>▾</span>
-              </div>
-              <div className="lb-pc-add" onClick={()=>navigate("calendar")}>+ Add Recurring Item</div>
+              {[
+                {label:"1 – 15",  income:halfIncome, bills:halfBills,            billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
+                {label:"16 – End",income:halfIncome, bills:billsTotal-halfBills, billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15)},
+              ].map((card,i)=>{
+                const isOpen=expandedCard===i;
+                const byAcct={};
+                card.billItems.forEach(b=>{
+                  const k=b.accountId||"__none__";
+                  if(!byAcct[k]) byAcct[k]={name:b.accountId?(accounts.find(a=>a.id===b.accountId)?.name||"Account"):"Unassigned",total:0,items:[]};
+                  byAcct[k].total+=(b.amountMin||0);
+                  byAcct[k].items.push(b);
+                });
+                const acctRows=Object.values(byAcct);
+                const net=card.income-card.bills;
+                return(
+                  <div key={i} style={{marginBottom:8}}>
+                    <div className={`lb-pc-card${isOpen?" open":""}`} onClick={()=>setExpandedCard(isOpen?null:i)}>
+                      <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16,lineHeight:1.1}}>{card.label}</div></div>
+                      <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                        <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(card.income)}</span>
+                        <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(card.bills)}</span>
+                      </div>
+                      <span className={`lb-pc-chevron${isOpen?" open":""}`} style={{color:"var(--ink-3)",fontSize:11}}>▾</span>
+                    </div>
+                    {isOpen&&(
+                      <div className="lb-pc-expand">
+                        {card.billItems.length===0
+                          ?<div style={{fontSize:11,color:"var(--ink-3)"}}>No bills in this period.</div>
+                          :acctRows.map(row=>(
+                            <div key={row.name}>
+                              {acctRows.length>1&&<div style={{fontSize:9,letterSpacing:"1.2px",textTransform:"uppercase",color:"var(--ink-4)",marginBottom:3,marginTop:4}}>{row.name}</div>}
+                              {row.items.map(b=>(
+                                <div key={b.id||b.name} className="lb-pc-acct">
+                                  <span className="l">{b.name}</span>
+                                  <span className="v">−{fmt(b.amountMin||0)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ))
+                        }
+                        {card.billItems.length>0&&(
+                          <div className="lb-pc-acct" style={{borderTop:"1px solid var(--line)",paddingTop:6,marginTop:2}}>
+                            <span className="l" style={{color:"var(--ink-3)"}}>Period net</span>
+                            <span className={`v${net>=0?" ok":""}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </aside>
 
             {/* main */}

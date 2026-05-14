@@ -5886,6 +5886,8 @@ function AppInner({ isDemo = false }) {
       runSuggestLimits={runSuggestLimits}
       hasApiKey={aiChat.hasApiKey}
       showToast={showToast}
+      doSync={doSync}
+      syncing={syncing}
     />
       {(modal==="addCat"||modal==="editCat") && CatModal}
     </>
@@ -5923,6 +5925,8 @@ function AppInner({ isDemo = false }) {
         today={today}
         isMobile={isMobile}
         navigate={navigate}
+        doSync={doSync}
+        syncing={syncing}
       />
     </>
   );

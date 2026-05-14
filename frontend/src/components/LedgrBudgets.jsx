@@ -46,6 +46,13 @@ const CSS = `
   .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:800px;}
   @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
   .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
+  .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
+  .lb-sync-btn{background:none;border:1px solid rgba(255,255,255,0.06);border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-3);transition:.15s;flex-shrink:0;}
+  .lb-sync-btn:hover{border-color:rgba(255,255,255,0.18);color:var(--ink-0);}
+  .lb-sync-btn svg{transition:transform .6s;}
+  .lb-sync-btn.spinning svg{animation:lb-bspin .7s linear infinite;}
+  @keyframes lb-bspin{to{transform:rotate(360deg);}}
   .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
@@ -119,7 +126,7 @@ const CSS = `
   .lb-section-count{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-4);font-family:var(--font-mono);}
 
   /* band rows */
-  .lb-band-row{display:grid;grid-template-columns:180px 1fr 100px 44px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+  .lb-band-row{display:grid;grid-template-columns:180px 1fr 100px 44px;gap:14px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
   .lb-band-row:last-child{border-bottom:none;}
   @media(max-width:800px){.lb-band-row{grid-template-columns:120px 1fr 80px;}}
   .lb-band-name{display:flex;align-items:center;gap:9px;min-width:0;}
@@ -183,7 +190,7 @@ const NAV = [
   {icon:"▣",id:"accounts"},
   {icon:"◉",id:"budgets",active:true},
   {icon:"▦",id:"calendar"},
-  {icon:"◆",id:"goals"},
+  {icon:"◈",id:"analytics"},
 ];
 
 export default function LedgrBudgets({
@@ -202,6 +209,7 @@ export default function LedgrBudgets({
   suggestingLimits=false,runSuggestLimits=()=>{},
   hasApiKey=false,
   showToast=()=>{},
+  doSync=null,syncing=false,
 }){
   const [expandedId,setExpandedId]  = useState(null);
   const [drillSearch,setDrillSearch]= useState("");
@@ -370,7 +378,14 @@ export default function LedgrBudgets({
           <div className="lb-bar">
             <div className="lb-bar-dot"/><div className="lb-bar-dot"/><div className="lb-bar-dot"/>
             <span className="lb-bar-url">app.ledgr.app / budgets</span>
-            <span className="lb-bar-live">live · synced just now</span>
+            <span className="lb-bar-live">
+              live · synced just now
+              {doSync && (
+                <button className={`lb-sync-btn${syncing?" spinning":""}`} onClick={()=>!syncing&&doSync()} title="Sync now">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+              )}
+            </span>
           </div>
 
           <div className="lb-body">

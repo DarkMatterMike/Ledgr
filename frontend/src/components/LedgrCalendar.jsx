@@ -17,8 +17,13 @@ const CSS = `
   .lc-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
   .lc-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lc-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
-  .lc-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lc-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lc-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
+  .lc-sync-btn{background:none;border:1px solid var(--line);border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-3);transition:.15s;flex-shrink:0;}
+  .lc-sync-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
+  .lc-sync-btn svg{transition:transform .6s;}
+  .lc-sync-btn.spinning svg{animation:lc-spin .7s linear infinite;}
+  @keyframes lc-spin{to{transform:rotate(360deg);}}
   .lc-body{display:grid;grid-template-columns:64px 280px 1fr 300px;flex:1;}
   @media(max-width:1200px){.lc-body{grid-template-columns:64px 280px 1fr;}}
   @media(max-width:900px){.lc-body{grid-template-columns:64px 1fr;}}
@@ -148,7 +153,7 @@ const CSS = `
 
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar",active:true},{icon:"◆",id:"goals"}];
+const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts"},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar",active:true},{icon:"◈",id:"analytics"}];
 function daysInM(y,m){return new Date(y,m,0).getDate();}
 
 export default function LedgrCalendar({
@@ -165,6 +170,8 @@ export default function LedgrCalendar({
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
   calendarOpenNewRi=false,onCalendarOpenNewRiConsumed=()=>{},
+  doSync=null,
+  syncing=false,
 }){
   const now=calendarMonth||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
   const [cy,cm]=now.split("-").map(Number);
@@ -242,7 +249,17 @@ export default function LedgrCalendar({
           <div className="lc-bar">
             <div className="lc-bar-dot"/><div className="lc-bar-dot"/><div className="lc-bar-dot"/>
             <span className="lc-bar-url">app.ledgr.app / calendar</span>
-            <span className="lc-bar-live">live · synced just now</span>
+            <span className="lc-bar-live">
+              live · synced just now
+              {doSync && (
+                <button className={`lc-sync-btn${syncing?" spinning":""}`} onClick={()=>!syncing&&doSync()} title="Sync now">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                </button>
+              )}
+            </span>
           </div>
           <div className="lc-body">
             <nav className="lc-nav">

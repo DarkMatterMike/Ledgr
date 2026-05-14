@@ -338,6 +338,7 @@ export default function LedgrBriefing({
   const initScenarios=useMemo(()=>generateScenarios(categories,monthTxns,upcomingBills,accounts,safeToSpend),[]);
   const[scenarios,setScenarios]=useState(initScenarios);
   const[selIdx,setSelIdx]=useState(null); // null = none active
+  const[expandedCard,setExpandedCard]=useState(null); // 0 | 1 | null
   const[aiLoading,setAiLoading]=useState(false);
   const[aiInput,setAiInput]=useState("");
   const aiInputRef=useRef(null);

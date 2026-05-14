@@ -59,13 +59,13 @@ const CSS = `
     font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;
     background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;
   }
-  @media(max-width:1100px){.lt-wrap{padding:20px 16px 60px;}}
+  @media(max-width:1000px){.lt-wrap{padding:20px 16px 60px;}}
   @media(max-width:600px){.lt-wrap{padding:0;}}
 
   /* Frame */
   .lt-frame {
     background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);
-    overflow:hidden;max-width:1480px;margin:0 auto;
+    overflow:hidden;max-width:1400px;margin:0 auto;
     box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:820px;
   }
   @media(max-width:600px){.lt-frame{border-radius:0;border:none;}}
@@ -77,7 +77,12 @@ const CSS = `
   }
   .lt-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lt-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
-  .lt-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lt-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
+  .lt-sync-btn{background:none;border:1px solid var(--line);border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-3);transition:.15s;flex-shrink:0;}
+  .lt-sync-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
+  .lt-sync-btn svg{transition:transform .6s;}
+  .lt-sync-btn.spinning svg{animation:lt-spin .7s linear infinite;}
+  @keyframes lt-spin{to{transform:rotate(360deg);}}
   .lt-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
 
   /* 3-column body */
@@ -171,14 +176,14 @@ const CSS = `
   .lt-tr.sel td:first-child{background:transparent;}
   .lt-td{padding:0;vertical-align:middle;}
 
-  /* Color strip cell */
+  /* Color strip cell — 4 indicators */
   .lt-strip{width:3px;padding:0 !important;}
   .lt-strip-bar{width:3px;height:100%;min-height:42px;display:block;}
-  .lt-strip-bar.income{background:var(--safe);}
-  .lt-strip-bar.expense{background:var(--debt);}
-  .lt-strip-bar.bill{background:var(--warn);}
-  .lt-strip-bar.sub,.lt-strip-bar.subscription{background:var(--calm);}
-  .lt-strip-bar.transfer,.lt-strip-bar.reimbursement{background:var(--ink-4);}
+  .lt-strip-bar.unreviewed{background:#5dcaa5;}
+  .lt-strip-bar.pending{background:var(--warn);}
+  .lt-strip-bar.income{background:#5dcaa5;}
+  .lt-strip-bar.recurring{background:#f97316;}
+  .lt-strip-bar.none{background:transparent;}
 
   /* Cell inner */
   .lt-cell{padding:10px 12px;display:flex;align-items:center;gap:6px;min-height:42px;}
@@ -186,7 +191,7 @@ const CSS = `
   .lt-date-val{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);white-space:nowrap;}
   .lt-merchant-val{font-size:13px;color:var(--ink-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .lt-merchant-badge{font-size:10px;padding:1px 6px;border-radius:4px;font-family:var(--font-mono);flex-shrink:0;}
-  .lt-merchant-badge.review{background:var(--warn-bg);color:var(--warn);}
+  .lt-merchant-badge.review{background:rgba(93,202,165,0.1);color:#5dcaa5;}
   .lt-merchant-badge.recur{background:var(--calm-bg);color:var(--calm);}
   .lt-acct-val{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .lt-amt-val{font-family:var(--font-mono);font-size:13px;font-weight:600;}
@@ -257,8 +262,8 @@ const CSS = `
     display:flex;align-items:center;justify-content:center;gap:7px;transition:.12s;
   }
   .lt-panel-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
-  .lt-panel-btn.recur{border-color:rgba(93,202,165,0.35);color:var(--safe);background:var(--safe-bg);}
-  .lt-panel-btn.recur:hover{background:rgba(93,202,165,0.14);}
+  .lt-panel-btn.recur{border-color:rgba(249,115,22,0.35);color:#f97316;background:rgba(249,115,22,0.08);}
+  .lt-panel-btn.recur:hover{background:rgba(249,115,22,0.14);}
   .lt-panel-btn.del{border-color:rgba(232,115,99,0.25);color:var(--debt);background:var(--debt-bg);}
   .lt-panel-btn.del:hover{background:rgba(232,115,99,0.14);}
   .lt-panel-row{display:flex;gap:8px;}
@@ -298,6 +303,7 @@ function stripCls(type) {
   return "expense";
 }
 function amtCls(type) { return stripCls(type); }
+// Panel amount color — just income=green, everything else coral
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
 export default function LedgrTransactions({
@@ -343,6 +349,8 @@ export default function LedgrTransactions({
   updateTxnName   = () => {},
   markReviewed    = () => {},
   onMakeRecurring = null,
+  doSync = null,
+  syncing = false,
 }) {
   /* ── Local state ── */
   const [selectedTxn, setSelectedTxn] = useState(null);
@@ -453,7 +461,21 @@ export default function LedgrTransactions({
           <div className="lt-bar">
             <div className="lt-bar-dot"/><div className="lt-bar-dot"/><div className="lt-bar-dot"/>
             <span className="lt-bar-url">app.ledgr.app / transactions</span>
-            <span className="lt-bar-live">live · synced just now</span>
+            <span className="lt-bar-live">
+              live · synced just now
+              {doSync && (
+                <button
+                  className={`lt-sync-btn${syncing ? " spinning" : ""}`}
+                  onClick={() => !syncing && doSync()}
+                  title="Sync now"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                </button>
+              )}
+            </span>
           </div>
 
           {/* 3-column body */}
@@ -554,10 +576,12 @@ export default function LedgrTransactions({
                         const cat     = catMap[t.categoryId];
                         const acct    = acctMap[t.accountId];
                         const ttype   = typeOf(t);
-                        const sCls    = stripCls(ttype);
                         const isSel   = selectedTxn?.id === t.id;
                         const isInc   = t.amount > 0;
                         const review  = needsReview(t);
+                        const isRecur = !!(t.recurringItemId || t.recurring);
+                        // Priority: unreviewed > pending > income > recurring > none
+                        const sCls    = review ? 'unreviewed' : t.pending ? 'pending' : isInc ? 'income' : isRecur ? 'recurring' : 'none';
 
                         return (
                           <tr
@@ -585,6 +609,9 @@ export default function LedgrTransactions({
                                 <span className="lt-merchant-val">{t.name || t.merchant}</span>
                                 {t.recurringItemId && (
                                   <span className="lt-merchant-badge recur">↻</span>
+                                )}
+                                {t.pending && (
+                                  <span className="lt-merchant-badge" style={{background:"var(--warn-bg)",color:"var(--warn)"}}>pending</span>
                                 )}
                                 {review && (
                                   <span className="lt-merchant-badge review">review</span>

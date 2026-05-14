@@ -4658,6 +4658,8 @@ function AppInner({ isDemo = false }) {
         setCalendarOpenNewRi(true);
         navigate('calendar');
       }}
+      doSync={doSync}
+      syncing={syncing}
     />
   );
 
@@ -5419,30 +5421,83 @@ function AppInner({ isDemo = false }) {
   );
 
 
-  /* ── TxnModal ─────────────────────────────────── */
-  const TxnModal = (
-    <Modal title="Add Transaction" onClose={()=>setModal(null)}
-      actions={<><button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveManualTxn}>Save</button></>}>
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        <div style={S.field}><label style={S.label}>Description</label><input style={S.input} placeholder="Amazon" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <div style={S.field}><label style={S.label}>Type</label>
-            <CustomSelect value={txnForm.sign} onChange={v=>setTxnForm(p=>({...p,sign:v}))} options={[{value:"-1",label:"Expense"},{value:"1",label:"Income"}]} style={{width:"100%"}}/>
+  /* ── TxnModal — Lumen themed ─────────────────── */
+  const TxnModal = modal === "addTxn" ? (
+    <>
+      <style>{`
+        .lm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+        .lm-modal{background:#0b0e14;border:1px solid rgba(255,255,255,0.08);border-radius:16px;width:100%;max-width:440px;box-shadow:0 32px 80px rgba(0,0,0,0.6);overflow:hidden;}
+        .lm-mhead{padding:20px 22px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:baseline;justify-content:space-between;}
+        .lm-mtitle{font-family:'Instrument Serif',Georgia,serif;font-size:22px;letter-spacing:-0.3px;color:#f4f4f1;}
+        .lm-mclose{background:none;border:none;color:#4a5161;font-size:18px;cursor:pointer;line-height:1;padding:0;}
+        .lm-mclose:hover{color:#f4f4f1;}
+        .lm-mbody{padding:20px 22px;display:flex;flex-direction:column;gap:12px;}
+        .lm-mfield{display:flex;flex-direction:column;gap:5px;}
+        .lm-mlabel{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#4a5161;font-family:'JetBrains Mono',monospace;}
+        .lm-minput{background:#161c26;border:1px solid rgba(255,255,255,0.10);border-radius:8px;padding:9px 12px;color:#f4f4f1;font-size:13px;width:100%;outline:none;box-sizing:border-box;}
+        .lm-minput:focus{border-color:rgba(93,202,165,0.45);}
+        .lm-mselect{background:#161c26;border:1px solid rgba(255,255,255,0.10);border-radius:8px;padding:9px 12px;color:#c8cdd6;font-size:12px;font-family:'JetBrains Mono',monospace;width:100%;outline:none;cursor:pointer;box-sizing:border-box;}
+        .lm-mselect:focus{border-color:rgba(93,202,165,0.45);}
+        .lm-mfoot{padding:14px 22px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;justify-content:flex-end;}
+        .lm-mbtn{padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid rgba(255,255,255,0.10);background:transparent;color:#7d8594;transition:.12s;}
+        .lm-mbtn:hover{border-color:rgba(255,255,255,0.18);color:#f4f4f1;}
+        .lm-mbtn-p{padding:8px 18px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid rgba(93,202,165,0.4);background:rgba(93,202,165,0.1);color:#5dcaa5;font-weight:500;transition:.12s;}
+        .lm-mbtn-p:hover{background:rgba(93,202,165,0.18);}
+        .lm-m2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+      `}</style>
+      <div className="lm-overlay" onClick={e=>{if(e.target===e.currentTarget)setModal(null);}}>
+        <div className="lm-modal">
+          <div className="lm-mhead">
+            <span className="lm-mtitle">Add Transaction</span>
+            <button className="lm-mclose" onClick={()=>setModal(null)}>✕</button>
           </div>
-          <div style={S.field}><label style={S.label}>Amount ($)</label><input style={S.input} type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/></div>
-        </div>
-        <div style={S.field}><label style={S.label}>Date</label><input style={S.input} type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <div style={S.field}><label style={S.label}>Category</label>
-            <CustomSelect value={txnForm.categoryId} onChange={v=>setTxnForm(p=>({...p,categoryId:v}))} options={[{value:"",label:"None"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{width:"100%"}}/>
+          <div className="lm-mbody">
+            <div className="lm-mfield">
+              <label className="lm-mlabel">Description</label>
+              <input className="lm-minput" placeholder="Amazon, Paycheck…" value={txnForm.merchant} onChange={e=>setTxnForm(p=>({...p,merchant:e.target.value}))}/>
+            </div>
+            <div className="lm-m2col">
+              <div className="lm-mfield">
+                <label className="lm-mlabel">Type</label>
+                <select className="lm-mselect" value={txnForm.sign} onChange={e=>setTxnForm(p=>({...p,sign:e.target.value}))}>
+                  <option value="-1">Expense</option>
+                  <option value="1">Income</option>
+                </select>
+              </div>
+              <div className="lm-mfield">
+                <label className="lm-mlabel">Amount ($)</label>
+                <input className="lm-minput" type="number" placeholder="0.00" value={txnForm.amount} onChange={e=>setTxnForm(p=>({...p,amount:e.target.value}))}/>
+              </div>
+            </div>
+            <div className="lm-mfield">
+              <label className="lm-mlabel">Date</label>
+              <input className="lm-minput" type="date" value={txnForm.date} onChange={e=>setTxnForm(p=>({...p,date:e.target.value}))}/>
+            </div>
+            <div className="lm-m2col">
+              <div className="lm-mfield">
+                <label className="lm-mlabel">Category</label>
+                <select className="lm-mselect" value={txnForm.categoryId} onChange={e=>setTxnForm(p=>({...p,categoryId:e.target.value}))}>
+                  <option value="">— None —</option>
+                  {[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="lm-mfield">
+                <label className="lm-mlabel">Account</label>
+                <select className="lm-mselect" value={txnForm.accountId} onChange={e=>setTxnForm(p=>({...p,accountId:e.target.value}))}>
+                  <option value="">— None —</option>
+                  {accounts.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
-          <div style={S.field}><label style={S.label}>Account</label>
-            <CustomSelect value={txnForm.accountId} onChange={v=>setTxnForm(p=>({...p,accountId:v}))} options={[{value:"",label:"None"},...accounts.map(a=>({value:a.id,label:a.name}))]} style={{width:"100%"}}/>
+          <div className="lm-mfoot">
+            <button className="lm-mbtn" onClick={()=>setModal(null)}>Cancel</button>
+            <button className="lm-mbtn-p" onClick={saveManualTxn}>Save Transaction</button>
           </div>
         </div>
       </div>
-    </Modal>
-  );
+    </>
+  ) : null;
 
   /* -----------------------------------------------------------------
      NAV + RENDER
@@ -5750,6 +5805,8 @@ function AppInner({ isDemo = false }) {
         setCalendarOpenNewRi(true);
         navigate('calendar');
       }}
+      doSync={doSync}
+      syncing={syncing}
     />
       {modal==="addTxn" && TxnModal}
     </>

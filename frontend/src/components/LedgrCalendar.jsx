@@ -170,7 +170,7 @@ export default function LedgrCalendar({
   const [selDay,setSelDay]=useState(cy===today.getFullYear()&&cm===today.getMonth()+1?today.getDate():1);
   const isCurMo=cy===today.getFullYear()&&cm===today.getMonth()+1;
   const [selectedRiId,setSelectedRiId]=useState(null);    // which ri is selected for edit col
-  const [selectedTxnId,setSelectedTxnId]=useState(null);  // which unlinked txn is selected for link search
+  const [selectedTxn,setSelectedTxn]=useState(null);      // which unlinked txn is selected for link search
   const [linkSearch,setLinkSearch]=useState("");
 
   const first=new Date(cy,cm-1,1).getDay();
@@ -207,7 +207,7 @@ export default function LedgrCalendar({
 
   function openRiEdit(r){
     setSelectedRiId(r.id);
-    setSelectedTxnId(null);
+    setSelectedTxn(null);
     setLinkSearch("");
     setEditingRecurringItem(r);
     setRiForm({
@@ -364,11 +364,11 @@ export default function LedgrCalendar({
                         const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
                         const txnDate=t.date?new Date(t.date+"T00:00:00"):null;
                         const posted=txnDate&&txnDate<=todayMidnight;
-                        const isSel=selectedTxnId===t.id;
+                        const isSel=selectedTxn?.id===t.id;
                         return(
                           <div key={t.id} className="lc-event"
                             style={{background:isSel?"rgba(108,140,255,0.04)":undefined,borderRadius:isSel?"4px":undefined}}
-                            onClick={()=>{setSelectedTxnId(p=>p===t.id?null:t.id);setSelectedRiId(null);setLinkSearch("");}}>
+                            onClick={()=>{setSelectedTxn(p=>p?.id===t.id?null:t);setSelectedRiId(null);setLinkSearch("");}}>
                             <div className="lc-event-bar" style={{background:barColor}}/>
                             <div className="lc-event-body">
                               <span className="lc-event-name">{t.name||t.merchant}</span>
@@ -387,7 +387,7 @@ export default function LedgrCalendar({
             </div>
             {/* ── edit column ── */}
             <div className="lc-edit-col">
-              {!selectedRiId&&!selectedTxnId&&(
+              {!selectedRiId&&!selectedTxn&&(
                 <div className="lc-edit-empty">
                   <div className="lc-edit-empty-icon">↻</div>
                   <div className="lc-edit-empty-text">Select a recurring item or transaction to edit or link</div>
@@ -469,6 +469,36 @@ export default function LedgrCalendar({
                         ))}
                       </>
                     )}
+                    <div className="lc-edit-section">Link a transaction</div>
+                    <input className="lc-input" placeholder="Search by name or merchant…" value={linkSearch}
+                      onChange={e=>setLinkSearch(e.target.value)} style={{marginBottom:8}}/>
+                    {(()=>{
+                      const q=linkSearch.toLowerCase().trim();
+                      const linkedIds=new Set(r.linkedTxnIds||[]);
+                      const candidates=(monthTxns.length>0?monthTxns:transactions)
+                        .filter(t=>{
+                          if(linkedIds.has(t.id)) return false;
+                          if(isInc&&t.amount<0) return false;
+                          if(!isInc&&t.amount>0) return false;
+                          if(!q) return true;
+                          return (t.name||t.merchant||"").toLowerCase().includes(q)||(t.date||"").includes(q);
+                        })
+                        .sort((a,b)=>(b.date||"").localeCompare(a.date||""))
+                        .slice(0,q?20:5);
+                      if(candidates.length===0)
+                        return <div style={{fontSize:11,color:"var(--ink-4)",padding:"4px 0"}}>{q?"No matching transactions":"Search to find transactions to link"}</div>;
+                      return candidates.map(t=>(
+                        <div key={t.id} className="lc-link-candidate"
+                          onClick={()=>linkTxnToRecurringItem(t.id,r.id)}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div className="lc-link-cname">{t.name||t.merchant}</div>
+                            <div className="lc-link-cmeta">{t.date}</div>
+                          </div>
+                          <span className="lc-link-camt" style={{color:t.amount<0?"var(--debt)":"var(--safe)"}}>{fmt(Math.abs(t.amount))}</span>
+                          <button className="lc-link-btn">Link ↗</button>
+                        </div>
+                      ));
+                    })()}
                     <div className="lc-edit-actions">
                       <button className="lc-btn-save" onClick={()=>{saveRecurringItemForm();setSelectedRiId(null);}}>Save</button>
                       <button className="lc-btn-ghost" onClick={()=>setSelectedRiId(null)}>Cancel</button>
@@ -477,9 +507,8 @@ export default function LedgrCalendar({
                   </>
                 );
               })()}
-              {selectedTxnId&&!selectedRiId&&(()=>{
-                const t=transactions.find(x=>x.id===selectedTxnId)||monthTxns.find(x=>x.id===selectedTxnId);
-                if(!t) return null;
+              {selectedTxn&&!selectedRiId&&(()=>{
+                const t=selectedTxn;
                 const isInc=t.amount>0;
                 const q=linkSearch.toLowerCase().trim();
                 const candidates=recurringItems.filter(r=>{
@@ -491,7 +520,7 @@ export default function LedgrCalendar({
                   <>
                     <div className="lc-edit-header">
                       <span className="lc-edit-title">{t.name||t.merchant}</span>
-                      <button className="lc-edit-close" onClick={()=>setSelectedTxnId(null)}>✕</button>
+                      <button className="lc-edit-close" onClick={()=>setSelectedTxn(null)}>✕</button>
                     </div>
                     <div style={{fontSize:12,color:"var(--ink-2)",marginBottom:4}}>{fmt(Math.abs(t.amount))} · {t.date}</div>
                     <div style={{fontSize:11,color:"var(--ink-3)",marginBottom:16}}>Link this transaction to a recurring item so it shows as posted on the calendar.</div>
@@ -502,7 +531,7 @@ export default function LedgrCalendar({
                       ?<div style={{fontSize:11,color:"var(--ink-4)",padding:"8px 0"}}>No matching recurring items</div>
                       :candidates.slice(0,8).map(r=>(
                         <div key={r.id} className="lc-link-candidate"
-                          onClick={()=>{linkTxnToRecurringItem(t.id,r.id);setSelectedTxnId(null);setLinkSearch("");}}>
+                          onClick={()=>{linkTxnToRecurringItem(t.id,r.id);setSelectedTxn(null);setLinkSearch("");}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div className="lc-link-cname">{r.name}</div>
                             <div className="lc-link-cmeta">day {r.recurringDay} · {r.recurringFreq||"monthly"}</div>

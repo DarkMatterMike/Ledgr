@@ -511,7 +511,8 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
   // ── Display helpers ────────────────────────────────────────────
   const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
   const halfIncome=nextPay?(nextPay.amountMin||0):totalIncome/2;
-  const halfBills=billsTotal/2;
+  const bills1to15  = useMemo(()=>upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
+  const bills16toEnd = useMemo(()=>upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
   const timeLabel=`${DN[today.getDay()]}, ${MN[today.getMonth()]} ${today.getDate()} · ${today.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}`;
 
   return(
@@ -551,8 +552,8 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               </div>
               <div className="lb-pc-lbl">Paycheck planning</div>
               {[
-                {label:"1 – 15",  income:halfIncome, bills:halfBills,            billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
-                {label:"16 – End",income:halfIncome, bills:billsTotal-halfBills, billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15)},
+                {label:"1 – 15",  income:halfIncome, bills:bills1to15,   billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
+                {label:"16 – End",income:halfIncome, bills:bills16toEnd, billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15)},
               ].map((card,i)=>{
                 const isOpen=expandedCard===i;
                 const byAcct={};

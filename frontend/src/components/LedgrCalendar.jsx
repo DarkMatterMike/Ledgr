@@ -248,7 +248,8 @@ export default function LedgrCalendar({
   const billsTotalCal=useMemo(()=>upcomingBillsCal.reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBillsCal]);
   const nextPayCal=upcomingIncomeCal[0]||null;
   const halfIncomeCal=nextPayCal?(nextPayCal.amountMin||0):0;
-  const halfBillsCal=billsTotalCal/2;
+  const bills1to15Cal   = useMemo(()=>upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)<=15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBillsCal]);
+  const bills16toEndCal = useMemo(()=>upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)>15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBillsCal]);
 
   const agendaDays=useMemo(()=>{
     const s=new Set();
@@ -328,8 +329,8 @@ export default function LedgrCalendar({
               <div style={{borderTop:"1px solid var(--line)",paddingTop:16,marginTop:4}}>
                 <span className="lc-pc-lbl">Paycheck planning</span>
                 {[
-                  {label:"1 – 15",  income:halfIncomeCal, bills:halfBillsCal,                 billItems:upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
-                  {label:"16 – End",income:halfIncomeCal, bills:billsTotalCal-halfBillsCal,    billItems:upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)>15)},
+                  {label:"1 – 15",  income:halfIncomeCal, bills:bills1to15Cal,   billItems:upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
+                  {label:"16 – End",income:halfIncomeCal, bills:bills16toEndCal, billItems:upcomingBillsCal.filter(b=>(parseInt(b.recurringDay)||31)>15)},
                 ].map((card,i)=>{
                   const isOpen=expandedPcCard===i;
                   const byAcct={};

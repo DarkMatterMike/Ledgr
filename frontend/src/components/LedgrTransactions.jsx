@@ -33,6 +33,7 @@
  *     openNewRecurringItem();
  *   }}
  */
+import PageNav from "./PageNav.jsx";
 import { useState, useMemo, useEffect } from "react";
 
 /* ─── CSS ─────────────────────────────────────────────────────────────────── */
@@ -359,6 +360,9 @@ export default function LedgrTransactions({
   today = new Date(),
   isMobile = false,
   navigate = () => {},
+  notifs = [],
+  onDismissNotif = () => {},
+  onFilterReview = () => {},
   /* NEW props — see header comment for App.jsx wiring */
   updateTxnType   = () => {},
   updateTxnCat    = () => {},
@@ -501,21 +505,7 @@ export default function LedgrTransactions({
           <div className="lt-body">
 
             {/* ── Col 1: Nav ── */}
-            <nav className="lt-nav">
-              <div className="lt-nav-logo"/>
-              {NAV_ITEMS.map(n => (
-                <div
-                  key={n.id}
-                  className={`lt-nav-item${n.active ? " active" : ""}`}
-                  onClick={() => navigate(n.id)}
-                  title={n.id}
-                >
-                  {n.icon}
-                </div>
-              ))}
-              <div className="lt-nav-spacer"/>
-              <div className="lt-nav-item" onClick={() => navigate("settings")} title="settings">⚙</div>
-            </nav>
+            <PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
 
             {/* ── Col 2: Ledger list ── */}
             <div className="lt-main">

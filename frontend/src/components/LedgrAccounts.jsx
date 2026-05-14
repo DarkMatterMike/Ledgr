@@ -88,6 +88,7 @@ export default function LedgrAccounts({
   reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,showToast=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
+  notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }) {
   const totalBalance =accounts.reduce((s,a)=>s+(a.balance||0),0);
   const totalSpentAc=accounts.reduce((s,a)=>s+(spentByAcct[a.id]||0),0);
@@ -124,12 +125,7 @@ export default function LedgrAccounts({
             </span>
           </div>
           <div className="la-body">
-            <nav className="la-nav">
-              <div className="la-nav-logo"/>
-              {NAV.map(n=><div key={n.id} className={`la-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>)}
-              <div className="la-nav-spacer"/>
-              <div className="la-nav-item" onClick={()=>navigate("settings")}>⚙</div>
-            </nav>
+            <PageNav activeId="accounts" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
             <main className="la-main">
               <div className="la-topbar">
                 <div className="la-tb-left">

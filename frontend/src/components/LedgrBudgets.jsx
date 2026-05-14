@@ -33,6 +33,7 @@
  *   runSuggestLimits  {Function}
  *   hasApiKey         {boolean}
  */
+import PageNav from "./PageNav.jsx";
 import { useState, useMemo } from "react";
 
 const CSS = `
@@ -200,6 +201,7 @@ export default function LedgrBudgets({
   today=new Date(),
   fmt=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Math.abs(n)),
   isMobile=false,navigate=()=>{},
+  notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
   openAddCat=()=>{},openEditCat=()=>{},deleteCat=()=>{},
   toggleCatComplete=()=>{},updateTxnCat=()=>{},
   editingLimitId=null,setEditingLimitId=()=>{},
@@ -390,12 +392,7 @@ export default function LedgrBudgets({
 
           <div className="lb-body">
             {/* sidenav */}
-            <nav className="lb-nav">
-              <div className="lb-nav-logo"/>
-              {NAV.map(n=><div key={n.id} className={`lb-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>)}
-              <div className="lb-nav-spacer"/>
-              <div className="lb-nav-item" onClick={()=>navigate("settings")}>⚙</div>
-            </nav>
+            <PageNav activeId="budgets" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
 
             <main className="lb-main">
               {/* topbar */}

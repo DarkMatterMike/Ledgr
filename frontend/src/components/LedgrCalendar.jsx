@@ -3,7 +3,7 @@
  * src/components/LedgrCalendar.jsx
  */
 import { useState, useMemo, useEffect } from "react";
-import NotifPanel from "./NotifPanel.jsx";
+import PageNav from "./PageNav.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
@@ -82,10 +82,10 @@ const CSS = `
   .lc-field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
   .lc-field-row .lc-field{margin-bottom:0;}
   .lc-label{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink-3);font-family:var(--font-mono);}
-  .lc-input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;}
+  .lc-input{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;}
   .lc-input:focus{border-color:rgba(93,202,165,0.3);}
   .lc-input::placeholder{color:var(--ink-4);}
-  .lc-select{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;}
+  .lc-select{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;}
   .lc-edit-section{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-3);font-family:var(--font-mono);margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
   .lc-linked-txn{display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:4px;}
   .lc-linked-name{flex:1;font-size:11px;color:var(--ink-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -140,7 +140,7 @@ const CSS = `
   /* agenda link expand */
   .lc-expand{margin:2px 0 6px 42px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;}
   .lc-expand-label{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-3);margin-bottom:8px;}
-  .lc-expand-input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;}
+  .lc-expand-input{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--ink-0);width:100%;font-family:var(--font-ui);outline:none;}
   .lc-expand-input:focus{border-color:rgba(93,202,165,0.3);}
   .lc-expand-input::placeholder{color:var(--ink-4);}
   .lc-expand-candidate{display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:6px;margin-top:4px;cursor:pointer;transition:background .1s;}
@@ -265,13 +265,7 @@ export default function LedgrCalendar({
             </span>
           </div>
           <div className="lc-body">
-            <nav className="lc-nav">
-              <div className="lc-nav-logo"/>
-              {NAV.map(n=><div key={n.id} className={`lc-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>)}
-              <div className="lc-nav-spacer"/>
-              <NotifPanel notifs={notifs} onDismiss={onDismissNotif} onNavigate={navigate} onFilterReview={onFilterReview}/>
-              <div className="lc-nav-item" onClick={()=>navigate("settings")}>⚙</div>
-            </nav>
+            <PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
 
             {/* ── left aside ── */}
             <aside className="lc-aside">
@@ -330,6 +324,7 @@ export default function LedgrCalendar({
                         style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:"var(--r-sm)",cursor:"pointer",
                           background:isExpanded?"rgba(93,202,165,0.04)":"transparent",
                           borderLeft:isExpanded?"2px solid var(--safe)":"2px solid transparent",
+                          borderRadius:0,
                           opacity:isPast?0.5:1,transition:".12s"}}
                       >
                         <div style={{textAlign:"center",minWidth:28,flexShrink:0}}>

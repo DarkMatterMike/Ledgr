@@ -11,7 +11,7 @@
  *   authHeaders {Function} — from api.js, returns { Authorization: "Bearer …" }
  */
 import { useState, useMemo, useRef, useCallback } from "react";
-import NotifPanel from "./NotifPanel.jsx";
+import PageNav from "./PageNav.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
@@ -511,13 +511,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
           <div className="lb-brief">
 
             {/* sidenav */}
-            <nav className="lb-nav">
-              <div className="lb-nav-logo"/>
-              {NAV.map(n=><div key={n.id} className={`lb-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>)}
-              <div className="lb-nav-spacer"/>
-              <NotifPanel notifs={notifs} onDismiss={onDismissNotif} onNavigate={navigate} onFilterReview={onFilterReview} fmt={fmt}/>
-              <div className="lb-nav-item" onClick={()=>navigate("settings")}>⚙</div>
-            </nav>
+            <PageNav activeId="dashboard" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview} fmt={fmt}/>
 
             {/* agenda */}
             <aside className="lb-agenda">

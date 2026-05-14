@@ -6,7 +6,7 @@
  * Props: same interface as the old SettingsView in App.jsx
  */
 import { useState, useEffect } from "react";
-import NotifPanel from "./NotifPanel.jsx";
+import PageNav from "./PageNav.jsx";
 import * as api from "../api.js";
 import { applyTheme, applyGlobalOpacity } from "../theme/index.js";
 
@@ -486,17 +486,7 @@ export default function LedgrSettings({
         <div className="lb-brief">
 
           {/* Nav rail — identical to LedgrBriefing */}
-          <nav className="lb-nav">
-            <div className="lb-nav-logo"/>
-            {NAV.map(n => (
-              <div key={n.id} className={`lb-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>
-                {n.icon}
-              </div>
-            ))}
-            <div className="lb-nav-spacer"/>
-            <NotifPanel notifs={notifs} onDismiss={onDismissNotif} onNavigate={navigate} onFilterReview={onFilterReview}/>
-            <div className="lb-nav-item active" title="settings">⚙</div>
-          </nav>
+          <PageNav activeId="settings" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
 
           {/* Main */}
           <div className="lgs-main">

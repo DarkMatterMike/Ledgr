@@ -3078,7 +3078,14 @@ function AppInner({ isDemo = false }) {
     scheduleSaveRef.current?.({ recurringItems: next });
   }
   function deleteRecurringItem(id) {
-    // Unlink any transactions that were linked to this item
+    const item = recurringItems.find(r => r.id === id);
+    // Persist unlink to backend for every transaction that was linked to this item,
+    // so they survive a page reload and appear correctly in the transactions list.
+    if (item?.linkedTxnIds?.length) {
+      item.linkedTxnIds.forEach(txnId => {
+        api.updateTransaction(txnId, { recurringItemId: null }).catch(console.error);
+      });
+    }
     setTransactions(prev => prev.map(t => t.recurringItemId === id ? { ...t, recurringItemId: null } : t));
     const next = recurringItems.filter(r => r.id !== id);
     setRecurringItems(next);
@@ -4431,6 +4438,9 @@ function AppInner({ isDemo = false }) {
       today={today}
       isMobile={isMobile}
       navigate={navigate}
+      notifs={visibleNotifs}
+      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
     />
   )
 
@@ -5215,6 +5225,9 @@ function AppInner({ isDemo = false }) {
       syncing={syncing}
       filterReview={filterReview}
       setFilterReview={setFilterReview}
+      notifs={visibleNotifs}
+      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
     />
       {modal==="addTxn" && TxnModal}
     </>
@@ -5282,6 +5295,9 @@ function AppInner({ isDemo = false }) {
       showToast={showToast}
       doSync={doSync}
       syncing={syncing}
+      notifs={visibleNotifs}
+      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
     />
       {(modal==="addCat"||modal==="editCat") && CatModal}
     </>

@@ -3714,7 +3714,14 @@ function AppInner({ isDemo = false }) {
     </div>
   );
 
-  const reviewCount = transactions.filter(t => needsReview(t)).length;
+  // Exclude transactions already surfaced as individual "newtxn" notifications from the
+  // aggregate "review" count — otherwise a brand-new unreviewed transaction creates two
+  // notifications at once (one "New: Merchant" + one "N transactions need review").
+  const newtxnIds = useMemo(
+    () => new Set(newTxnNotifs.map(n => String(n.id).replace("txn-", ""))),
+    [newTxnNotifs]
+  );
+  const reviewCount = transactions.filter(t => needsReview(t) && !newtxnIds.has(String(t.id))).length;
 
   // Notification list — shared by bell popout and dashboard cards
   const notifList = useMemo(() => {

@@ -247,15 +247,22 @@ export default function LedgrCalendar({
                       {dayTxns.map(t=>{
                         const isInc=t.amount>0;
                         const barColor=isInc?"rgba(93,202,165,0.5)":"rgba(232,115,99,0.4)";
-                        const txnDate=t.date?new Date(t.date+"T00:00:00"):null;
-                        const todayMidnight=new Date(today.getFullYear(),today.getMonth(),today.getDate());
-                        const hasPosted=txnDate&&txnDate<=todayMidnight;
+                        // Recurring item entries have postedThisMonth flag
+                        // Real transactions: posted if date is today or earlier
+                        let hasPosted;
+                        if(t.isRecurringItem){
+                          hasPosted=t.postedThisMonth;
+                        } else {
+                          const txnDate=t.date?new Date(t.date+"T00:00:00"):null;
+                          const todayMidnight=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+                          hasPosted=txnDate&&txnDate<=todayMidnight;
+                        }
                         return(
                           <div key={t.id} className="lc-event">
                             <div className="lc-event-bar" style={{background:barColor}}/>
                             <div className="lc-event-body">
                               <span className="lc-event-name">{t.name||t.merchant}</span>
-                              {t.recurring&&<span className="lc-event-tag rec">↻</span>}
+                              {(t.recurring||t.isRecurringItem)&&<span className="lc-event-tag rec">↻</span>}
                               {hasPosted
                                 ? <span className="lc-event-tag posted">✓</span>
                                 : <span className="lc-event-tag upcoming">due</span>

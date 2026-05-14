@@ -2551,7 +2551,10 @@ function AppInner({ isDemo = false }) {
               if (toAdd.length === 0) return prev;
               return [...toAdd, ...prev];
             });
-            brandNew.forEach(t => knownTxnIds.current.add(t.id));
+            brandNew.forEach(t => {
+              knownTxnIds.current.add(t.id);
+              autoLinkTransaction(t, recurringItems);
+            });
             setNewTxnCount(brandNew.length);
           }
           setTxnTotal(txnData.value.total || 0);
@@ -2856,13 +2859,6 @@ function AppInner({ isDemo = false }) {
       }
     }
 
-    // Legacy recurring transactions
-    recurringTxns.forEach(t => {
-      const freq  = t.recurringFreq || "monthly";
-      const start = t.recurringStart ? new Date(t.recurringStart + "T12:00:00") : null;
-      plotOccurrences(freq, start, t.recurringDay, d => addToDay(d, t));
-    });
-
     // Recurring items — plot from their start date onward
     recurringItems.forEach(item => {
       const freq  = item.recurringFreq || "monthly";
@@ -2912,7 +2908,7 @@ function AppInner({ isDemo = false }) {
     });
 
     return map;
-  }, [recurringTxns, recurringItems, transactions, calendarMonth]);
+  }, [recurringItems, transactions, calendarMonth]);
 
   function prevMonth() {
     const [y,m]=selectedMonth.split("-").map(Number);
@@ -3756,6 +3752,53 @@ function AppInner({ isDemo = false }) {
     setTransactions(prev => prev.map(t => t.id === txnId ? { ...t, recurringItemId: itemId } : t));
     api.updateTransaction(txnId, { recurringItemId: itemId }).catch(console.error);
   }
+  // Auto-link a transaction to a recurring item based on name + amount + date proximity
+  function autoLinkTransaction(txn, recurringItemsList) {
+    if (!txn || txn.recurringItemId) return; // already linked
+    const txnAmt = Math.abs(txn.amount);
+    const txnDate = txn.date ? parseInt(txn.date.split("-")[2]) : null;
+    const txnName = (txn.name || txn.merchant || "").toLowerCase();
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    recurringItemsList.forEach(item => {
+      // Skip income items for expense txns and vice versa
+      if (item.type === "income" && txn.amount < 0) return;
+      if (item.type !== "income" && txn.amount > 0) return;
+
+      const itemName = (item.name || "").toLowerCase();
+
+      // Name similarity — check if either contains the other or share significant words
+      const itemWords = itemName.split(/\s+/).filter(w => w.length > 2);
+      const nameMatch = txnName.includes(itemName) || itemName.includes(txnName) ||
+        itemWords.some(w => txnName.includes(w));
+      if (!nameMatch) return;
+
+      let score = 1;
+
+      // Amount proximity — within 20% of amountMin
+      if (item.amountMin != null && item.amountMin > 0) {
+        const diff = Math.abs(txnAmt - item.amountMin) / item.amountMin;
+        if (diff > 0.3) return; // too different
+        score += diff < 0.05 ? 3 : diff < 0.15 ? 2 : 1;
+      }
+
+      // Date proximity — within 5 days of recurringDay
+      if (item.recurringDay && txnDate) {
+        const dayDiff = Math.abs(txnDate - parseInt(item.recurringDay));
+        if (dayDiff <= 2) score += 3;
+        else if (dayDiff <= 5) score += 1;
+      }
+
+      if (score > bestScore) { bestScore = score; bestMatch = item; }
+    });
+
+    if (bestMatch && bestScore >= 2) {
+      linkTxnToRecurringItem(txn.id, bestMatch.id);
+    }
+  }
+
   function unlinkTxnFromRecurringItem(txnId, itemId) {
     const next = recurringItems.map(r => r.id === itemId
       ? { ...r, linkedTxnIds: (r.linkedTxnIds||[]).filter(id => id !== txnId) }

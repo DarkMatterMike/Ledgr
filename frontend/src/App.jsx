@@ -2681,7 +2681,15 @@ function AppInner({ isDemo = false }) {
     } catch(e) { showToast("Connection failed: "+e.message); }
   }, [doSync]);
 
-  // Boot auto-sync removed — the focus sync (30min threshold) handles freshness without causing a visible reload on open
+  // Auto-sync on boot if last sync was >4 hours ago
+  useEffect(() => {
+    if (!initialized.current) return;
+    if (plaidItems.length === 0) return;
+    if (Date.now() - lastSyncedAt.current > 4 * 60 * 60 * 1000) {
+      doSync();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized.current]);
 
   // Auto-sync on tab/window focus if last sync was >30 minutes ago
   useEffect(() => {

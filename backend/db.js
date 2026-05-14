@@ -349,7 +349,21 @@ function dbRowToAccount(row) {
 
 async function getAccounts(userId) {
   const { rows } = await pool.query(
-    `SELECT * FROM accounts WHERE user_id = $1 ORDER BY is_manual DESC, created_at ASC`,
+    // Only return accounts belonging to active Plaid items or manual accounts.
+    // This prevents stale accounts from disconnected/duplicate items showing
+    // up on load without requiring a live Plaid sync to clean them up.
+    `SELECT a.* FROM accounts a
+     WHERE a.user_id = $1
+       AND (
+         a.is_manual = true
+         OR a.plaid_item_id IS NULL
+         OR EXISTS (
+           SELECT 1 FROM plaid_items pi
+           WHERE pi.item_id = a.plaid_item_id
+             AND pi.user_id = $1
+         )
+       )
+     ORDER BY a.is_manual DESC, a.created_at ASC`,
     [userId]
   );
   return rows.map(dbRowToAccount);

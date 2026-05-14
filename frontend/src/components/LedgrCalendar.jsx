@@ -3,6 +3,7 @@
  * src/components/LedgrCalendar.jsx
  */
 import { useState, useMemo, useEffect } from "react";
+import NotifPanel from "./NotifPanel.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
@@ -24,7 +25,7 @@ const CSS = `
   .lc-sync-btn svg{transition:transform .6s;}
   .lc-sync-btn.spinning svg{animation:lc-spin .7s linear infinite;}
   @keyframes lc-spin{to{transform:rotate(360deg);}}
-  .lc-body{display:grid;grid-template-columns:64px 280px 1fr 300px;flex:1;}
+  .lc-body{display:grid;grid-template-columns:64px 320px 1fr 300px;flex:1;}
   @media(max-width:1200px){.lc-body{grid-template-columns:64px 280px 1fr;}}
   @media(max-width:900px){.lc-body{grid-template-columns:64px 1fr;}}
   .lc-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
@@ -172,6 +173,7 @@ export default function LedgrCalendar({
   calendarOpenNewRi=false,onCalendarOpenNewRiConsumed=()=>{},
   doSync=null,
   syncing=false,
+  notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }){
   const now=calendarMonth||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
   const [cy,cm]=now.split("-").map(Number);
@@ -266,6 +268,7 @@ export default function LedgrCalendar({
               <div className="lc-nav-logo"/>
               {NAV.map(n=><div key={n.id} className={`lc-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>)}
               <div className="lc-nav-spacer"/>
+              <NotifPanel notifs={notifs} onDismiss={onDismissNotif} onNavigate={navigate} onFilterReview={onFilterReview}/>
               <div className="lc-nav-item" onClick={()=>navigate("settings")}>⚙</div>
             </nav>
 

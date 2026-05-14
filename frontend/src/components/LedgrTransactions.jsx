@@ -332,6 +332,8 @@ export default function LedgrTransactions({
   selectedTxns = new Set(),
   setSelectedTxns,
   needsReview = () => false,
+  filterReview = false,
+  setFilterReview,
   deleteTxn,
   openAddTxn,
   bulkSetCategory,
@@ -537,6 +539,21 @@ export default function LedgrTransactions({
                     onClick={() => setTxnTypeFilter(v)}
                   >{l}</button>
                 ))}
+                {setFilterReview && (() => {
+                  const unreviewedCount = filteredTxns.filter(t => needsReview(t)).length;
+                  return unreviewedCount > 0 ? (
+                    <button
+                      className={`lt-btn${filterReview ? " active" : ""}`}
+                      onClick={() => setFilterReview(p => !p)}
+                      style={{display:"flex",alignItems:"center",gap:5}}
+                    >
+                      Unreviewed
+                      <span style={{background:filterReview?"var(--safe)":"rgba(232,115,99,0.18)",color:filterReview?"#07090d":"var(--debt)",borderRadius:99,padding:"0 5px",fontSize:9,fontFamily:"var(--font-mono)",fontWeight:600,lineHeight:"16px",display:"inline-block"}}>
+                        {unreviewedCount}
+                      </span>
+                    </button>
+                  ) : null;
+                })()}
                 <div className="lt-search-box" style={{ marginLeft: "auto" }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>

@@ -2497,12 +2497,14 @@ function AppInner({ isDemo = false }) {
     if (syncing) return; // prevent concurrent syncs causing duplicate accounts
     setSyncing(true);
     try {
-      const {added,modified,removed} = await api.syncTransactions(itemId);
-      if (added && added.length > 0) {
-        const notifs = added.slice(0, 5).map(t => ({
-          id: `txn-${t.transaction_id || t.id || Date.now()}`,
+      const {added, modified, removed, newTxns = []} = await api.syncTransactions(itemId);
+      // Only notify for transactions that were genuinely inserted this cycle —
+      // newTxns comes from the server and excludes re-fetched history on cursor resets.
+      if (newTxns.length > 0) {
+        const notifs = newTxns.slice(0, 5).map(t => ({
+          id: `txn-${t.id || Date.now()}`,
           type: "newtxn",
-          merchant: t.merchant_name || t.name || "Transaction",
+          merchant: t.merchant || "Transaction",
           amount: t.amount,
           date: t.date,
         }));
@@ -4918,6 +4920,9 @@ function AppInner({ isDemo = false }) {
       hasApiKey={aiChat.hasApiKey}
       saveApiKey={aiChat.saveApiKey}
       navigate={navigate}
+      notifs={visibleNotifs}
+      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
     />
   );
 
@@ -5094,6 +5099,9 @@ function AppInner({ isDemo = false }) {
       authHeaders={() => ({ "Authorization": `Bearer ${api.getToken()}`, "Content-Type": "application/json" })}
       doSync={doSync}
       syncing={syncing}
+      notifs={visibleNotifs}
+      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
     />
   );
 
@@ -5157,6 +5165,8 @@ function AppInner({ isDemo = false }) {
       }}
       doSync={doSync}
       syncing={syncing}
+      filterReview={filterReview}
+      setFilterReview={setFilterReview}
     />
       {modal==="addTxn" && TxnModal}
     </>
@@ -5263,6 +5273,9 @@ function AppInner({ isDemo = false }) {
         navigate={navigate}
         doSync={doSync}
         syncing={syncing}
+        notifs={visibleNotifs}
+        onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+        onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
       />
     </>
   );

@@ -1455,13 +1455,16 @@ app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
     if (!item || item.user_id !== req.user.id) return res.status(403).json({ error: "Forbidden" });
   }
   try {
-    const result = await syncItemTransactions(req.householdUid, targetItemId || null);
+    const plaidResult = await syncItemTransactions(req.householdUid, targetItemId || null);
+    const dbResult   = await applySyncResultsToDB(req.householdUid, plaidResult.added, plaidResult.modified, plaidResult.removed);
 
-    // Send push notification if new transactions were added
-    if (result.added && result.added.length > 0) {
-      const count = result.added.length;
+    // Push notification fires only for transactions that were genuinely net-new
+    // (not re-fetched history from a cursor reset). dbResult.newTxns is the
+    // authoritative list of rows actually inserted this sync cycle.
+    if (dbResult.newTxns && dbResult.newTxns.length > 0) {
+      const count = dbResult.newTxns.length;
       const body = count === 1
-        ? `${result.added[0].merchant_name || result.added[0].name || "A transaction"} was added`
+        ? `${dbResult.newTxns[0].merchant || "A transaction"} was added`
         : `${count} new transactions synced`;
       sendPushToUser(req.user.id, {
         title: "ledgr. — New Transactions",
@@ -1470,7 +1473,14 @@ app.post("/api/plaid/transactions/sync", syncLimiter, async (req, res) => {
       }).catch(e => console.warn("Push failed:", e.message));
     }
 
-    res.json(result);
+    // Return the Plaid arrays for client-side state updates, plus newTxns
+    // so the frontend can limit notifications to genuinely new rows too.
+    res.json({
+      added:    plaidResult.added,
+      modified: plaidResult.modified,
+      removed:  plaidResult.removed,
+      newTxns:  dbResult.newTxns || [],
+    });
   } catch (err) { serverError(res, err); }
 });
 

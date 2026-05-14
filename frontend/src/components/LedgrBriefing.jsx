@@ -11,6 +11,7 @@
  *   authHeaders {Function} — from api.js, returns { Authorization: "Bearer …" }
  */
 import { useState, useMemo, useRef, useCallback } from "react";
+import NotifPanel from "./NotifPanel.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
@@ -307,6 +308,7 @@ export default function LedgrBriefing({
   apiBase="https://ledgr-production-9e35.up.railway.app",
   authHeaders=()=>({}),
   doSync=null,syncing=false,
+  notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
@@ -513,6 +515,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               <div className="lb-nav-logo"/>
               {NAV.map(n=><div key={n.id} className={`lb-nav-item${n.active?" active":""}`} onClick={()=>navigate(n.id)} title={n.id}>{n.icon}</div>)}
               <div className="lb-nav-spacer"/>
+              <NotifPanel notifs={notifs} onDismiss={onDismissNotif} onNavigate={navigate} onFilterReview={onFilterReview} fmt={fmt}/>
               <div className="lb-nav-item" onClick={()=>navigate("settings")}>⚙</div>
             </nav>
 

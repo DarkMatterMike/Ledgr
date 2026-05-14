@@ -6,6 +6,7 @@
  * Props: same interface as the old SettingsView in App.jsx
  */
 import { useState, useEffect } from "react";
+import NotifPanel from "./NotifPanel.jsx";
 import * as api from "../api.js";
 import { applyTheme, applyGlobalOpacity } from "../theme/index.js";
 
@@ -299,6 +300,7 @@ export default function LedgrSettings({
   settingsTab="profile", setSettingsTab=()=>{},
   hasApiKey=false, saveApiKey=async()=>{},
   navigate=()=>{},
+  notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }) {
   const user = api.getStoredUser();
 
@@ -492,6 +494,7 @@ export default function LedgrSettings({
               </div>
             ))}
             <div className="lb-nav-spacer"/>
+            <NotifPanel notifs={notifs} onDismiss={onDismissNotif} onNavigate={navigate} onFilterReview={onFilterReview}/>
             <div className="lb-nav-item active" title="settings">⚙</div>
           </nav>
 

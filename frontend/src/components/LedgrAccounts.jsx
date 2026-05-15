@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import PageNav from "./PageNav.jsx";
 
 const CSS = `
-  .la-wrap { font-family: var(--font-ui); color: var(--ink-0); background: var(--bg-0); min-height: 100vh; }
+  .la-wrap { font-family: var(--font-ui); color: var(--ink-0); background: var(--bg-0); min-height: 100vh; padding: 40px 48px 80px; }
   .la-frame { background: var(--bg-1); border: 1px solid var(--line-2); border-radius: 16px; overflow: hidden; max-width: 1400px; margin: 0 auto; box-shadow: 0 32px 80px rgba(0,0,0,0.5); }
   @media(max-width:600px){ .la-wrap{ padding:0; } .la-frame{ border-radius:0; border:none; } }
 

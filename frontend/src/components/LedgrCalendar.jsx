@@ -7,6 +7,7 @@ import PageNav from "./PageNav.jsx";
 
 const CSS = `
     }
+  .lc-wrap{padding:40px 48px 80px;background:var(--bg-0);}
   @media(max-width:600px){.lc-wrap{padding:0;}}
   .lc-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:800px;}
   @media(max-width:600px){.lc-frame{border-radius:0;border:none;}}

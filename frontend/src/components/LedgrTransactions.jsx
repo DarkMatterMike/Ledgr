@@ -39,6 +39,7 @@ import { useState, useMemo, useEffect } from "react";
 /* ─── CSS ─────────────────────────────────────────────────────────────────── */
 const CSS = `
     }
+  .lt-wrap{padding:40px 48px 80px;background:var(--bg-0);}
   @media(max-width:600px){.lt-wrap{padding:0;}}
 
   /* Frame */

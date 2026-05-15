@@ -1898,10 +1898,10 @@ function AppInner({ isDemo = false }) {
             
             
             {view === "dashboard"
-              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,padding:"40px 0 80px"}}>{VIEWS[view]}</div>
+              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,padding:"40px 48px 80px"}}><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
+              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
             }
           </div>
           </div>{/* /max-width wrapper */}

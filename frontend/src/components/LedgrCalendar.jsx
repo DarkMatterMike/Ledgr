@@ -2,11 +2,10 @@
  * LedgrCalendar.jsx
  * src/components/LedgrCalendar.jsx
  */
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import PageNav from "./PageNav.jsx";
 
 const CSS = `
-    }
   .lc-wrap{padding:40px 48px 80px;background:var(--bg-0);}
   @media(max-width:600px){.lc-wrap{padding:0;}}
   .lc-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:800px;}
@@ -22,7 +21,7 @@ const CSS = `
   .lc-sync-btn.spinning svg{animation:lc-spin .7s linear infinite;}
   @keyframes lc-spin{to{transform:rotate(360deg);}}
   .lc-body{display:grid;grid-template-columns:64px 320px 1fr 300px;flex:1;}
-  @media(max-width:1200px){.lc-body{grid-template-columns:64px 280px 1fr;}}
+  @media(max-width:1100px){.lc-body{grid-template-columns:64px 280px 1fr;}}
   @media(max-width:900px){.lc-body{grid-template-columns:64px 1fr;}}
   .lc-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lc-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
@@ -60,7 +59,8 @@ const CSS = `
   .lc-mrow .l{color:var(--ink-2);}
   .lc-mrow .v{font-family:var(--font-mono);}
   .lc-ri-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
-  .lc-ri-add{margin-top:12px;padding:10px;border:1px solid rgba(240,176,76,0.25);border-radius:var(--r-md);text-align:center;color:var(--warn);font-size:11px;cursor:pointer;font-family:var(--font-mono);}
+  .lc-ri-add{margin-top:12px;padding:10px;border:1px solid rgba(240,176,76,0.4);border-radius:var(--r-md);text-align:center;color:var(--warn);font-size:11px;cursor:pointer;font-family:var(--font-mono);transition:background .15s;}
+  .lc-ri-add:hover{background:rgba(240,176,76,0.06);}
   /* paycheck planning */
   .lc-pc-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;display:block;}
   .lc-pc-card{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;grid-template-columns:60px 1fr 16px;gap:12px;align-items:center;margin-bottom:8px;cursor:pointer;}
@@ -89,7 +89,7 @@ const CSS = `
   .lc-ri-chevron.open{transform:rotate(180deg);}
   /* third column — edit panel */
   .lc-edit-col{border-left:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:0;}
-  @media(max-width:1200px){.lc-edit-col{display:none;}}
+  @media(max-width:1100px){.lc-edit-col{display:none;}}
   .lc-edit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;padding:40px 20px;text-align:center;}
   .lc-edit-empty-icon{font-size:28px;color:var(--ink-4);}
   .lc-edit-empty-text{font-size:12px;color:var(--ink-4);line-height:1.6;}
@@ -135,6 +135,8 @@ const CSS = `
   .lc-nav-btn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;transition:.15s;}
   .lc-nav-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
   .lc-agenda{padding:24px 32px;flex:1;}
+  .lc-agenda-day.sel-day .lc-day-chip{color:var(--safe);border-color:rgba(93,202,165,0.4);}
+  .lc-agenda-day.sel-day{scroll-margin-top:24px;}
   /* condensed agenda */
   .lc-aday{margin-bottom:2px;}
   .lc-aday-hdr{display:flex;align-items:center;gap:8px;padding:5px 0;margin-bottom:2px;}
@@ -197,6 +199,8 @@ export default function LedgrCalendar({
   const now=calendarMonth||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
   const [cy,cm]=now.split("-").map(Number);
   const [selDay,setSelDay]=useState(cy===today.getFullYear()&&cm===today.getMonth()+1?today.getDate():1);
+  const agendaRef=useRef(null);
+  const agendaDayRefs=useRef({});
   const [expandedRiDay,setExpandedRiDay]=useState(null);
   const isCurMo=cy===today.getFullYear()&&cm===today.getMonth()+1;
   const [selectedRiId,setSelectedRiId]=useState(null);    // which ri is selected for edit col
@@ -263,6 +267,13 @@ export default function LedgrCalendar({
   },[calendarTxnsByDay,recurringItems,isCurMo,today]);
 
   const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
+
+  // Scroll agenda to selected day when mini-calendar is clicked
+  useEffect(()=>{
+    if(selDay&&agendaDayRefs.current[selDay]){
+      agendaDayRefs.current[selDay].scrollIntoView({behavior:"smooth",block:"nearest"});
+    }
+  },[selDay]);
 
   function openRiEdit(r){
     setSelectedRiId(r.id);
@@ -475,7 +486,7 @@ export default function LedgrCalendar({
                   <button className="lc-nav-btn" onClick={nextCalMonth}>›</button>
                 </div>
               </div>
-              <div className="lc-agenda">
+              <div className="lc-agenda" ref={agendaRef}>
                 {agendaDays.length===0?(
                   <div style={{padding:"80px 0",textAlign:"center",color:"var(--ink-3)"}}>
                     <div style={{fontFamily:"var(--font-display)",fontSize:28,color:"var(--ink-2)",marginBottom:8}}>Nothing scheduled</div>

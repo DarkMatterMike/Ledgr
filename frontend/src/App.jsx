@@ -1504,36 +1504,33 @@ function AppInner({ isDemo = false }) {
     : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, admin:AdminPage, dani:DaniPageView };
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#07090d",flexDirection:"column",position:"relative",overflow:"hidden"}}>
-      {/* Bouncing orb — behind the text */}
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#07090d",flexDirection:"column"}}>
       <style>{`
         @keyframes ll-bounce {
-          0%,100% { transform: translateY(0) scale(1); opacity:0.7; }
-          50%      { transform: translateY(-18px) scale(1.08); opacity:1; }
+          0%,100% { transform: translateY(0) scale(1); }
+          50%      { transform: translateY(-24px) scale(1.06); }
         }
         @keyframes ll-bounce-shadow {
-          0%,100% { transform: scaleX(1); opacity:0.3; }
-          50%      { transform: scaleX(0.6); opacity:0.1; }
+          0%,100% { transform: scaleX(1); opacity:0.25; }
+          50%      { transform: scaleX(0.55); opacity:0.08; }
         }
       `}</style>
-      <div style={{position:"absolute",zIndex:0,display:"flex",flexDirection:"column",alignItems:"center",bottom:"50%",marginBottom:-80}}>
-        <div style={{width:56,height:56,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#5dcaa5,#085041)",animation:"ll-bounce 2s cubic-bezier(0.36,0.07,0.19,0.97) infinite",boxShadow:"0 0 40px rgba(93,202,165,0.25)"}}/>
-        <div style={{width:36,height:6,borderRadius:"50%",background:"rgba(93,202,165,0.15)",marginTop:8,animation:"ll-bounce-shadow 2s cubic-bezier(0.36,0.07,0.19,0.97) infinite"}}/>
+      {/* Orb above text */}
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:12}}>
+        <div style={{width:52,height:52,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#5dcaa5,#085041)",animation:"ll-bounce 1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite",boxShadow:"0 0 32px rgba(93,202,165,0.2)"}}/>
+        <div style={{width:32,height:5,borderRadius:"50%",background:"rgba(93,202,165,0.12)",marginTop:6,animation:"ll-bounce-shadow 1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite"}}/>
       </div>
-      {/* Text content — above the orb */}
-      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
-        <div className="ll-fade" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:36,letterSpacing:"-1px",color:"#f4f4f1",lineHeight:1,marginBottom:6,textAlign:"center"}}>
-          your <em style={{fontStyle:"italic",color:"#5dcaa5"}}>money</em>, told plainly.
-        </div>
-        <div className="ll-fade2" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:"2px",textTransform:"uppercase",color:"#4a5161",marginBottom:28}}>
-          ledgr finance
-        </div>
-        <div style={{width:120,height:1,background:"#161c26",borderRadius:1,overflow:"hidden",position:"relative"}}>
-          <div className="ll-bar" style={{position:"absolute",inset:0,width:40,background:"#5dcaa5",borderRadius:1}}/>
-        </div>
-        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#2e3340",marginTop:16,letterSpacing:"0.5px"}}>
-          loading your data…
-        </div>
+      <div className="ll-fade" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:36,letterSpacing:"-1px",color:"#f4f4f1",lineHeight:1,marginBottom:6,textAlign:"center"}}>
+        your <em style={{fontStyle:"italic",color:"#5dcaa5"}}>money</em>, told plainly.
+      </div>
+      <div className="ll-fade2" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:"2px",textTransform:"uppercase",color:"#4a5161",marginBottom:28}}>
+        ledgr finance
+      </div>
+      <div style={{width:120,height:1,background:"#161c26",borderRadius:1,overflow:"hidden",position:"relative"}}>
+        <div className="ll-bar" style={{position:"absolute",inset:0,width:40,background:"#5dcaa5",borderRadius:1}}/>
+      </div>
+      <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#2e3340",marginTop:16,letterSpacing:"0.5px"}}>
+        loading your data…
       </div>
     </div>
   );

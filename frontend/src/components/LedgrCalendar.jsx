@@ -562,7 +562,6 @@ export default function LedgrCalendar({
                   );
                 })}
               </div>
-            </div>
               {isMobile&&sheetOpen&&(
                 <>
                   <div className="lc-mobile-backdrop" onClick={()=>setSheetOpen(false)}/>

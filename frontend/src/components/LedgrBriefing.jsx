@@ -15,6 +15,7 @@ import PageNav from "./PageNav.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
+  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;--line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);--warn:#f0b04c;--warn-d:#6b4708;--warn-bg:rgba(240,176,76,0.08);--debt:#e87363;--debt-d:#5a1c14;--debt-bg:rgba(232,115,99,0.08);--calm:#6c8cff;--calm-d:#1a2a66;--calm-bg:rgba(108,140,255,0.08);--goal:#a78bff;--goal-d:#2a1f5e;--goal-bg:rgba(167,139,255,0.08);--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;}
   .lb-wrap *,.lb-wrap *::before,.lb-wrap *::after{box-sizing:border-box;}
   .lb-wrap h1,.lb-wrap h2,.lb-wrap h3,.lb-wrap h4,.lb-wrap p{margin:0;padding:0;}
   .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
@@ -34,7 +35,6 @@ const CSS = `
   .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
   .lb-brief{display:grid;grid-template-columns:64px 320px 1fr;min-height:880px;}
   @media(max-width:1100px){.lb-brief{grid-template-columns:64px 1fr;}}
-  @media(max-width:877px){.lb-brief{grid-template-columns:1fr !important;min-height:unset;}.pn-nav{display:none !important;}}
   .lb-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lb-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
   .lb-nav-item{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:18px;cursor:pointer;transition:.15s;user-select:none;}
@@ -81,7 +81,6 @@ const CSS = `
   .lb-pc-net .v.neg{color:var(--debt);}
   .lb-pc-card.open{border-radius:8px 8px 0 0;border-bottom-color:transparent;}
   .lb-main{padding:36px 40px;overflow-y:auto;min-width:0;}
-  @media(max-width:877px){.lb-main{padding:20px 16px 90px;}}
   .lb-topbar{display:flex;align-items:center;justify-content:space-between;padding:0 0 20px;margin-bottom:28px;border-bottom:1px solid var(--line);}
   .lb-tb-left{display:flex;align-items:baseline;gap:16px;}
   .lb-tb-num{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
@@ -129,9 +128,9 @@ const CSS = `
   .lb-led.warn{background:var(--warn);}
 
   /* story headline */
-  .lb-story-head{font-family:var(--font-display);font-size:clamp(20px,3.2vw,60px);line-height:1.05;letter-spacing:-1px;font-weight:400;margin-bottom:24px;white-space:nowrap;}
+  .lb-story-head{font-family:var(--font-display);font-size:60px;line-height:0.98;letter-spacing:-2px;font-weight:400;margin-bottom:24px;}
   .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
-
+  @media(max-width:900px){.lb-story-head{font-size:40px;letter-spacing:-1px;}}
 
   /* gauge + pool callout */
   .lb-story-callout{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;}
@@ -156,18 +155,6 @@ const CSS = `
   .lb-pool-card.lb-pool-free .lb-pool-v{color:var(--safe);}
   .lb-pool-card.lb-pool-locked .lb-pool-v{color:var(--ink-0);}
 
-  @media(max-width:877px){
-    .lb-story-head{font-size:clamp(20px,5.8vw,36px) !important;white-space:normal !important;line-height:1.15 !important;letter-spacing:-0.5px !important;}
-    .lb-deck{font-size:13px;line-height:1.6;}
-    .lb-story-callout{grid-template-columns:1fr !important;gap:12px;margin-top:20px;}
-    .lb-gauge-pct{font-size:36px !important;}
-    .lb-pool-card{padding:14px !important;}
-    .lb-pool-v{font-size:24px !important;}
-    .lb-wi-row{grid-template-columns:1fr 1fr !important;gap:8px;}
-    .lb-ask-hint{display:none;}
-    .lb-ask-input{font-size:13px;min-width:0;flex:1;}
-    .lb-mstats{gap:10px;}
-  }
   /* what-if section */
   .lb-whatif{margin-top:24px;}
   .lb-wi-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
@@ -349,24 +336,10 @@ export default function LedgrBriefing({
   authHeaders=()=>({}),
   doSync=null,syncing=false,
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
-  displayName="",
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
-  // Account selector state — must be declared before effectiveAcctIds useMemo
-  const[acctPopOpen,setAcctPopOpen]=useState(false);
-  const[selectedAcctIds,setSelectedAcctIds]=useState(()=>{
-    try{ const s=localStorage.getItem("ledgr_free_accts"); if(s) return JSON.parse(s); }catch{}
-    return null;
-  });
-
-  const effectiveAcctIds = useMemo(()=>
-    selectedAcctIds!==null ? selectedAcctIds
-    : accounts.filter(a=>a.type==="checking"||a.type==="Checking").map(a=>a.id)
-  ,[selectedAcctIds,accounts]);
-  const checkingBal = useMemo(()=>
-    accounts.filter(a=>effectiveAcctIds.includes(a.id)).reduce((s,a)=>s+(a.balance||0),0)
-  ,[accounts,effectiveAcctIds]);
+  const checkingBal =useMemo(()=>accounts.filter(a=>a.type==="checking").reduce((s,a)=>s+(a.balance||0),0),[accounts]);
   const curY=today.getFullYear(),curM=today.getMonth()+1;
 
   const upcomingBills=useMemo(()=>recurringItems.filter(r=>{
@@ -424,17 +397,12 @@ export default function LedgrBriefing({
   const displayPace   =daysLeft&&daysLeft>0?Math.round(displaySafe/daysLeft):null;
 
   // Alloc bar uses displaySafe
-  const allocFree  = displaySafe;
-  const allocBill  = billsTotal;
-  const allocGoal  = useMemo(()=>goals.reduce((s,g)=>{
-    const target=g.targetAmount||0, saved=g.savedAmount||0;
-    const remaining=Math.max(0,target-saved);
-    if(!g.deadline||remaining===0) return s;
-    const msLeft=new Date(g.deadline+"T12:00:00")-today;
-    const monthsLeft=Math.max(1,msLeft/(1000*60*60*24*30.44));
-    return s+Math.round(remaining/monthsLeft);
-  },0),[goals,today]);
-  const vaultTotal = allocBill + allocGoal;
+  const allocFree =displaySafe;
+  const allocBill =billsTotal;
+  const allocCush =Math.round(checkingBal*0.1);
+  const allocGoal =Math.round(goalsSaved*0.1);
+  const allocFlex =Math.round(totalSpent*0.05);
+  const allocTotal=allocFree+allocBill+allocCush+allocGoal+allocFlex;
 
   // Headline color based on pressure
   const safeColor=displayPct>0.5?"var(--safe)":displayPct>0.25?"var(--warn)":"var(--debt)";
@@ -535,14 +503,6 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
     }
   },[aiInput,aiLoading,safeToSpend,checkingBal,billsTotal,upcomingBills,categories,monthTxns,totalIncome,totalSpent,apiBase,authHeaders]);
 
-  function toggleAcct(id){
-    setSelectedAcctIds(prev=>{
-      const base=prev!==null?prev:accounts.filter(a=>a.type==="checking"||a.type==="Checking").map(a=>a.id);
-      const next=base.includes(id)?base.filter(x=>x!==id):[...base,id];
-      try{localStorage.setItem("ledgr_free_accts",JSON.stringify(next));}catch{}
-      return next;
-    });
-  }
   function handleAiKey(e){if(e.key==="Enter") askScenario();}
 
   function selectCard(i){setSelIdx(prev=>prev===i?null:i);}
@@ -550,15 +510,6 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
   // ── Display helpers ────────────────────────────────────────────
   const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
-  const overspentTotal = useMemo(()=>categories.reduce((s,c)=>{
-    if(!c.limit) return s;
-    const spent=monthTxns.filter(t=>t.categoryId===c.id&&t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0);
-    return s+Math.max(0,spent-c.limit);
-  },0),[categories,monthTxns]);
-  const budgetIncOverspent = useMemo(()=>categories.reduce((s,c)=>{
-    const spent=monthTxns.filter(t=>t.categoryId===c.id&&t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0);
-    return s+Math.max(c.limit||0,spent);
-  },0),[categories,monthTxns]);
   const halfIncome=nextPay?(nextPay.amountMin||0):totalIncome/2;
   const bills1to15  = useMemo(()=>upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
   const bills16toEnd = useMemo(()=>upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
@@ -588,43 +539,73 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
           <div className="lb-brief">
 
             {/* sidenav */}
-            {!isMobile&&<PageNav activeId="dashboard" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview} fmt={fmt}/>}
+            <PageNav activeId="dashboard" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview} fmt={fmt}/>
 
             {/* agenda */}
             <aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
-                <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
                 <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
-                <div className="lb-mrow"><span className="l">Overspent</span><span className="v" style={{color:overspentTotal>0?"var(--debt)":"var(--ink-3)"}}>{overspentTotal>0?`−${fmt(overspentTotal)}`:"—"}</span></div>
-                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"var(--warn)"}}>{fmt(budgetIncOverspent)}</span></div>
+                <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
+                <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(totalSpent)}</span></div>
+                <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
               </div>
-              {(()=>{
-                const MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                const recent=[...monthTxns].filter(t=>t.date).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
-                return(<>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",fontSize:10,letterSpacing:"1.6px",textTransform:"uppercase",color:"var(--ink-3)",marginTop:20,paddingTop:16,borderTop:"1px solid var(--line)"}}>
-                    <span>Recent</span>
-                    <span style={{cursor:"pointer",letterSpacing:0,textTransform:"none",fontSize:11}} onClick={()=>navigate("transactions")}>all →</span>
-                  </div>
-                  {recent.map((t,i)=>{
-                    const parts=t.date.split("-");
-                    const mo=MO[parseInt(parts[1])-1];
-                    const day=parseInt(parts[2]);
-                    const name=t.merchant||t.name||"Transaction";
-                    const isPos=(t.amount||0)>0;
-                    return(
-                      <div key={t.id||i} style={{display:"flex",alignItems:"baseline",padding:"7px 0",borderBottom:"1px solid var(--line)",fontFamily:"var(--font-mono)",fontSize:11}}>
-                        <span style={{color:"var(--ink-3)",flexShrink:0,width:44}}>{mo} {day}</span>
-                        <span style={{flex:1,minWidth:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"var(--ink-1)"}}>{name}</span>
-                        <span style={{flexShrink:0,marginLeft:8,color:isPos?"var(--safe)":"var(--debt)"}}>{isPos?"+":"−"}{fmt(Math.abs(t.amount||0))}</span>
+              <div className="lb-pc-lbl">Paycheck planning</div>
+              {[
+                {label:"1 – 15",  income:halfIncome, bills:bills1to15,   billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
+                {label:"16 – End",income:halfIncome, bills:bills16toEnd, billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15)},
+              ].map((card,i)=>{
+                const isOpen=expandedCard===i;
+                const byAcct={};
+                card.billItems.forEach(b=>{
+                  const k=b.accountId||"__none__";
+                  if(!byAcct[k]) byAcct[k]={name:b.accountId?(accounts.find(a=>a.id===b.accountId)?.name||"Account"):"Unassigned",total:0,items:[]};
+                  byAcct[k].total+=(b.amountMin||0);
+                  byAcct[k].items.push(b);
+                });
+                const acctRows=Object.values(byAcct);
+                const net=card.income-card.bills;
+                return(
+                  <div key={i} style={{marginBottom:8}}>
+                    <div className={`lb-pc-card${isOpen?" open":""}`} onClick={()=>setExpandedCard(isOpen?null:i)}>
+                      <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16,lineHeight:1.1}}>{card.label}</div></div>
+                      <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                        <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(card.income)}</span>
+                        <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(card.bills)}</span>
                       </div>
-                    );
-                  })}
-                  {recent.length===0&&<div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)",padding:"12px 0"}}>No transactions yet.</div>}
-                </>);
-              })()}
-                        </aside>
+                      <span className={`lb-pc-chevron${isOpen?" open":""}`} style={{color:"var(--ink-3)",fontSize:11}}>▾</span>
+                    </div>
+                    {isOpen&&(
+                      <div className="lb-pc-expand">
+                        {card.billItems.length===0 ? (
+                          <div style={{padding:"14px",fontSize:11,color:"var(--ink-3)",fontStyle:"italic"}}>No bills in this period.</div>
+                        ) : acctRows.map(row=>(
+                          <div key={row.name}>
+                            {acctRows.length>1&&(
+                              <div className="lb-pc-sect-lbl">{row.name}</div>
+                            )}
+                            {row.items.map(b=>(
+                              <div key={b.id||b.name} className="lb-pc-acct">
+                                <span className="l">{b.name}</span>
+                                <span className="v">−{fmt(b.amountMin||0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                        {card.billItems.length>0&&(
+                          <div style={{padding:"4px 8px 8px"}}>
+                            <div className="lb-pc-net">
+                              <span className="l">Period net</span>
+                              <span className={`v${net>=0?" ok":" neg"}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </aside>
 
             {/* main */}
             <main className="lb-main">
@@ -642,13 +623,15 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               {/* hero */}
               <div style={{marginBottom:40}}>
                 <div className="lb-eyebrow">
-                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{displayName?`, ${displayName}`:""}
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"} · the headline
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
 
                 {/* Story-style headline */}
                 <h2 className="lb-story-head">
-                  You’re sitting on <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span> that’s actually yours.
+                  You’re sitting on<br/>
+                  <span className="story-num" style={{color:safeColor}}>{fmt(displaySafe)}</span><br/>
+                  that’s actually yours.
                 </h2>
 
                 {/* Narrative deck */}
@@ -660,7 +643,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                 </p>
 
                 {/* Gauge + Pool cards side by side */}
-                <div className="lb-story-callout" onClick={()=>setAcctPopOpen(false)}>
+                <div className="lb-story-callout">
                   {/* Left: pressure gauge with % readout */}
                   <div className="lb-gauge-card">
                     <div className="lb-gauge-lbl">Pressure · how tight things feel</div>
@@ -675,43 +658,11 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
                   {/* Right: FREE + VAULT pool cards */}
                   <div className="lb-pools">
-                    <div className="lb-pool-card lb-pool-free" style={{position:"relative"}}>
+                    <div className="lb-pool-card lb-pool-free">
                       <div className="lb-pool-stripe"/>
-                      <div style={{minWidth:0}}>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                          <div className="lb-pool-nm" style={{margin:0}}>Free · yours</div>
-                          <button style={{background:"none",border:"1px solid var(--line-2)",borderRadius:5,padding:"2px 7px",fontSize:9,fontFamily:"var(--font-mono)",color:"var(--ink-3)",cursor:"pointer",letterSpacing:"0.8px"}}
-                            onClick={e=>{e.stopPropagation();setAcctPopOpen(p=>!p);}}>
-                            {effectiveAcctIds.length} acct{effectiveAcctIds.length!==1?"s":""} ⚙
-                          </button>
-                        </div>
-                        <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:11,color:"var(--ink-2)"}}>
-                          {accounts.filter(a=>effectiveAcctIds.includes(a.id)).map(a=>a.name||a.type).join(", ")||"no accounts"}
-                        </div>
-                        {acctPopOpen&&(
-                          <div onClick={e=>e.stopPropagation()}
-                            style={{position:"absolute",top:"calc(100% + 6px)",left:0,width:260,zIndex:300,
-                              background:"var(--bg-2)",border:"1px solid var(--line-2)",borderRadius:"var(--r-md)",
-                              padding:"12px",boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
-                            <div style={{fontSize:9,letterSpacing:"1.4px",textTransform:"uppercase",color:"var(--ink-3)",marginBottom:10}}>Include in free balance</div>
-                            {accounts.filter(a=>!a.isManual).map(a=>{
-                              const on=effectiveAcctIds.includes(a.id);
-                              return(
-                                <div key={a.id} onClick={()=>toggleAcct(a.id)}
-                                  style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:6,cursor:"pointer",
-                                    marginBottom:3,background:on?"rgba(93,202,165,0.1)":"transparent",
-                                    border:`1px solid ${on?"rgba(93,202,165,0.3)":"transparent"}`}}>
-                                  <div style={{width:14,height:14,borderRadius:3,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",
-                                    background:on?"var(--safe)":"transparent",border:`1.5px solid ${on?"var(--safe)":"var(--ink-4)"}`}}>
-                                    {on&&<svg width="9" height="9" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="#07090d" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                  </div>
-                                  <span style={{flex:1,fontSize:11,color:on?"var(--safe)":"var(--ink-2)",fontWeight:on?500:400}}>{a.name||a.type}</span>
-                                  <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:on?"var(--safe)":"var(--ink-4)"}}>{fmt(a.balance||0)}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                      <div>
+                        <div className="lb-pool-nm">Free · yours</div>
+                        <div className="lb-pool-desc">spend without thinking</div>
                       </div>
                       <div className="lb-pool-v">{fmt(displaySafe)}</div>
                     </div>
@@ -719,9 +670,9 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                       <div className="lb-pool-stripe"/>
                       <div>
                         <div className="lb-pool-nm">Vault · spoken for</div>
-                        <div className="lb-pool-desc">spoken for the rest of the month</div>
+                        <div className="lb-pool-desc">bills, cushion, goals</div>
                       </div>
-                      <div className="lb-pool-v">{fmt(vaultTotal)}</div>
+                      <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
                     </div>
                   </div>
                 </div>

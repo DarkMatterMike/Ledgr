@@ -19,7 +19,7 @@ import { useAppData } from "./hooks/useAppData.js";
 import LedgrBriefing from "./components/LedgrBriefing.jsx";
 import LedgrSettings from "./components/LedgrSettings.jsx";
 import LedgrTransactions from "./components/LedgrTransactions.jsx";
-import LedgrAccounts, { AccountModal } from "./components/LedgrAccounts.jsx";
+import LedgrAccounts from "./components/LedgrAccounts.jsx";
 import LedgrCalendar from "./components/LedgrCalendar.jsx";
 import LedgrBudgets from "./components/LedgrBudgets.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
@@ -404,41 +404,6 @@ function useIsMobile() {
     .ledgr-content::-webkit-scrollbar { width: 3px; }
     .ledgr-content::-webkit-scrollbar-track { background: transparent; }
     .ledgr-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
-  `;
-  /* Bottom nav — always in DOM, shown via CSS on mobile only */
-  el.textContent += `
-    .new-bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-      background: var(--bg-1, #0b0e14); backdrop-filter: blur(20px);
-      border-top: 1px solid var(--line, rgba(255,255,255,0.06));
-      display: none;
-      padding-bottom: env(safe-area-inset-bottom, 4px);
-    }
-    .new-bottom-nav-tab {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 3px; padding: 10px 4px 6px;
-      cursor: pointer; background: none; border: none;
-      color: var(--ink-3, rgba(255,255,255,0.3)); transition: color .15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .new-bottom-nav-tab svg { width: 20px; height: 20px; transition: transform .2s; }
-    .new-bottom-nav-tab.active svg { transform: scale(1.12); }
-    .new-bottom-nav-tab-label {
-      font-family: var(--font-mono, monospace); font-size: 8px;
-      text-transform: uppercase; letter-spacing: .5px; transition: color .15s;
-    }
-    .new-bottom-nav-tab.active { color: var(--safe, #5dcaa5); }
-    .new-bottom-nav-dot {
-      width: 3px; height: 3px; border-radius: 50%;
-      background: transparent; margin-top: 1px; transition: background .15s;
-    }
-    .new-bottom-nav-tab.active .new-bottom-nav-dot { background: var(--safe, #5dcaa5); }
-    @media (max-width: 1023px) {
-      .new-bottom-nav { display: flex; }
-      .pn-nav { display: none !important; }
-      .lb-brief { grid-template-columns: 1fr !important; }
-    }
   `;
   document.head.appendChild(el);
 })();
@@ -2807,16 +2772,17 @@ function AppInner({ isDemo = false }) {
   /* -- Account CRUD -- */
   function openAddAcct()   { setAcctForm({name:"",balance:"",type:"Checking"}); setModal("addAcct"); }
   function openEditAcct(a) { setAcctForm({name:a.name,balance:String(a.balance),type:a.type}); setEditTarget(a); setModal("editAcct"); }
-  function saveAcct({ name, type, balance }) {
+  function saveAcct() {
+    if (!acctForm.name.trim()) return;
     if (modal === "addAcct") {
-      const newAcct = { id:"a"+Date.now(), name, balance, type, isManual:true };
+      const newAcct = { id:"a"+Date.now(), name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type, isManual:true };
       setAccounts(p => [...p, newAcct]);
       api.createAccount(newAcct).catch(console.error);
     } else {
-      const patch = { name, balance, type };
+      const patch = { name:acctForm.name.trim(), balance:parseFloat(acctForm.balance)||0, type:acctForm.type };
       setAccounts(p => p.map(a => a.id === editTarget.id ? {...a, ...patch} : a));
       api.updateAccount(editTarget.id, patch).catch(e => console.warn("PATCH accounts failed:", e.message));
-      const updatedNames = { ...customAccountNames, [editTarget.id]: name };
+      const updatedNames = { ...customAccountNames, [editTarget.id]: acctForm.name.trim() };
       setCustomAccountNames(updatedNames);
       scheduleSaveRef.current?.({ customAccountNames: updatedNames });
     }
@@ -4868,14 +4834,18 @@ function AppInner({ isDemo = false }) {
 
 
   /* ── AcctModal ─────────────────────────────────── */
-  const AcctModal = (modal==="addAcct"||modal==="editAcct") ? (
-    <AccountModal
-      mode={modal==="editAcct"?"edit":"add"}
-      acct={modal==="editAcct"?editTarget:null}
-      onClose={()=>setModal(null)}
-      onSave={saveAcct}
-    />
-  ) : null;
+  const AcctModal = (
+    <Modal title={modal==="addAcct"?"Add Account":"Edit Account"} onClose={()=>setModal(null)}
+      actions={<><button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setModal(null)}>Cancel</button><button style={S.btn("primary")} className="ledgr-btn-primary" onClick={saveAcct}>Save</button></>}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <div style={S.field}><label style={S.label}>Name</label><input style={S.input} placeholder="Chase Checking" value={acctForm.name} onChange={e=>setAcctForm(p=>({...p,name:e.target.value}))}/></div>
+        <div style={S.field}><label style={S.label}>Type</label>
+          <CustomSelect value={acctForm.type} onChange={v=>setAcctForm(p=>({...p,type:v}))} options={["Checking","Savings","Credit","Investment"].map(t=>({value:t,label:t}))} style={{width:"100%"}}/>
+        </div>
+        <div style={S.field}><label style={S.label}>Balance ($)</label><input style={S.input} type="number" placeholder="0.00" value={acctForm.balance} onChange={e=>setAcctForm(p=>({...p,balance:e.target.value}))}/></div>
+      </div>
+    </Modal>
+  );
 
 
   /* ── TxnModal — Lumen themed ─────────────────── */
@@ -5215,7 +5185,6 @@ function AppInner({ isDemo = false }) {
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
-      displayName={(api.getStoredUser()?.name || "").split(" ")[0]}
     />
   );
 
@@ -5513,6 +5482,39 @@ function AppInner({ isDemo = false }) {
           }
         </div>
 
+        {/* More sheet overlay */}
+        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:82,zIndex:39}}/>}
+
+        {/* More sheet */}
+        <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
+          <div className="mobile-sheet-handle"/>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("settings"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Profile & Settings
+          </button>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("accounts"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Accounts
+          </button>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("rules"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+            Rules
+          </button>
+          {currentUser?.role === "owner" && <>
+            <div className="mobile-sheet-divider"/>
+            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("admin"); }} style={{color:"var(--cyan)"}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              Admin
+            </button>
+            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("dani"); }} style={{color:"#f9a8d4"}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              Dani
+            </button>
+          </>}
+        </div>
+
+        {/* Bottom nav */}
+        <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
       </>
     ) : (
       /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
@@ -5545,36 +5547,6 @@ function AppInner({ isDemo = false }) {
         </div>
       </>
     )}
-
-    {/* Always render — CSS shows on mobile only */}
-    {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:82,zIndex:39}}/>}
-    <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
-      <div className="mobile-sheet-handle"/>
-      <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("settings"); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        Profile & Settings
-      </button>
-      <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("accounts"); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        Accounts
-      </button>
-      <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("rules"); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
-        Rules
-      </button>
-      {currentUser?.role === "owner" && <>
-        <div className="mobile-sheet-divider"/>
-        <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("admin"); }} style={{color:"var(--cyan)"}}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          Admin
-        </button>
-        <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("dani"); }} style={{color:"#f9a8d4"}}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          Dani
-        </button>
-      </>}
-    </div>
-    <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
 
       {/* -- Modals -- */}
       {(modal==="addCat"||modal==="editCat")   && CatModal}

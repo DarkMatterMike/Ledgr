@@ -373,17 +373,16 @@ async function getAccounts(userId) {
 // For Plaid sync balance updates use upsertAccountFromPlaid instead.
 async function upsertAccount(userId, a) {
   await pool.query(`
-    INSERT INTO accounts (id, user_id, plaid_id, plaid_item_id, name, balance, available, type, institution, mask, is_manual, updated_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    INSERT INTO accounts (id, user_id, plaid_id, plaid_item_id, name, balance, available, type, institution, is_manual, updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     ON CONFLICT (id, user_id) DO UPDATE SET
-      name          = EXCLUDED.name,
-      balance       = EXCLUDED.balance,
-      available     = EXCLUDED.available,
-      type          = EXCLUDED.type,
-      institution   = EXCLUDED.institution,
+      name         = EXCLUDED.name,
+      balance      = EXCLUDED.balance,
+      available    = EXCLUDED.available,
+      type         = EXCLUDED.type,
+      institution  = EXCLUDED.institution,
       plaid_item_id = EXCLUDED.plaid_item_id,
-      mask          = COALESCE(EXCLUDED.mask, accounts.mask),
-      updated_at    = EXCLUDED.updated_at
+      updated_at   = EXCLUDED.updated_at
   `, [
     a.id, userId,
     a.plaidId      ?? null, a.plaidItemId ?? null,
@@ -392,7 +391,6 @@ async function upsertAccount(userId, a) {
     a.available    ?? null,
     a.type         ?? null,
     a.institution  ?? null,
-    a.mask         ?? null,
     a.isManual     ?? false,
     Date.now(),
   ]);

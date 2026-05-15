@@ -70,13 +70,6 @@ const CSS = `
     box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:820px;
   }
   @media(max-width:600px){.lt-frame{border-radius:0;border:none;}}
-  @media(max-width:877px){
-    .pn-nav{display:none !important;}
-    .lt-body{grid-template-columns:1fr !important;}
-    .lt-panel{display:none !important;}
-    .lt-topbar{padding:12px 16px;}
-    .lt-bulk{bottom:98px !important;width:calc(100% - 32px);justify-content:center;z-index:150;}
-  }
 
   /* Browser chrome */
   .lt-bar {
@@ -511,7 +504,7 @@ export default function LedgrTransactions({
           <div className="lt-body">
 
             {/* ── Col 1: Nav ── */}
-            {!isMobile&&<PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
+            <PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
 
             {/* ── Col 2: Ledger list ── */}
             <div className="lt-main">

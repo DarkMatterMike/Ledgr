@@ -153,50 +153,6 @@ export function applyTheme(theme) {
       hex2rgb(theme.accent).join(','));
   }
 
-  // ── Lumen token derivation ──────────────────────────────────────────
-  // Derive --bg-0..4 scale from theme.bg (darker base → progressively lighter)
-  // Derive --ink-0..4 scale from theme.t1 (bright text → muted)
-  if (theme.bg) {
-    const [br, bg2, bb] = hex2rgb(theme.bg);
-    // bg-0 = darkest (2 steps below bg), bg-1..4 = progressively lighter
-    const bgScale = [
-      rgb2hex([Math.max(0,br-6),  Math.max(0,bg2-6),  Math.max(0,bb-8)]),   // bg-0
-      rgb2hex([br+4,  bg2+5,  bb+8]),    // bg-1
-      rgb2hex([br+12, bg2+14, bb+20]),   // bg-2
-      rgb2hex([br+20, bg2+23, bb+32]),   // bg-3
-      rgb2hex([br+28, bg2+32, bb+44]),   // bg-4
-    ];
-    bgScale.forEach((v,i) => root.style.setProperty(`--bg-${i}`, v));
-
-    // Line opacities — fixed ratios work across all dark themes
-    root.style.setProperty('--line',   'rgba(255,255,255,0.06)');
-    root.style.setProperty('--line-2', 'rgba(255,255,255,0.10)');
-    root.style.setProperty('--line-3', 'rgba(255,255,255,0.18)');
-  }
-
-  if (theme.t1) {
-    // Parse t1 which may be "rgba(...)" or hex
-    let t1hex = theme.t1;
-    if (t1hex.startsWith('rgba') || t1hex.startsWith('rgb')) {
-      // Extract hex from rgba if needed — just use t1 directly for ink-0
-      // and derive the rest by reducing opacity
-      root.style.setProperty('--ink-0', t1hex);
-      const t1rgb = t1hex.match(/[\d.]+/g).slice(0,3).map(Number);
-      root.style.setProperty('--ink-1', `rgba(${t1rgb[0]},${t1rgb[1]},${t1rgb[2]},0.82)`);
-      root.style.setProperty('--ink-2', `rgba(${t1rgb[0]},${t1rgb[1]},${t1rgb[2]},0.50)`);
-      root.style.setProperty('--ink-3', `rgba(${t1rgb[0]},${t1rgb[1]},${t1rgb[2]},0.30)`);
-      root.style.setProperty('--ink-4', `rgba(${t1rgb[0]},${t1rgb[1]},${t1rgb[2]},0.18)`);
-    } else if (t1hex.startsWith('#')) {
-      const [r,g,b] = hex2rgb(t1hex);
-      root.style.setProperty('--ink-0', t1hex);
-      root.style.setProperty('--ink-1', `rgba(${r},${g},${b},0.82)`);
-      root.style.setProperty('--ink-2', `rgba(${r},${g},${b},0.50)`);
-      root.style.setProperty('--ink-3', `rgba(${r},${g},${b},0.30)`);
-      root.style.setProperty('--ink-4', `rgba(${r},${g},${b},0.18)`);
-    }
-  }
-  // ── End Lumen token derivation ───────────────────────────────────────
-
   // Body background: radial gradient derived from theme
   // Bleed color = mix of surface and accent, ~40 steps above bg
   if (theme.bgImage) {

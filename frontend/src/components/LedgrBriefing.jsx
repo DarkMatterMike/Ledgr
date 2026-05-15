@@ -81,15 +81,13 @@ const CSS = `
   .lb-pc-card.open{border-radius:8px 8px 0 0;border-bottom-color:transparent;}
   .lb-main{padding:36px 40px;overflow-y:auto;min-width:0;}
   @media(hover:none)and(pointer:coarse){
-    .lb-brief{display:block!important;}
-    .pn-nav{display:none!important;}
+    .lb-brief{grid-template-columns:1fr!important;min-height:unset;}
     .lb-agenda{display:none!important;}
-    .lb-main{padding:16px 16px 0!important;}
-    .lb-story-head{font-size:clamp(18px,5.5vw,30px)!important;white-space:normal!important;line-height:1.2!important;}
+    .lb-main{padding:20px 16px 0!important;}
+    .lb-story-head{font-size:clamp(18px,5.5vw,32px)!important;white-space:normal!important;line-height:1.2!important;}
     .lb-deck{font-size:13px;line-height:1.6;}
     .lb-story-callout{grid-template-columns:1fr!important;gap:12px;margin-top:16px;}
     .lb-gauge-pct{font-size:36px!important;}
-    .lb-pool-card{padding:14px!important;}
     .lb-pool-v{font-size:24px!important;}
     .lb-wi-row{grid-template-columns:1fr 1fr!important;gap:8px;}
     .lb-ask-hint{display:none;}
@@ -564,7 +562,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
   return(
     <>
       <style>{CSS}</style>
-      <div className="lb-wrap">
+      <div className="lb-wrap" style={isMobile?{padding:0,minHeight:"unset"}:{}}>
         <div className="lb-frame">
 
           {/* chrome bar */}
@@ -582,7 +580,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
           </div>
 
           {/* brief grid */}
-          <div className="lb-brief" style={isMobile?{display:"block",width:"100%"}:{}}>
+          <div className="lb-brief" style={isMobile?{display:"block",width:"100%",minHeight:"unset"}:{}}>
 
             {/* sidenav */}
             {!isMobile&&<PageNav activeId="dashboard" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview} fmt={fmt}/>}
@@ -624,7 +622,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                         </aside>}
 
             {/* main */}
-            <main className="lb-main">
+            <main className="lb-main" style={isMobile?{padding:"16px 16px 90px",overflowY:"unset"}:{}}>
               <div className="lb-topbar">
                 <div className="lb-tb-left">
                   <span className="lb-tb-num">ii ·</span>

@@ -895,6 +895,7 @@ function AppInner({ isDemo = false }) {
     budgetKebabId, setBudgetKebabId,
     setRulePrompt, setTypeRulePrompt,
     scheduleSaveRef,
+    initialized, rulePrompt, typeRulePrompt, showUndoToast, refreshSummary,
   });
   applyRulesRef.current = applyRules;
   /* -- Plaid (via hook) -- */
@@ -910,6 +911,7 @@ function AppInner({ isDemo = false }) {
     setNewTxnNotifs, setNewTxnIds,
     initialized,
     applyRulesRef,
+    catMap, customAccountNames, runAutoCategorize, cap,
   });
   /* -- Category CRUD -- */
   function openAddCat()   { setCatForm({name:"",limit:"",color:CAT_COLORS[0]}); setModal("addCat"); }
@@ -996,6 +998,8 @@ function AppInner({ isDemo = false }) {
     setRiSearch, setRiSearchResults, setRiSearchLoading,
     setTxnForm, setTypeRulePrompt,
     scheduleSaveRef,
+    recurringItems, modal, editingName, search, txnForm, riForm, riSearch,
+    editingRecurringItem, promptSaveRule, today,
   });
   // DrillDownModal → extracted to AppModals
 
@@ -1009,6 +1013,7 @@ function AppInner({ isDemo = false }) {
     accounts, goals, today, insightsTodos, sortedCategories, setDrillCat,
     dashboardCardOrder, setDashboardCardOrder, scheduleSaveRef,
     navigate, plaidItems, staleItemIds,
+    rules, theme, pendingDuplicates, newTxnNotifs, budgetBarsAnimated, pad,
   });
   const Dashboard = null; // rendered via early return above
 
@@ -1147,6 +1152,8 @@ function AppInner({ isDemo = false }) {
     editingCatName={editingCatName} setEditingCatName={setEditingCatName}
     editingLimitId={editingLimitId} setEditingLimitId={setEditingLimitId}
     editingLimitVal={editingLimitVal} setEditingLimitVal={setEditingLimitVal}
+    updateTxnCat={updateTxnCat} aiChat={aiChat} monthLabel={monthLabel}
+    budgetBarsAnimated={budgetBarsAnimated}
   />;
 
   /* -- Accounts -- */
@@ -1879,6 +1886,11 @@ function AppInner({ isDemo = false }) {
         riSearch={riSearch} setRiSearch={setRiSearch}
         ruleForm={ruleForm} setRuleForm={setRuleForm}
         txnForm={txnForm} setTxnForm={setTxnForm}
+        catMap={catMap} riSearchResults={riSearchResults} riSearchLoading={riSearchLoading}
+        saveManualTxn={saveManualTxn} saveRule={saveRule}
+        deleteRecurringItem={deleteRecurringItem} linkTxnToRecurringItem={linkTxnToRecurringItem}
+        unlinkTxnFromRecurringItem={unlinkTxnFromRecurringItem}
+        saveRecurringItemForm={saveRecurringItemForm} searchTxnsForRI={searchTxnsForRI}
       />
 
       {/* Category suggestion confirmation modal */}

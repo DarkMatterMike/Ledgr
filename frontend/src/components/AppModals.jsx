@@ -18,6 +18,10 @@ export default function AppModals({
   riSearch, setRiSearch,
   ruleForm, setRuleForm,
   txnForm, setTxnForm,
+  catMap, riSearchResults, riSearchLoading,
+  saveManualTxn, saveRule,
+  deleteRecurringItem, linkTxnToRecurringItem,
+  unlinkTxnFromRecurringItem, saveRecurringItemForm, searchTxnsForRI,
 }) {
   /* -- Drill-down modal -- */
   const showDrillModal = drillCat && (view !== "budgets" || isMobile);

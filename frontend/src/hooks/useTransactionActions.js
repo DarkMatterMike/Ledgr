@@ -19,6 +19,8 @@ export function useTransactionActions({
   setRiSearch, setRiSearchResults, setRiSearchLoading,
   setTxnForm, setTypeRulePrompt,
   scheduleSaveRef,
+  recurringItems, modal, editingName, search, txnForm, riForm, riSearch,
+  editingRecurringItem, promptSaveRule, today,
 }) {
   /* -- Transaction CRUD -- */
   function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }

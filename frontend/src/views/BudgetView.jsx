@@ -13,6 +13,8 @@ export default function BudgetView({
   saveCatName, startEditLimit, saveLimit,
   editingCatNameId, setEditingCatNameId, editingCatName, setEditingCatName,
   editingLimitId, setEditingLimitId, editingLimitVal, setEditingLimitVal,
+  updateTxnCat, aiChat, monthLabel,
+  budgetBarsAnimated,
 }) {
 
   /* ── Compute category groups ─────────────────────── */

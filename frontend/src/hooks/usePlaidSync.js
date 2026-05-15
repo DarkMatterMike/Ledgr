@@ -11,6 +11,7 @@ export function usePlaidSync({
   setNewTxnNotifs, setNewTxnIds,
   initialized,
   applyRulesRef,
+  catMap, customAccountNames, runAutoCategorize, cap,
 }) {
   /* -- Plaid -- */
   const doSync = useCallback(async (itemId) => {

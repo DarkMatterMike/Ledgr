@@ -12,6 +12,7 @@ export function useRulesAndGoals({
   budgetKebabId, setBudgetKebabId,
   setRulePrompt, setTypeRulePrompt,
   scheduleSaveRef,
+  initialized, rulePrompt, typeRulePrompt, showUndoToast, refreshSummary,
 }) {
   /* -- Rules -- */
   function applyRules(txns, rs, opts = {}) {

@@ -12,6 +12,7 @@ export function useDashboardCards({
   accounts, goals, today, insightsTodos, sortedCategories, setDrillCat,
   dashboardCardOrder, setDashboardCardOrder, scheduleSaveRef,
   navigate, plaidItems, staleItemIds,
+  rules, theme, pendingDuplicates, newTxnNotifs, budgetBarsAnimated, pad,
 }) {
   /* -- Dashboard -- */
   const budgetAnalytics = useMemo(() => {

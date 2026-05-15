@@ -597,7 +597,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
                 <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
                 <div className="lb-mrow"><span className="l">Overspent by</span><span className="v" style={{color:overspentTotal>0?"var(--debt)":"var(--ink-3)"}}>{overspentTotal>0?`−${fmt(overspentTotal)}`:"—"}</span></div>
-                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"var(--warn)",fontWeight:600}}>{fmt(budgetIncOverspent)}</span></div>
+                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"#f0b04c",fontWeight:600}}>{fmt(budgetIncOverspent)}</span></div>
               </div>
               {(()=>{
                 const MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];

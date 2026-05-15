@@ -21,7 +21,7 @@ const CSS = `
   .lc-sync-btn.spinning svg{animation:lc-spin .7s linear infinite;}
   @keyframes lc-spin{to{transform:rotate(360deg);}}
   .lc-body{display:grid;grid-template-columns:64px 320px 1fr 300px;flex:1;}
-  @media(max-width:1100px){.lc-body{grid-template-columns:64px 280px 1fr;}}
+  @media(max-width:1100px){.lc-body{grid-template-columns:64px 260px 1fr 240px;}}
   @media(max-width:900px){.lc-body{grid-template-columns:64px 1fr;}}
   .lc-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lc-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
@@ -59,8 +59,8 @@ const CSS = `
   .lc-mrow .l{color:var(--ink-2);}
   .lc-mrow .v{font-family:var(--font-mono);}
   .lc-ri-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:16px 0 10px;padding-top:14px;border-top:1px solid var(--line);}
-  .lc-ri-add{margin-top:12px;padding:10px;border:1px solid rgba(240,176,76,0.4);border-radius:var(--r-md);text-align:center;color:var(--warn);font-size:11px;cursor:pointer;font-family:var(--font-mono);transition:background .15s;}
-  .lc-ri-add:hover{background:rgba(240,176,76,0.06);}
+  .lc-ri-add{margin-top:12px;padding:10px;border:1px solid rgba(93,202,165,0.4);border-radius:var(--r-md);text-align:center;color:var(--safe);font-size:11px;cursor:pointer;font-family:var(--font-mono);transition:background .15s;}
+  .lc-ri-add:hover{background:rgba(93,202,165,0.06);}
   /* paycheck planning */
   .lc-pc-lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;display:block;}
   .lc-pc-card{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;grid-template-columns:60px 1fr 16px;gap:12px;align-items:center;margin-bottom:8px;cursor:pointer;}
@@ -88,8 +88,8 @@ const CSS = `
   .lc-ri-chevron{font-size:9px;color:var(--ink-4);margin-top:2px;transition:transform .15s;}
   .lc-ri-chevron.open{transform:rotate(180deg);}
   /* third column — edit panel */
-  .lc-edit-col{border-left:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:0;}
-  @media(max-width:1100px){.lc-edit-col{display:none;}}
+  .lc-edit-col{border-left:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:0;transition:opacity .2s;}
+  @media(max-width:1100px){.lc-edit-col{min-width:240px;}}
   .lc-edit-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;padding:40px 20px;text-align:center;}
   .lc-edit-empty-icon{font-size:28px;color:var(--ink-4);}
   .lc-edit-empty-text{font-size:12px;color:var(--ink-4);line-height:1.6;}

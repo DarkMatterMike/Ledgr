@@ -573,7 +573,6 @@ export default function LedgrCalendar({
                   );
                 })}
               </div>
-            </div>
               {/* Mobile day bottom sheet */}
               {isMobile&&sheetOpen&&(
                 <>

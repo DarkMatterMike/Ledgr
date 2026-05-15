@@ -47,9 +47,9 @@ import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
-  const [mobile, setMobile] = useState(() => screen.width < 768);
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
-    const fn = () => setMobile(screen.width < 768);
+    const fn = () => setMobile(window.innerWidth < 768);
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
@@ -245,14 +245,6 @@ function useIsMobile() {
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
-    /* ── Bottom nav always rendered; CSS controls visibility ── */
-    .new-bottom-nav { display: none !important; }
-    .mobile-more-sheet { display: none !important; }
-    @media (max-width: 877px) {
-      .new-bottom-nav { display: flex !important; }
-      .mobile-more-sheet { display: block !important; }
-      .pn-nav { display: none !important; }
-    }
     /* ── Mobile bottom nav ── */
     .mobile-bottom-nav {
       height: 82px;
@@ -413,6 +405,41 @@ function useIsMobile() {
     .ledgr-content::-webkit-scrollbar-track { background: transparent; }
     .ledgr-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
   `;
+  /* Bottom nav — always in DOM, shown via CSS on mobile only */
+  el.textContent += `
+    .new-bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: var(--bg-1, #0b0e14); backdrop-filter: blur(20px);
+      border-top: 1px solid var(--line, rgba(255,255,255,0.06));
+      display: none;
+      padding-bottom: env(safe-area-inset-bottom, 4px);
+    }
+    .new-bottom-nav-tab {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; padding: 10px 4px 6px;
+      cursor: pointer; background: none; border: none;
+      color: var(--ink-3, rgba(255,255,255,0.3)); transition: color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .new-bottom-nav-tab svg { width: 20px; height: 20px; transition: transform .2s; }
+    .new-bottom-nav-tab.active svg { transform: scale(1.12); }
+    .new-bottom-nav-tab-label {
+      font-family: var(--font-mono, monospace); font-size: 8px;
+      text-transform: uppercase; letter-spacing: .5px; transition: color .15s;
+    }
+    .new-bottom-nav-tab.active { color: var(--safe, #5dcaa5); }
+    .new-bottom-nav-dot {
+      width: 3px; height: 3px; border-radius: 50%;
+      background: transparent; margin-top: 1px; transition: background .15s;
+    }
+    .new-bottom-nav-tab.active .new-bottom-nav-dot { background: var(--safe, #5dcaa5); }
+    @media (max-width: 1023px) {
+      .new-bottom-nav { display: flex; }
+      .pn-nav { display: none !important; }
+      .lb-brief { grid-template-columns: 1fr !important; }
+    }
+  `;
   document.head.appendChild(el);
 })();
 
@@ -521,7 +548,7 @@ function useDashboardColumns(defaultCols, scheduleSaveRef, setDefaultCols) {
   return { cols, moveItem, moveToCol };
 }
 
-function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast, existingInstitutions=[] }) {
+function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const fetchToken = useCallback(async () => {
@@ -533,14 +560,7 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null,
       else console.error("[PlaidButton]", msg);
     } finally { setLoading(false); }
   }, [products, itemId, showToast]);
-  const handleSuccess = useCallback((pt, meta) => {
-    const instName = meta?.institution?.name || "";
-    if (instName && existingInstitutions.some(i => i.toLowerCase() === instName.toLowerCase())) {
-      if (!window.confirm(`${instName} is already connected. Link again anyway? This may create duplicate accounts.`)) return;
-    }
-    onSuccess(pt, instName);
-  }, [onSuccess, existingInstitutions]);
-  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:handleSuccess, onExit });
+  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
     <button
@@ -5004,7 +5024,6 @@ function AppInner({ isDemo = false }) {
       hasApiKey={aiChat.hasApiKey}
       saveApiKey={aiChat.saveApiKey}
       navigate={navigate}
-      isMobile={isMobile}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
@@ -5527,7 +5546,7 @@ function AppInner({ isDemo = false }) {
       </>
     )}
 
-    {/* More sheet overlay — always in DOM, CSS shows on mobile only */}
+    {/* Always render — CSS shows on mobile only */}
     {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:82,zIndex:39}}/>}
     <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
       <div className="mobile-sheet-handle"/>

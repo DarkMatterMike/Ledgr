@@ -2,7 +2,7 @@
  * BottomNav.jsx — New mobile bottom nav to match the redesign.
  * 5 tabs with dot indicator. "More" opens the drawer.
  */
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 const BOTTOM_NAV = [
   { id: 'dashboard',    label: 'Home',     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
@@ -12,9 +12,49 @@ const BOTTOM_NAV = [
   { id: '__more__',     label: 'More',     icon: <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.75"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg> },
 ];
 
+const NAV_CSS = `
+.new-bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(11,10,8,0.97); backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom, 4px);
+}
+.new-bottom-nav-tab {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; padding: 10px 4px 6px;
+  cursor: pointer; background: none; border: none;
+  color: var(--t3); transition: color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.new-bottom-nav-tab svg { width: 20px; height: 20px; transition: transform .2s; }
+.new-bottom-nav-tab.active svg { transform: scale(1.12); }
+.new-bottom-nav-tab-label {
+  font-family: var(--font-mono); font-size: 8px;
+  text-transform: uppercase; letter-spacing: .5px;
+  transition: color .15s;
+}
+.new-bottom-nav-tab.active { color: var(--cyan); }
+.new-bottom-nav-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: transparent; margin-top: 1px;
+  transition: background .15s;
+}
+.new-bottom-nav-tab.active .new-bottom-nav-dot { background: var(--cyan); }
+`;
 
+let bottomNavCssInjected = false;
 
 function BottomNav({ view, navigate, moreOpen, setMoreOpen }) {
+  useEffect(() => {
+    if (bottomNavCssInjected) return;
+    bottomNavCssInjected = true;
+    const style = document.createElement('style');
+    style.textContent = NAV_CSS;
+    document.head.appendChild(style);
+  }, []);
+
   return (
     <div className="new-bottom-nav">
       {BOTTOM_NAV.map(item => {

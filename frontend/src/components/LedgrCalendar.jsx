@@ -36,6 +36,13 @@ const CSS = `
   .lc-nav-spacer{flex:1;}
   .lc-aside{border-right:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;}
   @media(max-width:900px){.lc-aside{display:none;}}
+  @media(hover:none)and(pointer:coarse){
+    .lc-body{grid-template-columns:1fr!important;}
+    .lc-aside{display:none!important;}
+    .lc-edit-col{display:none!important;}
+    .lc-topbar{padding:12px 16px;}
+    .lc-agenda{padding:16px;}
+  }
   .lc-cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .lc-cal-title{font-family:var(--font-display);font-size:20px;letter-spacing:-0.3px;}
   .lc-cal-navs{display:flex;gap:6px;}

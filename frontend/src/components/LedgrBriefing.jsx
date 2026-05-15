@@ -15,7 +15,6 @@ import PageNav from "./PageNav.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
-  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;--line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);--warn:#f0b04c;--warn-d:#6b4708;--warn-bg:rgba(240,176,76,0.08);--debt:#e87363;--debt-d:#5a1c14;--debt-bg:rgba(232,115,99,0.08);--calm:#6c8cff;--calm-d:#1a2a66;--calm-bg:rgba(108,140,255,0.08);--goal:#a78bff;--goal-d:#2a1f5e;--goal-bg:rgba(167,139,255,0.08);--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;}
   .lb-wrap *,.lb-wrap *::before,.lb-wrap *::after{box-sizing:border-box;}
   .lb-wrap h1,.lb-wrap h2,.lb-wrap h3,.lb-wrap h4,.lb-wrap p{margin:0;padding:0;}
   .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
@@ -81,6 +80,18 @@ const CSS = `
   .lb-pc-net .v.neg{color:var(--debt);}
   .lb-pc-card.open{border-radius:8px 8px 0 0;border-bottom-color:transparent;}
   .lb-main{padding:36px 40px;overflow-y:auto;min-width:0;}
+  @media(hover:none)and(pointer:coarse){
+    .lb-brief{grid-template-columns:1fr!important;min-height:unset;}
+    .lb-agenda{display:none!important;}
+    .lb-main{padding:20px 16px 0!important;}
+    .lb-story-head{font-size:clamp(18px,5.5vw,32px)!important;white-space:normal!important;line-height:1.2!important;}
+    .lb-deck{font-size:13px;line-height:1.6;}
+    .lb-story-callout{grid-template-columns:1fr!important;gap:12px;margin-top:16px;}
+    .lb-gauge-pct{font-size:36px!important;}
+    .lb-pool-v{font-size:24px!important;}
+    .lb-wi-row{grid-template-columns:1fr 1fr!important;gap:8px;}
+    .lb-ask-hint{display:none;}
+  }
   .lb-topbar{display:flex;align-items:center;justify-content:space-between;padding:0 0 20px;margin-bottom:28px;border-bottom:1px solid var(--line);}
   .lb-tb-left{display:flex;align-items:baseline;gap:16px;}
   .lb-tb-num{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
@@ -411,7 +422,7 @@ export default function LedgrBriefing({
   const allocFree  = displaySafe;
   const allocBill  = billsTotal;
   const allocGoal  = useMemo(()=>goals.reduce((s,g)=>{
-    const target=g.targetAmount||0, saved=g.savedAmount||0;
+    const target=g.targetAmount||0,saved=g.savedAmount||0;
     const remaining=Math.max(0,target-saved);
     if(!g.deadline||remaining===0) return s;
     const msLeft=new Date(g.deadline+"T12:00:00")-today;
@@ -666,11 +677,11 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                           <div className="lb-pool-nm" style={{margin:0}}>Free · yours</div>
                           <button style={{background:"none",border:"1px solid var(--line-2)",borderRadius:5,padding:"2px 7px",fontSize:9,fontFamily:"var(--font-mono)",color:"var(--ink-3)",cursor:"pointer",letterSpacing:"0.8px"}}
                             onClick={e=>{e.stopPropagation();setAcctPopOpen(p=>!p);}}>
-                            {effectiveAcctIds.length} acct{effectiveAcctIds.length!==1?"s":""} ⚙
+                            {(effectiveAcctIds||[]).length} acct{(effectiveAcctIds||[]).length!==1?"s":""} ⚙
                           </button>
                         </div>
                         <div style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontSize:11,color:"var(--ink-2)"}}>
-                          {accounts.filter(a=>effectiveAcctIds.includes(a.id)).map(a=>a.name||a.type).join(", ")||"no accounts"}
+                          {accounts.filter(a=>(effectiveAcctIds||[]).includes(a.id)).map(a=>a.name||a.type).join(", ")||"no accounts"}
                         </div>
                         {acctPopOpen&&(
                           <div onClick={e=>e.stopPropagation()}
@@ -679,7 +690,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                               padding:"12px",boxShadow:"0 8px 32px rgba(0,0,0,0.6)"}}>
                             <div style={{fontSize:9,letterSpacing:"1.4px",textTransform:"uppercase",color:"var(--ink-3)",marginBottom:10}}>Include in free balance</div>
                             {accounts.filter(a=>!a.isManual).map(a=>{
-                              const on=effectiveAcctIds.includes(a.id);
+                              const on=(effectiveAcctIds||[]).includes(a.id);
                               return(
                                 <div key={a.id} onClick={()=>toggleAcct(a.id)}
                                   style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:6,cursor:"pointer",

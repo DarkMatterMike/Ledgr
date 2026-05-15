@@ -229,6 +229,12 @@ const CSS = `
     overflow-y:auto;
   }
   @media(max-width:1100px){.lt-panel{display:none;}}
+  @media(hover:none)and(pointer:coarse){
+    .lt-body{grid-template-columns:1fr!important;}
+    .lt-panel{display:none!important;}
+    .lt-topbar{padding:12px 16px;}
+    .lt-bulk{bottom:98px!important;width:calc(100% - 32px);justify-content:center;z-index:150;left:16px;transform:none;}
+  }
 
   /* Panel empty */
   .lt-panel-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 24px;text-align:center;}

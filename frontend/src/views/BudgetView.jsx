@@ -15,6 +15,8 @@ export default function BudgetView({
   editingLimitId, setEditingLimitId, editingLimitVal, setEditingLimitVal,
   updateTxnCat, aiChat, monthLabel,
   budgetBarsAnimated,
+  setCategories,
+  limitSuggestions, setLimitSuggestions,
 }) {
 
   /* ── Compute category groups ─────────────────────── */

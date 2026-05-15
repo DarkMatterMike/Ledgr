@@ -1157,6 +1157,8 @@ function AppInner({ isDemo = false }) {
     editingLimitVal={editingLimitVal} setEditingLimitVal={setEditingLimitVal}
     updateTxnCat={updateTxnCat} aiChat={aiChat} monthLabel={monthLabel}
     budgetBarsAnimated={budgetBarsAnimated}
+    setCategories={setCategories}
+    limitSuggestions={limitSuggestions} setLimitSuggestions={setLimitSuggestions}
   />;
 
   /* -- Accounts -- */

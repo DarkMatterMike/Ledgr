@@ -13,6 +13,16 @@ export function usePlaidSync({
   applyRulesRef,
   catMap, customAccountNames, runAutoCategorizeRef, cap,
 }) {
+  // Merchant normalisation — must match computeFingerprint() in db.js
+  function normMerchant(t) {
+    return (t.merchant || t.merchant_name || t.name || "")
+      .toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+  }
+  function fp(t) {
+    const date = t.authorized_date || t.date || "";
+    return `${date}__${t.amount}__${normMerchant(t)}`;
+  }
+
   /* -- Plaid -- */
   const doSync = useCallback(async (itemId) => {
     if (syncing) return; // prevent concurrent syncs causing duplicate accounts
@@ -36,17 +46,6 @@ export function usePlaidSync({
         setNotifOpen(true);
       }
       setTransactions(prev => {
-        // Normalise merchant name for fingerprinting.
-        // Must stay byte-for-byte identical to computeFingerprint() in db.js.
-        function normMerchant(t) {
-          return (t.merchant || t.merchant_name || t.name || "")
-            .toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
-        }
-        function fp(t) {
-          const date = t.authorized_date || t.date || "";
-          return `${date}__${t.amount}__${normMerchant(t)}`;
-        }
-
         let next=[...prev];
         const removeIds=new Set(removed.map(r=>r.transaction_id));
         next=next.filter(t=>!removeIds.has(t.id));

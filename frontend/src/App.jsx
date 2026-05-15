@@ -47,9 +47,9 @@ import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  const [mobile, setMobile] = useState(() => window.innerWidth < 877);
   useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768);
+    const fn = () => setMobile(window.innerWidth < 877);
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
@@ -82,7 +82,7 @@ function useIsMobile() {
     .ledgr-cal-cell    { min-height: 80px; padding: 8px; }
     .ledgr-monthbar-meta { display: flex; align-items: center; gap: 16px; }
 
-    @media (max-width: 768px) {
+    @media (max-width: 877px) {
       .ledgr-content { padding: 0 !important; }
       .ledgr-monthbar-meta { flex-wrap: wrap !important; gap: 8px !important; justify-content: center !important; }
     }
@@ -4989,7 +4989,6 @@ function AppInner({ isDemo = false }) {
       hasApiKey={aiChat.hasApiKey}
       saveApiKey={aiChat.saveApiKey}
       navigate={navigate}
-      isMobile={isMobile}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}

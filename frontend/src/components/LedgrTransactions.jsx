@@ -70,6 +70,13 @@ const CSS = `
     box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:820px;
   }
   @media(max-width:600px){.lt-frame{border-radius:0;border:none;}}
+  @media(max-width:877px){
+    .pn-nav{display:none !important;}
+    .lt-body{grid-template-columns:1fr !important;}
+    .lt-panel{display:none !important;}
+    .lt-topbar{padding:12px 16px;}
+    .lt-bulk{bottom:98px !important;width:calc(100% - 32px);justify-content:center;z-index:150;}
+  }
 
   /* Browser chrome */
   .lt-bar {
@@ -288,8 +295,6 @@ const CSS = `
 
   /* Sort arrows inline with th */
   .lt-sort-arrow { font-size:9px; opacity:0.6; margin-left:3px; }
-
-  @media(max-width:768px){.pn-nav{display:none !important;}}
 `;
 
 /* ─── Static data ─────────────────────────────────────────────────────────── */

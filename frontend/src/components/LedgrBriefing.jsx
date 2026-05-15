@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LedgrBriefing.jsx — Dashboard, concept 2 "The Briefing"
  * src/components/LedgrBriefing.jsx
  *
@@ -15,7 +15,6 @@ import PageNav from "./PageNav.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
-  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;--line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);--warn:#f0b04c;--warn-d:#6b4708;--warn-bg:rgba(240,176,76,0.08);--debt:#e87363;--debt-d:#5a1c14;--debt-bg:rgba(232,115,99,0.08);--calm:#6c8cff;--calm-d:#1a2a66;--calm-bg:rgba(108,140,255,0.08);--goal:#a78bff;--goal-d:#2a1f5e;--goal-bg:rgba(167,139,255,0.08);--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;}
   .lb-wrap *,.lb-wrap *::before,.lb-wrap *::after{box-sizing:border-box;}
   .lb-wrap h1,.lb-wrap h2,.lb-wrap h3,.lb-wrap h4,.lb-wrap p{margin:0;padding:0;}
   .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
@@ -35,7 +34,6 @@ const CSS = `
   .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
   .lb-brief{display:grid;grid-template-columns:64px 320px 1fr;min-height:880px;}
   @media(max-width:1100px){.lb-brief{grid-template-columns:64px 1fr;}}
-  @media(max-width:768px){.lb-brief{grid-template-columns:1fr;}.lb-brief>.pn-nav{display:none !important;}}
   .lb-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lb-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
   .lb-nav-item{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:18px;cursor:pointer;transition:.15s;user-select:none;}
@@ -82,7 +80,6 @@ const CSS = `
   .lb-pc-net .v.neg{color:var(--debt);}
   .lb-pc-card.open{border-radius:8px 8px 0 0;border-bottom-color:transparent;}
   .lb-main{padding:36px 40px;overflow-y:auto;min-width:0;}
-  @media(max-width:768px){.lb-main{padding:20px 16px 0;}}
   .lb-topbar{display:flex;align-items:center;justify-content:space-between;padding:0 0 20px;margin-bottom:28px;border-bottom:1px solid var(--line);}
   .lb-tb-left{display:flex;align-items:baseline;gap:16px;}
   .lb-tb-num{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
@@ -157,6 +154,22 @@ const CSS = `
   .lb-pool-card.lb-pool-free .lb-pool-v{color:var(--safe);}
   .lb-pool-card.lb-pool-locked .lb-pool-v{color:var(--ink-0);}
 
+  @media(max-width:877px){
+    .lb-brief{grid-template-columns:1fr !important;min-height:unset;}
+    .pn-nav{display:none !important;}
+    .lb-main{padding:20px 16px 0;}
+    .lb-story-head{font-size:24px !important;letter-spacing:-0.5px !important;white-space:normal !important;}
+    .lb-deck{font-size:13px;line-height:1.6;}
+    .lb-story-callout{grid-template-columns:1fr !important;gap:12px;margin-top:20px;}
+    .lb-gauge-pct{font-size:36px !important;}
+    .lb-pool-card{padding:14px !important;}
+    .lb-pool-v{font-size:24px !important;}
+    .lb-wi-row{grid-template-columns:1fr 1fr !important;gap:8px;}
+    .lb-ask-hint{display:none;}
+    .lb-ask-input{font-size:13px;min-width:0;flex:1;}
+    .lb-mstats{gap:10px;}
+    .lb-rtxn-row{font-size:10px;}
+  }
   /* what-if section */
   .lb-whatif{margin-top:24px;}
   .lb-wi-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
@@ -626,7 +639,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               {/* hero */}
               <div style={{marginBottom:40}}>
                 <div className="lb-eyebrow">
-                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{displayName?`, ${displayName}`:""}
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{displayName?`, ${displayName}`:""} · the headline
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
 

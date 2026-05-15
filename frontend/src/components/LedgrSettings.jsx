@@ -14,7 +14,6 @@ import { applyTheme, applyGlobalOpacity } from "../theme/index.js";
    CSS — scoped to .lgs-* namespace, Lumen dark tokens
 ───────────────────────────────────────────────────────── */
 const CSS = `
-  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--line:rgba(255,255,255,0.06);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;}
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
 
   /* ── Shared shell (matches LedgrBriefing lb-* exactly) ── */
@@ -23,6 +22,15 @@ const CSS = `
   @media(max-width:600px){.lb-wrap{padding:0;}}
   .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:20px;overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:80vh;}
   @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
+  @media(max-width:877px){
+    .pn-nav{display:none !important;}
+    .lgs-topbar{padding:0 16px;height:auto;}
+    .lgs-tabbar{padding:0 8px;overflow-x:auto;}
+    .lgs-tab{padding:10px 10px;font-size:9px;}
+    .lgs-theme-grid{grid-template-columns:repeat(3,1fr) !important;}
+    .lgs-input{width:100% !important;box-sizing:border-box;}
+    .lgs-range{width:100% !important;}
+  }
   .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
   .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
@@ -42,7 +50,7 @@ const CSS = `
   .lgs-tb-left{display:flex;align-items:baseline;gap:16px;}
   .lgs-tb-eyebrow{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lgs-tb-title{font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px;color:var(--ink-0);}
-  .lgs-tb-div{width:1px;height:14px;background:rgba(255,255,255,0.10);flex-shrink:0;}
+  .lgs-tb-div{width:1px;height:14px;background:var(--line-2);flex-shrink:0;}
   .lgs-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
   .lgs-tabbar{border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 32px;background:var(--bg-1);flex-shrink:0;overflow-x:auto;}
   .lgs-tab{padding:12px 16px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent;transition:.12s;white-space:nowrap;display:flex;align-items:center;gap:6px;flex-shrink:0;}
@@ -53,8 +61,8 @@ const CSS = `
 
   /* Blocks */
   .lgs-block {
-    background:#11151d;
-    border:1px solid rgba(255,255,255,0.06);
+    background:var(--bg-2);
+    border:1px solid var(--line);
     border-radius:10px;
     overflow:hidden;
   }
@@ -68,11 +76,11 @@ const CSS = `
     justify-content:space-between;
   }
   .lgs-block-title {
-    font-family:'JetBrains Mono',monospace;
+    font-family:var(--font-mono);
     font-size:9px;
     letter-spacing:1.6px;
     text-transform:uppercase;
-    color:#4a5161;
+    color:var(--ink-3);
   }
   .lgs-block.danger .lgs-block-title { color:rgba(232,115,99,0.5); }
   .lgs-block.danger .lgs-block-hdr { border-bottom-color:rgba(232,115,99,0.1); }
@@ -89,27 +97,27 @@ const CSS = `
   }
   .lgs-row:last-child { border-bottom:none; }
   .lgs-row.col { flex-direction:column; align-items:flex-start; gap:3px; }
-  .lgs-row-label { font-size:12px; color:#7d8594; }
-  .lgs-row-hint  { font-size:10px; color:#4a5161; margin-top:2px; }
-  .lgs-row-val   { font-family:'JetBrains Mono',monospace; font-size:13px; color:#f4f4f1; }
-  .lgs-row-sublabel { font-size:9px; color:#4a5161; text-transform:uppercase; letter-spacing:0.8px; }
+  .lgs-row-label { font-size:12px; color:var(--ink-2); }
+  .lgs-row-hint  { font-size:10px; color:var(--ink-3); margin-top:2px; }
+  .lgs-row-val   { font-family:var(--font-mono); font-size:13px; color:var(--ink-0); }
+  .lgs-row-sublabel { font-size:9px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.8px; }
 
   /* Inputs */
   .lgs-input {
-    background:#161c26;
+    background:var(--bg-3);
     border:1px solid rgba(255,255,255,0.07);
     border-radius:8px;
     padding:7px 10px;
     font-size:12px;
-    font-family:'Geist',-apple-system,sans-serif;
-    color:#f4f4f1;
+    font-family:var(--font-ui);
+    color:var(--ink-0);
     outline:none;
     transition:.12s;
     width:100%;
   }
   .lgs-input:focus { border-color:rgba(93,202,165,0.4); box-shadow:0 0 0 2px rgba(93,202,165,0.08); }
-  .lgs-input::placeholder { color:#2e3340; }
-  .lgs-input.mono { font-family:'JetBrains Mono',monospace; font-size:11px; }
+  .lgs-input::placeholder { color:var(--ink-4); }
+  .lgs-input.mono { font-family:var(--font-mono); font-size:11px; }
 
   /* Buttons */
   .lgs-btn {
@@ -120,26 +128,26 @@ const CSS = `
     cursor:pointer;
     transition:all .15s;
     white-space:nowrap;
-    font-family:'Geist',-apple-system,sans-serif;
+    font-family:var(--font-ui);
     border:none;
     user-select:none;
   }
   .lgs-btn.primary {
-    background:#5dcaa5;
-    color:#07090d;
-    border:1px solid #5dcaa5;
+    background:var(--safe);
+    color:var(--bg-0);
+    border:1px solid var(--safe);
   }
   .lgs-btn.primary:hover { filter:brightness(1.1); }
   .lgs-btn.primary:disabled { opacity:0.4; cursor:not-allowed; }
   .lgs-btn.ghost {
-    background:#161c26;
-    color:#7d8594;
+    background:var(--bg-3);
+    color:var(--ink-2);
     border:1px solid rgba(255,255,255,0.07);
   }
-  .lgs-btn.ghost:hover { color:#c8cdd6; border-color:rgba(255,255,255,0.12); }
+  .lgs-btn.ghost:hover { color:var(--ink-1); border-color:rgba(255,255,255,0.12); }
   .lgs-btn.danger {
     background:rgba(232,115,99,0.1);
-    color:#e87363;
+    color:var(--debt);
     border:1px solid rgba(232,115,99,0.25);
   }
   .lgs-btn.danger:hover { background:rgba(232,115,99,0.18); }
@@ -150,8 +158,8 @@ const CSS = `
     display:inline-flex; align-items:center; gap:5px;
     background:rgba(93,202,165,0.08);
     border:1px solid rgba(93,202,165,0.2);
-    color:#5dcaa5;
-    font-family:'JetBrains Mono',monospace;
+    color:var(--safe);
+    font-family:var(--font-mono);
     font-size:9px;
     padding:2px 8px;
     border-radius:99px;
@@ -160,8 +168,8 @@ const CSS = `
     content:'';
     width:5px; height:5px;
     border-radius:50%;
-    background:#5dcaa5;
-    box-shadow:0 0 6px #5dcaa5;
+    background:var(--safe);
+    box-shadow:0 0 6px var(--safe);
     display:inline-block;
   }
   .lgs-badge-owner {
@@ -170,9 +178,9 @@ const CSS = `
     border:1px solid rgba(93,202,165,0.2);
     border-radius:99px;
     padding:2px 8px;
-    font-family:'JetBrains Mono',monospace;
+    font-family:var(--font-mono);
     font-size:9px;
-    color:#5dcaa5;
+    color:var(--safe);
     letter-spacing:0.5px;
     margin-top:5px;
   }
@@ -183,8 +191,8 @@ const CSS = `
   .lgs-stats { display:grid; grid-template-columns:repeat(4,1fr); }
   .lgs-stat  { padding:14px 18px; border-right:1px solid rgba(255,255,255,0.04); }
   .lgs-stat:last-child { border-right:none; }
-  .lgs-stat-l { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; text-transform:uppercase; color:#4a5161; margin-bottom:5px; }
-  .lgs-stat-v { font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:600; color:#f4f4f1; }
+  .lgs-stat-l { font-family:var(--font-mono); font-size:9px; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-3); margin-bottom:5px; }
+  .lgs-stat-v { font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--ink-0); }
 
   /* Theme swatches */
   .lgs-theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; padding:14px 18px; }
@@ -192,16 +200,16 @@ const CSS = `
     display:flex; align-items:center; gap:6px;
     padding:6px 8px;
     border-radius:8px;
-    background:#161c26;
+    background:var(--bg-3);
     border:1px solid rgba(255,255,255,0.05);
     cursor:pointer;
-    font-size:11px; color:#7d8594;
+    font-size:11px; color:var(--ink-2);
     transition:.12s;
   }
-  .lgs-swatch:hover { border-color:#5dcaa5; color:#c8cdd6; }
+  .lgs-swatch:hover { border-color:var(--safe); color:var(--ink-1); }
 
   /* Range slider */
-  .lgs-range { width:100px; accent-color:#5dcaa5; }
+  .lgs-range { width:100px; accent-color:var(--safe); }
 
   /* Trash items */
   .lgs-trash-item {
@@ -210,14 +218,13 @@ const CSS = `
     border-bottom:1px solid rgba(255,255,255,0.04);
   }
   .lgs-trash-item:last-child { border-bottom:none; }
-
-  @media(max-width:768px){.pn-nav{display:none !important;}}
 `;
 
 /* ─────────────────────────────────────────────────────────
    Theme presets (same list as App.jsx)
 ───────────────────────────────────────────────────────── */
 const PRESETS = [
+  { name:"Lumen",     bg:"#07090d", surface:"#0b0e14", card:"#11151d", accent:"#5dcaa5", t1:"#f4f4f1", t2:"rgba(244,244,241,0.55)", t3:"rgba(244,244,241,0.3)" },
   { name:"Obsidian",  bg:"#0b0a08", surface:"#1a1612", card:"#181511", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
   { name:"Midnight",  bg:"#09090f", surface:"#111120", card:"#18181e", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)",  t3:"rgba(232,232,255,0.3)" },
   { name:"Ledgr Dark",bg:"#060a0f", surface:"#0d1520", card:"#111a28", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)",  t3:"rgba(218,234,248,0.3)" },
@@ -413,7 +420,7 @@ export default function LedgrSettings({
   function patchGradSteps(steps) {
     const h2r = h => { const v=h.replace("#",""); return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16)]; };
     const r2h = ([r,g,b]) => "#"+[r,g,b].map(n=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,"0")).join("");
-    document.documentElement.style.setProperty("--card-hi", r2h(h2r(current.card||"#181511").map(c=>c+steps)));
+    document.documentElement.style.setProperty("--card-hi", r2h(h2r(current.card||"var(--bg-2)").map(c=>c+steps)));
     patch("gradSteps",steps);
   }
   function patchGradAngle(a) { document.documentElement.style.setProperty("--grad-angle",a+"deg"); patch("gradAngle",a); }
@@ -513,8 +520,8 @@ export default function LedgrSettings({
                     <Row>
                       <div style={{display:"flex",alignItems:"center",gap:12}}>
                         <div>
-                          <div style={{fontSize:14,fontWeight:600,color:"#f4f4f1"}}>{user?.name||user?.email}</div>
-                          <div style={{fontSize:10,color:"#4a5161",marginTop:2}}>{user?.email}</div>
+                          <div style={{fontSize:14,fontWeight:600,color:"var(--ink-0)"}}>{user?.name||user?.email}</div>
+                          <div style={{fontSize:10,color:"var(--ink-3)",marginTop:2}}>{user?.email}</div>
                           {user?.role==="owner" && <div className="lgs-badge-owner">◈ OWNER</div>}
                         </div>
                       </div>
@@ -546,8 +553,8 @@ export default function LedgrSettings({
                       <input className="lgs-input" style={{width:170}} type="password" placeholder="••••••••"
                         value={confirmPw} onChange={e=>{setConfirmPw(e.target.value);setPwError("");}}/>
                     </Row>
-                    {pwError   && <div style={{padding:"4px 18px",fontSize:11,color:"#e87363"}}>{pwError}</div>}
-                    {pwSuccess && <div style={{padding:"4px 18px",fontSize:11,color:"#5dcaa5"}}>Password updated ✓</div>}
+                    {pwError   && <div style={{padding:"4px 18px",fontSize:11,color:"var(--debt)"}}>{pwError}</div>}
+                    {pwSuccess && <div style={{padding:"4px 18px",fontSize:11,color:"var(--safe)"}}>Password updated ✓</div>}
                     <Row style={{justifyContent:"flex-end",borderBottom:"none"}}>
                       <Btn variant="primary" sm onClick={changePassword} disabled={savingPw}>{savingPw?"Updating…":"Update password"}</Btn>
                     </Row>
@@ -562,14 +569,14 @@ export default function LedgrSettings({
                     {profileForm ? (
                       <div style={{padding:"16px 18px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
                         <div>
-                          <div style={{fontSize:10,color:"#4a5161",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.8px"}}>Monthly income</div>
+                          <div style={{fontSize:10,color:"var(--ink-3)",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.8px"}}>Monthly income</div>
                           <input className="lgs-input" type="number" placeholder="0"
                             value={profileForm.monthlyIncome||""}
                             onChange={e=>setProfileForm(p=>({...p,monthlyIncome:parseFloat(e.target.value)||0}))}/>
                         </div>
                         {[["savingsGoal","Savings goal"],["emergencyFund","Emergency fund"],["netWorthTarget","Net worth target"],["retirementTargetAmount","Retirement nest egg"],["retirementAge","Retirement age"]].map(([k,l])=>(
                           <div key={k}>
-                            <div style={{fontSize:10,color:"#4a5161",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.8px"}}>{l}</div>
+                            <div style={{fontSize:10,color:"var(--ink-3)",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.8px"}}>{l}</div>
                             <input className="lgs-input" type="number" placeholder="0"
                               value={k==="retirementAge"?profileForm.targets?.retirementAge||"":profileForm.targets?.[k]||""}
                               onChange={e=>setProfileForm(p=>({...p,targets:{...p.targets,[k]:(k==="retirementAge"?parseInt:parseFloat)(e.target.value)||0}}))}/>
@@ -606,7 +613,7 @@ export default function LedgrSettings({
                     {profileForm ? (
                       <div style={{padding:"14px 18px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
                         <div>
-                          <div style={{fontSize:10,color:"#4a5161",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.8px"}}>Assets</div>
+                          <div style={{fontSize:10,color:"var(--ink-3)",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.8px"}}>Assets</div>
                           {(profileForm.manualAssets||[]).map((a,i)=>(
                             <div key={i} style={{display:"flex",gap:6,marginBottom:6}}>
                               <input className="lgs-input" style={{flex:2}} placeholder="Name (e.g. Home)" value={a.name}
@@ -619,7 +626,7 @@ export default function LedgrSettings({
                           <Btn variant="ghost" style={{width:"100%"}} onClick={()=>setProfileForm(p=>({...p,manualAssets:[...(p.manualAssets||[]),{name:"",value:0}]}))}>+ Add asset</Btn>
                         </div>
                         <div>
-                          <div style={{fontSize:10,color:"#4a5161",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.8px"}}>Liabilities</div>
+                          <div style={{fontSize:10,color:"var(--ink-3)",marginBottom:8,textTransform:"uppercase",letterSpacing:"0.8px"}}>Liabilities</div>
                           {(profileForm.manualLiabilities||[]).map((l,i)=>(
                             <div key={i} style={{display:"flex",gap:6,marginBottom:6}}>
                               <input className="lgs-input" style={{flex:2}} placeholder="Name (e.g. Loan)" value={l.name}
@@ -638,7 +645,7 @@ export default function LedgrSettings({
                       </div>
                     ) : (
                       <Row style={{borderBottom:"none"}}>
-                        <div style={{fontSize:12,color:"#4a5161",fontStyle:"italic"}}>
+                        <div style={{fontSize:12,color:"var(--ink-3)",fontStyle:"italic"}}>
                           {((userProfile?.manualAssets||[]).length+(userProfile?.manualLiabilities||[]).length)===0
                             ?"No manual assets or liabilities added."
                             :`${(userProfile?.manualAssets||[]).length} assets · ${(userProfile?.manualLiabilities||[]).length} liabilities`}
@@ -653,11 +660,11 @@ export default function LedgrSettings({
                   <Block wide>
                     <BH title="Claude API Key" action={hasApiKey ? <div className="lgs-badge-connected">connected</div> : null}/>
                     <div style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:12}}>
-                      <div style={{fontSize:12,color:"#4a5161",lineHeight:1.65,maxWidth:520}}>
+                      <div style={{fontSize:12,color:"var(--ink-3)",lineHeight:1.65,maxWidth:520}}>
                         Powers AI financial summaries on the Analytics page and daily Briefing insights.
                         Your key is encrypted at rest and never exposed in the UI.{" "}
                         <a href="https://console.anthropic.com" target="_blank" rel="noreferrer"
-                          style={{color:"#5dcaa5",textDecoration:"none"}}>Get a key → console.anthropic.com</a>
+                          style={{color:"var(--safe)",textDecoration:"none"}}>Get a key → console.anthropic.com</a>
                       </div>
                       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                         <input className="lgs-input mono" style={{flex:1,maxWidth:400}}
@@ -668,7 +675,7 @@ export default function LedgrSettings({
                           {savingKey?"Saving…":"Save key"}
                         </Btn>
                         {hasApiKey && (
-                          <Btn variant="ghost" style={{color:"#e87363"}} onClick={handleRemoveApiKey} disabled={savingKey}>Remove</Btn>
+                          <Btn variant="ghost" style={{color:"var(--debt)"}} onClick={handleRemoveApiKey} disabled={savingKey}>Remove</Btn>
                         )}
                       </div>
                     </div>
@@ -694,17 +701,17 @@ export default function LedgrSettings({
                     )}
                     {savedThemes.length>0 && (
                       <div style={{padding:"10px 18px 0"}}>
-                        <div style={{fontSize:10,color:"#4a5161",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.8px"}}>My themes</div>
+                        <div style={{fontSize:10,color:"var(--ink-3)",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.8px"}}>My themes</div>
                         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginBottom:4}}>
                           {savedThemes.map(t=>(
                             <div key={t.name} style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(255,255,255,0.07)"}}>
-                              <button onClick={()=>applyPreset(t)} style={{flex:1,display:"flex",alignItems:"center",gap:5,padding:"6px 8px",background:"#161c26",color:"#7d8594",border:"none",cursor:"pointer",fontSize:11}}>
+                              <button onClick={()=>applyPreset(t)} style={{flex:1,display:"flex",alignItems:"center",gap:5,padding:"6px 8px",background:"var(--bg-3)",color:"var(--ink-2)",border:"none",cursor:"pointer",fontSize:11}}>
                                 <span style={{display:"inline-flex",gap:2,flexShrink:0}}>
                                   {["bg","accent","t1"].map(k=><span key={k} style={{width:7,height:7,borderRadius:"50%",background:t[k]||"#888",display:"inline-block"}}/>)}
                                 </span>
                                 <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</span>
                               </button>
-                              <button onClick={()=>deleteCustomTheme(t.name)} style={{background:"#161c26",border:"none",borderLeft:"1px solid rgba(255,255,255,0.07)",color:"#4a5161",cursor:"pointer",padding:"0 8px",fontSize:14}}>×</button>
+                              <button onClick={()=>deleteCustomTheme(t.name)} style={{background:"var(--bg-3)",border:"none",borderLeft:"1px solid rgba(255,255,255,0.07)",color:"var(--ink-3)",cursor:"pointer",padding:"0 8px",fontSize:14}}>×</button>
                             </div>
                           ))}
                         </div>
@@ -744,8 +751,8 @@ export default function LedgrSettings({
                           <button key={f.value} onClick={()=>patch("fontDisp",f.value)} style={{
                             padding:"8px 10px",borderRadius:8,fontSize:12,fontFamily:f.value,cursor:"pointer",
                             border:active?"1px solid rgba(93,202,165,0.3)":"1px solid rgba(255,255,255,0.05)",
-                            background:active?"rgba(93,202,165,0.08)":"#161c26",
-                            color:active?"#5dcaa5":"#7d8594",transition:"all .12s",
+                            background:active?"rgba(93,202,165,0.08)":"var(--bg-3)",
+                            color:active?"var(--safe)":"var(--ink-2)",transition:"all .12s",
                           }}>{f.label}</button>
                         );
                       })}
@@ -763,7 +770,7 @@ export default function LedgrSettings({
                         <RL label={label} hint={hint}/>
                         <div style={{display:"flex",alignItems:"center",gap:8}}>
                           <input type="range" className="lgs-range" min={min} max={max} value={val} onChange={e=>fn(e.target.value)}/>
-                          <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"#7d8594",width:36,textAlign:"right"}}>{val}{unit}</span>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--ink-2)",width:36,textAlign:"right"}}>{val}{unit}</span>
                         </div>
                       </Row>
                     ))}
@@ -786,9 +793,9 @@ export default function LedgrSettings({
                         <div style={{width:48,height:30,borderRadius:6,overflow:"hidden",flexShrink:0}}>
                           <img src={current.bgImage} alt="bg" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                         </div>
-                        <Btn variant="ghost" style={{color:"#4a5161"}} onClick={()=>{const n={...current};delete n.bgImage;onSaveTheme(n);}}>Remove</Btn>
+                        <Btn variant="ghost" style={{color:"var(--ink-3)"}} onClick={()=>{const n={...current};delete n.bgImage;onSaveTheme(n);}}>Remove</Btn>
                       </>}
-                      <Btn variant="ghost" style={{color:"#4a5161"}} onClick={resetTheme}>Reset theme</Btn>
+                      <Btn variant="ghost" style={{color:"var(--ink-3)"}} onClick={resetTheme}>Reset theme</Btn>
                     </Row>
                   </Block>
                 </>}
@@ -796,7 +803,7 @@ export default function LedgrSettings({
                 {/* ══ HOUSEHOLD ══ */}
                 {settingsTab === "household" && (
                   !householdLoaded ? (
-                    <Block wide><Row style={{borderBottom:"none"}}><div style={{color:"#4a5161",fontSize:13}}>Loading…</div></Row></Block>
+                    <Block wide><Row style={{borderBottom:"none"}}><div style={{color:"var(--ink-3)",fontSize:13}}>Loading…</div></Row></Block>
                   ) : household ? (
                     <>
                       <Block>
@@ -804,11 +811,11 @@ export default function LedgrSettings({
                         {(household.members||[]).map(m=>(
                           <Row key={m.id}>
                             <RL label={m.name||m.email} hint={m.role==="owner"?"Owner":m.status||""}/>
-                            {m.role!=="owner" && <Btn variant="ghost" sm style={{color:"#e87363"}} onClick={()=>removeMember(m.id)}>Remove</Btn>}
+                            {m.role!=="owner" && <Btn variant="ghost" sm style={{color:"var(--debt)"}} onClick={()=>removeMember(m.id)}>Remove</Btn>}
                           </Row>
                         ))}
                         <Row style={{borderBottom:"none"}}>
-                          <Btn variant="ghost" style={{color:"#e87363"}} onClick={leaveHousehold}>Leave household</Btn>
+                          <Btn variant="ghost" style={{color:"var(--debt)"}} onClick={leaveHousehold}>Leave household</Btn>
                         </Row>
                       </Block>
                       <Block>
@@ -825,7 +832,7 @@ export default function LedgrSettings({
                   ) : (
                     <Block wide>
                       <BH title="Family Sharing"/>
-                      <Row><div style={{fontSize:12,color:"#4a5161",lineHeight:1.6}}>Share Ledgr with up to 2 household members. Each person keeps their own settings and theme.</div></Row>
+                      <Row><div style={{fontSize:12,color:"var(--ink-3)",lineHeight:1.6}}>Share Ledgr with up to 2 household members. Each person keeps their own settings and theme.</div></Row>
                       <div style={{padding:"12px 18px",display:"flex",gap:8}}>
                         <input className="lgs-input" type="email" placeholder="Invite by email" style={{flex:1,maxWidth:300}}
                           value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendInvite()}/>
@@ -864,14 +871,14 @@ export default function LedgrSettings({
                     {showTrash && (
                       <div style={{padding:"0 18px 12px"}}>
                         {(deletedTransactions||[]).length===0
-                          ? <div style={{fontSize:12,color:"#4a5161",padding:"10px 0"}}>Trash is empty</div>
+                          ? <div style={{fontSize:12,color:"var(--ink-3)",padding:"10px 0"}}>Trash is empty</div>
                           : (deletedTransactions||[]).slice(0,20).map(t=>(
                             <div key={t.id} className="lgs-trash-item">
                               <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:12,color:"#7d8594",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                                <div style={{fontSize:10,color:"#4a5161",marginTop:2}}>{t.date}</div>
+                                <div style={{fontSize:12,color:"var(--ink-2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
+                                <div style={{fontSize:10,color:"var(--ink-3)",marginTop:2}}>{t.date}</div>
                               </div>
-                              <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:t.amount<0?"#e87363":"#5dcaa5",flexShrink:0}}>
+                              <div style={{fontFamily:"var(--font-mono)",fontSize:12,color:t.amount<0?"var(--debt)":"var(--safe)",flexShrink:0}}>
                                 {t.amount<0?"-":"+"}{`$${Math.abs(t.amount).toFixed(2)}`}
                               </div>
                               <Btn variant="ghost" sm onClick={()=>{
@@ -907,10 +914,10 @@ export default function LedgrSettings({
                     <BH title="Current Plan"/>
                     <Row>
                       <div>
-                        <div style={{fontSize:14,fontWeight:600,color:"#f4f4f1",marginBottom:3}}>
+                        <div style={{fontSize:14,fontWeight:600,color:"var(--ink-0)",marginBottom:3}}>
                           {access==="full"?(isFamilyPlan?"Family Plan":"Personal Plan"):"Free"}
                         </div>
-                        <div style={{fontSize:12,color:"#4a5161"}}>
+                        <div style={{fontSize:12,color:"var(--ink-3)"}}>
                           {access==="full"?"Full access to all features":"Limited to dashboard and settings"}
                         </div>
                       </div>
@@ -919,15 +926,15 @@ export default function LedgrSettings({
                     {access!=="full" && (
                       <div style={{padding:"0 18px 14px"}}>
                         {["Unlimited transactions & accounts","Budget tracking & categories","Recurring calendar","Analytics & spending trends","AI-powered insights","Bank sync via Plaid"].map(f=>(
-                          <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#7d8594",padding:"4px 0"}}>
-                            <span style={{color:"#5dcaa5",fontSize:10}}>✓</span>{f}
+                          <div key={f} style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"var(--ink-2)",padding:"4px 0"}}>
+                            <span style={{color:"var(--safe)",fontSize:10}}>✓</span>{f}
                           </div>
                         ))}
                       </div>
                     )}
                     <Row style={{borderBottom:"none"}}>
                       <a href="https://www.useledgr.com/#pricing" target="_blank" rel="noreferrer"
-                        style={{display:"inline-flex",alignItems:"center",padding:"5px 12px",borderRadius:8,background:"#5dcaa5",color:"#07090d",fontWeight:600,fontSize:12,textDecoration:"none"}}>
+                        style={{display:"inline-flex",alignItems:"center",padding:"5px 12px",borderRadius:8,background:"var(--safe)",color:"var(--bg-0)",fontWeight:600,fontSize:12,textDecoration:"none"}}>
                         {access==="full"?"Manage subscription":"Upgrade plan"}
                       </a>
                     </Row>
@@ -937,11 +944,11 @@ export default function LedgrSettings({
                     <BH title="Legal"/>
                     <Row>
                       <div className="lgs-row-label">Privacy Policy</div>
-                      <a href="https://www.useledgr.com/privacy" target="_blank" rel="noreferrer" style={{fontSize:12,color:"#5dcaa5",textDecoration:"none"}}>View →</a>
+                      <a href="https://www.useledgr.com/privacy" target="_blank" rel="noreferrer" style={{fontSize:12,color:"var(--safe)",textDecoration:"none"}}>View →</a>
                     </Row>
                     <Row style={{borderBottom:"none"}}>
                       <div className="lgs-row-label">Terms of Service</div>
-                      <a href="https://www.useledgr.com/terms" target="_blank" rel="noreferrer" style={{fontSize:12,color:"#5dcaa5",textDecoration:"none"}}>View →</a>
+                      <a href="https://www.useledgr.com/terms" target="_blank" rel="noreferrer" style={{fontSize:12,color:"var(--safe)",textDecoration:"none"}}>View →</a>
                     </Row>
                   </Block>
                 </>}

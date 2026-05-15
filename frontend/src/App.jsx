@@ -892,6 +892,9 @@ function AppInner({ isDemo = false }) {
     selectedTxns, setSelectedTxns,
     filteredTxns,
     goals, setGoals,
+    budgetKebabId, setBudgetKebabId,
+    setRulePrompt, setTypeRulePrompt,
+    scheduleSaveRef,
   });
   applyRulesRef.current = applyRules;
   /* -- Plaid (via hook) -- */
@@ -986,6 +989,13 @@ function AppInner({ isDemo = false }) {
     deletedTransactions, setDeletedTransactions,
     refreshSummary,
     setModal, setRecurringItemModal,
+    setEditingId, setEditingName,
+    setAutoCatRunning, setCatSuggestions,
+    setRecurringItems,
+    setRiForm, setEditingRecurringItem,
+    setRiSearch, setRiSearchResults, setRiSearchLoading,
+    setTxnForm, setTypeRulePrompt,
+    scheduleSaveRef,
   });
   // DrillDownModal → extracted to AppModals
 
@@ -1130,6 +1140,13 @@ function AppInner({ isDemo = false }) {
     budgetTxnSearch={budgetTxnSearch} setBudgetTxnSearch={setBudgetTxnSearch}
     saveCat={saveCat} deleteCat={deleteCat} toggleCatComplete={toggleCatComplete}
     showToast={showToast} categories={categories}
+    budgetKebabId={budgetKebabId} setBudgetKebabId={setBudgetKebabId}
+    openEditCat={openEditCat} openAddCat={openAddCat}
+    saveCatName={saveCatName} startEditLimit={startEditLimit} saveLimit={saveLimit}
+    editingCatNameId={editingCatNameId} setEditingCatNameId={setEditingCatNameId}
+    editingCatName={editingCatName} setEditingCatName={setEditingCatName}
+    editingLimitId={editingLimitId} setEditingLimitId={setEditingLimitId}
+    editingLimitVal={editingLimitVal} setEditingLimitVal={setEditingLimitVal}
   />;
 
   /* -- Accounts -- */
@@ -1857,6 +1874,11 @@ function AppInner({ isDemo = false }) {
         setTransactions={setTransactions} saveCat={saveCat} saveAcct={saveAcct}
         acctForm={acctForm} setAcctForm={setAcctForm} catForm={catForm} setCatForm={setCatForm}
         fmt={fmt}
+        editingRecurringItem={editingRecurringItem} setEditingRecurringItem={setEditingRecurringItem}
+        riForm={riForm} setRiForm={setRiForm}
+        riSearch={riSearch} setRiSearch={setRiSearch}
+        ruleForm={ruleForm} setRuleForm={setRuleForm}
+        txnForm={txnForm} setTxnForm={setTxnForm}
       />
 
       {/* Category suggestion confirmation modal */}

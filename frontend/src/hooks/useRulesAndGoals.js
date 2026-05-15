@@ -9,6 +9,9 @@ export function useRulesAndGoals({
   selectedTxns, setSelectedTxns,
   filteredTxns,
   goals, setGoals,
+  budgetKebabId, setBudgetKebabId,
+  setRulePrompt, setTypeRulePrompt,
+  scheduleSaveRef,
 }) {
   /* -- Rules -- */
   function applyRules(txns, rs, opts = {}) {

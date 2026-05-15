@@ -12,6 +12,13 @@ export function useTransactionActions({
   deletedTransactions, setDeletedTransactions,
   refreshSummary,
   setModal, setRecurringItemModal,
+  setEditingId, setEditingName,
+  setAutoCatRunning, setCatSuggestions,
+  setRecurringItems,
+  setRiForm, setEditingRecurringItem,
+  setRiSearch, setRiSearchResults, setRiSearchLoading,
+  setTxnForm, setTypeRulePrompt,
+  scheduleSaveRef,
 }) {
   /* -- Transaction CRUD -- */
   function startRename(t) { setEditingId(t.id); setEditingName(t.name||t.merchant); }

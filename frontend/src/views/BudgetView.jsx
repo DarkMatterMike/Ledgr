@@ -8,6 +8,11 @@ export default function BudgetView({
   budgetExpandedCatId, setBudgetExpandedCatId,
   budgetTxnSearch, setBudgetTxnSearch,
   saveCat, deleteCat, toggleCatComplete, showToast, categories,
+  budgetKebabId, setBudgetKebabId,
+  openEditCat, openAddCat,
+  saveCatName, startEditLimit, saveLimit,
+  editingCatNameId, setEditingCatNameId, editingCatName, setEditingCatName,
+  editingLimitId, setEditingLimitId, editingLimitVal, setEditingLimitVal,
 }) {
 
   /* ── Compute category groups ─────────────────────── */

@@ -13,6 +13,11 @@ export default function AppModals({
   saveCat, saveAcct, deleteAcct,
   acctForm, setAcctForm, catForm, setCatForm,
   fmt,
+  editingRecurringItem, setEditingRecurringItem,
+  riForm, setRiForm,
+  riSearch, setRiSearch,
+  ruleForm, setRuleForm,
+  txnForm, setTxnForm,
 }) {
   /* -- Drill-down modal -- */
   const showDrillModal = drillCat && (view !== "budgets" || isMobile);

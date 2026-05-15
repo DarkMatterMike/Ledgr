@@ -137,10 +137,15 @@ export function applyTheme(theme) {
   // Gradient angle
   root.style.setProperty('--grad-angle', (theme.gradAngle ?? 315) + 'deg');
 
-  // Font
+  // Font — fontDisp controls the Obsidian legacy token only.
+  // --font-display (Instrument Serif for Lumen headlines) is never overridden here.
   if (theme.fontDisp) {
-    root.style.setProperty('--font-display', theme.fontDisp);
     root.style.setProperty('--font-disp', theme.fontDisp);
+    // Only override --font-display if user explicitly chose a non-default font
+    // Only override --font-display if not using Instrument Serif (the Lumen default)
+    if (theme.fontDisp !== "'Instrument Serif', Georgia, serif") {
+      root.style.setProperty('--font-display', theme.fontDisp);
+    }
   }
 
   // Line/border tokens stay fixed

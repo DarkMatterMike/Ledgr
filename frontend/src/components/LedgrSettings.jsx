@@ -237,7 +237,8 @@ const PRESETS = [
 ];
 
 const FONTS = [
-  { label:"Syne (default)",   value:"'Syne', sans-serif" },
+  { label:"Instrument Serif (default)", value:"'Instrument Serif', Georgia, serif" },
+  { label:"Syne",             value:"'Syne', sans-serif" },
   { label:"DM Sans",          value:"'DM Sans', sans-serif" },
   { label:"Dancing Script",   value:"'Dancing Script', cursive" },
   { label:"JetBrains Mono",   value:"'JetBrains Mono', monospace" },
@@ -399,7 +400,7 @@ export default function LedgrSettings({
 
   /* ── theme helpers ── */
   const defaults = PRESETS[0];
-  const current  = { ...defaults, fontDisp:"'Syne', sans-serif", reviewColor:"#00d4ff", recurringColor:"#fbbf24", ...(theme||{}) };
+  const current  = { ...defaults, fontDisp:"'Instrument Serif', Georgia, serif", reviewColor:"#00d4ff", recurringColor:"#fbbf24", ...(theme||{}) };
   const gradSteps     = current.gradSteps ?? 6;
   const gradAngle     = current.gradAngle ?? 315;
   const globalOpacity = current.globalOpacity ?? 100;

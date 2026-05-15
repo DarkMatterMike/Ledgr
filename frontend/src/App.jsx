@@ -60,6 +60,28 @@ function useIsMobile() {
   return mobile;
 }
 
+function DebugBanner() {
+  const [info, setInfo] = useState(null);
+  useEffect(() => {
+    setInfo({
+      innerWidth: window.innerWidth,
+      screenWidth: window.screen.width,
+      dpr: window.devicePixelRatio,
+      touchPoints: navigator.maxTouchPoints,
+      hoverNone: window.matchMedia("(hover: none)").matches,
+      pointerCoarse: window.matchMedia("(pointer: coarse)").matches,
+      both: window.matchMedia("(hover: none) and (pointer: coarse)").matches,
+      ua: navigator.userAgent.slice(0,60),
+    });
+  }, []);
+  if (!info) return null;
+  return (
+    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"#ff0050",color:"#fff",fontSize:"10px",fontFamily:"monospace",padding:"4px 8px",lineHeight:1.4}}>
+      iW:{info.innerWidth} sw:{info.screenWidth} dpr:{info.dpr} touch:{info.touchPoints} hover:none:{info.hoverNone?"Y":"N"} pointer:coarse:{info.pointerCoarse?"Y":"N"} both:{info.both?"Y":"N"}
+    </div>
+  );
+}
+
 /* --- Global CSS --------------------------------------------------- */
 (function injectCSS() {
   if (document.getElementById("ledgr-css")) return;
@@ -5517,6 +5539,8 @@ function AppInner({ isDemo = false }) {
           </>}
         </div>
 
+        {/* Bottom nav */}
+        <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
       </>
     ) : (
       /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
@@ -5549,9 +5573,6 @@ function AppInner({ isDemo = false }) {
         </div>
       </>
     )}
-
-      {/* BottomNav — always rendered; CSS (hover:none + pointer:coarse) controls visibility */}
-      <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
 
       {/* -- Modals -- */}
       {(modal==="addCat"||modal==="editCat")   && CatModal}

@@ -889,7 +889,7 @@ export default function LedgrTransactions({
                   </div>
                 </>
               )}
-            </div>
+            </div>}
             {/* end edit panel */}
 
           </div>

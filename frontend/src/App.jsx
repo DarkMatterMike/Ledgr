@@ -55,13 +55,6 @@ function useIsMobile() {
   );
   const [mobile, setMobile] = useState(check);
   useEffect(() => {
-    // ONE-TIME diagnostic alert — remove after debugging
-    const tp = navigator.maxTouchPoints;
-    const ots = 'ontouchstart' in window;
-    const pc = window.matchMedia("(pointer: coarse)").matches;
-    const iw = window.innerWidth;
-    const result = check();
-    alert(`isMobile=${result}\ntouchPoints=${tp}\nontouchstart=${ots}\npointer:coarse=${pc}\ninnerWidth=${iw}`);
     const fn = () => setMobile(check());
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
@@ -5175,9 +5168,16 @@ function AppInner({ isDemo = false }) {
     ? Math.max(0, Math.ceil((_trialUser.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
+  // Mobile shell wrapper — adds BottomNav to full-screen Lumen views
+  const MobileWrap = ({ children }) => isMobile ? (
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"var(--bg,#07090d)"}}>
+      <div style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}}>{children}</div>
+      <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
+    </div>
+  ) : <>{children}</>;
+
   // Full-screen views — bypass app shell entirely
-  if (view === "dashboard") return (
-    <LedgrBriefing
+  if (view === "dashboard") return <MobileWrap><LedgrBriefing
       accounts={accounts}
       categories={categories}
       monthTxns={monthTxns}
@@ -5198,11 +5198,9 @@ function AppInner({ isDemo = false }) {
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
-    />
-  );
+    /></MobileWrap>;
 
-  if (view === "transactions") return (
-    <>
+  if (view === "transactions") return <MobileWrap><>
       <LedgrTransactions
       transactions={transactions}
       filteredTxns={filteredTxns}
@@ -5269,11 +5267,9 @@ function AppInner({ isDemo = false }) {
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
     />
       {modal==="addTxn" && TxnModal}
-    </>
-  );
+    </></MobileWrap>;
 
-  if (view === "accounts") return (
-    <>
+  if (view === "accounts") return <MobileWrap><>
       <LedgrAccounts
       accounts={accounts}
       plaidItems={plaidItems}
@@ -5296,11 +5292,9 @@ function AppInner({ isDemo = false }) {
       navigate={navigate}
     />
       {(modal==="addAcct"||modal==="editAcct") && AcctModal}
-    </>
-  );
+    </></MobileWrap>;
 
-  if (view === "budgets") return (
-    <>
+  if (view === "budgets") return <MobileWrap><>
       <LedgrBudgets
       categories={categories}
       sortedCategories={sortedCategories}
@@ -5339,11 +5333,9 @@ function AppInner({ isDemo = false }) {
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
     />
       {(modal==="addCat"||modal==="editCat") && CatModal}
-    </>
-  );
+    </></MobileWrap>;
 
-  if (view === "calendar") return (
-    <>
+  if (view === "calendar") return <MobileWrap><>
       <LedgrCalendar
         accounts={accounts}
         categories={categories}
@@ -5380,8 +5372,7 @@ function AppInner({ isDemo = false }) {
         onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
         onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
       />
-    </>
-  );
+    </></MobileWrap>;
 
   return (
     <div style={{...S.shell, paddingTop: isDemo ? 45 : 0, ...(theme.bgImage ? {

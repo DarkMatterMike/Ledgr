@@ -114,12 +114,12 @@ function OptionGrid({ options, value, onChange, multi = false }) {
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       {options.map(o => (
         <button key={o.id} onClick={() => toggle(o.id)} style={{
-          background: isSelected(o.id) ? "var(--cyan-dim)" : "var(--card-hi)",
-          border: `1px solid ${isSelected(o.id) ? "var(--cyan)" : "var(--border)"}`,
+          background: isSelected(o.id) ? "var(--warn-bg)" : "var(--bg-3)",
+          border: `1px solid ${isSelected(o.id) ? "var(--warn)" : "var(--line)"}`,
           borderRadius: 12, padding: "14px 8px",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
           cursor: "pointer", transition: "all 0.15s",
-          color: isSelected(o.id) ? "var(--cyan)" : "var(--t2)",
+          color: isSelected(o.id) ? "var(--warn)" : "var(--ink-1)",
         }}>
           <span style={{ fontSize: 22 }}>{o.icon}</span>
           <span style={{ fontSize: 12, fontWeight: 500, textAlign: "center", whiteSpace: "pre-line", lineHeight: 1.4 }}>
@@ -137,7 +137,7 @@ function StepDots({ current, total }) {
       {Array.from({ length: total }).map((_, i) => (
         <div key={i} style={{
           width: i === current ? 20 : 8, height: 8, borderRadius: 99,
-          background: i === current ? "var(--cyan)" : i < current ? "rgba(0,212,255,0.3)" : "var(--border)",
+          background: i === current ? "var(--warn)" : i < current ? "rgba(0,212,255,0.3)" : "var(--line)",
           transition: "all 0.25s cubic-bezier(0.22,1,0.36,1)",
         }} />
       ))}
@@ -158,7 +158,7 @@ function CategoryPreview({ categories }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {groups.map(g => (
         <div key={g.label}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-2)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
             {g.label}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -169,7 +169,7 @@ function CategoryPreview({ categories }) {
                 borderRadius: 99, padding: "4px 10px", fontSize: 12,
               }}>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: c.color, flexShrink: 0 }} />
-                <span style={{ color: "var(--t1)", fontWeight: 500 }}>{c.name}</span>
+                <span style={{ color: "var(--ink-0)", fontWeight: 500 }}>{c.name}</span>
               </div>
             ))}
           </div>
@@ -220,7 +220,7 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
       padding: "24px 16px", overflowY: "auto",
     }}>
       <div style={{
-        background: "var(--card)", borderRadius: 20, width: "100%", maxWidth: 480,
+        background: "var(--bg-2)", borderRadius: 20, width: "100%", maxWidth: 480,
         padding: "24px 20px", border: "1px solid rgba(255,255,255,0.07)",
         boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
       }} className="ledgr-modal-anim">
@@ -230,17 +230,17 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 20 }}>◈</span>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-disp)", color: "var(--t1)", letterSpacing: "-0.3px" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--ink-0)", letterSpacing: "-0.3px" }}>
                 Set up your budget
               </div>
-              <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 2 }}>
                 {step === 0 && "Tell us about your lifestyle"}
                 {step === 1 && "A few more questions"}
                 {step === 2 && "Here's what we'll create for you"}
               </div>
             </div>
           </div>
-          <button onClick={handleSkip} style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", fontSize: 18, padding: 4, lineHeight: 1 }}>✕</button>
+          <button onClick={handleSkip} style={{ background: "none", border: "none", color: "var(--ink-2)", cursor: "pointer", fontSize: 18, padding: 4, lineHeight: 1 }}>✕</button>
         </div>
 
         <StepDots current={step} total={TOTAL_STEPS} />
@@ -249,21 +249,21 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
         {step === 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }} className="ledgr-panel-in">
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 10 }}>What's your housing situation?</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-0)", marginBottom: 10 }}>What's your housing situation?</div>
               <OptionGrid options={HOUSING_OPTIONS} value={answers.housing} onChange={v => set("housing", v)} />
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 10 }}>How do you usually get around?</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-0)", marginBottom: 10 }}>How do you usually get around?</div>
               <OptionGrid options={TRANSPORT_OPTIONS} value={answers.transport} onChange={v => set("transport", v)} />
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--card-hi)", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg-3)", borderRadius: 12, padding: "14px 16px" }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--t1)" }}>Do you have pets?</div>
-                <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>We'll add a pet care category</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-0)" }}>Do you have pets?</div>
+                <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 2 }}>We'll add a pet care category</div>
               </div>
               <button onClick={() => set("pets", !answers.pets)} style={{
                 width: 44, height: 26, borderRadius: 99, border: "none", cursor: "pointer",
-                background: answers.pets ? "var(--cyan)" : "var(--bg)",
+                background: answers.pets ? "var(--warn)" : "var(--bg-0)",
                 position: "relative", transition: "background 0.2s", flexShrink: 0,
               }}>
                 <div style={{
@@ -280,11 +280,11 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
         {step === 1 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }} className="ledgr-panel-in">
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 10 }}>How often do you eat out or order food?</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-0)", marginBottom: 10 }}>How often do you eat out or order food?</div>
               <OptionGrid options={DINING_OPTIONS} value={answers.dining} onChange={v => set("dining", v)} />
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 10 }}>Active subscriptions?</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-0)", marginBottom: 10 }}>Active subscriptions?</div>
               <OptionGrid options={SUB_OPTIONS} value={answers.subscriptions} onChange={v => set("subscriptions", v)} />
             </div>
           </div>
@@ -294,8 +294,8 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
         {step === 2 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }} className="ledgr-panel-in">
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 4 }}>Any savings goals? <span style={{ fontSize: 11, color: "var(--t3)", fontWeight: 400 }}>Optional</span></div>
-              <div style={{ fontSize: 12, color: "var(--t3)", marginBottom: 10 }}>Select all that apply</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-0)", marginBottom: 4 }}>Any savings goals? <span style={{ fontSize: 11, color: "var(--ink-2)", fontWeight: 400 }}>Optional</span></div>
+              <div style={{ fontSize: 12, color: "var(--ink-2)", marginBottom: 10 }}>Select all that apply</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {GOAL_OPTIONS.map(o => {
                   const sel = answers.goals.includes(o.id);
@@ -304,12 +304,12 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
                       const cur = answers.goals;
                       set("goals", sel ? cur.filter(x => x !== o.id) : [...cur, o.id]);
                     }} style={{
-                      background: sel ? "var(--cyan-dim)" : "var(--card-hi)",
-                      border: `1px solid ${sel ? "var(--cyan)" : "var(--border)"}`,
+                      background: sel ? "var(--warn-bg)" : "var(--bg-3)",
+                      border: `1px solid ${sel ? "var(--warn)" : "var(--line)"}`,
                       borderRadius: 12, padding: "14px 8px",
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
                       cursor: "pointer", transition: "all 0.15s",
-                      color: sel ? "var(--cyan)" : "var(--t2)",
+                      color: sel ? "var(--warn)" : "var(--ink-1)",
                     }}>
                       <span style={{ fontSize: 22 }}>{o.icon}</span>
                       <span style={{ fontSize: 12, fontWeight: 500, textAlign: "center" }}>{o.label}</span>
@@ -319,11 +319,11 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--t3)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-2)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 12 }}>
                 {preview.length} categories ready to create
               </div>
               <CategoryPreview categories={preview} />
-              <div style={{ fontSize: 11, color: "var(--t3)", marginTop: 12, textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "var(--ink-2)", marginTop: 12, textAlign: "center" }}>
                 You can add, remove, or edit any of these after setup
               </div>
             </div>
@@ -338,8 +338,8 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
                 onClick={() => setStep(s => s + 1)}
                 disabled={!canNext}
                 style={{
-                  background: canNext ? "var(--cyan)" : "var(--border)",
-                  color: canNext ? "#000" : "var(--t3)",
+                  background: canNext ? "var(--warn)" : "var(--line)",
+                  color: canNext ? "#000" : "var(--ink-2)",
                   border: "none", borderRadius: 12, padding: "14px",
                   fontSize: 14, fontWeight: 700, cursor: canNext ? "pointer" : "not-allowed",
                   transition: "all 0.15s", width: "100%",
@@ -349,28 +349,28 @@ export default function OnboardingWizard({ onComplete, onSkip }) {
               </button>
               {step > 0 && (
                 <button onClick={() => setStep(s => s - 1)} style={{
-                  background: "var(--surface)", color: "var(--t2)", border: "1px solid var(--border)",
+                  background: "var(--bg-1)", color: "var(--ink-1)", border: "1px solid var(--line)",
                   borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 600,
                   cursor: "pointer", width: "100%",
                 }} className="ledgr-btn">
                   ← Back
                 </button>
               )}
-              <button onClick={handleSkip} style={{ background: "none", border: "none", color: "var(--t3)", cursor: "pointer", fontSize: 13, padding: "8px" }}>
+              <button onClick={handleSkip} style={{ background: "none", border: "none", color: "var(--ink-2)", cursor: "pointer", fontSize: 13, padding: "8px" }}>
                 Skip for now
               </button>
             </>
           ) : (
             <>
               <button onClick={handleComplete} style={{
-                background: "var(--cyan)", color: "#000", border: "none",
+                background: "var(--warn)", color: "#000", border: "none",
                 borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 700,
                 cursor: "pointer", width: "100%",
               }} className="ledgr-btn-primary">
                 ✓ Create {preview.length} categories
               </button>
               <button onClick={() => setStep(s => s - 1)} style={{
-                background: "var(--surface)", color: "var(--t2)", border: "1px solid var(--border)",
+                background: "var(--bg-1)", color: "var(--ink-1)", border: "1px solid var(--line)",
                 borderRadius: 12, padding: "13px", fontSize: 14, fontWeight: 600,
                 cursor: "pointer", width: "100%",
               }} className="ledgr-btn">

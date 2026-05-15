@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&family=Dancing+Script:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; overscroll-behavior: none; }
@@ -6,64 +6,83 @@ html, body, #root { height: 100%; overscroll-behavior: none; }
 body {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E"),
-    #0b0a08;
+    #07090d;
   background-attachment: scroll;
   min-height: 100%;
 }
 
+/* ─── LUMEN DESIGN TOKENS ──────────────────────────────────────── */
 :root {
-  --bg:            #0b0a08;
-  --surface:       #1a1612;
-  --surface-solid: #1a1612;
-  --bg-solid:      #0b0a08;
-  --card:          #181511;
-  --card-hi:       #231f1a;   /* first gradient ~22 steps */
-  --border:        transparent;
-  --border2:       rgba(255,255,255,0.06);
-  --cyan:          #c9956a;
-  --cyan-dim:      rgba(201,149,106,0.12);
-  --green:         #6db88a;
-  --green-dim:     rgba(109,184,138,0.15);
-  --red:           #e07070;
-  --red-dim:       rgba(224,112,112,0.15);
-  --amber:         #c9956a;
-  --amber-dim:     rgba(201,149,106,0.15);
-  --purple:        #c9956a;
-  --t1:            #e8ddd0;
-  --t2:            rgba(232,221,208,0.55);
-  --t3:            rgba(232,221,208,0.3);
-  --font-disp:     'Syne', sans-serif;
-  --font-body:     'DM Sans', sans-serif;
-  --font-mono:     'JetBrains Mono', monospace;
-  --font-script:   'Dancing Script', cursive;
-  --font-display:  'Instrument Serif', Georgia, serif;
-  --font-ui:       'Geist', -apple-system, sans-serif;
+  /* Background scale */
+  --bg-0: #07090d;
+  --bg-1: #0b0e14;
+  --bg-2: #11151d;
+  --bg-3: #161c26;
+  --bg-4: #1c2330;
 
-  /* Lumen bg scale */
-  --bg-0: #07090d; --bg-1: #0b0e14; --bg-2: #11151d; --bg-3: #161c26; --bg-4: #1c2330;
-  /* Lumen ink scale */
-  --ink-0: #f4f4f1; --ink-1: #c8cdd6; --ink-2: #7d8594; --ink-3: #4a5161; --ink-4: #2e3340;
-  /* Lumen borders */
-  --line: rgba(255,255,255,0.06); --line-2: rgba(255,255,255,0.10); --line-3: rgba(255,255,255,0.18);
-  /* Semantic status — fixed across themes */
-  --safe: #5dcaa5; --safe-d: #0f6e56; --safe-bg: rgba(93,202,165,0.08);
-  --debt: #e87363; --debt-d: #5a1c14; --debt-bg: rgba(232,115,99,0.08);
-  --warn: #f0b04c; --warn-d: #6b4708; --warn-bg: rgba(240,176,76,0.08);
-  --calm: #6c8cff; --calm-d: #1a2a66; --calm-bg: rgba(108,140,255,0.08);
-  --goal: #a78bff; --goal-d: #2a1f5e; --goal-bg: rgba(167,139,255,0.08);
+  /* Ink (text) scale */
+  --ink-0: #f4f4f1;
+  --ink-1: #c8cdd6;
+  --ink-2: #7d8594;
+  --ink-3: #4a5161;
+  --ink-4: #2e3340;
+
+  /* Border / line */
+  --line:   rgba(255,255,255,0.06);
+  --line-2: rgba(255,255,255,0.10);
+  --line-3: rgba(255,255,255,0.18);
+
+  /* Semantic status colors */
+  --safe:     #5dcaa5; --safe-d:  #0f6e56; --safe-bg:  rgba(93,202,165,0.08);
+  --debt:     #e87363; --debt-d:  #5a1c14; --debt-bg:  rgba(232,115,99,0.08);
+  --warn:     #f0b04c; --warn-d:  #6b4708; --warn-bg:  rgba(240,176,76,0.08);
+  --calm:     #6c8cff; --calm-d:  #1a2a66; --calm-bg:  rgba(108,140,255,0.08);
+  --goal:     #a78bff; --goal-d:  #2a1f5e; --goal-bg:  rgba(167,139,255,0.08);
+
   /* Border radii */
-  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px;
-  --radius:        8px;
-  --radius-lg:     12px;
-  --grad-a:        #c9956a;
-  --grad-b:        #e8ddd0;
-  --grad-c:        #6db88a;
-  --glow-color:    rgba(201,149,106,0.08);
-  --accent-rgb:    201,149,106;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  /* Typography */
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-ui:      'Geist', 'DM Sans', -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* Gradient helpers */
+  --grad-angle: 315deg;
+  --glow-color: rgba(93,202,165,0.08);
+  --accent-rgb: 93,202,165;
+
+  /* ── Backward-compat aliases (used by LedgrSettings theme picker & theme/index.js) ── */
+  --bg:        var(--bg-0);
+  --surface:   var(--bg-1);
+  --card:      var(--bg-2);
+  --card-hi:   var(--bg-3);
+  --border:    var(--line);
+  --border2:   var(--line-2);
+  --radius:    var(--r-md);
+  --radius-lg: var(--r-lg);
+  --t1:        var(--ink-0);
+  --t2:        var(--ink-1);
+  --t3:        var(--ink-2);
+  --t4:        var(--ink-3);
+  --cyan:      var(--warn);
+  --cyan-dim:  var(--warn-bg);
+  --green:     var(--safe);
+  --green-dim: var(--safe-bg);
+  --red:       var(--debt);
+  --red-dim:   var(--debt-bg);
+  --amber:     var(--warn);
+  --amber-dim: var(--warn-bg);
+  --font-disp: var(--font-display);
+  --font-body: var(--font-ui);
+  --font-script: cursive;
 }
 
-body { font-family: var(--font-body); color: var(--t1); overflow-x: hidden; }
-input, select, textarea, button { font-family: var(--font-body); }
+body { font-family: var(--font-ui); color: var(--ink-0); overflow-x: hidden; }
+input, select, textarea, button { font-family: var(--font-ui); }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -99,91 +118,43 @@ input, select, textarea, button { font-family: var(--font-body); }
 .ledgr-overlay-anim { animation: ledgr-overlay-in 0.18s ease both; }
 .ledgr-modal-anim   { animation: ledgr-modal-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
 
-/* ── Toast animation (Ledger Line — handled by component CSS) ──── */
-/* ledgr-toast-anim kept for any legacy references */
-@keyframes ledgr-toast-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.ledgr-toast-anim { animation: ledgr-toast-in 0.18s ease both; }
+/* ── Toast animation ────────────────────────────────────────────── */
+@keyframes ledgr-toast-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ledgr-toast-out { from { opacity: 1; } to { opacity: 0; } }
+.ledgr-toast-anim  { animation: ledgr-toast-in  0.18s ease both; }
+.ledgr-toast-exit  { animation: ledgr-toast-out 0.18s ease both; }
 
 /* ── Inline monospace amounts ────────────────────────────────────── */
 .ledgr-amt { font-family: var(--font-mono); }
 
 /* ── Empty states ────────────────────────────────────────────────── */
-.ledgr-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 40px 20px;
-  color: var(--t3);
-  font-size: 12px;
-  text-align: center;
-  line-height: 1.6;
-}
-.ledgr-empty-icon {
-  font-size: 28px;
-  opacity: 0.4;
-  margin-bottom: 4px;
-}
-.ledgr-empty-title {
-  font-family: var(--font-disp);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--t2);
-  letter-spacing: -0.1px;
-}
+.ledgr-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:40px 20px; color:var(--ink-2); font-size:12px; text-align:center; line-height:1.6; }
+.ledgr-empty-icon  { font-size:28px; opacity:0.4; margin-bottom:4px; }
+.ledgr-empty-title { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--ink-1); letter-spacing:-0.1px; }
 
-/* ── SVG line chart — path draw + area fade ─────────────────────── */
+/* ── SVG line chart animations ───────────────────────────────────── */
 @keyframes ledgr-path-draw {
   from { stroke-dashoffset: var(--path-len, 2000); }
   to   { stroke-dashoffset: 0; }
 }
-@keyframes ledgr-area-fade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.ledgr-path-draw {
-  stroke-dasharray: var(--path-len, 2000);
-  stroke-dashoffset: var(--path-len, 2000);
-  animation: ledgr-path-draw 1s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.ledgr-area-fade {
-  opacity: 0;
-  animation: ledgr-area-fade 0.6s ease 0.4s both;
-}
+@keyframes ledgr-area-fade { from { opacity:0; } to { opacity:1; } }
+.ledgr-path-draw { stroke-dasharray:var(--path-len,2000); stroke-dashoffset:var(--path-len,2000); animation:ledgr-path-draw 1s cubic-bezier(0.22,1,0.36,1) both; }
+.ledgr-area-fade { opacity:0; animation:ledgr-area-fade 0.6s ease 0.4s both; }
 
 /* ── Tab panel fade + slide ──────────────────────────────────────── */
-@keyframes ledgr-panel-in {
-  from { opacity: 0; transform: translateY(7px); }
-  to   { opacity: 1; transform: translateY(0);   }
-}
-.ledgr-panel-in {
-  animation: ledgr-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-
-
+@keyframes ledgr-panel-in { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+.ledgr-panel-in { animation:ledgr-panel-in 0.2s cubic-bezier(0.22,1,0.36,1) both; }
 
 /* ── New transaction row stagger ────────────────────────────────────── */
-@keyframes ledgr-txn-in {
-  from { opacity: 0; transform: translateX(-6px); background: rgba(0,210,190,0.06); }
-  to   { opacity: 1; transform: translateX(0);    background: transparent; }
-}
-.ledgr-txn-new {
-  animation: ledgr-txn-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+@keyframes ledgr-txn-in { from { opacity:0; transform:translateX(-6px); background:rgba(0,210,190,0.06); } to { opacity:1; transform:translateX(0); background:transparent; } }
+.ledgr-txn-new { animation:ledgr-txn-in 0.4s cubic-bezier(0.22,1,0.36,1) both; }
 
-/* ── Toast slide-out (legacy, no longer used) ───────────────────────── */
-@keyframes ledgr-toast-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-.ledgr-toast-exit { animation: ledgr-toast-out 0.18s ease both; }
+/* ── View enter animation ────────────────────────────────────────── */
+@keyframes ledgr-view-enter { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.ledgr-view-enter { animation:ledgr-view-enter 0.18s ease both; }
 
+/* ── Pulse for overdue items ─────────────────────────────────────── */
 @keyframes sigpulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(224,112,112,0.5); }
-  50%     { box-shadow: 0 0 0 5px rgba(224,112,112,0); }
+  0%,100% { box-shadow: 0 0 0 0 rgba(232,115,99,0.5); }
+  50%     { box-shadow: 0 0 0 5px rgba(232,115,99,0); }
 }

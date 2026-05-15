@@ -11,20 +11,20 @@ const fmtP = n => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
 const fmtK = n => Math.abs(n) >= 1000 ? (n < 0 ? "-" : "") + "$" + (Math.abs(n) / 1000).toFixed(1) + "k" : fmt(n);
 
 const S = {
-  card:   { background:"var(--card)", borderRadius:"var(--radius-lg)", padding:16 },
-  label:  { fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4, display:"block" },
-  input:  { background:"var(--surface)", borderRadius:"var(--radius)",
-            padding:"9px 12px", fontSize:14, color:"var(--t1)", outline:"none", width:"100%", WebkitAppearance:"none" },
-  select: { background:"var(--surface)", borderRadius:"var(--radius)",
-            padding:"10px 12px", fontSize:14, color:"var(--t1)", outline:"none", width:"100%", WebkitAppearance:"none" },
+  card:   { background:"var(--bg-2)", borderRadius:"var(--r-lg)", padding:16 },
+  label:  { fontSize:11, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4, display:"block" },
+  input:  { background:"var(--bg-1)", borderRadius:"var(--r-md)",
+            padding:"9px 12px", fontSize:14, color:"var(--ink-0)", outline:"none", width:"100%", WebkitAppearance:"none" },
+  select: { background:"var(--bg-1)", borderRadius:"var(--r-md)",
+            padding:"10px 12px", fontSize:14, color:"var(--ink-0)", outline:"none", width:"100%", WebkitAppearance:"none" },
   btn: (v="ghost", sm=false) => {
     const base = { display:"inline-flex", alignItems:"center", justifyContent:"center", gap:6,
-                   padding:sm?"6px 14px":"10px 18px", borderRadius:"var(--radius)", fontSize:13,
+                   padding:sm?"6px 14px":"10px 18px", borderRadius:"var(--r-md)", fontSize:13,
                    fontWeight:500, cursor:"pointer", border:"1px solid transparent",
                    transition:"all 0.15s", userSelect:"none", whiteSpace:"nowrap", WebkitTapHighlightColor:"transparent" };
-    if (v==="primary") return { ...base, background:"var(--cyan)", color:"#000", borderColor:"var(--cyan)" };
-    if (v==="danger")  return { ...base, background:"var(--red-dim)", color:"var(--red)", borderColor:"#ff4d6d44" };
-    return { ...base, background:"transparent", color:"var(--t2)", borderColor:"var(--border2)" };
+    if (v==="primary") return { ...base, background:"var(--warn)", color:"#000", borderColor:"var(--warn)" };
+    if (v==="danger")  return { ...base, background:"var(--debt-bg)", color:"var(--debt)", borderColor:"#ff4d6d44" };
+    return { ...base, background:"transparent", color:"var(--ink-1)", borderColor:"var(--line-2)" };
   },
 };
 
@@ -36,16 +36,16 @@ const TYPE_COLORS = {
 
 function EmptyState({ icon, title, body }) {
   return (
-    <div style={{ textAlign:"center", padding:"40px 20px", color:"var(--t3)" }}>
+    <div style={{ textAlign:"center", padding:"40px 20px", color:"var(--ink-2)" }}>
       <div style={{ fontSize:32, marginBottom:10 }}>{icon}</div>
-      <div style={{ fontSize:15, fontWeight:600, color:"var(--t2)", marginBottom:6 }}>{title}</div>
+      <div style={{ fontSize:15, fontWeight:600, color:"var(--ink-1)", marginBottom:6 }}>{title}</div>
       <div style={{ fontSize:13, lineHeight:1.6 }}>{body}</div>
     </div>
   );
 }
 
 function GainBadge({ value, pct }) {
-  const color = value >= 0 ? "var(--green)" : "var(--red)";
+  const color = value >= 0 ? "var(--safe)" : "var(--debt)";
   return (
     <span style={{ color, fontFamily:"var(--font-mono)", fontSize:12 }}>
       {value >= 0 ? "+" : ""}{fmt(value)}{pct != null ? ` (${fmtP(pct)})` : ""}
@@ -61,11 +61,11 @@ function BarChart({ data, height=100 }) {
     <div style={{ display:"flex", alignItems:"flex-end", gap:6, height, paddingTop:8 }}>
       {bars.map((d, i) => (
         <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
-          <div style={{ fontSize:9, color:"var(--t3)", fontFamily:"var(--font-mono)" }}>{fmtK(d.value)}</div>
-          <div style={{ width:"100%", background:"var(--cyan)", borderRadius:"2px 2px 0 0",
+          <div style={{ fontSize:9, color:"var(--ink-2)", fontFamily:"var(--font-mono)" }}>{fmtK(d.value)}</div>
+          <div style={{ width:"100%", background:"var(--warn)", borderRadius:"2px 2px 0 0",
                         height: Math.max(4, (d.value / max) * (height - 30)),
                         opacity: i === bars.length - 1 ? 1 : 0.45 }} />
-          <div style={{ fontSize:9, color:"var(--t3)", whiteSpace:"nowrap" }}>{d.label}</div>
+          <div style={{ fontSize:9, color:"var(--ink-2)", whiteSpace:"nowrap" }}>{d.label}</div>
         </div>
       ))}
     </div>
@@ -80,7 +80,7 @@ function DonutChart({ segments, size=120 }) {
   if (total === 0) return null;
   return (
     <svg width={size} height={size} viewBox="0 0 120 120" style={{ flexShrink:0 }}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={18} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--line)" strokeWidth={18} />
       {segments.map((seg, i) => {
         const dash = (seg.value / total) * circ;
         const gap  = circ - dash;
@@ -95,9 +95,9 @@ function DonutChart({ segments, size=120 }) {
         offset += dash;
         return el;
       })}
-      <text x={cx} y={cy-4} textAnchor="middle" fill="var(--t1)"
+      <text x={cx} y={cy-4} textAnchor="middle" fill="var(--ink-0)"
         style={{ fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700 }}>{fmtK(total)}</text>
-      <text x={cx} y={cy+10} textAnchor="middle" fill="var(--t3)" style={{ fontSize:9 }}>total</text>
+      <text x={cx} y={cy+10} textAnchor="middle" fill="var(--ink-2)" style={{ fontSize:9 }}>total</text>
     </svg>
   );
 }
@@ -108,10 +108,10 @@ function AccountModal({ initial, onSave, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(4px)",
                   zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-      <div className="obsidian-card" style={{ background:"var(--card)", borderRadius:"16px 16px 0 0",
+      <div className="lumen-card" style={{ background:"var(--bg-2)", borderRadius:"16px 16px 0 0",
                     padding:"24px 20px 36px", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto" }}>
-        <div style={{ width:36, height:4, background:"var(--border2)", borderRadius:2, margin:"0 auto 20px" }} />
-        <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:800, marginBottom:20 }}>
+        <div style={{ width:36, height:4, background:"var(--line-2)", borderRadius:2, margin:"0 auto 20px" }} />
+        <div style={{ fontFamily:"var(--font-display)", fontSize:17, fontWeight:800, marginBottom:20 }}>
           {initial ? "Edit Account" : "Add Investment Account"}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -154,10 +154,10 @@ function HoldingModal({ accounts, initial, onSave, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"#00000099", backdropFilter:"blur(4px)",
                   zIndex:200, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-      <div className="obsidian-card" style={{ background:"var(--card)", borderRadius:"16px 16px 0 0",
+      <div className="lumen-card" style={{ background:"var(--bg-2)", borderRadius:"16px 16px 0 0",
                     padding:"24px 20px 36px", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto" }}>
-        <div style={{ width:36, height:4, background:"var(--border2)", borderRadius:2, margin:"0 auto 20px" }} />
-        <div style={{ fontFamily:"var(--font-disp)", fontSize:17, fontWeight:800, marginBottom:20 }}>
+        <div style={{ width:36, height:4, background:"var(--line-2)", borderRadius:2, margin:"0 auto 20px" }} />
+        <div style={{ fontFamily:"var(--font-display)", fontSize:17, fontWeight:800, marginBottom:20 }}>
           {initial ? "Edit Holding" : "Add Holding"}
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
@@ -181,8 +181,8 @@ function HoldingModal({ accounts, initial, onSave, onClose }) {
           <label><span style={S.label}>Cost Basis ($)</span>
             <input style={S.input} type="number" min="0" step="0.01" value={form.costBasis} onChange={set("costBasis")} placeholder="0.00" /></label>
           {previewValue !== null && (
-            <div style={{ fontSize:12, color:"var(--t3)", padding:"8px 12px", background:"var(--surface)", borderRadius:"var(--radius)" }}>
-              Current value: <span style={{ color:"var(--cyan)", fontFamily:"var(--font-mono)", fontWeight:600 }}>{fmt(previewValue)}</span>
+            <div style={{ fontSize:12, color:"var(--ink-2)", padding:"8px 12px", background:"var(--bg-1)", borderRadius:"var(--r-md)" }}>
+              Current value: <span style={{ color:"var(--warn)", fontFamily:"var(--font-mono)", fontWeight:600 }}>{fmt(previewValue)}</span>
             </div>
           )}
         </div>
@@ -214,14 +214,14 @@ export default function PortfolioView({
   const hasHoldings = holdings.length > 0;
 
   const TabBar = (
-    <div style={{ display:"flex", borderBottom:"1px solid var(--border)", marginBottom:16,
+    <div style={{ display:"flex", borderBottom:"1px solid var(--line)", marginBottom:16,
                   overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
       {["Overview","Accounts","Holdings","Performance"].map(t => (
         <button key={t} onClick={() => setTab(t)} style={{
           padding: isMobile ? "8px 14px" : "8px 18px",
           fontSize: isMobile ? 12 : 13, fontWeight: tab===t ? 700 : 400,
-          color: tab===t ? "var(--cyan)" : "var(--t3)",
-          borderBottom: tab===t ? "2px solid var(--cyan)" : "2px solid transparent",
+          color: tab===t ? "var(--warn)" : "var(--ink-2)",
+          borderBottom: tab===t ? "2px solid var(--warn)" : "2px solid transparent",
           background:"none", border:"none",
           cursor:"pointer", marginBottom:-1, flexShrink:0,
           WebkitTapHighlightColor:"transparent",
@@ -231,10 +231,10 @@ export default function PortfolioView({
   );
 
   const StatCard = ({ label, value, sub, color }) => (
-    <div className="obsidian-card" style={{ ...S.card, padding:"12px 14px" }}>
-      <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4 }}>{label}</div>
-      <div style={{ fontFamily:"var(--font-mono)", fontSize:isMobile?15:18, fontWeight:700, color:color||"var(--t1)" }}>{value}</div>
-      {sub && <div style={{ fontSize:11, color:color||"var(--t2)", marginTop:2 }}>{sub}</div>}
+    <div className="lumen-card" style={{ ...S.card, padding:"12px 14px" }}>
+      <div style={{ fontSize:10, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4 }}>{label}</div>
+      <div style={{ fontFamily:"var(--font-mono)", fontSize:isMobile?15:18, fontWeight:700, color:color||"var(--ink-0)" }}>{value}</div>
+      {sub && <div style={{ fontSize:11, color:color||"var(--ink-1)", marginTop:2 }}>{sub}</div>}
     </div>
   );
 
@@ -244,19 +244,19 @@ export default function PortfolioView({
         <StatCard label="Portfolio Value" value={fmt(metrics.totalValue)} />
         <StatCard label="Total Gain/Loss" value={fmt(metrics.totalGain)}
           sub={metrics.totalCost > 0 ? fmtP(metrics.totalReturn) : null}
-          color={metrics.totalGain >= 0 ? "var(--green)" : "var(--red)"} />
+          color={metrics.totalGain >= 0 ? "var(--safe)" : "var(--debt)"} />
         <StatCard label="Cost Basis" value={fmt(metrics.totalCost)} />
         <StatCard label="Accounts" value={investmentAccounts.length} sub={`${holdings.length} holdings`} />
       </div>
 
       {!hasAccounts ? (
-        <div className="obsidian-card" style={S.card}>
+        <div className="lumen-card" style={S.card}>
           <EmptyState icon="📈" title="No investment accounts yet" body="Add your first account manually or sync from Plaid." />
         </div>
       ) : (
         <>
-          <div className="obsidian-card" style={S.card}>
-            <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>Allocation by Type</div>
+          <div className="lumen-card" style={S.card}>
+            <div style={{ fontSize:11, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>Allocation by Type</div>
             <div style={{ display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
               <DonutChart size={isMobile?110:130}
                 segments={Object.entries(metrics.byType).map(([type, value]) => ({ label:type, value, color:TYPE_COLORS[type]||"#3d5070" }))} />
@@ -264,8 +264,8 @@ export default function PortfolioView({
                 {Object.entries(metrics.byType).map(([type, value]) => (
                   <div key={type} style={{ display:"flex", alignItems:"center", gap:8 }}>
                     <div style={{ width:8, height:8, borderRadius:"50%", background:TYPE_COLORS[type]||"#3d5070", flexShrink:0 }} />
-                    <div style={{ flex:1, fontSize:12, color:"var(--t2)" }}>{type}</div>
-                    <div style={{ fontSize:12, color:"var(--t1)", fontFamily:"var(--font-mono)" }}>{fmtK(value)}</div>
+                    <div style={{ flex:1, fontSize:12, color:"var(--ink-1)" }}>{type}</div>
+                    <div style={{ fontSize:12, color:"var(--ink-0)", fontFamily:"var(--font-mono)" }}>{fmtK(value)}</div>
                   </div>
                 ))}
               </div>
@@ -273,30 +273,30 @@ export default function PortfolioView({
           </div>
 
           {netWorthSnapshots.length >= 2 && (
-            <div className="obsidian-card" style={S.card}>
-              <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4 }}>Portfolio Over Time</div>
+            <div className="lumen-card" style={S.card}>
+              <div style={{ fontSize:11, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:4 }}>Portfolio Over Time</div>
               <BarChart data={netWorthSnapshots.map(s => ({ label:s.date.slice(5), value:s.value }))} height={100} />
             </div>
           )}
 
           {hasHoldings && (
-            <div className="obsidian-card" style={S.card}>
-              <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>Top Holdings</div>
+            <div className="lumen-card" style={S.card}>
+              <div style={{ fontSize:11, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>Top Holdings</div>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {metrics.holdingMetrics.slice(0,5).map(h => (
                   <div key={h.id} style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <div style={{ width:34, height:34, borderRadius:"var(--radius)", background:"var(--surface)",
+                    <div style={{ width:34, height:34, borderRadius:"var(--r-md)", background:"var(--bg-1)",
                       display:"flex", alignItems:"center", justifyContent:"center", fontSize:10,
-                      fontWeight:700, color:"var(--cyan)", fontFamily:"var(--font-mono)", flexShrink:0 }}>
+                      fontWeight:700, color:"var(--warn)", fontFamily:"var(--font-mono)", flexShrink:0 }}>
                       {h.ticker.slice(0,4)}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:500, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name||h.ticker}</div>
-                      <div style={{ fontSize:11, color:"var(--t3)" }}>{h.allocation.toFixed(1)}% of portfolio</div>
+                      <div style={{ fontSize:13, fontWeight:500, color:"var(--ink-0)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name||h.ticker}</div>
+                      <div style={{ fontSize:11, color:"var(--ink-2)" }}>{h.allocation.toFixed(1)}% of portfolio</div>
                     </div>
                     <div style={{ textAlign:"right", flexShrink:0 }}>
-                      <div style={{ fontSize:13, fontFamily:"var(--font-mono)", color:"var(--t1)", fontWeight:600 }}>{fmt(h.currentValue)}</div>
-                      <div style={{ fontSize:11, color:h.gain>=0?"var(--green)":"var(--red)", fontFamily:"var(--font-mono)" }}>{h.gain>=0?"+":""}{fmtP(h.gainPct)}</div>
+                      <div style={{ fontSize:13, fontFamily:"var(--font-mono)", color:"var(--ink-0)", fontWeight:600 }}>{fmt(h.currentValue)}</div>
+                      <div style={{ fontSize:11, color:h.gain>=0?"var(--safe)":"var(--debt)", fontFamily:"var(--font-mono)" }}>{h.gain>=0?"+":""}{fmtP(h.gainPct)}</div>
                     </div>
                   </div>
                 ))}
@@ -331,7 +331,7 @@ export default function PortfolioView({
       </div>
 
       {!hasAccounts ? (
-        <div className="obsidian-card" style={S.card}><EmptyState icon="🏦" title="No accounts yet" body="Add accounts manually or sync from Plaid." /></div>
+        <div className="lumen-card" style={S.card}><EmptyState icon="🏦" title="No accounts yet" body="Add accounts manually or sync from Plaid." /></div>
       ) : investmentAccounts.map(acct => {
         const acctHoldings = holdings.filter(h => h.accountId === acct.id);
         const isExpanded   = expandAcct === acct.id;
@@ -343,41 +343,41 @@ export default function PortfolioView({
               onClick={() => setExpandAcct(isExpanded ? null : acct.id)}>
               <div style={{ width:10, height:10, borderRadius:"50%", background:TYPE_COLORS[acct.type]||"#3d5070", flexShrink:0 }} />
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:14, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{acct.name}</div>
-                <div style={{ fontSize:11, color:"var(--t3)" }}>{acct.institution} · {acct.type}</div>
+                <div style={{ fontSize:14, fontWeight:600, color:"var(--ink-0)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{acct.name}</div>
+                <div style={{ fontSize:11, color:"var(--ink-2)" }}>{acct.institution} · {acct.type}</div>
               </div>
               <div style={{ textAlign:"right", flexShrink:0 }}>
-                <div style={{ fontSize:15, fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--t1)" }}>{fmt(acct.balance)}</div>
+                <div style={{ fontSize:15, fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--ink-0)" }}>{fmt(acct.balance)}</div>
                 {acct.costBasis > 0 && (
-                  <div style={{ fontSize:11, color:gain>=0?"var(--green)":"var(--red)", fontFamily:"var(--font-mono)" }}>{gain>=0?"+":""}{fmtP(gainPct)}</div>
+                  <div style={{ fontSize:11, color:gain>=0?"var(--safe)":"var(--debt)", fontFamily:"var(--font-mono)" }}>{gain>=0?"+":""}{fmtP(gainPct)}</div>
                 )}
               </div>
-              <span style={{ color:"var(--t3)", fontSize:12 }}>{isExpanded?"▴":"▾"}</span>
+              <span style={{ color:"var(--ink-2)", fontSize:12 }}>{isExpanded?"▴":"▾"}</span>
             </div>
 
             {isExpanded && (
-              <div style={{ borderTop:"1px solid var(--border)", padding:"12px 16px" }}>
+              <div style={{ borderTop:"1px solid var(--line)", padding:"12px 16px" }}>
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:12 }}>
                   <button style={{ ...S.btn("ghost",true), flex:1 }} onClick={() => setAcctModal(acct)}>Edit</button>
                   <button style={{ ...S.btn("ghost",true), flex:1 }} onClick={() => setHoldModal({ accountId:acct.id })}>+ Holding</button>
                   <button style={{ ...S.btn("danger",true), flex:1 }} onClick={() => { if (window.confirm(`Delete ${acct.name}?`)) deleteAccount(acct.id); }}>Delete</button>
                 </div>
                 {acctHoldings.length > 0 ? acctHoldings.map(h => (
-                  <div key={h.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:"1px solid var(--border)" }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:"var(--cyan)", fontFamily:"var(--font-mono)", width:44, flexShrink:0 }}>{h.ticker}</div>
-                    <div style={{ flex:1, fontSize:12, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</div>
-                    <div style={{ fontSize:12, fontFamily:"var(--font-mono)", color:"var(--t1)", flexShrink:0 }}>{fmt(h.currentValue)}</div>
+                  <div key={h.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 0", borderBottom:"1px solid var(--line)" }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:"var(--warn)", fontFamily:"var(--font-mono)", width:44, flexShrink:0 }}>{h.ticker}</div>
+                    <div style={{ flex:1, fontSize:12, color:"var(--ink-1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</div>
+                    <div style={{ fontSize:12, fontFamily:"var(--font-mono)", color:"var(--ink-0)", flexShrink:0 }}>{fmt(h.currentValue)}</div>
                     <button style={{ ...S.btn("ghost",true), fontSize:11, padding:"3px 8px" }} onClick={() => setHoldModal(h)}>Edit</button>
                     <button style={{ ...S.btn("danger",true), fontSize:11, padding:"3px 8px" }} onClick={() => deleteHolding(h.id)}>✕</button>
                   </div>
                 )) : (
-                  <div style={{ fontSize:12, color:"var(--t3)", textAlign:"center", padding:"10px 0" }}>No holdings — tap + Holding above</div>
+                  <div style={{ fontSize:12, color:"var(--ink-2)", textAlign:"center", padding:"10px 0" }}>No holdings — tap + Holding above</div>
                 )}
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:12 }}>
                   {[["Balance",fmt(acct.balance)],["Cost Basis",fmt(acct.costBasis||0)]].map(([l,v]) => (
-                    <div key={l} style={{ background:"var(--surface)", borderRadius:"var(--radius)", padding:"8px 10px" }}>
-                      <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:3 }}>{l}</div>
-                      <div style={{ fontSize:13, fontFamily:"var(--font-mono)", color:"var(--t1)" }}>{v}</div>
+                    <div key={l} style={{ background:"var(--bg-1)", borderRadius:"var(--r-md)", padding:"8px 10px" }}>
+                      <div style={{ fontSize:10, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:3 }}>{l}</div>
+                      <div style={{ fontSize:13, fontFamily:"var(--font-mono)", color:"var(--ink-0)" }}>{v}</div>
                     </div>
                   ))}
                 </div>
@@ -392,32 +392,32 @@ export default function PortfolioView({
   const HoldingsTab = (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-        <div style={{ fontSize:12, color:"var(--t3)" }}>{holdings.length} position{holdings.length!==1?"s":""}</div>
+        <div style={{ fontSize:12, color:"var(--ink-2)" }}>{holdings.length} position{holdings.length!==1?"s":""}</div>
         {hasAccounts && <button style={S.btn("primary",true)} onClick={() => setHoldModal("add")}>+ Add Holding</button>}
       </div>
       {!hasAccounts ? (
-        <div className="obsidian-card" style={S.card}><EmptyState icon="📊" title="Add an account first" body="Holdings are linked to investment accounts." /></div>
+        <div className="lumen-card" style={S.card}><EmptyState icon="📊" title="Add an account first" body="Holdings are linked to investment accounts." /></div>
       ) : !hasHoldings ? (
-        <div className="obsidian-card" style={S.card}><EmptyState icon="📊" title="No holdings yet" body="Add individual positions to track performance." /></div>
+        <div className="lumen-card" style={S.card}><EmptyState icon="📊" title="No holdings yet" body="Add individual positions to track performance." /></div>
       ) : isMobile ? (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {metrics.holdingMetrics.map(h => (
-            <div key={h.id} className="obsidian-card" style={S.card}>
+            <div key={h.id} className="lumen-card" style={S.card}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                 <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:"var(--cyan)", fontFamily:"var(--font-mono)" }}>{h.ticker}</div>
-                  <div style={{ fontSize:12, color:"var(--t2)", marginTop:2 }}>{h.name}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:"var(--warn)", fontFamily:"var(--font-mono)" }}>{h.ticker}</div>
+                  <div style={{ fontSize:12, color:"var(--ink-1)", marginTop:2 }}>{h.name}</div>
                 </div>
                 <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:14, fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--t1)" }}>{fmt(h.currentValue)}</div>
+                  <div style={{ fontSize:14, fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--ink-0)" }}>{fmt(h.currentValue)}</div>
                   <GainBadge value={h.gain} pct={h.gainPct} />
                 </div>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:10 }}>
                 {[["Shares",h.quantity.toFixed(4)],["Price",fmt(h.currentPrice)],["Cost Basis",fmt(h.costBasis)]].map(([l,v]) => (
                   <div key={l}>
-                    <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:2 }}>{l}</div>
-                    <div style={{ fontSize:12, fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{v}</div>
+                    <div style={{ fontSize:10, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", marginBottom:2 }}>{l}</div>
+                    <div style={{ fontSize:12, fontFamily:"var(--font-mono)", color:"var(--ink-1)" }}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -429,28 +429,28 @@ export default function PortfolioView({
           ))}
         </div>
       ) : (
-        <div className="obsidian-card" style={{ ...S.card, padding:0, overflow:"hidden" }}>
+        <div className="lumen-card" style={{ ...S.card, padding:0, overflow:"hidden" }}>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead>
               <tr>
                 {["Ticker","Name","Shares","Price","Value","Cost Basis","Gain/Loss","Alloc",""].map(col => (
-                  <th key={col} style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--t3)", fontWeight:700,
-                    padding:"10px 12px", textAlign:"left", borderBottom:"1px solid var(--border)", background:"var(--card)", position:"sticky", top:0, zIndex:2 }}>{col}</th>
+                  <th key={col} style={{ fontSize:10, textTransform:"uppercase", letterSpacing:"1.2px", color:"var(--ink-2)", fontWeight:700,
+                    padding:"10px 12px", textAlign:"left", borderBottom:"1px solid var(--line)", background:"var(--bg-2)", position:"sticky", top:0, zIndex:2 }}>{col}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {metrics.holdingMetrics.map(h => (
                 <tr key={h.id}>
-                  <td style={{ padding:"11px 12px", fontSize:12, borderBottom:"1px solid var(--border)", fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--cyan)" }}>{h.ticker}</td>
-                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--border)", color:"var(--t2)", maxWidth:160, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</td>
-                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--border)", fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{h.quantity.toFixed(4)}</td>
-                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--border)", fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(h.currentPrice)}</td>
-                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--border)", fontFamily:"var(--font-mono)", color:"var(--t1)", fontWeight:600 }}>{fmt(h.currentValue)}</td>
-                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--border)", fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{fmt(h.costBasis)}</td>
-                  <td style={{ padding:"11px 12px", borderBottom:"1px solid var(--border)" }}><GainBadge value={h.gain} pct={h.gainPct} /></td>
-                  <td style={{ padding:"11px 12px", fontSize:12, borderBottom:"1px solid var(--border)", fontFamily:"var(--font-mono)", color:"var(--t2)" }}>{h.allocation.toFixed(1)}%</td>
-                  <td style={{ padding:"11px 12px", borderBottom:"1px solid var(--border)" }}>
+                  <td style={{ padding:"11px 12px", fontSize:12, borderBottom:"1px solid var(--line)", fontFamily:"var(--font-mono)", fontWeight:700, color:"var(--warn)" }}>{h.ticker}</td>
+                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--line)", color:"var(--ink-1)", maxWidth:160, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name}</td>
+                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--line)", fontFamily:"var(--font-mono)", color:"var(--ink-1)" }}>{h.quantity.toFixed(4)}</td>
+                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--line)", fontFamily:"var(--font-mono)", color:"var(--ink-1)" }}>{fmt(h.currentPrice)}</td>
+                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--line)", fontFamily:"var(--font-mono)", color:"var(--ink-0)", fontWeight:600 }}>{fmt(h.currentValue)}</td>
+                  <td style={{ padding:"11px 12px", fontSize:13, borderBottom:"1px solid var(--line)", fontFamily:"var(--font-mono)", color:"var(--ink-1)" }}>{fmt(h.costBasis)}</td>
+                  <td style={{ padding:"11px 12px", borderBottom:"1px solid var(--line)" }}><GainBadge value={h.gain} pct={h.gainPct} /></td>
+                  <td style={{ padding:"11px 12px", fontSize:12, borderBottom:"1px solid var(--line)", fontFamily:"var(--font-mono)", color:"var(--ink-1)" }}>{h.allocation.toFixed(1)}%</td>
+                  <td style={{ padding:"11px 12px", borderBottom:"1px solid var(--line)" }}>
                     <div style={{ display:"flex", gap:6 }}>
                       <button style={{ ...S.btn("ghost",true), fontSize:11, padding:"3px 8px" }} onClick={() => setHoldModal(h)}>Edit</button>
                       <button style={{ ...S.btn("danger",true), fontSize:11, padding:"3px 8px" }} onClick={() => deleteHolding(h.id)}>✕</button>
@@ -472,28 +472,28 @@ export default function PortfolioView({
   const PerformanceTab = (
     <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
       {!hasAccounts ? (
-        <div className="obsidian-card" style={S.card}><EmptyState icon="📈" title="No data yet" body="Add accounts and holdings to see performance metrics." /></div>
+        <div className="lumen-card" style={S.card}><EmptyState icon="📈" title="No data yet" body="Add accounts and holdings to see performance metrics." /></div>
       ) : (
         <>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
             {[
-              { label:"Total Return",    value:fmtP(totalReturn),       color:totalReturn>=0?"var(--green)":"var(--red)" },
-              { label:"Total Gain",      value:fmt(metrics.totalGain),  color:metrics.totalGain>=0?"var(--green)":"var(--red)" },
-              { label:"Portfolio Value", value:fmt(metrics.totalValue),  color:"var(--t1)" },
-              { label:"Cost Basis",      value:fmt(metrics.totalCost),   color:"var(--t1)" },
+              { label:"Total Return",    value:fmtP(totalReturn),       color:totalReturn>=0?"var(--safe)":"var(--debt)" },
+              { label:"Total Gain",      value:fmt(metrics.totalGain),  color:metrics.totalGain>=0?"var(--safe)":"var(--debt)" },
+              { label:"Portfolio Value", value:fmt(metrics.totalValue),  color:"var(--ink-0)" },
+              { label:"Cost Basis",      value:fmt(metrics.totalCost),   color:"var(--ink-0)" },
             ].map(stat => <StatCard key={stat.label} {...stat} />)}
           </div>
 
           {metrics.holdingMetrics.length >= 2 && (
             <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"1fr 1fr", gap:10 }}>
-              {[{label:"Best Performer",h:bestHolding,color:"var(--green)"},{label:"Worst Performer",h:worstHolding,color:"var(--red)"}]
+              {[{label:"Best Performer",h:bestHolding,color:"var(--safe)"},{label:"Worst Performer",h:worstHolding,color:"var(--debt)"}]
                 .map(({ label, h, color }) => h && (
-                  <div key={label} className="obsidian-card" style={S.card}>
-                    <div style={{ fontSize:10, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:10 }}>{label}</div>
+                  <div key={label} className="lumen-card" style={S.card}>
+                    <div style={{ fontSize:10, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:10 }}>{label}</div>
                     <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <div style={{ width:38, height:38, borderRadius:"var(--radius)", background:"var(--surface)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"var(--cyan)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{h.ticker.slice(0,4)}</div>
+                      <div style={{ width:38, height:38, borderRadius:"var(--r-md)", background:"var(--bg-1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:"var(--warn)", fontFamily:"var(--font-mono)", flexShrink:0 }}>{h.ticker.slice(0,4)}</div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name||h.ticker}</div>
+                        <div style={{ fontSize:13, fontWeight:600, color:"var(--ink-0)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{h.name||h.ticker}</div>
                         <div style={{ fontSize:12, color, fontFamily:"var(--font-mono)" }}>{fmtP(h.gainPct)} · {fmt(h.gain)}</div>
                       </div>
                     </div>
@@ -503,22 +503,22 @@ export default function PortfolioView({
           )}
 
           {hasHoldings && (
-            <div className="obsidian-card" style={S.card}>
-              <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>All Positions</div>
+            <div className="lumen-card" style={S.card}>
+              <div style={{ fontSize:11, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"1px", fontWeight:600, marginBottom:12 }}>All Positions</div>
               <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                 {metrics.holdingMetrics.map(h => (
                   <div key={h.id} style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:"var(--cyan)", fontFamily:"var(--font-mono)", width:46, flexShrink:0 }}>{h.ticker}</div>
+                    <div style={{ fontSize:11, fontWeight:700, color:"var(--warn)", fontFamily:"var(--font-mono)", width:46, flexShrink:0 }}>{h.ticker}</div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                        <span style={{ fontSize:12, color:"var(--t2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"60%" }}>{h.name||h.ticker}</span>
+                        <span style={{ fontSize:12, color:"var(--ink-1)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"60%" }}>{h.name||h.ticker}</span>
                         <GainBadge value={h.gain} pct={h.gainPct} />
                       </div>
-                      <div style={{ height:4, borderRadius:2, background:"var(--border)", overflow:"hidden" }}>
-                        <div style={{ height:"100%", borderRadius:2, background:h.gain>=0?"var(--green)":"var(--red)", width:Math.min(100,Math.abs(h.gainPct))+"%" }} />
+                      <div style={{ height:4, borderRadius:2, background:"var(--line)", overflow:"hidden" }}>
+                        <div style={{ height:"100%", borderRadius:2, background:h.gain>=0?"var(--safe)":"var(--debt)", width:Math.min(100,Math.abs(h.gainPct))+"%" }} />
                       </div>
                     </div>
-                    <div style={{ fontSize:12, fontFamily:"var(--font-mono)", color:"var(--t1)", width:72, textAlign:"right", flexShrink:0 }}>{fmt(h.currentValue)}</div>
+                    <div style={{ fontSize:12, fontFamily:"var(--font-mono)", color:"var(--ink-0)", width:72, textAlign:"right", flexShrink:0 }}>{fmt(h.currentValue)}</div>
                   </div>
                 ))}
               </div>
@@ -535,13 +535,13 @@ export default function PortfolioView({
     <div>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
         <div>
-          <div style={{ fontFamily:"var(--font-disp)", fontSize:isMobile?18:22, fontWeight:800, color:"var(--t1)", marginBottom:2 }}>Portfolio</div>
-          <div style={{ fontSize:11, color:"var(--t3)" }}>Investments · holdings · performance</div>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:isMobile?18:22, fontWeight:800, color:"var(--ink-0)", marginBottom:2 }}>Portfolio</div>
+          <div style={{ fontSize:11, color:"var(--ink-2)" }}>Investments · holdings · performance</div>
         </div>
         {metrics.totalValue > 0 && (
           <div style={{ textAlign:"right" }}>
-            <div style={{ fontFamily:"var(--font-mono)", fontSize:isMobile?16:20, fontWeight:700, color:"var(--t1)" }}>{fmt(metrics.totalValue)}</div>
-            <div style={{ fontSize:11, fontFamily:"var(--font-mono)", color:metrics.totalGain>=0?"var(--green)":"var(--red)" }}>{fmtP(metrics.totalReturn)} all time</div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:isMobile?16:20, fontWeight:700, color:"var(--ink-0)" }}>{fmt(metrics.totalValue)}</div>
+            <div style={{ fontSize:11, fontFamily:"var(--font-mono)", color:metrics.totalGain>=0?"var(--safe)":"var(--debt)" }}>{fmtP(metrics.totalReturn)} all time</div>
           </div>
         )}
       </div>

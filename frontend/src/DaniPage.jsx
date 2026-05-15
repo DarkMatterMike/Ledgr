@@ -10,11 +10,11 @@ const today = new Date();
 
 /* ── Colour tokens ──────────────────────────────────────────────── */
 const C = {
-  card:"var(--card)",surface:"var(--surface)",border:"var(--border)",border2:"var(--border2)",
-  t1:"var(--t1)",t2:"var(--t2)",t3:"var(--t2)",cyan:"var(--cyan)",green:"var(--green)",
-  red:"var(--red)",amber:"var(--amber)",cyanDim:"var(--cyan-dim)",greenDim:"var(--green-dim)",
-  redDim:"var(--red-dim)",amberDim:"var(--amber-dim)",radius:"var(--radius)",
-  radiusLg:"var(--radius-lg)",fontMono:"var(--font-mono)",fontDisp:"var(--font-disp)",fontBody:"var(--font-body)",
+  card:"var(--bg-2)",surface:"var(--bg-1)",border:"var(--line)",border2:"var(--line-2)",
+  t1:"var(--ink-0)",t2:"var(--ink-1)",t3:"var(--ink-1)",cyan:"var(--warn)",green:"var(--safe)",
+  red:"var(--debt)",amber:"var(--warn)",cyanDim:"var(--warn-bg)",greenDim:"var(--safe-bg)",
+  redDim:"var(--debt-bg)",amberDim:"var(--warn-bg)",radius:"var(--r-md)",
+  radiusLg:"var(--r-lg)",fontMono:"var(--font-mono)",fontDisp:"var(--font-display)",fontBody:"var(--font-ui)",
 };
 
 /* ── Style helpers ──────────────────────────────────────────────── */
@@ -423,22 +423,22 @@ export default function DaniPage({accounts=[],transactions=[],recurringTxns=[],r
     <div style={{display:"flex",flexDirection:"column",gap:0}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
         <div>
-          <div style={{fontFamily:"var(--font-disp)",fontSize:14,fontWeight:700,color:"var(--t1)"}}>Dani</div>
-          <div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>Spending power & wishlist</div>
+          <div style={{fontFamily:"var(--font-display)",fontSize:14,fontWeight:700,color:"var(--ink-0)"}}>Dani</div>
+          <div style={{fontSize:11,color:"var(--ink-1)",marginTop:2}}>Spending power & wishlist</div>
         </div>
       </div>
 
       {/* Tab bar */}
       <div style={{marginBottom:16}}>
-        <div style={{display:"flex",gap:3,background:"var(--surface)",borderRadius:"var(--radius)",padding:4,...(isMobile?{width:"100%"}:{display:"inline-flex"})}}>
+        <div style={{display:"flex",gap:3,background:"var(--bg-1)",borderRadius:"var(--r-md)",padding:4,...(isMobile?{width:"100%"}:{display:"inline-flex"})}}>
           {TABS.map((t,i)=>{
             const active=activeTab===t;
             return(
               <button key={t} onClick={()=>setActiveTab(t)} style={{
-                padding:"7px 8px",borderRadius:"var(--radius)",fontSize:12,fontWeight:500,
+                padding:"7px 8px",borderRadius:"var(--r-md)",fontSize:12,fontWeight:500,
                 cursor:"pointer",border:"1px solid transparent",
-                background:active?"var(--cyan)":"transparent",
-                color:active?"#000":"var(--t2)",transition:"all 0.15s",whiteSpace:"nowrap",
+                background:active?"var(--warn)":"transparent",
+                color:active?"#000":"var(--ink-1)",transition:"all 0.15s",whiteSpace:"nowrap",
                 textAlign:"center",flex:isMobile?1:undefined,
               }}>{TAB_LABELS[i]}</button>
             );

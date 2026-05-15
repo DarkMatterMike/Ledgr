@@ -49,7 +49,7 @@ const INK_CSS = `
 .ink-gem::before {
   content: '';
   position: absolute; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--cyan);
+  background: var(--warn);
   box-shadow: 0 0 10px rgba(201,149,106,0.8), 0 0 24px rgba(201,149,106,0.3);
   transition: box-shadow .25s, transform .25s; z-index: 2;
 }
@@ -73,15 +73,15 @@ const INK_CSS = `
 .ink-gem-ring1 { animation-delay: 0.65s; }
 .ink-gem-ring2 { animation-delay: 1.3s; }
 .ink-gem-wrap:hover .ink-gem::before { box-shadow: 0 0 14px rgba(201,149,106,1), 0 0 32px rgba(201,149,106,0.5); transform: scale(1.2); }
-body.ink-open .ink-gem::before { background: var(--cyan); box-shadow: 0 0 16px rgba(201,149,106,1), 0 0 36px rgba(201,149,106,0.5); transform: scale(1.1); }
+body.ink-open .ink-gem::before { background: var(--warn); box-shadow: 0 0 16px rgba(201,149,106,1), 0 0 36px rgba(201,149,106,0.5); transform: scale(1.1); }
 body.ink-open .ink-gem::after, body.ink-open .ink-gem-ring { animation: none; opacity: 0; }
 .ink-gem-label {
   font-size: 10px; text-transform: uppercase; letter-spacing: .7px;
-  color: var(--t3); font-family: var(--font-mono);
+  color: var(--ink-2); font-family: var(--font-mono);
   transition: color .2s; user-select: none;
 }
-.ink-gem-wrap:hover .ink-gem-label { color: var(--cyan); }
-body.ink-open .ink-gem-label { color: var(--cyan); }
+.ink-gem-wrap:hover .ink-gem-label { color: var(--warn); }
+body.ink-open .ink-gem-label { color: var(--warn); }
 
 /* ── Band / tick ───────────────────────────────────────── */
 .ink-rb {
@@ -126,7 +126,7 @@ body.ink-open .ink-panel {
   cursor: pointer; transition: background .15s; flex-shrink: 0;
 }
 .ink-close:hover { background: rgba(255,255,255,0.06); }
-.ink-close svg { width: 9px; height: 9px; stroke: var(--t3); stroke-width: 2.5; fill: none; }
+.ink-close svg { width: 9px; height: 9px; stroke: var(--ink-2); stroke-width: 2.5; fill: none; }
 
 /* ── Nav items ─────────────────────────────────────────── */
 .ink-nav-section {
@@ -149,7 +149,7 @@ body.ink-open .ink-panel {
 .ink-nav-item::before {
   content: ''; position: absolute; left: 0; top: 25%; bottom: 25%;
   width: 0; border-radius: 0 1px 1px 0;
-  background: var(--cyan);
+  background: var(--warn);
   box-shadow: 1px 0 6px rgba(201,149,106,0.5);
   transition: width .18s;
 }
@@ -160,14 +160,14 @@ body.ink-open .ink-panel {
   border-radius: 1px; transition: width .2s, background .15s;
 }
 .ink-nav-item:hover .ink-nav-tick { width: 20px; background: rgba(201,149,106,0.6); }
-.ink-nav-item.active .ink-nav-tick { width: 20px; background: var(--cyan); box-shadow: 0 0 6px rgba(201,149,106,0.4); }
+.ink-nav-item.active .ink-nav-tick { width: 20px; background: var(--warn); box-shadow: 0 0 6px rgba(201,149,106,0.4); }
 .ink-nav-label {
-  font-family: var(--font-body); font-size: 12px;
-  color: var(--t2); flex: 1; white-space: nowrap;
+  font-family: var(--font-ui); font-size: 12px;
+  color: var(--ink-1); flex: 1; white-space: nowrap;
   transition: color .15s;
 }
-.ink-nav-item:hover .ink-nav-label, .ink-nav-item.active .ink-nav-label { color: var(--t1); }
-.ink-nav-item.active .ink-nav-label { color: var(--cyan); font-weight: 500; }
+.ink-nav-item:hover .ink-nav-label, .ink-nav-item.active .ink-nav-label { color: var(--ink-0); }
+.ink-nav-item.active .ink-nav-label { color: var(--warn); font-weight: 500; }
 
 /* ── Item stagger reveal ───────────────────────────────── */
 .ink-nav-items .ink-nav-item,
@@ -339,18 +339,18 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
           {/* User row */}
           <button
             onClick={() => handleNavClick('settings')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 4px', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 'var(--radius)', marginTop: 2 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 4px', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 'var(--r-md)', marginTop: 2 }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: avatarColor + '33', border: `1.5px solid ${avatarColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-disp)', fontSize: 10, fontWeight: 800, color: avatarColor }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: avatarColor + '33', border: `1.5px solid ${avatarColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 800, color: avatarColor }}>
               {avatarLetter}
             </div>
             <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {currentUser?.name || currentUser?.email}
               </div>
               {currentUser?.role === 'owner' && (
-                <div style={{ fontSize: 8, color: 'var(--cyan)', fontWeight: 700, letterSpacing: '0.5px' }}>OWNER</div>
+                <div style={{ fontSize: 8, color: 'var(--warn)', fontWeight: 700, letterSpacing: '0.5px' }}>OWNER</div>
               )}
             </div>
           </button>
@@ -361,12 +361,12 @@ function SidebarContent({ onNav, view, syncing, doSync, showToast, avatarColor, 
       {supportOpen && (
         <div style={{ position: 'fixed', inset: 0, background: '#0009', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={e => { if (e.target === e.currentTarget) setSupportOpen(false); }}>
-          <div style={{ background: 'var(--card)', borderRadius: 'var(--radius-lg)', padding: 20, width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', padding: 20, width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Contact Support</div>
-              <button onClick={() => setSupportOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', fontSize: 18, lineHeight: 1, padding: '0 2px' }}>✕</button>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-0)' }}>Contact Support</div>
+              <button onClick={() => setSupportOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-2)', fontSize: 18, lineHeight: 1, padding: '0 2px' }}>✕</button>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5 }}>Send a message and we'll get back to you via email.</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5 }}>Send a message and we'll get back to you via email.</div>
             <input style={{ ...S.input, fontSize: 13 }} placeholder="Subject (optional)" value={supportSubject} onChange={e => setSupportSubject(e.target.value)} />
             <textarea style={{ ...S.input, fontSize: 13, minHeight: 100, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }} placeholder="Describe your issue…" value={supportMessage} onChange={e => setSupportMessage(e.target.value)} />
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

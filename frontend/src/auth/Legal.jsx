@@ -4,10 +4,10 @@
  */
 
 function LegalHeading({ children }) {
-  return <div style={{ fontWeight:700, color:"var(--t1)", fontSize:14, marginTop:20, marginBottom:6 }}>{children}</div>;
+  return <div style={{ fontWeight:700, color:"var(--ink-0)", fontSize:14, marginTop:20, marginBottom:6 }}>{children}</div>;
 }
 function LegalP({ children }) {
-  return <p style={{ margin:"0 0 10px", color:"var(--t2)" }}>{children}</p>;
+  return <p style={{ margin:"0 0 10px", color:"var(--ink-1)" }}>{children}</p>;
 }
 
 function PrivacyPolicy() {

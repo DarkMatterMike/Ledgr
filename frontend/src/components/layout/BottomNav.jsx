@@ -25,7 +25,7 @@ const NAV_CSS = `
   align-items: center; justify-content: center;
   gap: 3px; padding: 10px 4px 6px;
   cursor: pointer; background: none; border: none;
-  color: var(--t3); transition: color .15s;
+  color: var(--ink-2); transition: color .15s;
   -webkit-tap-highlight-color: transparent;
 }
 .new-bottom-nav-tab svg { width: 20px; height: 20px; transition: transform .2s; }

@@ -19,25 +19,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /* ── CSS injected once ──────────────────────────────────── */
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
-  :root{
-    --bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;
-    --line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);
-    --ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;
-    --safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);
-    --warn:#f0b04c;--warn-bg:rgba(240,176,76,0.08);
-    --debt:#e87363;--debt-bg:rgba(232,115,99,0.08);
-    --calm:#6c8cff;--calm-bg:rgba(108,140,255,0.08);
-    --goal:#a78bff;--goal-d:#2a1f5e;--goal-bg:rgba(167,139,255,0.08);
-    --fd:'Instrument Serif',Georgia,serif;
-    --fm:'JetBrains Mono',ui-monospace,monospace;
-    --fu:'Geist',-apple-system,sans-serif;
-    --r:6px;--rm:10px;--rl:14px;--rx:20px;
-  }
-  .la-wrap *,.la-wrap *::before,.la-wrap *::after{box-sizing:border-box;}
-  .la-wrap h1,.la-wrap h2,.la-wrap h3,.la-wrap h4,.la-wrap p{margin:0;padding:0;}
-  .la-wrap{font-family:var(--fu);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
-  @media(max-width:1000px){.la-wrap{padding:20px 16px 60px;}}
+    }
   @media(max-width:600px){.la-wrap{padding:0;}}
   .la-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--rx);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;}
   @media(max-width:600px){.la-frame{border-radius:0;border:none;}}

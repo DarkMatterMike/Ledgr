@@ -17,32 +17,32 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 /* ── Shared components ────────────────────────────────────────────── */
 function Card({ children, style }) {
-  return <div className="obsidian-card" style={{ background:"var(--card)", borderRadius:"var(--radius)", padding:"10px 14px", ...style }}>{children}</div>;
+  return <div className="lumen-card" style={{ background:"var(--bg-2)", borderRadius:"var(--r-md)", padding:"10px 14px", ...style }}>{children}</div>;
 }
 function SectionHead({ title, sub }) {
   return (
     <div style={{ marginBottom:12 }}>
-      <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{title}</div>
-      {sub && <div style={{ fontSize:11, color:"var(--t3)", marginTop:2 }}>{sub}</div>}
+      <div style={{ fontSize:11, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{title}</div>
+      {sub && <div style={{ fontSize:11, color:"var(--ink-2)", marginTop:2 }}>{sub}</div>}
     </div>
   );
 }
 function StatCard({ label, value, sub, subColor, accent }) {
   return (
-    <div style={{ background:"var(--card)", borderRadius:"var(--radius)", padding:"14px 16px", borderTop:`3px solid ${accent||"var(--border)"}` }}>
-      <div style={{ fontSize:11, color:"var(--t3)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{label}</div>
-      <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--t1)", marginBottom:4 }}>{value}</div>
-      {sub && <div style={{ fontSize:11, color:subColor||"var(--t3)" }}>{sub}</div>}
+    <div style={{ background:"var(--bg-2)", borderRadius:"var(--r-md)", padding:"14px 16px", borderTop:`3px solid ${accent||"var(--line)"}` }}>
+      <div style={{ fontSize:11, color:"var(--ink-2)", textTransform:"uppercase", letterSpacing:"2px", marginBottom:8 }}>{label}</div>
+      <div style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:700, color:"var(--ink-0)", marginBottom:4 }}>{value}</div>
+      {sub && <div style={{ fontSize:11, color:subColor||"var(--ink-2)" }}>{sub}</div>}
     </div>
   );
 }
 function Tab({ label, active, onClick, style }) {
   return (
     <button onClick={onClick} style={{
-      padding:"7px 8px", borderRadius:"var(--radius)", fontSize:12, fontWeight:500,
+      padding:"7px 8px", borderRadius:"var(--r-md)", fontSize:12, fontWeight:500,
       cursor:"pointer", border:"1px solid transparent",
-      background:active?"var(--cyan)":"transparent",
-      color:active?"#000":"var(--t2)", transition:"all 0.15s", whiteSpace:"nowrap",
+      background:active?"var(--warn)":"transparent",
+      color:active?"#000":"var(--ink-1)", transition:"all 0.15s", whiteSpace:"nowrap",
       textAlign:"center",
       ...style,
     }}>{label}</button>
@@ -50,9 +50,9 @@ function Tab({ label, active, onClick, style }) {
 }
 
 /* ── SVG line chart ───────────────────────────────────────────────── */
-function LineChart({ points, height=120, color="var(--cyan)" }) {
+function LineChart({ points, height=120, color="var(--warn)" }) {
   if (!points || points.length < 2) return (
-    <div style={{ height, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--t3)", fontSize:12 }}>
+    <div style={{ height, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ink-2)", fontSize:12 }}>
       Not enough data yet
     </div>
   );
@@ -83,7 +83,7 @@ function LineChart({ points, height=120, color="var(--cyan)" }) {
           <circle key={i} cx={c.x} cy={c.y} r={4} fill={color} />
         ))}
       </svg>
-      <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--t3)", marginTop:4 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--ink-2)", marginTop:4 }}>
         <span>{points[0]?.label}</span>
         <span>{points[points.length-1]?.label}</span>
       </div>
@@ -93,9 +93,9 @@ function LineChart({ points, height=120, color="var(--cyan)" }) {
 
 /* ── Budget adherence cell ────────────────────────────────────────── */
 function AdherenceCell({ spent, limit, label }) {
-  if (!limit) return <div style={{ width:24, height:24, background:"var(--surface)", borderRadius:3 }} />;
+  if (!limit) return <div style={{ width:24, height:24, background:"var(--bg-1)", borderRadius:3 }} />;
   const ratio = spent / limit;
-  const color = ratio > 1 ? "var(--red)" : ratio > 0.85 ? "var(--amber)" : spent > 0 ? "var(--green)" : "var(--surface)";
+  const color = ratio > 1 ? "var(--debt)" : ratio > 0.85 ? "var(--warn)" : spent > 0 ? "var(--safe)" : "var(--bg-1)";
   const opacity = clamp(0.25 + ratio * 0.75, 0.25, 1);
   return (
     <div title={label} style={{ width:24, height:24, borderRadius:3, background:color, opacity,
@@ -247,46 +247,46 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
       {/* 3-number summary header */}
       <div style={{ display:"flex", gap:40, marginBottom:20, flexWrap:"wrap" }}>
         <div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--t3)", marginBottom:4 }}>So far this month</div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--red)" }}>{fmt(thisTotal)}</div>
-          <div style={{ fontSize:11, color:"var(--t3)", marginTop:4 }}>Day {today.getDate()} of {daysInMonth}</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--ink-2)", marginBottom:4 }}>So far this month</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--debt)" }}>{fmt(thisTotal)}</div>
+          <div style={{ fontSize:11, color:"var(--ink-2)", marginTop:4 }}>Day {today.getDate()} of {daysInMonth}</div>
         </div>
         <div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--t3)", marginBottom:4 }}>Projected end of month</div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--amber)" }}>{fmt(projectedTotal)}</div>
-          <div style={{ fontSize:11, color:"var(--t3)", marginTop:4 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--ink-2)", marginBottom:4 }}>Projected end of month</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--warn)" }}>{fmt(projectedTotal)}</div>
+          <div style={{ fontSize:11, color:"var(--ink-2)", marginTop:4 }}>
             {projVsComp != null ? `${projVsComp > 0 ? "↑" : "↓"} ${Math.abs(projVsComp)}% vs ${selectedLabel.toLowerCase()}` : "linear estimate"}
           </div>
         </div>
         <div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--t3)", marginBottom:4 }}>{selectedLabel}</div>
-          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--t3)" }}>{fmt(compTotal)}</div>
-          <div style={{ fontSize:11, color:"var(--t3)", marginTop:4 }}>For reference</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.7px", color:"var(--ink-2)", marginBottom:4 }}>{selectedLabel}</div>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:24, fontWeight:700, letterSpacing:"-1px", lineHeight:1, color:"var(--ink-2)" }}>{fmt(compTotal)}</div>
+          <div style={{ fontSize:11, color:"var(--ink-2)", marginTop:4 }}>For reference</div>
         </div>
         {/* Range picker — inline, right-aligned */}
         <div style={{ marginLeft:"auto", position:"relative", alignSelf:"flex-start" }}>
           <button onClick={() => setPickerOpen(p => !p)}
             style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 10px",
               background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.06)",
-              borderRadius:6, cursor:"pointer", fontSize:11, color:"var(--t2)" }}>
-            {selectedLabel} <span style={{ fontSize:9, color:"var(--t3)" }}>▾</span>
+              borderRadius:6, cursor:"pointer", fontSize:11, color:"var(--ink-1)" }}>
+            {selectedLabel} <span style={{ fontSize:9, color:"var(--ink-2)" }}>▾</span>
           </button>
           {pickerOpen && (
             <>
               <div style={{ position:"fixed", inset:0, zIndex:199 }} onClick={() => setPickerOpen(false)} />
               <div style={{ position:"absolute", right:0, top:"calc(100% + 4px)", zIndex:200,
-                background:"var(--card)", border:"1px solid rgba(255,255,255,0.08)",
+                background:"var(--bg-2)", border:"1px solid rgba(255,255,255,0.08)",
                 borderRadius:8, boxShadow:"0 8px 24px #0006", minWidth:140, overflow:"hidden" }}>
                 {PACE_RANGES.map(r => (
                   <button key={r.key} onClick={() => { setRange(r.key); setPickerOpen(false); }}
                     style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
                       width:"100%", padding:"9px 14px", background:"none", border:"none",
                       cursor:"pointer", fontSize:12,
-                      color: r.key === range ? "var(--cyan)" : "var(--t2)",
+                      color: r.key === range ? "var(--warn)" : "var(--ink-1)",
                       fontWeight: r.key === range ? 700 : 400,
                       borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
                     {r.label}
-                    {r.key === range && <span style={{ fontSize:12, color:"var(--cyan)" }}>✓</span>}
+                    {r.key === range && <span style={{ fontSize:12, color:"var(--warn)" }}>✓</span>}
                   </button>
                 ))}
               </div>
@@ -300,8 +300,8 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:"auto", overflow:"visible" }}>
           <defs>
             <linearGradient id="paceGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--warn)" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="var(--warn)" stopOpacity="0" />
             </linearGradient>
             <filter id="todayGlow">
               <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="rgba(201,149,106,0.8)" />
@@ -356,26 +356,26 @@ function SpendingPaceCard({ transactions, monthlyData, today, isMobile }) {
 
           {/* This month line */}
           <path d={buildPath(thisMonthPoints)} fill="none"
-            stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            stroke="var(--warn)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Today dot — glowing */}
           {thisMonthPoints[today.getDate()-1] != null && (
             <circle cx={xOf(today.getDate()-1)} cy={yOf(thisMonthPoints[today.getDate()-1])}
-              r="4" fill="var(--cyan)" filter="url(#todayGlow)" />
+              r="4" fill="var(--warn)" filter="url(#todayGlow)" />
           )}
         </svg>
       </div>
 
       {/* Legend */}
       <div style={{ display:"flex", gap:20, marginTop:10 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t2)" }}>
-          <div style={{ width:16, height:2, borderRadius:2, background:"var(--cyan)" }} /> This month
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--ink-1)" }}>
+          <div style={{ width:16, height:2, borderRadius:2, background:"var(--warn)" }} /> This month
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t3)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--ink-2)" }}>
           <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" strokeDasharray="4,3"/></svg>
           {selectedLabel}
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--t3)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"var(--ink-2)" }}>
           <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="rgba(201,149,106,0.5)" strokeWidth="1.5" strokeDasharray="4,3"/></svg>
           Projected
         </div>
@@ -390,12 +390,12 @@ function SpendingPatternCard({ dowData, dowMax, weekOfMonthData, isMobile }) {
     <Card>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
         <SectionHead title={view==="day"?"Spending by day of week":"Spending by week of month"} sub="Total, all time" />
-        <div style={{ display:"flex", gap:3, background:"var(--surface)", borderRadius:"var(--radius)", padding:3 }}>
+        <div style={{ display:"flex", gap:3, background:"var(--bg-1)", borderRadius:"var(--r-md)", padding:3 }}>
           {[["day","By Day"],["week","By Week"]].map(([k,l]) => (
             <button key={k} onClick={()=>setView(k)} style={{
-              padding:"3px 10px", borderRadius:"var(--radius)", fontSize:11, fontWeight:500,
-              background:view===k?"var(--card)":"transparent",
-              color:view===k?"var(--t1)":"var(--t2)", border:"none", cursor:"pointer",
+              padding:"3px 10px", borderRadius:"var(--r-md)", fontSize:11, fontWeight:500,
+              background:view===k?"var(--bg-2)":"transparent",
+              color:view===k?"var(--ink-0)":"var(--ink-1)", border:"none", cursor:"pointer",
             }}>{l}</button>
           ))}
         </div>
@@ -407,11 +407,11 @@ function SpendingPatternCard({ dowData, dowMax, weekOfMonthData, isMobile }) {
             const isTop = d.total === Math.max(...dowData.map(x=>x.total));
             return (
               <div key={d.day} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
-                {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(d.total)}</div>}
+                {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--ink-2)", textAlign:"center" }}>{fmt(d.total)}</div>}
                 <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
-                  <div style={{ width:"100%", height:h, minHeight:d.total>0?3:0, background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
+                  <div style={{ width:"100%", height:h, minHeight:d.total>0?3:0, background:isTop?"var(--warn)":"var(--line-2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
                 </div>
-                <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{d.day.slice(0,3)}</div>
+                <div style={{ fontSize:10, color:isTop?"var(--warn)":"var(--ink-2)", fontWeight:isTop?700:400 }}>{d.day.slice(0,3)}</div>
               </div>
             );
           })}
@@ -424,11 +424,11 @@ function SpendingPatternCard({ dowData, dowMax, weekOfMonthData, isMobile }) {
             const isTop = w.total === Math.max(...weekOfMonthData.map(x=>x.total));
             return (
               <div key={w.label} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
-                {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--t3)", textAlign:"center" }}>{fmt(w.total)}</div>}
+                {!isMobile && <div style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"var(--ink-2)", textAlign:"center" }}>{fmt(w.total)}</div>}
                 <div style={{ width:"100%", height:72, display:"flex", alignItems:"flex-end" }}>
-                  <div style={{ width:"100%", height:h, minHeight:w.total>0?3:0, background:isTop?"var(--cyan)":"var(--border2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
+                  <div style={{ width:"100%", height:h, minHeight:w.total>0?3:0, background:isTop?"var(--warn)":"var(--line-2)", borderRadius:"3px 3px 0 0", transition:"height 0.4s" }} />
                 </div>
-                <div style={{ fontSize:10, color:isTop?"var(--cyan)":"var(--t3)", fontWeight:isTop?700:400 }}>{w.label}</div>
+                <div style={{ fontSize:10, color:isTop?"var(--warn)":"var(--ink-2)", fontWeight:isTop?700:400 }}>{w.label}</div>
               </div>
             );
           })}
@@ -802,7 +802,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     const clamped = Math.min(100, Math.max(0, score));
     const grade = clamped >= 85 ? "A" : clamped >= 70 ? "B" : clamped >= 55 ? "C" : clamped >= 40 ? "D" : "F";
     const label = clamped >= 85 ? "Excellent" : clamped >= 70 ? "Good" : clamped >= 55 ? "Fair" : clamped >= 40 ? "Needs Work" : "Critical";
-    const color = clamped >= 85 ? "var(--green)" : clamped >= 70 ? "var(--cyan)" : clamped >= 55 ? "var(--amber)" : "var(--red)";
+    const color = clamped >= 85 ? "var(--safe)" : clamped >= 70 ? "var(--warn)" : clamped >= 55 ? "var(--warn)" : "var(--debt)";
     return { score:clamped, grade, label, color, breakdown };
   }, [categories, thisMonthD, savingsRate, momChange, goals, last6]);
 
@@ -912,7 +912,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     <div style={{
       padding:"20px 28px 28px", borderBottom:last?"none":"1px solid rgba(0,0,0,0.35)",
       position:"relative", overflow:"hidden",
-      background:"radial-gradient(ellipse 55% 80% at 0% 40%,rgba(201,149,106,0.04) 0%,transparent 65%),var(--bg,#0b0a08)",
+      background:"radial-gradient(ellipse 55% 80% at 0% 40%,rgba(201,149,106,0.04) 0%,transparent 65%),var(--bg-0,#0b0a08)",
     }}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,rgba(201,149,106,0.1),rgba(255,255,255,0.03) 35%,transparent 75%)"}}/>
@@ -924,45 +924,45 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,
           color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>{ord} ·</span>
         <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,
-          fontSize:20,color:"var(--t1)"}}>{title}</span>
+          fontSize:20,color:"var(--ink-0)"}}>{title}</span>
         <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.12),transparent)"}}/>
       </div>
       {sub && <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",
-        letterSpacing:"0.7px",color:"var(--t3)",marginBottom:20,position:"relative",zIndex:1}}>{sub}</div>}
+        letterSpacing:"0.7px",color:"var(--ink-2)",marginBottom:20,position:"relative",zIndex:1}}>{sub}</div>}
       <div style={{position:"relative",zIndex:1}}>{children}</div>
     </div>
   );
 
   const ColHdr = ({ children }) => (
     <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",
-      fontSize:12,color:"var(--t3)",paddingBottom:8,
+      fontSize:12,color:"var(--ink-2)",paddingBottom:8,
       borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>{children}</div>
   );
 
-  const FRow = ({ dot, pip, label, barW=0, barColor="var(--cyan)", val, delta, valColor, deltaColor, last=false, style={} }) => (
+  const FRow = ({ dot, pip, label, barW=0, barColor="var(--warn)", val, delta, valColor, deltaColor, last=false, style={} }) => (
     <div style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",
       borderBottom:last?"none":"1px solid rgba(255,255,255,0.03)",...style}}>
       {dot && <div style={{width:7,height:7,borderRadius:"50%",background:dot,flexShrink:0}}/>}
       {pip && <div style={{width:2,height:24,borderRadius:1,background:"rgba(255,255,255,0.12)",flexShrink:0}}/>}
-      <div style={{fontSize:12,color:"var(--t2)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</div>
+      <div style={{fontSize:12,color:"var(--ink-1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</div>
       {barW > 0 && (
         <div style={{flex:1.5,height:2,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden",flexShrink:0}}>
           <div style={{height:"100%",width:`${barW}%`,background:barColor,borderRadius:99}}/>
         </div>
       )}
       {val != null && <div style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,
-        width:70,textAlign:"right",flexShrink:0,color:valColor||"var(--t2)"}}>{val}</div>}
+        width:70,textAlign:"right",flexShrink:0,color:valColor||"var(--ink-1)"}}>{val}</div>}
       {delta != null && <div style={{fontFamily:"var(--font-mono)",fontSize:10,
-        width:48,textAlign:"right",flexShrink:0,color:deltaColor||"var(--t3)"}}>{delta}</div>}
+        width:48,textAlign:"right",flexShrink:0,color:deltaColor||"var(--ink-2)"}}>{delta}</div>}
     </div>
   );
 
   const AiCallout = ({ label, children }) => (
-    <div style={{padding:"12px 14px",borderLeft:"2px solid var(--cyan)",
+    <div style={{padding:"12px 14px",borderLeft:"2px solid var(--warn)",
       background:"rgba(201,149,106,0.04)",margin:"16px 0",fontSize:12,
-      color:"var(--t2)",lineHeight:1.6}}>
+      color:"var(--ink-1)",lineHeight:1.6}}>
       {label && <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",
-        letterSpacing:"0.8px",color:"var(--cyan)",marginBottom:5}}>{label}</div>}
+        letterSpacing:"0.8px",color:"var(--warn)",marginBottom:5}}>{label}</div>}
       {children}
     </div>
   );
@@ -988,7 +988,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
       <div style={{display:"flex",flexDirection:"column",gap:0}}>
         {healthScore.breakdown.map((item,i) => {
           const pctVal = Math.round((item.pts/item.max)*100);
-          const color = pctVal>=80?"var(--green)":pctVal>=55?"var(--amber)":"var(--red)";
+          const color = pctVal>=80?"var(--safe)":pctVal>=55?"var(--warn)":"var(--debt)";
           return (
             <FRow key={item.label} label={`${item.label}${item.note?` (${item.note})`:"" }`}
               barW={pctVal} barColor={color}
@@ -1020,9 +1020,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,
             color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>II ·</span>
           <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",
-            fontWeight:400,fontSize:20,color:"var(--t1)"}}>Analytics</span>
+            fontWeight:400,fontSize:20,color:"var(--ink-0)"}}>Analytics</span>
           <div style={{width:1,height:12,background:"rgba(255,255,255,0.1)",margin:"0 4px"}}/>
-          <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",
+          <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--ink-2)",
             textTransform:"uppercase",letterSpacing:"0.5px"}}>
             {tabLabels[tab]} · {monthLabel}
           </span>
@@ -1034,9 +1034,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             <button key={t} onClick={()=>setTab(t)} style={{
               padding:"10px 16px",fontSize:11,cursor:"pointer",
               border:"none",background:"transparent",
-              color:tab===t?"var(--cyan)":"var(--t3)",
-              fontFamily:"var(--font-body)",
-              borderBottom:tab===t?"2px solid var(--cyan)":"2px solid transparent",
+              color:tab===t?"var(--warn)":"var(--ink-2)",
+              fontFamily:"var(--font-ui)",
+              borderBottom:tab===t?"2px solid var(--warn)":"2px solid transparent",
               transition:"all .15s",marginBottom:-1,flexShrink:0,
               ...(isMobile?{flex:1,padding:"10px 8px",fontSize:10}:{}),
             }}>{tabLabels[t]}</button>
@@ -1061,14 +1061,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   const barW = Math.round((m.spending/maxSpend)*100);
                   const isCurrent = i===0;
                   const momPct = arr[i+1] ? Math.round(((m.spending-arr[i+1].spending)/Math.max(arr[i+1].spending,1))*100) : null;
-                  const color = m.spending > m.income ? "var(--red)" : m.spending > avgSpending*1.1 ? "var(--amber)" : "var(--green)";
+                  const color = m.spending > m.income ? "var(--debt)" : m.spending > avgSpending*1.1 ? "var(--warn)" : "var(--safe)";
                   return (
                     <FRow key={m.ym}
-                      label={<span style={{width:44,flexShrink:0,display:"inline-block",fontFamily:"var(--font-mono)",fontSize:10,color:isCurrent?"var(--cyan)":"var(--t3)"}}>{m.label.split(" ")[0]}</span>}
-                      barW={barW} barColor={isCurrent?"var(--red)":color}
-                      val={fmt(m.spending)} valColor={isCurrent?"var(--red)":color}
+                      label={<span style={{width:44,flexShrink:0,display:"inline-block",fontFamily:"var(--font-mono)",fontSize:10,color:isCurrent?"var(--warn)":"var(--ink-2)"}}>{m.label.split(" ")[0]}</span>}
+                      barW={barW} barColor={isCurrent?"var(--debt)":color}
+                      val={fmt(m.spending)} valColor={isCurrent?"var(--debt)":color}
                       delta={momPct!=null?(momPct>0?"+":"")+momPct+"%":null}
-                      deltaColor={momPct==null?"var(--t3)":momPct>0?"var(--red)":"var(--green)"}
+                      deltaColor={momPct==null?"var(--ink-2)":momPct>0?"var(--debt)":"var(--safe)"}
                       last={i===arr.length-1}
                     />
                   );
@@ -1079,9 +1079,9 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <ColHdr>Income sources · all time</ColHdr>
                 {incomeSources.slice(0,3).map((s,i) => (
                   <div key={s.name} style={{padding:i===0?"10px 0":"8px 0 8px",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-                    <div style={{fontSize:13,color:"var(--t1)",fontWeight:500,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--green)"}}>{fmt(s.total)}</div>
-                    <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>{Math.round((s.total/incomeSources.reduce((a,x)=>a+x.total,0))*100)}% of income · {s.count} payments</div>
+                    <div style={{fontSize:13,color:"var(--ink-0)",fontWeight:500,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--safe)"}}>{fmt(s.total)}</div>
+                    <div style={{fontSize:10,color:"var(--ink-2)",marginTop:2}}>{Math.round((s.total/incomeSources.reduce((a,x)=>a+x.total,0))*100)}% of income · {s.count} payments</div>
                   </div>
                 ))}
                 <div style={{height:1,background:"rgba(255,255,255,0.04)",margin:"12px 0"}}/>
@@ -1089,10 +1089,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   {monthlySavings.map((m,i) => (
                     <div key={m.label} style={{textAlign:"center"}}>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:i===monthlySavings.length-1?"var(--cyan)":"var(--t3)"}}>{m.label.split(" ")[0]}</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:i===monthlySavings.length-1?"var(--warn)":"var(--ink-2)"}}>{m.label.split(" ")[0]}</div>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:i===monthlySavings.length-1?13:12,
                         fontWeight:i===monthlySavings.length-1?700:400,
-                        color:m.value>=0?"var(--green)":"var(--red)"}}>
+                        color:m.value>=0?"var(--safe)":"var(--debt)"}}>
                         {m.value>=0?"+":""}{m.value>=1000?`$${Math.round(m.value/1000)}k`:fmt(m.value)}
                       </div>
                     </div>
@@ -1112,24 +1112,24 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               <div>
                 <ColHdr>Key metrics</ColHdr>
                 <FRow label="Avg monthly spend" val={fmt(avgSpending)}
-                  valColor={momChange>0?"var(--red)":"var(--green)"}
+                  valColor={momChange>0?"var(--debt)":"var(--safe)"}
                   delta={momChange!=null?(momChange>0?"+":"")+momChange+"%":null}
-                  deltaColor={momChange>0?"var(--red)":"var(--green)"}/>
+                  deltaColor={momChange>0?"var(--debt)":"var(--safe)"}/>
                 <FRow label="Savings rate"
                   val={savingsRate!=null?`${savingsRate}%`:"—"}
-                  valColor={savingsRate>=20?"var(--green)":savingsRate>=0?"var(--amber)":"var(--red)"}
+                  valColor={savingsRate>=20?"var(--safe)":savingsRate>=0?"var(--warn)":"var(--debt)"}
                   delta={savingsRate>=20?"great":savingsRate>=0?"ok":"low"}
-                  deltaColor={savingsRate>=20?"var(--green)":savingsRate>=0?"var(--amber)":"var(--red)"}/>
+                  deltaColor={savingsRate>=20?"var(--safe)":savingsRate>=0?"var(--warn)":"var(--debt)"}/>
                 <FRow label="Budget efficiency"
                   val={efficiencyScore!=null?`${efficiencyScore}%`:"—"}
-                  valColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}
+                  valColor={efficiencyScore>=80?"var(--safe)":efficiencyScore>=60?"var(--warn)":"var(--debt)"}
                   delta={efficiencyScore>=80?"great":efficiencyScore>=60?"ok":"low"}
-                  deltaColor={efficiencyScore>=80?"var(--green)":efficiencyScore>=60?"var(--amber)":"var(--red)"}/>
+                  deltaColor={efficiencyScore>=80?"var(--safe)":efficiencyScore>=60?"var(--warn)":"var(--debt)"}/>
                 <FRow label="Subscriptions" val={fmt(subscriptionTotal)}
-                  valColor="var(--amber)"
+                  valColor="var(--warn)"
                   delta={`${subscriptions.length}×`}/>
                 <FRow label="Spend-free days" val={String(spendingFreeDays)}
-                  valColor={spendingFreeDays>=10?"var(--green)":spendingFreeDays>=5?"var(--amber)":"var(--red)"}
+                  valColor={spendingFreeDays>=10?"var(--safe)":spendingFreeDays>=5?"var(--warn)":"var(--debt)"}
                   delta="this mo" last/>
               </div>
             </div>
@@ -1140,24 +1140,24 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:48}}>
               <div>
                 <ColHdr>Rising ↑</ColHdr>
-                {risingCats.length===0?<div style={{fontSize:12,color:"var(--t3)"}}>No rising categories</div>:
+                {risingCats.length===0?<div style={{fontSize:12,color:"var(--ink-2)"}}>No rising categories</div>:
                   risingCats.map((c,i) => (
                     <FRow key={c.id} dot={c.color} label={c.name}
                       barW={Math.round((c.delta/Math.max(...risingCats.map(x=>x.delta),1))*100)}
-                      barColor="var(--red)"
-                      val={`+${fmt(c.delta)}`} valColor="var(--red)"
+                      barColor="var(--debt)"
+                      val={`+${fmt(c.delta)}`} valColor="var(--debt)"
                       last={i===risingCats.length-1}/>
                   ))
                 }
               </div>
               <div>
                 <ColHdr>Falling ↓</ColHdr>
-                {fallingCats.length===0?<div style={{fontSize:12,color:"var(--t3)"}}>No falling categories</div>:
+                {fallingCats.length===0?<div style={{fontSize:12,color:"var(--ink-2)"}}>No falling categories</div>:
                   fallingCats.map((c,i) => (
                     <FRow key={c.id} dot={c.color} label={c.name}
                       barW={Math.round((Math.abs(c.delta)/Math.max(...fallingCats.map(x=>Math.abs(x.delta)),1))*100)}
-                      barColor="var(--green)"
-                      val={fmt(c.delta)} valColor="var(--green)"
+                      barColor="var(--safe)"
+                      val={fmt(c.delta)} valColor="var(--safe)"
                       last={i===fallingCats.length-1}/>
                   ))
                 }
@@ -1185,13 +1185,13 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {dowSorted.map((d,i) => {
               const isTop = i===0;
               const barW = Math.round((d.total/dowTotalMax)*100);
-              const color = isTop?"var(--red)":i===1?"rgba(224,112,112,0.6)":barW>55?"var(--cyan)":"rgba(201,149,106,0.45)";
+              const color = isTop?"var(--debt)":i===1?"rgba(224,112,112,0.6)":barW>55?"var(--warn)":"rgba(201,149,106,0.45)";
               return (
                 <FRow key={d.day}
                   label={<span style={{width:80,flexShrink:0,display:"inline-block"}}>{d.fullDay}</span>}
                   barW={barW} barColor={color}
                   val={`${fmt(Math.round(d.total/Math.max(monthlyData.length,1)))} avg`}
-                  valColor={isTop?"var(--red)":"var(--t2)"}
+                  valColor={isTop?"var(--debt)":"var(--ink-1)"}
                   last={i===dowSorted.length-1}/>
               );
             })}
@@ -1211,7 +1211,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   label={m.name}
                   barW={Math.round((m.total/Math.max(merchantTotals[0]?.total||1,1))*100)}
                   barColor={cat?.color||"rgba(255,255,255,0.2)"}
-                  val={fmt(m.total)} valColor="var(--t1)"
+                  val={fmt(m.total)} valColor="var(--ink-0)"
                   delta={`${m.count}mo`}
                   last={i===merchantTotals.length-1}/>
               );
@@ -1229,17 +1229,17 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           {/* T III: Budget adherence flat rows */}
           <Tier ord="III" title="Budget Adherence" sub="Green = under · Amber = 80–100% · Red = over" ghost="III">
             {budgetGrid.length===0
-              ? <div style={{fontSize:13,color:"var(--t3)"}}>Set budget limits on categories to track adherence.</div>
+              ? <div style={{fontSize:13,color:"var(--ink-2)"}}>Set budget limits on categories to track adherence.</div>
               : budgetGrid.map((row,i) => {
                 const score = row.allMs>0 ? Math.round((1-row.overMs/row.allMs)*100) : null;
-                const color = score==null?"var(--t3)":score>=80?"var(--green)":score>=55?"var(--amber)":"var(--red)";
+                const color = score==null?"var(--ink-2)":score>=80?"var(--safe)":score>=55?"var(--warn)":"var(--debt)";
                 return (
                   <div key={row.cat.id}>
                     <FRow dot={row.cat.color} label={row.cat.name}
                       barW={score||0} barColor={color}
                       val={score!=null?`${score}%`:"—"} valColor={color}
                       delta={`${row.overMs}/${row.allMs}mo`}
-                      deltaColor={row.overMs>0?"var(--red)":"var(--green)"}
+                      deltaColor={row.overMs>0?"var(--debt)":"var(--safe)"}
                       last={i===budgetGrid.length-1}/>
                   </div>
                 );
@@ -1250,13 +1250,13 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           {/* T IV: Consecutive overspend */}
           <Tier ord="IV" title="Chronic Overspend" sub="Categories overspent 2+ consecutive months" ghost="IV">
             {budgetGrid.filter(r=>r.streak>=2).length===0
-              ? <div style={{fontSize:13,color:"var(--green)"}}>✓ No consecutive overspends.</div>
+              ? <div style={{fontSize:13,color:"var(--safe)"}}>✓ No consecutive overspends.</div>
               : budgetGrid.filter(r=>r.streak>=2).map((row,i,arr) => (
                 <FRow key={row.cat.id} dot={row.cat.color} label={row.cat.name}
                   barW={Math.round((row.streak/Math.max(monthlyData.length,1))*100)}
-                  barColor="var(--red)"
-                  val={`${row.streak}mo streak`} valColor="var(--red)"
-                  delta="chronic" deltaColor="var(--red)"
+                  barColor="var(--debt)"
+                  val={`${row.streak}mo streak`} valColor="var(--debt)"
+                  delta="chronic" deltaColor="var(--debt)"
                   last={i===arr.length-1}/>
               ))
             }
@@ -1269,8 +1269,8 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               const barW = row.allMs>0 ? Math.round((underMs/row.allMs)*100) : 0;
               return (
                 <FRow key={row.cat.id} dot={row.cat.color} label={row.cat.name}
-                  barW={barW} barColor="var(--green)"
-                  val={`${underMs}/${row.allMs} months`} valColor="var(--green)"
+                  barW={barW} barColor="var(--safe)"
+                  val={`${underMs}/${row.allMs} months`} valColor="var(--safe)"
                   delta={`avg ${fmt(row.avgSp)}`}
                   last={i===arr.length-1}/>
               );
@@ -1294,20 +1294,20 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {/* Corrections textarea */}
             {hasApiKey && (
               <div style={{marginBottom:16}}>
-                <div style={{fontSize:11,color:"var(--t3)",marginBottom:6,lineHeight:1.5}}>
-                  <span style={{fontWeight:600,color:"var(--t2)"}}>Corrections</span> — tell Claude anything it might get wrong before generating
+                <div style={{fontSize:11,color:"var(--ink-2)",marginBottom:6,lineHeight:1.5}}>
+                  <span style={{fontWeight:600,color:"var(--ink-1)"}}>Corrections</span> — tell Claude anything it might get wrong before generating
                 </div>
                 <textarea value={userCorrections} onChange={e=>setUserCorrections(e.target.value)}
                   placeholder='e.g. "My rent of $2,100 is not a subscription" · "Income is $6,500/mo after tax"'
                   rows={2} style={{width:"100%",background:"rgba(255,255,255,0.04)",
                     border:"1px solid rgba(255,255,255,0.06)",
-                    borderRadius:"var(--radius)",padding:"8px 10px",fontSize:12,
-                    color:"var(--t1)",resize:"vertical",fontFamily:"var(--font-body)",
+                    borderRadius:"var(--r-md)",padding:"8px 10px",fontSize:12,
+                    color:"var(--ink-0)",resize:"vertical",fontFamily:"var(--font-ui)",
                     lineHeight:1.5,outline:"none",boxSizing:"border-box",marginBottom:8,colorScheme:"dark"}}/>
                 <button style={{display:"flex",alignItems:"center",gap:6,padding:"8px 16px",
-                  borderRadius:"var(--radius)",fontSize:12,fontWeight:600,cursor:aiLoading?"default":"pointer",
+                  borderRadius:"var(--r-md)",fontSize:12,fontWeight:600,cursor:aiLoading?"default":"pointer",
                   border:"1px solid rgba(201,149,106,0.3)",marginLeft:"auto",
-                  background:"rgba(201,149,106,0.08)",color:"var(--cyan)",
+                  background:"rgba(201,149,106,0.08)",color:"var(--warn)",
                   opacity:aiLoading?0.7:1,transition:"all 0.15s"}}
                   onClick={!aiLoading?runAiInsights:undefined} disabled={aiLoading}>
                   {aiLoading?"✦ Analyzing…":aiInsights?"✦ Regenerate Insights":"✦ Generate Insights"}
@@ -1315,17 +1315,17 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </div>
             )}
             {!hasApiKey && (
-              <div style={{fontSize:13,color:"var(--t3)",padding:"24px 0",lineHeight:1.6}}>
+              <div style={{fontSize:13,color:"var(--ink-2)",padding:"24px 0",lineHeight:1.6}}>
                 Add your Claude API key on the Ask AI page to unlock AI-powered insights.
               </div>
             )}
-            {aiError && <div style={{fontSize:13,color:"var(--red)",padding:"10px 0"}}>{aiError}</div>}
+            {aiError && <div style={{fontSize:13,color:"var(--debt)",padding:"10px 0"}}>{aiError}</div>}
 
             {/* AI pull quote */}
             {aiInsights && (
               <div>
                 <div style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:17,
-                  color:"var(--t1)",lineHeight:1.7,marginBottom:20,paddingLeft:20,
+                  color:"var(--ink-0)",lineHeight:1.7,marginBottom:20,paddingLeft:20,
                   borderLeft:"2px solid rgba(201,149,106,0.3)"}}>
                   {aiInsights.headline || "Your financial data has been analyzed. See insights below."}
                   {aiInsights.insights?.[0]?.body ? ` ${aiInsights.insights[0].body}` : ""}
@@ -1335,32 +1335,32 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   {aiInsights.insights?.filter(i=>i.type==="warning").slice(0,2).map((ins,i) => (
                     <div key={i} style={{padding:"4px 10px",borderRadius:99,
                       background:"rgba(224,112,112,0.08)",border:"1px solid rgba(224,112,112,0.2)",
-                      fontSize:11,color:"var(--red)"}}>⚠ {ins.title}</div>
+                      fontSize:11,color:"var(--debt)"}}>⚠ {ins.title}</div>
                   ))}
                   {aiInsights.insights?.filter(i=>i.type==="positive").slice(0,2).map((ins,i) => (
                     <div key={i} style={{padding:"4px 10px",borderRadius:99,
                       background:"rgba(109,184,138,0.08)",border:"1px solid rgba(109,184,138,0.2)",
-                      fontSize:11,color:"var(--green)"}}>✓ {ins.title}</div>
+                      fontSize:11,color:"var(--safe)"}}>✓ {ins.title}</div>
                   ))}
                   {aiInsights.score && (
                     <div style={{padding:"4px 10px",borderRadius:99,
                       background:"rgba(201,149,106,0.08)",border:"1px solid rgba(201,149,106,0.2)",
-                      fontSize:11,color:"var(--cyan)"}}>◎ Score: {aiInsights.score} / 100</div>
+                      fontSize:11,color:"var(--warn)"}}>◎ Score: {aiInsights.score} / 100</div>
                   )}
                 </div>
                 {/* Insight list */}
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
                   {aiInsights.insights?.map((ins,i) => (
-                    <div key={i} style={{paddingLeft:20,borderLeft:`2px solid ${ins.type==="positive"?"var(--green)":ins.type==="warning"?"var(--amber)":"rgba(255,255,255,0.08)"}`}}>
-                      <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",marginBottom:2}}>{ins.title}</div>
-                      <div style={{fontSize:12,color:"var(--t2)",lineHeight:1.5,marginBottom:ins.suggestion?6:0}}>{ins.body}</div>
+                    <div key={i} style={{paddingLeft:20,borderLeft:`2px solid ${ins.type==="positive"?"var(--safe)":ins.type==="warning"?"var(--warn)":"rgba(255,255,255,0.08)"}`}}>
+                      <div style={{fontSize:13,fontWeight:600,color:"var(--ink-0)",marginBottom:2}}>{ins.title}</div>
+                      <div style={{fontSize:12,color:"var(--ink-1)",lineHeight:1.5,marginBottom:ins.suggestion?6:0}}>{ins.body}</div>
                       {ins.suggestion && (
-                        <div style={{fontSize:11,color:"var(--t3)",marginBottom:4}}>{ins.suggestion}</div>
+                        <div style={{fontSize:11,color:"var(--ink-2)",marginBottom:4}}>{ins.suggestion}</div>
                       )}
                       {ins.suggestion && (
                         <button onClick={()=>addTodo(ins.suggestion)}
                           style={{fontSize:11,fontWeight:600,cursor:"pointer",background:"none",border:"none",padding:0,
-                            color:isTodoAdded(ins.suggestion)?"var(--green)":"var(--cyan)"}}>
+                            color:isTodoAdded(ins.suggestion)?"var(--safe)":"var(--warn)"}}>
                           {isTodoAdded(ins.suggestion)?"✓ Added to To-Do":"+ Add to To-Do"}
                         </button>
                       )}
@@ -1368,14 +1368,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   ))}
                 </div>
                 {aiInsights.recommendation && (
-                  <div style={{marginTop:16,padding:"12px 14px",borderLeft:"2px solid var(--cyan)",
+                  <div style={{marginTop:16,padding:"12px 14px",borderLeft:"2px solid var(--warn)",
                     background:"rgba(201,149,106,0.04)"}}>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",
-                      letterSpacing:"0.8px",color:"var(--cyan)",marginBottom:5}}>✦ This month's action</div>
-                    <div style={{fontSize:13,color:"var(--t1)",lineHeight:1.5,marginBottom:8}}>{aiInsights.recommendation}</div>
+                      letterSpacing:"0.8px",color:"var(--warn)",marginBottom:5}}>✦ This month's action</div>
+                    <div style={{fontSize:13,color:"var(--ink-0)",lineHeight:1.5,marginBottom:8}}>{aiInsights.recommendation}</div>
                     <button onClick={()=>addTodo(aiInsights.recommendation)}
                       style={{fontSize:11,fontWeight:600,cursor:"pointer",background:"none",border:"none",padding:0,
-                        color:isTodoAdded(aiInsights.recommendation)?"var(--green)":"var(--cyan)"}}>
+                        color:isTodoAdded(aiInsights.recommendation)?"var(--safe)":"var(--warn)"}}>
                       {isTodoAdded(aiInsights.recommendation)?"✓ Added to To-Do":"+ Add to To-Do"}
                     </button>
                   </div>
@@ -1383,7 +1383,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               </div>
             )}
             {!aiInsights&&!aiLoading&&!aiError&&hasApiKey&&(
-              <div style={{fontSize:13,color:"var(--t3)",padding:"24px 0",textAlign:"center"}}>
+              <div style={{fontSize:13,color:"var(--ink-2)",padding:"24px 0",textAlign:"center"}}>
                 Add any corrections above, then tap Generate Insights.
               </div>
             )}
@@ -1392,7 +1392,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           {/* T IV: Action Items */}
           <Tier ord="IV" title="Action Items" sub="Suggested from your spending patterns" ghost="IV">
             {todos.length===0 ? (
-              <div style={{fontSize:13,color:"var(--t3)"}}>
+              <div style={{fontSize:13,color:"var(--ink-2)"}}>
                 Generate insights above and tap "+ Add to To-Do" on any suggestion.
               </div>
             ) : (
@@ -1404,14 +1404,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                       border:"1px solid rgba(201,149,106,0.3)",
                       background:"none",cursor:"pointer",flexShrink:0,marginTop:2,
                       display:"flex",alignItems:"center",justifyContent:"center",
-                      color:"var(--cyan)",fontSize:10}}>✓</button>
+                      color:"var(--warn)",fontSize:10}}>✓</button>
                     <div>
-                      <div style={{fontSize:13,color:"var(--t1)"}}>{todo.text}</div>
+                      <div style={{fontSize:13,color:"var(--ink-0)"}}>{todo.text}</div>
                     </div>
                   </div>
                 ))}
                 <button onClick={()=>onTodosChange([])}
-                  style={{fontSize:11,color:"var(--t3)",background:"none",border:"none",
+                  style={{fontSize:11,color:"var(--ink-2)",background:"none",border:"none",
                     cursor:"pointer",textAlign:"left",padding:0,marginTop:4}}>Clear all</button>
               </div>
             )}
@@ -1425,18 +1425,18 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <div key={r.name} style={{display:"flex",alignItems:"center",gap:10,
                   padding:"9px 0",borderBottom:i<arr.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
                   <div style={{width:2,height:24,borderRadius:1,background:"rgba(255,255,255,0.12)",flexShrink:0}}/>
-                  <div style={{flex:1,minWidth:0,fontSize:12,color:"var(--t2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                  <div style={{flex:1,minWidth:0,fontSize:12,color:"var(--ink-1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                     {r.name} · ~{fmt(r.amount)}/{r.freqLabel.toLowerCase().replace("ly","")}
                   </div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--t3)",flexShrink:0}}>{r.count} occurrences</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--ink-2)",flexShrink:0}}>{r.count} occurrences</div>
                   <div style={{display:"flex",gap:6,marginLeft:12,flexShrink:0}}>
                     <button onClick={()=>onMarkRecurring&&onMarkRecurring(r.txnIds)}
                       style={{padding:"3px 9px",borderRadius:5,
                         background:"rgba(201,149,106,0.1)",border:"1px solid rgba(201,149,106,0.25)",
-                        color:"var(--cyan)",fontSize:10,cursor:"pointer"}}>Confirm</button>
+                        color:"var(--warn)",fontSize:10,cursor:"pointer"}}>Confirm</button>
                     <button onClick={()=>setDismissedRecurring(p=>new Set([...p,r.name]))}
                       style={{padding:"3px 9px",borderRadius:5,background:"none",
-                        border:"1px solid rgba(255,255,255,0.06)",color:"var(--t3)",
+                        border:"1px solid rgba(255,255,255,0.06)",color:"var(--ink-2)",
                         fontSize:10,cursor:"pointer"}}>Dismiss</button>
                   </div>
                 </div>
@@ -1445,7 +1445,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           )}
           {detectedRecurring.filter(r=>!dismissedRecurring.has(r.name)).length===0 && (
             <Tier ord="V" title="Detected Recurring Charges" last sub="Unconfirmed · confirm to add to calendar" ghost="V">
-              <div style={{fontSize:13,color:"var(--t3)"}}>No new recurring charges detected.</div>
+              <div style={{fontSize:13,color:"var(--ink-2)"}}>No new recurring charges detected.</div>
             </Tier>
           )}
         </div>
@@ -1458,22 +1458,22 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         <div key="goals" className="ledgr-panel-in">
           <Tier ord="III" title="Savings Goals" sub="Track progress toward your financial targets" last ghost="III">
             {goals.length===0 ? (
-              <div style={{fontSize:13,color:"var(--t3)"}}>No goals yet. Add a savings goal to start tracking.</div>
+              <div style={{fontSize:13,color:"var(--ink-2)"}}>No goals yet. Add a savings goal to start tracking.</div>
             ) : (
               <div style={{display:"flex",flexDirection:"column",gap:0}}>
                 {goals.map((g,i) => {
                   const pctVal = g.targetAmount>0 ? Math.min(Math.round(((g.savedAmount||0)/g.targetAmount)*100),100) : 0;
-                  const color = pctVal>=100?"var(--green)":pctVal>=60?"var(--cyan)":"var(--amber)";
+                  const color = pctVal>=100?"var(--safe)":pctVal>=60?"var(--warn)":"var(--warn)";
                   return (
                     <div key={g.id} style={{padding:"12px 0",borderBottom:i<goals.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
                       <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                        <div style={{fontSize:13,fontWeight:500,color:"var(--t1)"}}>{g.title}</div>
+                        <div style={{fontSize:13,fontWeight:500,color:"var(--ink-0)"}}>{g.title}</div>
                         <div style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color}}>{pctVal}%</div>
                       </div>
                       <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden",marginBottom:6}}>
                         <div style={{height:"100%",width:`${pctVal}%`,background:color,borderRadius:99,transition:"width 0.5s"}}/>
                       </div>
-                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--ink-2)"}}>
                         <span>{fmt(g.savedAmount||0)} saved</span>
                         <span>{fmt(g.targetAmount)} target</span>
                       </div>
@@ -1484,10 +1484,10 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             )}
             {onSaveGoal && (
               <button onClick={()=>setGoalForm({})}
-                style={{marginTop:20,padding:"8px 16px",borderRadius:"var(--radius)",
+                style={{marginTop:20,padding:"8px 16px",borderRadius:"var(--r-md)",
                   fontSize:12,fontWeight:600,cursor:"pointer",
                   background:"rgba(201,149,106,0.08)",border:"1px solid rgba(201,149,106,0.25)",
-                  color:"var(--cyan)"}}>+ Add Goal</button>
+                  color:"var(--warn)"}}>+ Add Goal</button>
             )}
           </Tier>
         </div>
@@ -1520,15 +1520,15 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               {/* Milestone numbers */}
               <div style={{display:"flex",gap:0,marginBottom:24,flexWrap:"wrap"}}>
                 <div style={{marginRight:32}}>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Today</div>
-                  <div style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:700,color:"var(--t1)",letterSpacing:"-1px"}}>{fmtK(currentNetWorth)}</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>Today</div>
+                  <div style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:700,color:"var(--ink-0)",letterSpacing:"-1px"}}>{fmtK(currentNetWorth)}</div>
                 </div>
                 {milestones.map((m,i)=>(
                   <div key={m.label} style={{marginRight:32,paddingLeft:i===0?0:0}}>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>{m.label}</div>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>{m.label}</div>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:700,letterSpacing:"-1px",
-                      color:i===milestones.length-1?"var(--green)":"var(--t1)"}}>{fmtK(m.moderate)}</div>
-                    <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>
+                      color:i===milestones.length-1?"var(--safe)":"var(--ink-0)"}}>{fmtK(m.moderate)}</div>
+                    <div style={{fontSize:10,color:"var(--ink-2)",marginTop:2}}>
                       {m.optimistic>m.moderate?`↑ ${fmtK(m.optimistic)} best`:`${fmtK(m.conservative)} conservative`}
                     </div>
                   </div>
@@ -1579,25 +1579,25 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
                   {/* Moderate line (hero) */}
                   <path d={buildPath("moderate")} fill="none"
-                    stroke="var(--cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    stroke="var(--warn)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 
                   {/* Milestone dots */}
                   {[2,6,10,20].map(i=>(
                     <circle key={i} cx={xOf(i)} cy={yOf(nwPoints[i]?.moderate||0)}
-                      r="4" fill="var(--cyan)" style={{filter:"drop-shadow(0 0 4px rgba(201,149,106,0.7))"}}/>
+                      r="4" fill="var(--warn)" style={{filter:"drop-shadow(0 0 4px rgba(201,149,106,0.7))"}}/>
                   ))}
                 </svg>
               </div>
 
               {/* Legend */}
               <div style={{display:"flex",gap:20,marginTop:10,flexWrap:"wrap"}}>
-                {[["var(--cyan)",false,"Moderate (7%)"],["rgba(109,184,138,0.6)",true,"Optimistic (10%)"],["rgba(255,255,255,0.3)",true,"Conservative (4%)"]].map(([color,dashed,label])=>(
-                  <div key={label} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--t3)"}}>
+                {[["var(--warn)",false,"Moderate (7%)"],["rgba(109,184,138,0.6)",true,"Optimistic (10%)"],["rgba(255,255,255,0.3)",true,"Conservative (4%)"]].map(([color,dashed,label])=>(
+                  <div key={label} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--ink-2)"}}>
                     <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke={color} strokeWidth={dashed?1.5:2} strokeDasharray={dashed?"4,3":"none"}/></svg>
                     {label}
                   </div>
                 ))}
-                {monthlySv>0&&<div style={{fontSize:11,color:"var(--t3)",marginLeft:"auto"}}>↳ Based on {fmtK(Math.round(monthlySv))}/mo savings</div>}
+                {monthlySv>0&&<div style={{fontSize:11,color:"var(--ink-2)",marginLeft:"auto"}}>↳ Based on {fmtK(Math.round(monthlySv))}/mo savings</div>}
               </div>
             </Tier>
 
@@ -1605,7 +1605,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             <Tier ord="IV" title="Goal Completion Timelines" ghost="IV"
               sub="Estimated at current savings pace">
               {goalTimelines.length===0?(
-                <div style={{fontSize:13,color:"var(--t3)"}}>
+                <div style={{fontSize:13,color:"var(--ink-2)"}}>
                   No goals set yet. Add goals on the Goals tab to see completion estimates.
                 </div>
               ):(
@@ -1613,23 +1613,23 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   {goalTimelines.map((g,i)=>(
                     <div key={g.id} style={{padding:"12px 0",borderBottom:i<goalTimelines.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7,gap:10}}>
-                        <div style={{fontSize:13,fontWeight:500,color:g.done?"var(--green)":"var(--t1)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</div>
+                        <div style={{fontSize:13,fontWeight:500,color:g.done?"var(--safe)":"var(--ink-0)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</div>
                         <div style={{display:"flex",gap:12,alignItems:"baseline",flexShrink:0}}>
-                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)"}}>
+                          <span style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--ink-2)"}}>
                             {fmt(g.savedAmount||0)} / {fmt(g.targetAmount||0)}
                           </span>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,
-                            color:g.done?"var(--green)":g.months&&g.months<24?"var(--cyan)":"var(--amber)"}}>
+                            color:g.done?"var(--safe)":g.months&&g.months<24?"var(--warn)":"var(--warn)"}}>
                             {g.date}
                           </span>
                         </div>
                       </div>
                       <div style={{height:2,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden"}}>
                         <div style={{height:"100%",width:`${g.pct}%`,borderRadius:99,transition:"width 0.5s",
-                          background:g.done?"var(--green)":g.pct>=60?"var(--cyan)":"var(--amber)"}}/>
+                          background:g.done?"var(--safe)":g.pct>=60?"var(--warn)":"var(--warn)"}}/>
                       </div>
                       {!g.done&&g.months&&(
-                        <div style={{fontSize:10,color:"var(--t3)",marginTop:4}}>
+                        <div style={{fontSize:10,color:"var(--ink-2)",marginTop:4}}>
                           {fmt(Math.max(0,(g.targetAmount||0)-(g.savedAmount||0)))} remaining · ~{g.months} month{g.months!==1?"s":""}
                         </div>
                       )}
@@ -1646,7 +1646,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
                 {/* Retirement */}
                 <div>
-                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Retirement projection</div>
+                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Retirement projection</div>
                   {(()=>{
                     const {fv:retFv,target:retTarget,years,monthlySavings:ms}=retirementProjection;
                     const onTrack = retTarget>0?retFv>=retTarget:true;
@@ -1662,27 +1662,27 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                             <svg width="96" height="96" viewBox="0 0 96 96" style={{flexShrink:0}}>
                               <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8"/>
                               <circle cx="48" cy="48" r={r} fill="none"
-                                stroke={onTrack?"var(--green)":"var(--amber)"}
+                                stroke={onTrack?"var(--safe)":"var(--warn)"}
                                 strokeWidth="8" strokeLinecap="round"
                                 strokeDasharray={`${dash} ${circ}`}
                                 transform="rotate(-90 48 48)"/>
-                              <text x="48" y="44" textAnchor="middle" style={{fontSize:13,fontWeight:700,fill:"var(--t1)",fontFamily:"var(--font-mono)"}}>{pct}%</text>
-                              <text x="48" y="58" textAnchor="middle" style={{fontSize:9,fill:"var(--t3)",fontFamily:"var(--font-mono)"}}>of goal</text>
+                              <text x="48" y="44" textAnchor="middle" style={{fontSize:13,fontWeight:700,fill:"var(--ink-0)",fontFamily:"var(--font-mono)"}}>{pct}%</text>
+                              <text x="48" y="58" textAnchor="middle" style={{fontSize:9,fill:"var(--ink-2)",fontFamily:"var(--font-mono)"}}>of goal</text>
                             </svg>
                           )}
                           <div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Projected at {retAge}</div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:700,color:onTrack?"var(--green)":"var(--amber)",letterSpacing:"-1px"}}>{fmtK(retFv)}</div>
-                            {retTarget>0&&<div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>Target: {fmtK(retTarget)}</div>}
-                            <div style={{fontSize:11,color:"var(--t3)",marginTop:2}}>{years} year{years!==1?"s":""} away</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>Projected at {retAge}</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:700,color:onTrack?"var(--safe)":"var(--warn)",letterSpacing:"-1px"}}>{fmtK(retFv)}</div>
+                            {retTarget>0&&<div style={{fontSize:11,color:"var(--ink-2)",marginTop:3}}>Target: {fmtK(retTarget)}</div>}
+                            <div style={{fontSize:11,color:"var(--ink-2)",marginTop:2}}>{years} year{years!==1?"s":""} away</div>
                           </div>
                         </div>
                         {retTarget>0&&!onTrack&&ms>0&&(()=>{
                           const gap = retTarget-retFv;
                           const extraNeeded = Math.round(gap/(years*12*((Math.pow(1.07/12+1,years*12)-1)/(0.07/12))||1));
-                          return <div style={{fontSize:12,color:"var(--amber)",padding:"8px 12px",background:"rgba(201,149,106,0.06)",borderRadius:"var(--radius)",borderLeft:"2px solid rgba(201,149,106,0.3)"}}>To reach goal: save {fmtK(extraNeeded)}/mo more</div>;
+                          return <div style={{fontSize:12,color:"var(--warn)",padding:"8px 12px",background:"rgba(201,149,106,0.06)",borderRadius:"var(--r-md)",borderLeft:"2px solid rgba(201,149,106,0.3)"}}>To reach goal: save {fmtK(extraNeeded)}/mo more</div>;
                         })()}
-                        {!retTarget&&<div style={{fontSize:12,color:"var(--t3)"}}>Set a retirement target in Settings → Financial Profile to see your gap.</div>}
+                        {!retTarget&&<div style={{fontSize:12,color:"var(--ink-2)"}}>Set a retirement target in Settings → Financial Profile to see your gap.</div>}
                       </div>
                     );
                   })()}
@@ -1690,34 +1690,34 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
                 {/* Emergency fund */}
                 <div>
-                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Emergency fund</div>
+                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Emergency fund</div>
                   {(()=>{
                     const months = Math.round(monthsCovered*10)/10;
-                    const statusColor = months>=6?"var(--green)":months>=3?"var(--amber)":"var(--red)";
+                    const statusColor = months>=6?"var(--safe)":months>=3?"var(--warn)":"var(--debt)";
                     const statusLabel = months>=6?"Fully funded":months>=3?"Partially funded":"Underfunded";
                     return (
                       <div>
                         <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:14}}>
                           <div style={{flex:1}}>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Months covered</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>Months covered</div>
                             <div style={{fontFamily:"var(--font-mono)",fontSize:28,fontWeight:700,color:statusColor,letterSpacing:"-2px",lineHeight:1}}>{months.toFixed(1)}</div>
                             <div style={{fontSize:11,color:statusColor,marginTop:3}}>{statusLabel}</div>
                           </div>
                           <div style={{textAlign:"right"}}>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Liquid balance</div>
-                            <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:"var(--t1)"}}>{fmtK(liquidBalance)}</div>
-                            <div style={{fontSize:10,color:"var(--t3)",marginTop:2}}>Target: {fmtK(emergencyTarget)}</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>Liquid balance</div>
+                            <div style={{fontFamily:"var(--font-mono)",fontSize:16,fontWeight:700,color:"var(--ink-0)"}}>{fmtK(liquidBalance)}</div>
+                            <div style={{fontSize:10,color:"var(--ink-2)",marginTop:2}}>Target: {fmtK(emergencyTarget)}</div>
                           </div>
                         </div>
                         <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:99,overflow:"hidden",marginBottom:8}}>
                           <div style={{height:"100%",width:`${emergencyPct}%`,background:statusColor,borderRadius:99,transition:"width 0.5s"}}/>
                         </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--t3)",marginBottom:10}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--ink-2)",marginBottom:10}}>
                           <span>0 months</span><span>3 months</span><span>6 months</span>
                         </div>
                         {monthsToEmergency>0&&monthlySv>0&&(
-                          <div style={{fontSize:12,color:"var(--t3)"}}>
-                            At current pace: fully funded in <span style={{color:"var(--cyan)",fontWeight:600}}>{monthsToEmergency} month{monthsToEmergency!==1?"s":""}</span>
+                          <div style={{fontSize:12,color:"var(--ink-2)"}}>
+                            At current pace: fully funded in <span style={{color:"var(--warn)",fontWeight:600}}>{monthsToEmergency} month{monthsToEmergency!==1?"s":""}</span>
                           </div>
                         )}
                       </div>
@@ -1733,33 +1733,33 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
               <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:48}}>
                 <div>
                   {/* Big number strip */}
-                  <div style={{display:"flex",gap:0,marginBottom:20,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
+                  <div style={{display:"flex",gap:0,marginBottom:20,borderRadius:"var(--r-md)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
                     {[["1 year",subDrain.yr1],["5 years",subDrain.yr5],["10 years",subDrain.yr10]].map(([label,val],i,arr)=>(
                       <div key={label} style={{flex:1,padding:"10px 12px",borderRight:i<arr.length-1?"1px solid rgba(255,255,255,0.06)":"none",background:"transparent"}}>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>{label}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:i===2?18:14,fontWeight:700,color:i===2?"var(--red)":"var(--t1)"}}>{fmtK(val)}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>{label}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:i===2?18:14,fontWeight:700,color:i===2?"var(--debt)":"var(--ink-0)"}}>{fmtK(val)}</div>
                       </div>
                     ))}
                   </div>
                   {subscriptionTotal>0?(
-                    <div style={{fontSize:12,color:"var(--t3)",marginBottom:16,lineHeight:1.6}}>
-                      You're currently spending <span style={{color:"var(--amber)",fontWeight:600}}>{fmtK(subscriptionTotal)}/mo</span> on {subscriptions.length} recurring charge{subscriptions.length!==1?"s":""}. Over a decade, that's <span style={{color:"var(--red)",fontWeight:600}}>{fmtK(subDrain.yr10)}</span> — enough to {fmtK(subDrain.yr10)>50000?"fund a significant portion of retirement":"make a meaningful investment"}.
+                    <div style={{fontSize:12,color:"var(--ink-2)",marginBottom:16,lineHeight:1.6}}>
+                      You're currently spending <span style={{color:"var(--warn)",fontWeight:600}}>{fmtK(subscriptionTotal)}/mo</span> on {subscriptions.length} recurring charge{subscriptions.length!==1?"s":""}. Over a decade, that's <span style={{color:"var(--debt)",fontWeight:600}}>{fmtK(subDrain.yr10)}</span> — enough to {fmtK(subDrain.yr10)>50000?"fund a significant portion of retirement":"make a meaningful investment"}.
                     </div>
                   ):(
-                    <div style={{fontSize:12,color:"var(--t3)"}}>No recurring charges found. Mark transactions as recurring to track them here.</div>
+                    <div style={{fontSize:12,color:"var(--ink-2)"}}>No recurring charges found. Mark transactions as recurring to track them here.</div>
                   )}
                 </div>
 
                 {/* Top drains */}
                 {topSubs.length>0&&(
                   <div>
-                    <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Biggest drains · 10yr cost</div>
+                    <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Biggest drains · 10yr cost</div>
                     {topSubs.map((s,i)=>(
                       <div key={s.name} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<topSubs.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
                         <div style={{width:2,height:24,background:"rgba(255,255,255,0.1)",borderRadius:1,flexShrink:0}}/>
-                        <div style={{flex:1,fontSize:12,color:"var(--t2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--t3)",flexShrink:0}}>{fmtK(s.amount)}/mo</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--red)",flexShrink:0,width:56,textAlign:"right"}}>{fmtK(s.amount*120)}</div>
+                        <div style={{flex:1,fontSize:12,color:"var(--ink-1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--ink-2)",flexShrink:0}}>{fmtK(s.amount)}/mo</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,color:"var(--debt)",flexShrink:0,width:56,textAlign:"right"}}>{fmtK(s.amount*120)}</div>
                       </div>
                     ))}
                   </div>
@@ -1770,14 +1770,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {/* ── T VII: Power of Small Changes ── */}
             <Tier ord="VII" title="Power of Small Changes" ghost="VII"
               sub="What an extra $X/month becomes at 7% compound growth">
-              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":`repeat(3,1fr)`,gap:isMobile?12:0,borderRadius:"var(--radius)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":`repeat(3,1fr)`,gap:isMobile?12:0,borderRadius:"var(--r-md)",overflow:"hidden",border:"1px solid rgba(255,255,255,0.06)"}}>
                 {savingsBoosts.map((b,i,arr)=>(
                   <div key={b.extra} style={{padding:"16px 18px",borderRight:!isMobile&&i<arr.length-1?"1px solid rgba(255,255,255,0.06)":"none"}}>
                     <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.8px",color:"rgba(201,149,106,0.5)",marginBottom:8}}>+{fmtK(b.extra)}/month</div>
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {[["5 years",b.yr5,"var(--t2)"],["10 years",b.yr10,"var(--cyan)"],["20 years",b.yr20,"var(--green)"]].map(([label,val,color])=>(
+                      {[["5 years",b.yr5,"var(--ink-1)"],["10 years",b.yr10,"var(--warn)"],["20 years",b.yr20,"var(--safe)"]].map(([label,val,color])=>(
                         <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
-                          <span style={{fontSize:11,color:"var(--t3)"}}>{label}</span>
+                          <span style={{fontSize:11,color:"var(--ink-2)"}}>{label}</span>
                           <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color}}>{fmtK(val)}</span>
                         </div>
                       ))}
@@ -1785,7 +1785,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                   </div>
                 ))}
               </div>
-              <div style={{fontSize:11,color:"var(--t3)",marginTop:10,lineHeight:1.6}}>
+              <div style={{fontSize:11,color:"var(--ink-2)",marginTop:10,lineHeight:1.6}}>
                 Assumes 7% average annual return, compounded monthly. Does not include your existing savings — this is purely the growth of the additional contribution alone.
               </div>
             </Tier>
@@ -1797,34 +1797,34 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 <div>
                   <div style={{display:"flex",gap:32,marginBottom:20}}>
                     <div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Next month</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>Next month</div>
                       <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,letterSpacing:"-1px",
-                        color:spendTrend>0.05?"var(--red)":spendTrend<-0.05?"var(--green)":"var(--t1)"}}>{fmtK(nextMonthEst)}</div>
-                      {Math.abs(spendTrend)>0.01&&<div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>
+                        color:spendTrend>0.05?"var(--debt)":spendTrend<-0.05?"var(--safe)":"var(--ink-0)"}}>{fmtK(nextMonthEst)}</div>
+                      {Math.abs(spendTrend)>0.01&&<div style={{fontSize:11,color:"var(--ink-2)",marginTop:3}}>
                         {spendTrend>0?`↑ ${Math.round(spendTrend*100)}% vs avg`:`↓ ${Math.round(Math.abs(spendTrend)*100)}% vs avg`}
                       </div>}
                     </div>
                     <div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:4}}>Annual forecast</div>
-                      <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,letterSpacing:"-1px",color:"var(--t1)"}}>{fmtK(annualForecast)}</div>
-                      <div style={{fontSize:11,color:"var(--t3)",marginTop:3}}>vs {fmtK(avgSpending*12)} avg/yr</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:4}}>Annual forecast</div>
+                      <div style={{fontFamily:"var(--font-mono)",fontSize:24,fontWeight:700,letterSpacing:"-1px",color:"var(--ink-0)"}}>{fmtK(annualForecast)}</div>
+                      <div style={{fontSize:11,color:"var(--ink-2)",marginTop:3}}>vs {fmtK(avgSpending*12)} avg/yr</div>
                     </div>
                   </div>
                   {/* Trend bar viz */}
-                  <div style={{background:"rgba(255,255,255,0.03)",borderRadius:"var(--radius)",padding:"12px 14px"}}>
-                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--t3)",marginBottom:10}}>Last 6 months</div>
+                  <div style={{background:"rgba(255,255,255,0.03)",borderRadius:"var(--r-md)",padding:"12px 14px"}}>
+                    <div style={{fontFamily:"var(--font-mono)",fontSize:9,textTransform:"uppercase",letterSpacing:"0.8px",color:"var(--ink-2)",marginBottom:10}}>Last 6 months</div>
                     {last6.map((m,i)=>{
                       const maxSpend=Math.max(...last6.map(x=>x.spending),1);
                       const barW=Math.round((m.spending/maxSpend)*100);
                       const isCurrent=i===last6.length-1;
                       return(
                         <div key={m.ym} style={{display:"flex",alignItems:"center",gap:8,marginBottom:i<last6.length-1?6:0}}>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:isCurrent?"var(--cyan)":"var(--t3)",width:28,flexShrink:0}}>{m.label.split(" ")[0]}</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:9,color:isCurrent?"var(--warn)":"var(--ink-2)",width:28,flexShrink:0}}>{m.label.split(" ")[0]}</div>
                           <div style={{flex:1,height:4,background:"rgba(255,255,255,0.05)",borderRadius:99,overflow:"hidden"}}>
                             <div style={{height:"100%",width:`${barW}%`,borderRadius:99,
-                              background:isCurrent?"var(--cyan)":"rgba(255,255,255,0.2)"}}/>
+                              background:isCurrent?"var(--warn)":"rgba(255,255,255,0.2)"}}/>
                           </div>
-                          <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:isCurrent?"var(--t1)":"var(--t3)",width:44,textAlign:"right",flexShrink:0}}>{fmtK(m.spending)}</div>
+                          <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:isCurrent?"var(--ink-0)":"var(--ink-2)",width:44,textAlign:"right",flexShrink:0}}>{fmtK(m.spending)}</div>
                         </div>
                       );
                     })}
@@ -1833,16 +1833,16 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
                 {/* Account projections */}
                 <div>
-                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--t3)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Account balance projections</div>
+                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Account balance projections</div>
                   {accountProjections.length===0?(
-                    <div style={{fontSize:12,color:"var(--t3)"}}>No accounts found.</div>
+                    <div style={{fontSize:12,color:"var(--ink-2)"}}>No accounts found.</div>
                   ):accountProjections.slice(0,6).map((a,i)=>(
                     <div key={a.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<Math.min(accountProjections.length,6)-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
-                      <div style={{width:5,height:5,borderRadius:"50%",background:a.trend>0?"var(--green)":a.trend<0?"var(--red)":"var(--t3)",flexShrink:0}}/>
-                      <div style={{flex:1,fontSize:12,color:"var(--t2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</div>
+                      <div style={{width:5,height:5,borderRadius:"50%",background:a.trend>0?"var(--safe)":a.trend<0?"var(--debt)":"var(--ink-2)",flexShrink:0}}/>
+                      <div style={{flex:1,fontSize:12,color:"var(--ink-1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</div>
                       <div style={{textAlign:"right",flexShrink:0}}>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:"var(--t1)"}}>{fmtK(a.balance)}</div>
-                        <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:a.proj12mo>a.balance?"var(--green)":"var(--red)"}}>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:600,color:"var(--ink-0)"}}>{fmtK(a.balance)}</div>
+                        <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:a.proj12mo>a.balance?"var(--safe)":"var(--debt)"}}>
                           {a.proj12mo>a.balance?"↑":"↓"} {fmtK(a.proj12mo)} in 1yr
                         </div>
                       </div>
@@ -1864,27 +1864,27 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:199}}
             onClick={()=>setGoalForm(null)}/>
           <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
-            zIndex:200,background:"var(--card)",borderRadius:"var(--radius)",
+            zIndex:200,background:"var(--bg-2)",borderRadius:"var(--r-md)",
             padding:24,width:"90vw",maxWidth:400,boxShadow:"0 16px 48px #0009"}}>
-            <div style={{fontSize:16,fontWeight:700,color:"var(--t1)",marginBottom:16}}>
+            <div style={{fontSize:16,fontWeight:700,color:"var(--ink-0)",marginBottom:16}}>
               {goalForm.id?"Edit Goal":"New Goal"}
             </div>
             {[["title","Goal name","text"],["targetAmount","Target amount","number"],["savedAmount","Amount saved so far","number"]].map(([k,label,type]) => (
               <div key={k} style={{marginBottom:12}}>
-                <div style={{fontSize:11,color:"var(--t3)",marginBottom:4}}>{label}</div>
+                <div style={{fontSize:11,color:"var(--ink-2)",marginBottom:4}}>{label}</div>
                 <input type={type} value={goalForm[k]||""} onChange={e=>setGoalForm(f=>({...f,[k]:type==="number"?parseFloat(e.target.value)||0:e.target.value}))}
-                  style={{width:"100%",background:"var(--surface)",border:"1px solid var(--border)",
-                    borderRadius:"var(--radius)",padding:"8px 10px",fontSize:13,color:"var(--t1)",
+                  style={{width:"100%",background:"var(--bg-1)",border:"1px solid var(--line)",
+                    borderRadius:"var(--r-md)",padding:"8px 10px",fontSize:13,color:"var(--ink-0)",
                     outline:"none",boxSizing:"border-box",colorScheme:"dark"}}/>
               </div>
             ))}
             <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
               <button onClick={()=>setGoalForm(null)}
-                style={{padding:"8px 16px",borderRadius:"var(--radius)",fontSize:12,
-                  background:"none",border:"1px solid var(--border)",color:"var(--t2)",cursor:"pointer"}}>Cancel</button>
+                style={{padding:"8px 16px",borderRadius:"var(--r-md)",fontSize:12,
+                  background:"none",border:"1px solid var(--line)",color:"var(--ink-1)",cursor:"pointer"}}>Cancel</button>
               <button onClick={()=>{if(goalForm.title?.trim()&&goalForm.targetAmount>0){onSaveGoal({...goalForm,id:goalForm.id||Date.now().toString()});setGoalForm(null);}}}
-                style={{padding:"8px 16px",borderRadius:"var(--radius)",fontSize:12,fontWeight:600,
-                  background:"var(--cyan)",color:"#000",border:"none",cursor:"pointer"}}>Save</button>
+                style={{padding:"8px 16px",borderRadius:"var(--r-md)",fontSize:12,fontWeight:600,
+                  background:"var(--warn)",color:"#000",border:"none",cursor:"pointer"}}>Save</button>
             </div>
           </div>
         </>

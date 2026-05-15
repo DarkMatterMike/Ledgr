@@ -34,15 +34,15 @@ export default function TxnRow({
       <div
         onClick={()=>{ if(selectionActive){ onToggleSelect(t.id); } else { setExpandedTxnId(expanded?null:t.id); } }}
         style={{padding:"7px 0",cursor:"pointer",display:"flex",alignItems:"center",gap:10,
-          borderLeft:t.recurring?"3px solid var(--recurring-color, #fbbf24)":needsReview(t)?"3px solid var(--review-color, var(--cyan))":"3px solid transparent",
+          borderLeft:t.recurring?"3px solid var(--recurring-color, #fbbf24)":needsReview(t)?"3px solid var(--review-color, var(--warn))":"3px solid transparent",
           paddingLeft:t.recurring||needsReview(t)?10:0,
-          background: isSelected ? "var(--cyan-dim)" : "transparent",
+          background: isSelected ? "var(--warn-bg)" : "transparent",
           transition:"background 0.1s"}}>
         {/* Checkbox */}
         <div onClick={e=>{e.stopPropagation();onToggleSelect(t.id);}}
           style={{width:16,height:16,borderRadius:3,flexShrink:0,cursor:"pointer",
-            border:`1.5px solid ${isSelected?"var(--cyan)":"var(--border2)"}`,
-            background:isSelected?"var(--cyan)":"transparent",
+            border:`1.5px solid ${isSelected?"var(--warn)":"var(--line-2)"}`,
+            background:isSelected?"var(--warn)":"transparent",
             display:"flex",alignItems:"center",justifyContent:"center",
             opacity: selectionActive ? 1 : 0.3,
             transition:"all 0.12s",
@@ -50,10 +50,10 @@ export default function TxnRow({
           {isSelected && <span style={{fontSize:10,color:"#000",lineHeight:1,fontWeight:800}}>✓</span>}
         </div>
         <MerchantIcon name={t.merchant||t.name} logoUrl={t.logo_url} size={24}/>
-        <span style={{fontSize:13,fontWeight:400,color:noCategory?"var(--t3)":"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
+        <span style={{fontSize:13,fontWeight:400,color:noCategory?"var(--ink-2)":"var(--ink-0)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,minWidth:0}}>
           {t.name||t.merchant}
-          {t.recurringItemId && <span style={{fontSize:10,color:"var(--amber)",marginLeft:5,fontWeight:600}}>↻</span>}
-          {t.notes && <span style={{fontSize:11,color:"var(--t3)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
+          {t.recurringItemId && <span style={{fontSize:10,color:"var(--warn)",marginLeft:5,fontWeight:600}}>↻</span>}
+          {t.notes && <span style={{fontSize:11,color:"var(--ink-2)",marginLeft:6,fontStyle:"italic"}}>· {t.notes}</span>}
         </span>
         {/* Inline category selector */}
         <div onClick={e=>e.stopPropagation()} style={{flexShrink:0,width:120,overflow:"hidden"}}>
@@ -63,11 +63,11 @@ export default function TxnRow({
               value={t.categoryId||""}
               onChange={e=>{ const v=e.target.value; if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
               style={{
-                backgroundColor:"var(--surface)", border:"none", outline:"none",
-                fontSize:16, color:cat?cat.color:"var(--t3)",
+                backgroundColor:"var(--bg-1)", border:"none", outline:"none",
+                fontSize:16, color:cat?cat.color:"var(--ink-2)",
                 fontWeight:400, cursor:"pointer", width:"100%",
                 appearance:"none", WebkitAppearance:"none",
-                fontFamily:"var(--font-body)", padding:"2px 6px",
+                fontFamily:"var(--font-ui)", padding:"2px 6px",
                 borderRadius:20, colorScheme:"dark",
               }}>
               <option value="">— None —</option>
@@ -78,35 +78,35 @@ export default function TxnRow({
             </select>
             </div>
           ) : (
-            <span style={{fontSize:11,color:"var(--t3)",whiteSpace:"nowrap",textTransform:"capitalize"}}>{typeVal}</span>
+            <span style={{fontSize:11,color:"var(--ink-2)",whiteSpace:"nowrap",textTransform:"capitalize"}}>{typeVal}</span>
           )}
         </div>
-        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--red)":"var(--green)",flexShrink:0,minWidth:80,textAlign:"right"}}>
+        <span style={{fontFamily:"var(--font-mono)",fontSize:13,fontWeight:700,color:t.amount<0?"var(--debt)":"var(--safe)",flexShrink:0,minWidth:80,textAlign:"right"}}>
           {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
         </span>
         <div style={{position:"relative",flexShrink:0}} onClick={e=>e.stopPropagation()}>
           <button onClick={()=>setEllipsisId(ellipsisId===t.id?null:t.id)}
-            style={{background:"none",border:"none",cursor:"pointer",color:"var(--t3)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
+            style={{background:"none",border:"none",cursor:"pointer",color:"var(--ink-2)",fontSize:16,padding:"2px 4px",lineHeight:1}}>⋯</button>
           {ellipsisId===t.id&&(
             <>
               <div style={{position:"fixed",inset:0,zIndex:29}} onClick={()=>setEllipsisId(null)}/>
-              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--card)",
-                border:"none",borderRadius:"var(--radius)",
+              <div style={{position:"absolute",right:0,top:"100%",zIndex:30,background:"var(--bg-2)",
+                border:"none",borderRadius:"var(--r-md)",
                 boxShadow:"0 4px 16px #00000060",minWidth:150,overflow:"hidden"}}>
               <button onClick={()=>{markReviewed(t.id);setEllipsisId(null);}}
-                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--t3)":"var(--green)"}}>
+                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:reviewed?"var(--ink-2)":"var(--safe)"}}>
                 {reviewed?"Mark Unreviewed":"✓ Mark Reviewed"}
               </button>
               <button onClick={()=>{startRename(t);setEllipsisId(null);setExpandedTxnId(t.id);}}
-                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t1)"}}>Rename</button>
+                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--ink-0)"}}>Rename</button>
               {goals && goals.length > 0 && (
-                <div style={{borderTop:"1px solid var(--border)",paddingTop:4,paddingBottom:4}}>
-                  <div style={{padding:"6px 14px 4px",fontSize:10,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Add to goal</div>
+                <div style={{borderTop:"1px solid var(--line)",paddingTop:4,paddingBottom:4}}>
+                  <div style={{padding:"6px 14px 4px",fontSize:10,color:"var(--ink-2)",textTransform:"uppercase",letterSpacing:"0.8px"}}>Add to goal</div>
                   {goals.map(g => {
                     const isAssigned = (g.assignedTxnIds||[]).includes(t.id);
                     return (
                       <button key={g.id} onClick={()=>{assignTxnToGoal(t.id, g.id);setEllipsisId(null);}}
-                        style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:isAssigned?"var(--cyan)":"var(--t2)"}}>
+                        style={{display:"block",width:"100%",textAlign:"left",padding:"8px 14px",background:"none",border:"none",cursor:"pointer",fontSize:12,color:isAssigned?"var(--warn)":"var(--ink-1)"}}>
                         {isAssigned?"✓ ":""}{g.title}
                       </button>
                     );
@@ -114,7 +114,7 @@ export default function TxnRow({
                 </div>
               )}
               <button onClick={()=>{deleteTxn(t.id);setEllipsisId(null);}}
-                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--t2)"}}>Delete</button>
+                style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--ink-1)"}}>Delete</button>
             </div>
           </>
           )}
@@ -122,11 +122,11 @@ export default function TxnRow({
       </div>
 
       {expanded&&(
-        <div className="ledgr-expand" style={{background:"var(--surface)",borderRadius:"var(--radius)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
+        <div className="ledgr-expand" style={{background:"var(--bg-1)",borderRadius:"var(--r-md)",padding:"12px",marginBottom:10,display:"flex",flexDirection:"column",gap:10}}>
           {editingId!==t.id && (t.name||t.merchant) && (
-            <div style={{fontSize:13,fontWeight:600,color:"var(--t1)",wordBreak:"break-word",lineHeight:1.4}}>
+            <div style={{fontSize:13,fontWeight:600,color:"var(--ink-0)",wordBreak:"break-word",lineHeight:1.4}}>
               {t.name||t.merchant}
-              {t.pending && <span style={{fontSize:10,color:"var(--amber)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
+              {t.pending && <span style={{fontSize:10,color:"var(--warn)",marginLeft:8,fontWeight:700,letterSpacing:"0.5px"}}>PENDING</span>}
             </div>
           )}
           {editingId===t.id&&(
@@ -143,18 +143,18 @@ export default function TxnRow({
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 <CustomSelect value={typeVal} onChange={v=>updateTxnType(t.id,v)}
                   options={[{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]}
-                  style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                  style={{width:"100%",backgroundColor:"var(--bg-3)"}} compact/>
                 {noCategory ? (
-                  <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--t3)"}}>No category</div>
+                  <div style={{...S.select,padding:"7px 8px",fontSize:12,color:"var(--ink-2)"}}>No category</div>
                 ) : (
                   <CustomSelect value={t.categoryId||""} onChange={v=>{ if(v==="__new__"){openAddCat();}else{updateTxnCat(t.id,v);} }}
                     options={[{value:"",label:"— None —"},{value:"__new__",label:"+ New category"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]}
-                    style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                    style={{width:"100%",backgroundColor:"var(--bg-3)"}} compact/>
                 )}
               </div>
               <CustomSelect value={t.accountId||""} onChange={v=>updateTxnAcct(t.id,v)}
                 options={[{value:"",label:"— Account —"},...accounts.map(a=>({value:a.id,label:a.name}))]}
-                style={{width:"100%",backgroundColor:"var(--card-hi)"}} compact/>
+                style={{width:"100%",backgroundColor:"var(--bg-3)"}} compact/>
             </div>
             <textarea
               placeholder="Add a note…"
@@ -167,7 +167,7 @@ export default function TxnRow({
                 width: isMobile ? "100%" : undefined,
                 resize:"none", fontSize:12,
                 padding:"7px 10px", lineHeight:1.5,
-                fontFamily:"var(--font-body)",
+                fontFamily:"var(--font-ui)",
               }}
             />
           </div>

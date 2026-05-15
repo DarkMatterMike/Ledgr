@@ -6,12 +6,7 @@ import { useState, useMemo, useEffect } from "react";
 import PageNav from "./PageNav.jsx";
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
-  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;--line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);--warn:#f0b04c;--warn-bg:rgba(240,176,76,0.08);--debt:#e87363;--debt-bg:rgba(232,115,99,0.08);--calm:#6c8cff;--calm-bg:rgba(108,140,255,0.08);--goal:#a78bff;--goal-d:#2a1f5e;--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;}
-  .lc-wrap *,.lc-wrap *::before,.lc-wrap *::after{box-sizing:border-box;}
-  .lc-wrap h1,.lc-wrap h2,.lc-wrap h3,.lc-wrap h4,.lc-wrap p{margin:0;padding:0;}
-  .lc-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
-  @media(max-width:1000px){.lc-wrap{padding:20px 16px 60px;}}
+    }
   @media(max-width:600px){.lc-wrap{padding:0;}}
   .lc-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:800px;}
   @media(max-width:600px){.lc-frame{border-radius:0;border:none;}}
@@ -415,10 +410,9 @@ export default function LedgrCalendar({
                       {/* Day group header */}
                       <div
                         onClick={()=>setExpandedRiDay(p=>p===day?null:day)}
-                        style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:"var(--r-sm)",cursor:"pointer",
+                        style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:0,cursor:"pointer",
                           background:isExpanded?"rgba(93,202,165,0.04)":"transparent",
                           borderLeft:isExpanded?"2px solid var(--safe)":"2px solid transparent",
-                          borderRadius:0,
                           opacity:isPast?0.5:1,transition:".12s"}}
                       >
                         <div style={{textAlign:"center",minWidth:28,flexShrink:0}}>

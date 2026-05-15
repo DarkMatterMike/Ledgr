@@ -49,13 +49,13 @@ function injectCSS() {
     background: none; border: none; cursor: pointer;
     font-family: var(--font-mono); font-size: 9px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 1.4px;
-    color: var(--t3); transition: color .15s;
+    color: var(--ink-2); transition: color .15s;
     text-align: left; white-space: nowrap; user-select: none;
   }
-  .rp-col-btn:hover { color: var(--t1); }
-  .rp-col-btn.active { color: var(--cyan); }
+  .rp-col-btn:hover { color: var(--ink-0); }
+  .rp-col-btn.active { color: var(--warn); }
   .rp-col-btn:last-child { justify-content: center; padding: 10px 8px; }
-  .rp-sort-arr { font-size: 9px; opacity: 0; color: var(--cyan); transition: opacity .15s; }
+  .rp-sort-arr { font-size: 9px; opacity: 0; color: var(--warn); transition: opacity .15s; }
   .rp-col-btn.active .rp-sort-arr { opacity: 1; }
 
   /* rule rows */
@@ -71,7 +71,7 @@ function injectCSS() {
   .rp-row:hover { background: rgba(255,255,255,0.025); }
   .rp-row.selected {
     background: rgba(201,149,106,0.07);
-    border-left: 2px solid var(--cyan);
+    border-left: 2px solid var(--warn);
   }
   .rp-row.off { opacity: .38; }
 
@@ -84,10 +84,10 @@ function injectCSS() {
   .rp-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .rp-dot.override { border-radius: 2px; }
   .rp-pat-text {
-    font-size: 13px; font-weight: 500; color: var(--t1);
+    font-size: 13px; font-weight: 500; color: var(--ink-0);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .rp-row.off .rp-pat-text { text-decoration: line-through; color: var(--t3); }
+  .rp-row.off .rp-pat-text { text-decoration: line-through; color: var(--ink-2); }
 
   /* category cell */
   .rp-cell-cat { padding: 10px 8px 10px 0; }
@@ -108,17 +108,17 @@ function injectCSS() {
 
   /* toggle */
   .rp-tog { display:inline-flex; align-items:center; width:32px; height:18px; border-radius:99px; padding:2px; cursor:pointer; flex-shrink:0; }
-  .rp-tog.on  { background:rgba(201,149,106,0.15); border:1.5px solid var(--cyan); }
+  .rp-tog.on  { background:rgba(201,149,106,0.15); border:1.5px solid var(--warn); }
   .rp-tog.off { background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.1); }
   .rp-tog-t   { width:12px; height:12px; border-radius:50%; transition:transform .2s; }
-  .rp-tog.on  .rp-tog-t { background:var(--cyan); transform:translateX(14px); }
+  .rp-tog.on  .rp-tog-t { background:var(--warn); transform:translateX(14px); }
   .rp-tog.off .rp-tog-t { background:rgba(232,221,208,0.25); }
 
   /* empty states */
   .rp-empty {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; padding: 64px 24px; gap: 8px;
-    color: var(--t3); font-size: 13px; text-align: center;
+    color: var(--ink-2); font-size: 13px; text-align: center;
   }
 
   /* ── Right: detail panel ── */
@@ -130,26 +130,26 @@ function injectCSS() {
   .rp-detail-empty {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; padding: 64px 0; gap: 8px;
-    color: var(--t3); font-size: 12px; text-align: center;
+    color: var(--ink-2); font-size: 12px; text-align: center;
   }
 
   /* pattern hero */
   .rp-d-pattern {
     font-family: var(--font-mono); font-size: 18px; font-weight: 700;
-    color: var(--t1); letter-spacing: -0.5px;
+    color: var(--ink-0); letter-spacing: -0.5px;
     line-height: 1.1; overflow: hidden; text-overflow: ellipsis;
     white-space: nowrap;
   }
   .rp-d-subline {
-    font-family: var(--font-mono); font-size: 9px; color: var(--t3);
+    font-family: var(--font-mono); font-size: 9px; color: var(--ink-2);
     text-transform: uppercase; letter-spacing: 1px; margin-top: 5px;
   }
 
   /* field */
   .rp-d-field { display: flex; flex-direction: column; gap: 6px; }
   .rp-d-label {
-    font-family: var(--font-disp); font-size: 9px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 1.5px; color: var(--t3);
+    font-family: var(--font-display); font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-2);
   }
   .rp-d-cat {
     display: inline-flex; align-items: center; gap: 6px;
@@ -166,28 +166,28 @@ function injectCSS() {
   .rp-d-match-box {
     background: rgba(255,255,255,0.03); border-radius: 8px; padding: 11px 13px;
   }
-  .rp-d-match-mode { font-family: var(--font-mono); font-size: 12px; color: var(--t2); }
-  .rp-d-match-desc { font-size: 11px; color: var(--t3); margin-top: 4px; line-height: 1.6; }
-  .rp-d-match-ex   { font-family: var(--font-mono); font-size: 10px; color: var(--t3); margin-top: 6px; line-height: 1.8; }
-  .rp-d-match-ex em { color: var(--cyan); font-style: normal; font-weight: 700; }
+  .rp-d-match-mode { font-family: var(--font-mono); font-size: 12px; color: var(--ink-1); }
+  .rp-d-match-desc { font-size: 11px; color: var(--ink-2); margin-top: 4px; line-height: 1.6; }
+  .rp-d-match-ex   { font-family: var(--font-mono); font-size: 10px; color: var(--ink-2); margin-top: 6px; line-height: 1.8; }
+  .rp-d-match-ex em { color: var(--warn); font-style: normal; font-weight: 700; }
   .rp-d-match-ex s  { color: rgba(232,221,208,0.18); text-decoration: line-through; }
 
   /* active row */
   .rp-d-active-row { display: flex; align-items: center; gap: 8px; }
-  .rp-d-active-lbl { font-size: 12px; color: var(--t2); }
+  .rp-d-active-lbl { font-size: 12px; color: var(--ink-1); }
 
   /* action buttons */
   .rp-d-actions { display: flex; gap: 8px; padding-top: 4px; }
   .rp-d-edit {
     flex: 1; background: rgba(255,255,255,0.04); border: none; border-radius: 8px;
-    padding: 9px; font-size: 12px; font-weight: 600; color: var(--t2);
-    cursor: pointer; font-family: var(--font-body); transition: background .15s;
+    padding: 9px; font-size: 12px; font-weight: 600; color: var(--ink-1);
+    cursor: pointer; font-family: var(--font-ui); transition: background .15s;
   }
-  .rp-d-edit:hover { background: rgba(255,255,255,0.08); color: var(--t1); }
+  .rp-d-edit:hover { background: rgba(255,255,255,0.08); color: var(--ink-0); }
   .rp-d-del {
     flex: 1; background: rgba(224,112,112,0.07); border: none; border-radius: 8px;
-    padding: 9px; font-size: 12px; font-weight: 600; color: var(--red);
-    cursor: pointer; font-family: var(--font-body); transition: background .15s;
+    padding: 9px; font-size: 12px; font-weight: 600; color: var(--debt);
+    cursor: pointer; font-family: var(--font-ui); transition: background .15s;
   }
   .rp-d-del:hover { background: rgba(224,112,112,0.15); }
 
@@ -203,11 +203,11 @@ function injectCSS() {
 
 /* ─── constants ─────────────────────────────────────── */
 const TYPE_META = {
-  income:        { label: '→ Income',   bg: 'rgba(109,184,138,0.12)',  color: 'var(--green)' },
-  transfer:      { label: '→ Transfer', bg: 'rgba(255,255,255,0.06)',  color: 'var(--t2)'    },
-  reimbursement: { label: '→ Reimb.',   bg: 'rgba(201,149,106,0.12)', color: 'var(--cyan)'  },
-  expense:       { label: '→ Expense',  bg: 'rgba(224,112,112,0.10)', color: 'var(--red)'   },
-  refund:        { label: '→ Refund',   bg: 'rgba(109,184,138,0.10)', color: 'var(--green)' },
+  income:        { label: '→ Income',   bg: 'rgba(109,184,138,0.12)',  color: 'var(--safe)' },
+  transfer:      { label: '→ Transfer', bg: 'rgba(255,255,255,0.06)',  color: 'var(--ink-1)'    },
+  reimbursement: { label: '→ Reimb.',   bg: 'rgba(201,149,106,0.12)', color: 'var(--warn)'  },
+  expense:       { label: '→ Expense',  bg: 'rgba(224,112,112,0.10)', color: 'var(--debt)'   },
+  refund:        { label: '→ Refund',   bg: 'rgba(109,184,138,0.10)', color: 'var(--safe)' },
 };
 
 const MATCH_INFO = {
@@ -271,15 +271,15 @@ function CatChip({ rule, catMap }) {
       );
     }
   }
-  return <span style={{ fontSize: 10, color: 'var(--t4)' }}>—</span>;
+  return <span style={{ fontSize: 10, color: 'var(--ink-3)' }}>—</span>;
 }
 
 function DotEl({ rule, catMap }) {
   if (rule.typeOverride) {
-    return <div className="rp-dot override" style={{ background: 'var(--cyan)' }} />;
+    return <div className="rp-dot override" style={{ background: 'var(--warn)' }} />;
   }
   const cat = catMap[rule.categoryId];
-  return <div className="rp-dot" style={{ background: cat?.color || 'var(--t3)' }} />;
+  return <div className="rp-dot" style={{ background: cat?.color || 'var(--ink-2)' }} />;
 }
 
 /* ─── detail panel ──────────────────────────────────── */
@@ -331,7 +331,7 @@ function DetailPanel({ rule, catMap, onToggle, onEdit, onDelete }) {
               {cat.name}
             </div>
           ) : (
-            <div style={{ fontSize: 12, color: 'var(--t3)' }}>No category assigned</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-2)' }}>No category assigned</div>
           )}
         </div>
       )}
@@ -352,7 +352,7 @@ function DetailPanel({ rule, catMap, onToggle, onEdit, onDelete }) {
       {/* Source */}
       <div className="rp-d-field">
         <div className="rp-d-label">Source</div>
-        <div style={{ fontSize: 12, color: 'var(--t2)' }}>{srcLabel}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-1)' }}>{srcLabel}</div>
       </div>
 
       {/* Active toggle */}
@@ -459,14 +459,14 @@ export default function RulesPage({
   const outerPad = isMobile ? '20px 16px' : '28px 28px';
 
   return (
-    <div style={{ fontFamily: 'var(--font-body)', color: 'var(--t1)' }}>
+    <div style={{ fontFamily: 'var(--font-ui)', color: 'var(--ink-0)' }}>
 
       {/* ── Page header ── */}
       <div style={{
-        padding: outerPad, background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg, #0b0a08)',
+        padding: outerPad,
+        background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg-0,#0b0a08)',
         borderBottom: '1px solid rgba(0,0,0,0.35)',
         position: 'relative', overflow: 'hidden',
-        background: 'radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg,#0b0a08)',
       }}>
         {/* top-edge seam */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)', pointerEvents: 'none' }} />
@@ -479,11 +479,11 @@ export default function RulesPage({
         {/* title row */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, paddingBottom: 12, borderBottom: '1px solid rgba(201,149,106,0.12)', position: 'relative', zIndex: 1 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, color: 'rgba(201,149,106,0.45)', letterSpacing: '1px' }}>II ·</span>
-          <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: isMobile ? 18 : 22, color: 'var(--t1)' }}>Rules</span>
+          <span style={{ fontFamily: "'Playfair Display',serif", fontStyle: 'italic', fontWeight: 400, fontSize: isMobile ? 18 : 22, color: 'var(--ink-0)' }}>Rules</span>
           <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg,rgba(201,149,106,0.15),transparent)', alignSelf: 'center', marginLeft: 4 }} />
         </div>
         {/* meta */}
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--t3)', marginTop: 6, paddingBottom: 20, position: 'relative', zIndex: 1 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.7px', color: 'var(--ink-2)', marginTop: 6, paddingBottom: 20, position: 'relative', zIndex: 1 }}>
           Auto-categorization · {rules.length} rule{rules.length !== 1 ? 's' : ''} · {manualCount} manual · {aiCount} AI
         </div>
       </div>
@@ -491,21 +491,21 @@ export default function RulesPage({
       {/* ── Toolbar ── */}
       <div style={{ padding: isMobile ? '14px 16px' : '14px 0 14px 36px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div style={{ position: 'relative', flex: '0 0 240px' }}>
-          <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--t3)', fontSize: 11, pointerEvents: 'none' }}>🔍</span>
+          <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-2)', fontSize: 11, pointerEvents: 'none' }}>🔍</span>
           <input
-            style={{ width: '100%', background: 'var(--card-hi,#231f1a)', border: 'none', borderRadius: 8, padding: '7px 10px 7px 28px', fontSize: 12, color: 'var(--t1)', outline: 'none', fontFamily: 'var(--font-body)' }}
+            style={{ width: '100%', background: 'var(--card-hi,#231f1a)', border: 'none', borderRadius: 8, padding: '7px 10px 7px 28px', fontSize: 12, color: 'var(--ink-0)', outline: 'none', fontFamily: 'var(--font-ui)' }}
             placeholder="Search patterns…"
             value={ruleSearch}
             onChange={e => setRuleSearch(e.target.value)}
           />
         </div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--t3)', display: 'flex', gap: 12 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-2)', display: 'flex', gap: 12 }}>
           <span>{manualCount} manual</span>
-          <span style={{ color: 'var(--cyan)' }}>{aiCount} AI</span>
+          <span style={{ color: 'var(--warn)' }}>{aiCount} AI</span>
         </div>
         <button
           onClick={onOpenAdd}
-          style={{ marginLeft: 'auto', background: 'var(--cyan)', color: '#000', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}
+          style={{ marginLeft: 'auto', background: 'var(--warn)', color: '#000', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-ui)', whiteSpace: 'nowrap' }}
         >
           + New Rule
         </button>
@@ -515,8 +515,8 @@ export default function RulesPage({
       {rules.length === 0 ? (
         <div style={{ padding: isMobile ? '48px 16px' : '48px 36px', textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.25 }}>◎</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--t1)', marginBottom: 6 }}>No rules yet</div>
-          <div style={{ fontSize: 13, color: 'var(--t3)' }}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-0)', marginBottom: 6 }}>No rules yet</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>Categorize a transaction and you'll be prompted to save it as a rule.</div>
         </div>
       ) : (
         <div className="rp-body">

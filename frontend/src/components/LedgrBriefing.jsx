@@ -14,8 +14,7 @@ import { useState, useMemo, useRef, useCallback } from "react";
 import PageNav from "./PageNav.jsx";
 
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
-  .lb-wrap *,.lb-wrap *::before,.lb-wrap *::after{box-sizing:border-box;}
+    .lb-wrap *,.lb-wrap *::before,.lb-wrap *::after{box-sizing:border-box;}
   .lb-wrap h1,.lb-wrap h2,.lb-wrap h3,.lb-wrap h4,.lb-wrap p{margin:0;padding:0;}
   .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
   @media(max-width:1000px){.lb-wrap{padding:20px 16px 60px;}}

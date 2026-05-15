@@ -61,25 +61,25 @@ function InstallPrompt() {
       padding:16,
     }}>
       <div className="ledgr-slide-up" style={{
-        background:"var(--card)", border:"none",
-        borderRadius:"var(--radius-lg)", padding:"24px 22px",
+        background:"var(--bg-2)", border:"none",
+        borderRadius:"var(--r-lg)", padding:"24px 22px",
         width:"100%", maxWidth:440, maxHeight:"85vh", overflowY:"auto",
       }}>
 
         <div style={{
           fontSize:28, textAlign:"center", marginBottom:6,
-          color:"var(--cyan)", fontFamily:"var(--font-disp)", fontWeight:800,
+          color:"var(--warn)", fontFamily:"var(--font-display)", fontWeight:800,
         }}>
           ℓ
         </div>
         <div style={{
           fontSize:18, fontWeight:700, textAlign:"center",
-          color:"var(--t1)", marginBottom:6, fontFamily:"var(--font-disp)",
+          color:"var(--ink-0)", marginBottom:6, fontFamily:"var(--font-display)",
         }}>
           Install Ledgr
         </div>
         <div style={{
-          fontSize:13, color:"var(--t2)", textAlign:"center", marginBottom:20, lineHeight:1.5,
+          fontSize:13, color:"var(--ink-1)", textAlign:"center", marginBottom:20, lineHeight:1.5,
         }}>
           Add Ledgr to your home screen for a faster, app-like experience — no browser bar, instant launch.
         </div>
@@ -89,23 +89,23 @@ function InstallPrompt() {
             <div key={i} style={{display:"flex", alignItems:"center", gap:10}}>
               <div style={{
                 flexShrink:0, width:28, height:28, borderRadius:"50%",
-                background:"var(--cyan)", color:"#000",
+                background:"var(--warn)", color:"#000",
                 display:"flex", alignItems:"center", justifyContent:"center",
                 fontSize:13, fontWeight:700, fontFamily:"var(--font-mono)",
               }}>{s.icon}</div>
-              <div style={{flex:1, fontSize:13, color:"var(--t1)"}}>
-                {s.text} <span style={{color:"var(--t2)"}}>{s.detail}</span>
+              <div style={{flex:1, fontSize:13, color:"var(--ink-0)"}}>
+                {s.text} <span style={{color:"var(--ink-1)"}}>{s.detail}</span>
               </div>
             </div>
           ))}
         </div>
 
         <div style={{
-          background:"var(--surface)", borderRadius:"var(--radius)",
-          padding:"10px 12px", fontSize:11, color:"var(--t3)",
+          background:"var(--bg-1)", borderRadius:"var(--r-md)",
+          padding:"10px 12px", fontSize:11, color:"var(--ink-2)",
           textAlign:"center", marginBottom:16, lineHeight:1.5,
         }}>
-          Make sure you're using <strong style={{color:"var(--t2)"}}>{browserName}</strong> for this to work.
+          Make sure you're using <strong style={{color:"var(--ink-1)"}}>{browserName}</strong> for this to work.
         </div>
 
         <button

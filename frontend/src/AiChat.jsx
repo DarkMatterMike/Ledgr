@@ -178,7 +178,7 @@ function Exchange({ msg, prevMsg, index }) {
       {question && (
         <div style={{ display:"flex", gap:14, marginBottom:20 }}>
           <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--t1)" }}>
+          <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--ink-0)" }}>
             {question}
           </div>
         </div>
@@ -187,7 +187,7 @@ function Exchange({ msg, prevMsg, index }) {
       {/* AI response */}
       <div style={{ display:"flex", gap:14 }}>
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, flexShrink:0 }}>
-          <div style={{ width:20, height:20, borderRadius:"50%", background:"rgba(201,149,106,0.1)", border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--cyan)", fontFamily:"var(--font-disp)" }}>ℓ</div>
+          <div style={{ width:20, height:20, borderRadius:"50%", background:"rgba(201,149,106,0.1)", border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--warn)", fontFamily:"var(--font-display)" }}>ℓ</div>
           {!isThinking && <div style={{ flex:1, width:1, background:"rgba(255,255,255,0.04)", minHeight:20 }}/>}
         </div>
         <div style={{ flex:1, paddingBottom:4 }}>
@@ -225,11 +225,11 @@ function ContextPanel({ transactions, categories, accounts }) {
   }).length;
 
   const rows = [
-    { label:"Net worth",     val: fmt(totalBalance),          color: totalBalance >= 0 ? "var(--green)" : "var(--red)" },
-    { label:"Spent this mo", val: fmt(thisMonthExpenses),     color: "var(--red)" },
-    { label:"Monthly budget",val: fmt(totalBudget),           color: "var(--t2)" },
-    { label:"Over budget",   val: `${overBudget} categor${overBudget===1?"y":"ies"}`, color: overBudget > 0 ? "var(--amber)" : "var(--green)" },
-    { label:"Transactions",  val: String(transactions.length),color: "var(--t2)" },
+    { label:"Net worth",     val: fmt(totalBalance),          color: totalBalance >= 0 ? "var(--safe)" : "var(--debt)" },
+    { label:"Spent this mo", val: fmt(thisMonthExpenses),     color: "var(--debt)" },
+    { label:"Monthly budget",val: fmt(totalBudget),           color: "var(--ink-1)" },
+    { label:"Over budget",   val: `${overBudget} categor${overBudget===1?"y":"ies"}`, color: overBudget > 0 ? "var(--warn)" : "var(--safe)" },
+    { label:"Transactions",  val: String(transactions.length),color: "var(--ink-1)" },
   ];
 
   return (
@@ -239,7 +239,7 @@ function ContextPanel({ transactions, categories, accounts }) {
       </div>
       {rows.map(r => (
         <div key={r.label} className="dispatch-ctx-row">
-          <span style={{ fontSize:11, color:"var(--t3)" }}>{r.label}</span>
+          <span style={{ fontSize:11, color:"var(--ink-2)" }}>{r.label}</span>
           <span style={{ fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600, color:r.color }}>{r.val}</span>
         </div>
       ))}
@@ -263,20 +263,20 @@ function HistItem({ conv, isActive, onSelect, onDelete }) {
     <div className={`dispatch-hist-item${isActive?" active":""}`} onClick={() => onSelect(conv.id)}
       style={{ position:"relative" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:6, marginBottom:3 }}>
-        <div style={{ fontSize:11, fontWeight:600, color:isActive?"var(--cyan)":"var(--t1)", flex:1,
+        <div style={{ fontSize:11, fontWeight:600, color:isActive?"var(--warn)":"var(--ink-0)", flex:1,
           overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
           {conv.title || question.slice(0,40)}
         </div>
         <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0 }}>
-          <span style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--t3)" }}>{label}</span>
+          <span style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--ink-2)" }}>{label}</span>
           <button onClick={e=>{e.stopPropagation();onDelete(conv.id);}}
-            style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:11,
+            style={{ background:"none", border:"none", cursor:"pointer", color:"var(--ink-2)", fontSize:11,
               padding:"1px 2px", lineHeight:1, opacity:0, transition:"opacity .1s" }}
-            onMouseEnter={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.color="var(--red)";}}
-            onMouseLeave={e=>{e.currentTarget.style.opacity="0";e.currentTarget.style.color="var(--t3)";}}>✕</button>
+            onMouseEnter={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.color="var(--debt)";}}
+            onMouseLeave={e=>{e.currentTarget.style.opacity="0";e.currentTarget.style.color="var(--ink-2)";}}>✕</button>
         </div>
       </div>
-      <div style={{ fontSize:10, color:"var(--t3)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+      <div style={{ fontSize:10, color:"var(--ink-2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
         {question.slice(0,55)}{question.length>55?"…":""}
       </div>
       <div style={{ fontSize:9, color:"rgba(232,221,208,0.2)", marginTop:2, fontFamily:"var(--font-mono)" }}>
@@ -303,10 +303,10 @@ function ApiKeySetup({ onSave }) {
       {/* Ghost */}
       <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:80,
         color:"rgba(201,149,106,0.05)", lineHeight:1, marginBottom:-24, userSelect:"none" }}>✦</div>
-      <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:26, color:"var(--t1)", marginBottom:8 }}>
+      <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:26, color:"var(--ink-0)", marginBottom:8 }}>
         Set up your advisor
       </div>
-      <div style={{ fontSize:13, color:"var(--t3)", lineHeight:1.7, marginBottom:28, maxWidth:400 }}>
+      <div style={{ fontSize:13, color:"var(--ink-2)", lineHeight:1.7, marginBottom:28, maxWidth:400 }}>
         Ledgr uses Claude by Anthropic to give you a personalized financial advisor — one that actually knows your numbers.
       </div>
 
@@ -319,12 +319,12 @@ function ApiKeySetup({ onSave }) {
           <div key={s.n} style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
             <div style={{ width:22, height:22, borderRadius:"50%", flexShrink:0, background:"rgba(201,149,106,0.12)",
               border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center", justifyContent:"center",
-              fontFamily:"var(--font-mono)", fontSize:10, fontWeight:700, color:"var(--cyan)" }}>{s.n}</div>
+              fontFamily:"var(--font-mono)", fontSize:10, fontWeight:700, color:"var(--warn)" }}>{s.n}</div>
             <div>
-              <div style={{ fontSize:13, fontWeight:600, color:"var(--t1)", marginBottom:2 }}>{s.t}</div>
-              <div style={{ fontSize:12, color:"var(--t3)", lineHeight:1.5 }}>{s.b}</div>
+              <div style={{ fontSize:13, fontWeight:600, color:"var(--ink-0)", marginBottom:2 }}>{s.t}</div>
+              <div style={{ fontSize:12, color:"var(--ink-2)", lineHeight:1.5 }}>{s.b}</div>
               {s.link && <a href={s.link} target="_blank" rel="noreferrer"
-                style={{ fontSize:11, color:"var(--cyan)", marginTop:4, display:"inline-block" }}>
+                style={{ fontSize:11, color:"var(--warn)", marginTop:4, display:"inline-block" }}>
                 Open Anthropic Console →</a>}
             </div>
           </div>
@@ -336,17 +336,17 @@ function ApiKeySetup({ onSave }) {
           onChange={e=>setKeyVal(e.target.value)}
           onKeyDown={e=>e.key==="Enter"&&handleSave()}
           autoFocus
-          style={{ flex:1, background:"var(--surface)", border:"1px solid var(--border)",
-            borderRadius:"var(--radius)", padding:"9px 12px", fontSize:13, color:"var(--t1)",
+          style={{ flex:1, background:"var(--bg-1)", border:"1px solid var(--line)",
+            borderRadius:"var(--r-md)", padding:"9px 12px", fontSize:13, color:"var(--ink-0)",
             outline:"none", fontFamily:"var(--font-mono)", colorScheme:"dark" }} />
         <button onClick={handleSave} disabled={saving||!keyVal.trim()}
-          style={{ padding:"9px 18px", borderRadius:"var(--radius)", background:"var(--cyan)",
+          style={{ padding:"9px 18px", borderRadius:"var(--r-md)", background:"var(--warn)",
             color:"#000", border:"none", fontWeight:700, fontSize:13, cursor:"pointer",
             opacity:saving||!keyVal.trim()?0.5:1 }}>
           {saving?"Saving…":"Connect"}
         </button>
       </div>
-      {error && <div style={{ fontSize:12, color:"var(--red)", marginTop:8 }}>{error}</div>}
+      {error && <div style={{ fontSize:12, color:"var(--debt)", marginTop:8 }}>{error}</div>}
       <div style={{ fontSize:11, color:"rgba(232,221,208,0.2)", marginTop:14, lineHeight:1.6 }}>
         $5 free credits on sign-up · Encrypted storage · Used only for your questions
       </div>
@@ -443,14 +443,14 @@ export default function AiChat({
             letterSpacing:"1.2px", color:"rgba(201,149,106,0.45)" }}>Conversations</div>
           <button onClick={()=>newConversation()}
             style={{ padding:"3px 9px", borderRadius:5, background:"rgba(201,149,106,0.1)",
-              border:"1px solid rgba(201,149,106,0.2)", color:"var(--cyan)", fontSize:10,
+              border:"1px solid rgba(201,149,106,0.2)", color:"var(--warn)", fontSize:10,
               fontWeight:600, cursor:"pointer" }}>+ New</button>
         </div>
       </div>
       {/* History list */}
       <div className="dispatch-scroll" style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:2 }}>
         {sortedConvs.length === 0 ? (
-          <div style={{ fontSize:11, color:"var(--t3)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
+          <div style={{ fontSize:11, color:"var(--ink-2)", textAlign:"center", padding:"24px 0", lineHeight:1.6 }}>
             Your conversations<br/>will appear here
           </div>
         ) : sortedConvs.map(conv => (
@@ -467,8 +467,8 @@ export default function AiChat({
       {hasApiKey && keyChecked && (
         <div style={{ marginTop:12, display:"flex", alignItems:"center", gap:6, paddingTop:12,
           borderTop:"1px solid rgba(255,255,255,0.04)" }}>
-          <div style={{ width:6, height:6, borderRadius:"50%", background:"var(--green)" }}/>
-          <span style={{ fontSize:10, color:"var(--t3)" }}>Claude API connected</span>
+          <div style={{ width:6, height:6, borderRadius:"50%", background:"var(--safe)" }}/>
+          <span style={{ fontSize:10, color:"var(--ink-2)" }}>Claude API connected</span>
         </div>
       )}
     </div>
@@ -479,7 +479,7 @@ export default function AiChat({
     <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0 }}>
       {/* Page header */}
       <div style={{ flexShrink:0, padding:"0 0 0", borderBottom:"1px solid rgba(0,0,0,0.3)",
-        background:"radial-gradient(ellipse 55% 120% at 0% 50%,rgba(201,149,106,0.04) 0%,transparent 70%),var(--bg,#0b0a08)",
+        background:"radial-gradient(ellipse 55% 120% at 0% 50%,rgba(201,149,106,0.04) 0%,transparent 70%),var(--bg-0,#0b0a08)",
         position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:1,
           background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)" }}/>
@@ -492,26 +492,26 @@ export default function AiChat({
             <span style={{ fontFamily:"var(--font-mono)", fontSize:10, fontWeight:600,
               color:"rgba(201,149,106,0.45)", letterSpacing:"1px" }}>III ·</span>
             <span style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
-              fontWeight:400, fontSize:20, color:"var(--t1)" }}>Ask Claude</span>
+              fontWeight:400, fontSize:20, color:"var(--ink-0)" }}>Ask Claude</span>
             <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(201,149,106,0.12),transparent)" }}/>
             {/* Mobile: toggle panels */}
             {isMobile && (
               <div style={{ display:"flex", gap:6 }}>
                 <button onClick={()=>setShowCtx(p=>!p)}
                   style={{ fontSize:10, padding:"3px 8px", borderRadius:5, background:"rgba(255,255,255,0.04)",
-                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)", cursor:"pointer" }}>
+                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--ink-2)", cursor:"pointer" }}>
                   {showCtx?"Hide ctx":"Context"}
                 </button>
                 <button onClick={()=>setShowHistory(true)}
                   style={{ fontSize:10, padding:"3px 8px", borderRadius:5, background:"rgba(255,255,255,0.04)",
-                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)", cursor:"pointer" }}>
+                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--ink-2)", cursor:"pointer" }}>
                   History
                 </button>
               </div>
             )}
           </div>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase",
-            letterSpacing:"0.7px", color:"var(--t3)", padding:"6px 0 14px", position:"relative", zIndex:1 }}>
+            letterSpacing:"0.7px", color:"var(--ink-2)", padding:"6px 0 14px", position:"relative", zIndex:1 }}>
             {!hasApiKey && keyChecked ? "Setup required" : `${transactions.length} transactions · ${categories.length} budgets · ${accounts.length} accounts in context`}
           </div>
         </div>
@@ -539,7 +539,7 @@ export default function AiChat({
           {isEmpty && (
             <div style={{ padding:"40px 0 20px" }}>
               <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
-                fontSize:14, color:"var(--t3)", marginBottom:24, lineHeight:1.7 }}>
+                fontSize:14, color:"var(--ink-2)", marginBottom:24, lineHeight:1.7 }}>
                 I have access to your transactions, budgets, and accounts.
                 Ask me anything about your financial picture.
               </div>
@@ -567,8 +567,8 @@ export default function AiChat({
                   [`${accounts.length} accounts`, "with current balances"],
                 ].map(([val, label]) => (
                   <div key={val} style={{ display:"flex", gap:10, marginBottom:6, fontSize:12 }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, color:"var(--cyan)", flexShrink:0 }}>{val}</span>
-                    <span style={{ color:"var(--t3)" }}>{label}</span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600, color:"var(--warn)", flexShrink:0 }}>{val}</span>
+                    <span style={{ color:"var(--ink-2)" }}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -584,7 +584,7 @@ export default function AiChat({
                   <div style={{ display:"flex", gap:14, marginBottom:20 }}>
                     <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
                     <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
-                      fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--t1)" }}>
+                      fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--ink-0)" }}>
                       {question?.content}
                     </div>
                   </div>
@@ -592,7 +592,7 @@ export default function AiChat({
                     <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
                       <div style={{ width:20, height:20, borderRadius:"50%", background:"rgba(201,149,106,0.1)",
                         border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center",
-                        justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--cyan)" }}>ℓ</div>
+                        justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--warn)" }}>ℓ</div>
                     </div>
                     <div>
                       <div style={{ fontFamily:"var(--font-mono)", fontSize:9, textTransform:"uppercase",
@@ -613,7 +613,7 @@ export default function AiChat({
                   <div style={{ display:"flex", gap:14, marginBottom:20 }}>
                     <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
                     <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
-                      fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--t1)" }}>
+                      fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--ink-0)" }}>
                       {question.content}
                     </div>
                   </div>
@@ -622,7 +622,7 @@ export default function AiChat({
                   <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4, flexShrink:0 }}>
                     <div style={{ width:20, height:20, borderRadius:"50%", background:"rgba(201,149,106,0.1)",
                       border:"1px solid rgba(201,149,106,0.25)", display:"flex", alignItems:"center",
-                      justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--cyan)" }}>ℓ</div>
+                      justifyContent:"center", fontSize:10, fontWeight:800, color:"var(--warn)" }}>ℓ</div>
                     <div style={{ flex:1, width:1, background:"rgba(255,255,255,0.04)", minHeight:16 }}/>
                   </div>
                   <div style={{ flex:1, paddingBottom:4 }}>
@@ -637,8 +637,8 @@ export default function AiChat({
 
           {/* Error */}
           {error && (
-            <div style={{ padding:"12px 14px", borderLeft:"2px solid var(--red)",
-              background:"rgba(224,112,112,0.06)", margin:"12px 0", fontSize:13, color:"var(--red)" }}>
+            <div style={{ padding:"12px 14px", borderLeft:"2px solid var(--debt)",
+              background:"rgba(224,112,112,0.06)", margin:"12px 0", fontSize:13, color:"var(--debt)" }}>
               {error.includes("invalid_api_key")||error.includes("401") ? "Invalid API key — please check your key."
                : error.includes("overloaded") ? "Claude is busy — try again in a moment."
                : error}
@@ -652,7 +652,7 @@ export default function AiChat({
       {/* ── Composer ── */}
       {hasApiKey && (
         <div style={{ flexShrink:0, borderTop:"1px solid rgba(255,255,255,0.06)",
-          background:"var(--bg,#0b0a08)", padding:"16px 28px 20px" }}>
+          background:"var(--bg-0,#0b0a08)", padding:"16px 28px 20px" }}>
           <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
             <span style={{ fontFamily:"var(--font-mono)", fontSize:14, color:"rgba(201,149,106,0.4)",
               paddingTop:2, flexShrink:0 }}>✦</span>
@@ -667,12 +667,12 @@ export default function AiChat({
               {messages.length > 0 && (
                 <button onClick={()=>(clearCurrentConversation||clearHistory)?.()}
                   style={{ padding:"6px 10px", borderRadius:6, background:"none",
-                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--t3)",
+                    border:"1px solid rgba(255,255,255,0.07)", color:"var(--ink-2)",
                     fontSize:11, cursor:"pointer" }} title="Clear">✕</button>
               )}
               <button onClick={()=>handleSend()}
                 disabled={!input.trim()||loading}
-                style={{ padding:"6px 14px", borderRadius:6, background:"var(--cyan)",
+                style={{ padding:"6px 14px", borderRadius:6, background:"var(--warn)",
                   color:"#000", border:"none", fontWeight:700, fontSize:13, cursor:"pointer",
                   opacity:(!input.trim()||loading)?0.4:1, transition:"opacity .12s" }}>
                 {loading?"…":"↑"}
@@ -705,12 +705,12 @@ export default function AiChat({
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", zIndex:200 }}
             onClick={e=>{if(e.target===e.currentTarget)setShowHistory(false);}}>
             <div style={{ position:"absolute", right:0, top:0, bottom:0, width:"82%", maxWidth:320,
-              background:"var(--card)", padding:"16px 14px", display:"flex", flexDirection:"column" }}>
+              background:"var(--bg-2)", padding:"16px 14px", display:"flex", flexDirection:"column" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
                 <span style={{ fontFamily:"var(--font-mono)", fontSize:10, textTransform:"uppercase",
                   letterSpacing:"1px", color:"rgba(201,149,106,0.45)" }}>Conversations</span>
                 <button onClick={()=>setShowHistory(false)}
-                  style={{ background:"none", border:"none", cursor:"pointer", color:"var(--t3)", fontSize:16 }}>✕</button>
+                  style={{ background:"none", border:"none", cursor:"pointer", color:"var(--ink-2)", fontSize:16 }}>✕</button>
               </div>
               <div style={{ flex:1, overflowY:"auto" }}>{RightPanel}</div>
             </div>

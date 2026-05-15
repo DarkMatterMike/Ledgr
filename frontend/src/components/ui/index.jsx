@@ -168,10 +168,10 @@ export function CustomSelect({ value, onChange, options, style = {}, compact = f
       value={String(value)}
       onChange={e => onChange(e.target.value)}
       style={{
-        backgroundColor:"var(--card)", border:"none",
+        backgroundColor:"var(--bg-2)", border:"none",
         borderRadius:20, cursor:"pointer", outline:"none",
         padding: compact ? "5px 10px" : "8px 14px",
-        fontSize: compact ? 12 : 13, color:"var(--t1)", fontWeight:500,
+        fontSize: compact ? 12 : 13, color:"var(--ink-0)", fontWeight:500,
         width: isBlock ? "100%" : "auto",
         appearance:"none", WebkitAppearance:"none",
         backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E")`,
@@ -195,7 +195,7 @@ CustomSelect.propTypes = {
 };
 
 export function CategoryBadge({ cat }) {
-  if (!cat) return <span style={{color:"var(--t3)",fontSize:11}}>—</span>;
+  if (!cat) return <span style={{color:"var(--ink-2)",fontSize:11}}>—</span>;
   return (
     <span style={S.badge(cat.color)}>
       <span style={{width:5,height:5,borderRadius:"50%",background:cat.color,display:"inline-block",opacity:0.85}}/>

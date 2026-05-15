@@ -38,29 +38,7 @@ import { useState, useMemo, useEffect } from "react";
 
 /* ─── CSS ─────────────────────────────────────────────────────────────────── */
 const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
-  :root {
-    --bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;
-    --line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);
-    --ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;
-    --safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);
-    --warn:#f0b04c;--warn-d:#6b4708;--warn-bg:rgba(240,176,76,0.08);
-    --debt:#e87363;--debt-d:#5a1c14;--debt-bg:rgba(232,115,99,0.08);
-    --calm:#6c8cff;--calm-d:#1a2a66;--calm-bg:rgba(108,140,255,0.08);
-    --goal:#a78bff;--goal-d:#2a1f5e;--goal-bg:rgba(167,139,255,0.08);
-    --quiet:#b4b2a9;
-    --font-display:'Instrument Serif',Georgia,serif;
-    --font-ui:'Geist',-apple-system,sans-serif;
-    --font-mono:'JetBrains Mono',ui-monospace,monospace;
-    --r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;
-  }
-  .lt-wrap *,.lt-wrap *::before,.lt-wrap *::after { box-sizing:border-box; }
-  .lt-wrap h1,.lt-wrap h2,.lt-wrap h3,.lt-wrap h4,.lt-wrap p { margin:0;padding:0; }
-  .lt-wrap {
-    font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;
-    background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;
-  }
-  @media(max-width:1000px){.lt-wrap{padding:20px 16px 60px;}}
+    }
   @media(max-width:600px){.lt-wrap{padding:0;}}
 
   /* Frame */

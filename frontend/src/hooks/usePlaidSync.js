@@ -200,14 +200,14 @@ export function usePlaidSync({
   }, [initialized.current]);
 
   // Auto-sync on tab/window focus if last sync was >30 minutes ago
-  useEffect(() => {
-    function handleFocus() {
-      if (!initialized.current) return;
-      if (plaidItems.length === 0) return;
-      if (Date.now() - lastSyncedAt.current > 30 * 60 * 1000) {
-        doSync();
-      }
+  function handleFocus() {
+    if (!initialized.current) return;
+    if (plaidItems.length === 0) return;
+    if (Date.now() - lastSyncedAt.current > 30 * 60 * 1000) {
+      doSync();
     }
+  }
+  useEffect(() => {
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [doSync]);

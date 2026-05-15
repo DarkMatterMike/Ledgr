@@ -55,6 +55,13 @@ function useIsMobile() {
   );
   const [mobile, setMobile] = useState(check);
   useEffect(() => {
+    // ONE-TIME diagnostic alert — remove after debugging
+    const tp = navigator.maxTouchPoints;
+    const ots = 'ontouchstart' in window;
+    const pc = window.matchMedia("(pointer: coarse)").matches;
+    const iw = window.innerWidth;
+    const result = check();
+    alert(`isMobile=${result}\ntouchPoints=${tp}\nontouchstart=${ots}\npointer:coarse=${pc}\ninnerWidth=${iw}`);
     const fn = () => setMobile(check());
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);

@@ -47,9 +47,13 @@ import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  const check = () =>
+    navigator.maxTouchPoints > 1 ||
+    window.matchMedia("(hover: none) and (pointer: coarse)").matches ||
+    window.innerWidth < 768;
+  const [mobile, setMobile] = useState(check);
   useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 768);
+    const fn = () => setMobile(check());
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
@@ -300,7 +304,34 @@ function useIsMobile() {
     }
 
     /* ── More sheet ── */
-    /* More sheet handled by LumenBottomNav component */
+    .mobile-more-sheet {
+      position: fixed; left: 0; right: 0; bottom: 82px;
+      background: var(--surface);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px 20px 0 0;
+      padding: 8px 0 12px;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+      z-index: 40;
+    }
+    .mobile-more-sheet.open { transform: translateY(0); }
+    .mobile-sheet-handle {
+      width: 32px; height: 3px; background: rgba(255,255,255,0.15);
+      border-radius: 99px; margin: 6px auto 10px;
+    }
+    .mobile-sheet-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 20px; font-size: 14px; color: var(--t2);
+      cursor: pointer; transition: background 0.15s;
+      border: none; background: none; width: 100%; text-align: left;
+      font-family: var(--font-body);
+    }
+    .mobile-sheet-item:hover, .mobile-sheet-item:active { background: rgba(255,255,255,0.04); }
+    .mobile-sheet-item svg {
+      width: 18px; height: 18px; stroke: var(--t3); fill: none;
+      stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
+    }
+    .mobile-sheet-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 20px; }
 
     /* ── Dashboard edit-order mode ── */
     .dash-edit-card {
@@ -5443,8 +5474,53 @@ function AppInner({ isDemo = false }) {
         </button>
       </div>
     )}
-    {/* Content — always full width; BottomNav CSS handles layout on mobile */}
-    {
+    {isMobile ? (
+      /* ── MOBILE — bottom nav ── */
+      <>
+        <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="ledgr-content">
+          {view === "dashboard"
+            ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
+            : view === "calendar" || view === "rules"
+            ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
+            : <div key={navKey} className="ledgr-view-enter"><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
+          }
+        </div>
+
+        {/* More sheet overlay */}
+        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:82,zIndex:39}}/>}
+
+        {/* More sheet */}
+        <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
+          <div className="mobile-sheet-handle"/>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("settings"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Profile & Settings
+          </button>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("accounts"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Accounts
+          </button>
+          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("rules"); }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+            Rules
+          </button>
+          {currentUser?.role === "owner" && <>
+            <div className="mobile-sheet-divider"/>
+            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("admin"); }} style={{color:"var(--cyan)"}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              Admin
+            </button>
+            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("dani"); }} style={{color:"#f9a8d4"}}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              Dani
+            </button>
+          </>}
+        </div>
+
+        {/* Bottom nav */}
+        <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
+      </>
+    ) : (
       /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
          DESKTOP — persistent sidebar
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
@@ -5474,10 +5550,7 @@ function AppInner({ isDemo = false }) {
           </div>{/* /max-width wrapper */}
         </div>
       </>
-    }
-
-      {/* Lumen bottom nav — always rendered, CSS (pointer:coarse) shows on mobile only */}
-      <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
+    )}
 
       {/* -- Modals -- */}
       {(modal==="addCat"||modal==="editCat")   && CatModal}

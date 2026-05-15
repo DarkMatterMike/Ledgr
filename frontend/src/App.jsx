@@ -1504,21 +1504,36 @@ function AppInner({ isDemo = false }) {
     : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, admin:AdminPage, dani:DaniPageView };
 
   if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#07090d",flexDirection:"column"}}>
-      <div className="ll-orb" style={{width:44,height:44,borderRadius:"50%",background:"#085041",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20}}>
-        <div style={{width:18,height:18,borderRadius:"50%",background:"#5dcaa5"}}/>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#07090d",flexDirection:"column",position:"relative",overflow:"hidden"}}>
+      {/* Bouncing orb — behind the text */}
+      <style>{`
+        @keyframes ll-bounce {
+          0%,100% { transform: translateY(0) scale(1); opacity:0.7; }
+          50%      { transform: translateY(-18px) scale(1.08); opacity:1; }
+        }
+        @keyframes ll-bounce-shadow {
+          0%,100% { transform: scaleX(1); opacity:0.3; }
+          50%      { transform: scaleX(0.6); opacity:0.1; }
+        }
+      `}</style>
+      <div style={{position:"absolute",zIndex:0,display:"flex",flexDirection:"column",alignItems:"center",bottom:"50%",marginBottom:-80}}>
+        <div style={{width:56,height:56,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#5dcaa5,#085041)",animation:"ll-bounce 2s cubic-bezier(0.36,0.07,0.19,0.97) infinite",boxShadow:"0 0 40px rgba(93,202,165,0.25)"}}/>
+        <div style={{width:36,height:6,borderRadius:"50%",background:"rgba(93,202,165,0.15)",marginTop:8,animation:"ll-bounce-shadow 2s cubic-bezier(0.36,0.07,0.19,0.97) infinite"}}/>
       </div>
-      <div className="ll-fade" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:36,letterSpacing:"-1px",color:"#f4f4f1",lineHeight:1,marginBottom:6}}>
-        your <em style={{fontStyle:"italic",color:"#5dcaa5"}}>money</em>, told plainly.
-      </div>
-      <div className="ll-fade2" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:"2px",textTransform:"uppercase",color:"#4a5161",marginBottom:28}}>
-        ledgr finance
-      </div>
-      <div style={{width:120,height:1,background:"#161c26",borderRadius:1,overflow:"hidden",position:"relative"}}>
-        <div className="ll-bar" style={{position:"absolute",inset:0,width:40,background:"#5dcaa5",borderRadius:1}}/>
-      </div>
-      <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#2e3340",marginTop:16,letterSpacing:"0.5px"}}>
-        loading your data…
+      {/* Text content — above the orb */}
+      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
+        <div className="ll-fade" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:36,letterSpacing:"-1px",color:"#f4f4f1",lineHeight:1,marginBottom:6,textAlign:"center"}}>
+          your <em style={{fontStyle:"italic",color:"#5dcaa5"}}>money</em>, told plainly.
+        </div>
+        <div className="ll-fade2" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:"2px",textTransform:"uppercase",color:"#4a5161",marginBottom:28}}>
+          ledgr finance
+        </div>
+        <div style={{width:120,height:1,background:"#161c26",borderRadius:1,overflow:"hidden",position:"relative"}}>
+          <div className="ll-bar" style={{position:"absolute",inset:0,width:40,background:"#5dcaa5",borderRadius:1}}/>
+        </div>
+        <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#2e3340",marginTop:16,letterSpacing:"0.5px"}}>
+          loading your data…
+        </div>
       </div>
     </div>
   );
@@ -1558,6 +1573,7 @@ function AppInner({ isDemo = false }) {
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
+      userName={currentUser?.name?.split(" ")[0] || null}
     /></MobileWrap>;
 
   if (view === "transactions") return <MobileWrap><>
@@ -1836,10 +1852,10 @@ function AppInner({ isDemo = false }) {
       <>
         <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="lumen-content">
           {view === "dashboard"
-            ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
+            ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in">{VIEWS[view]}</div>
             : view === "calendar" || view === "rules"
-            ? <div key={navKey} className="ledgr-view-enter">{VIEWS[view]}</div>
-            : <div key={navKey} className="ledgr-view-enter"><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
+            ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in">{VIEWS[view]}</div>
+            : <div key={navKey} className="ledgr-view-enter ledgr-slide-in"><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
           }
         </div>
 
@@ -1898,10 +1914,10 @@ function AppInner({ isDemo = false }) {
             
             
             {view === "dashboard"
-              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+              ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
-              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
+              ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+              : <div key={navKey} className="ledgr-view-enter ledgr-slide-in" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
             }
           </div>
           </div>{/* /max-width wrapper */}

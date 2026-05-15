@@ -173,7 +173,7 @@ const CSS = `
   .lt-strip-bar.none{background:transparent;}
 
   /* Cell inner */
-  .lt-cell{padding:10px 12px;display:flex;align-items:center;gap:6px;min-height:42px;}
+  .lt-cell{padding:6px 12px;display:flex;align-items:center;gap:6px;min-height:34px;}
   .lt-cell.ra{justify-content:flex-end;}
   .lt-date-val{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);white-space:nowrap;}
   .lt-merchant-val{font-size:13px;color:var(--ink-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -193,6 +193,12 @@ const CSS = `
 
   /* Category pill */
   .lt-cat-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--font-mono);white-space:nowrap;}
+  .lt-type-badge{font-family:var(--font-mono);font-size:9px;letter-spacing:0.5px;padding:2px 7px;border-radius:4px;white-space:nowrap;text-transform:lowercase;}
+  .lt-type-badge.income{background:var(--safe-bg);color:var(--safe);}
+  .lt-type-badge.expense{background:var(--bg-3);color:var(--ink-3);}
+  .lt-type-badge.transfer{background:var(--calm-bg);color:var(--calm);}
+  .lt-type-badge.bill{background:var(--warn-bg);color:var(--warn);}
+  .lt-type-badge.subscription{background:var(--goal-bg,rgba(167,139,255,0.08));color:var(--goal);}
   .lt-cat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
 
   /* Empty state */
@@ -579,7 +585,8 @@ export default function LedgrTransactions({
                         <Th col="date"     label="Date"        style={{ width:80 }}/>
                         <Th col="merchant" label="Description"/>
                         <Th col="category" label="Category"    style={{ width:150 }}/>
-                        <Th col="account"  label="Account"     style={{ width:130 }}/>
+                        <Th col="account"  label="Account"     style={{ width:120 }}/>
+                        <Th col="type"     label="Type"        style={{ width:90 }}/>
                         <Th col="amount"   label="Amount"      align="right" style={{ width:100 }}/>
                         {/* actions — no sort */}
                         <th className="lt-th" style={{ width:36 }}/>
@@ -666,6 +673,13 @@ export default function LedgrTransactions({
                             <td className="lt-td">
                               <div className="lt-cell">
                                 <span className="lt-acct-val">{acct?.name || "—"}</span>
+                              </div>
+                            </td>
+
+                            {/* Type */}
+                            <td className="lt-td">
+                              <div className="lt-cell">
+                                <span className={`lt-type-badge ${ttype||'expense'}`}>{ttype||'expense'}</span>
                               </div>
                             </td>
 

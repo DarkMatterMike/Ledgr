@@ -99,7 +99,7 @@ const CSS = `
   .lb-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
   .lb-tb-right{display:flex;align-items:center;gap:14px;}
   .lb-eyebrow{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:8px;}
-  .lb-headline{font-family:var(--font-display);font-size:56px;line-height:1.02;letter-spacing:-1.5px;font-weight:400;margin-bottom:24px;transition:color .3s;}
+  .lb-headline{font-family:var(--font-display);font-size:56px;line-height:1.02;letter-spacing:-1.5px;font-weight:400;margin-bottom:24px;transition:color .5s ease;}
   .lb-headline em{font-style:italic;color:var(--safe);}
   .lb-headline em.warn{color:var(--warn);}
   .lb-headline em.debt{color:var(--debt);}
@@ -138,7 +138,7 @@ const CSS = `
   .lb-led.warn{background:var(--warn);}
 
   /* story headline */
-  .lb-story-head{font-family:var(--font-display);font-size:clamp(20px,3.2vw,60px);line-height:1.05;letter-spacing:-1px;font-weight:400;margin-bottom:24px;white-space:nowrap;}
+  .lb-story-head{font-family:var(--font-display);font-size:clamp(20px,3.2vw,60px);line-height:1.05;letter-spacing:-1px;font-weight:400;margin-bottom:24px;white-space:nowrap;transition:color .4s ease;}
   .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
 
 
@@ -173,7 +173,12 @@ const CSS = `
   .lb-wi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
   @media(max-width:900px){.lb-wi-row{grid-template-columns:1fr 1fr;}}
   @media(max-width:600px){.lb-wi-row{grid-template-columns:1fr;}}
-  .lb-wi-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:border-color .15s,background .15s;position:relative;}
+  @keyframes lb-card-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .lb-wi-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;cursor:pointer;transition:border-color .2s,background .2s,opacity .2s,transform .2s;position:relative;animation:lb-card-in 0.3s cubic-bezier(0.22,1,0.36,1) both;}
+  .lb-wi-card:nth-child(1){animation-delay:0.05s;}
+  .lb-wi-card:nth-child(2){animation-delay:0.12s;}
+  .lb-wi-card:nth-child(3){animation-delay:0.19s;}
+  .lb-wi-card:nth-child(4){animation-delay:0.26s;}
   .lb-wi-card:hover{border-color:var(--line-3);}
   .lb-wi-card.sel{border-color:rgba(93,202,165,0.4);background:rgba(93,202,165,0.04);}
   .lb-wi-card.ai-card{border-color:rgba(108,140,255,0.3);background:rgba(108,140,255,0.04);}
@@ -346,6 +351,7 @@ export default function LedgrBriefing({
   authHeaders=()=>({}),
   doSync=null,syncing=false,
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
+  userName=null,
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
@@ -590,8 +596,8 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               <div className="lb-mstats">
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
                 <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
-                <div className="lb-mrow"><span className="l">Overspent</span><span className="v" style={{color:overspentTotal>0?"var(--debt)":"var(--ink-3)"}}>{overspentTotal>0?`−${fmt(overspentTotal)}`:"—"}</span></div>
-                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"var(--warn)"}}>{fmt(budgetIncOverspent)}</span></div>
+                <div className="lb-mrow"><span className="l">Overspent by</span><span className="v" style={{color:overspentTotal>0?"var(--debt)":"var(--ink-3)"}}>{overspentTotal>0?`−${fmt(overspentTotal)}`:"—"}</span></div>
+                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"var(--warn)",fontWeight:600}}>{fmt(budgetIncOverspent)}</span></div>
               </div>
               {(()=>{
                 const MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -636,7 +642,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               {/* hero */}
               <div style={{marginBottom:40}}>
                 <div className="lb-eyebrow">
-                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{userName?`, ${userName}`:""} · The Headline
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
 

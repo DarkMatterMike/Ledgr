@@ -152,6 +152,68 @@
     .ll-fade2 { opacity:0; animation: ll-fade2 0.6s 0.3s ease both; }
     .ll-bar   { animation: ll-bar 1.4s 0.5s ease-in-out infinite; }
     .ll-orb   { animation: ll-orb 2s ease-in-out infinite; }
+    /* ── Number count-up shimmer ─────────────────────────────────── */
+    @keyframes ledgr-num-in {
+      from { opacity:0; transform:translateY(4px); filter:blur(2px); }
+      to   { opacity:1; transform:translateY(0);   filter:blur(0); }
+    }
+    .ledgr-num-in { animation:ledgr-num-in 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+    /* ── Card hover lift ─────────────────────────────────────────── */
+    .ledgr-card-hover {
+      transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .ledgr-card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      border-color: var(--line-2);
+    }
+
+    /* ── Row slide-in ───────────────────────────────────────────── */
+    @keyframes ledgr-row-in {
+      from { opacity:0; transform:translateX(-4px); }
+      to   { opacity:1; transform:translateX(0); }
+    }
+    .ledgr-row-in { animation:ledgr-row-in 0.25s cubic-bezier(0.22,1,0.36,1) both; }
+
+    /* ── Pill pop ───────────────────────────────────────────────── */
+    @keyframes ledgr-pill-pop {
+      0%   { transform:scale(0.85); opacity:0; }
+      60%  { transform:scale(1.04); }
+      100% { transform:scale(1);    opacity:1; }
+    }
+    .ledgr-pill-pop { animation:ledgr-pill-pop 0.25s cubic-bezier(0.22,1,0.36,1) both; }
+
+    /* ── Skeleton shimmer ───────────────────────────────────────── */
+    @keyframes ledgr-shimmer {
+      from { background-position: -200% center; }
+      to   { background-position: 200% center; }
+    }
+    .ledgr-skeleton {
+      background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%);
+      background-size: 200% 100%;
+      animation: ledgr-shimmer 1.5s ease-in-out infinite;
+      border-radius: 4px;
+    }
+
+    /* ── Stat update flash ──────────────────────────────────────── */
+    @keyframes ledgr-stat-flash {
+      0%   { background:rgba(93,202,165,0.15); }
+      100% { background:transparent; }
+    }
+    .ledgr-stat-flash { animation:ledgr-stat-flash 0.8s ease both; }
+
+    /* ── Page slide in from right ───────────────────────────────── */
+    @keyframes ledgr-slide-in {
+      from { opacity:0; transform:translateX(12px); }
+      to   { opacity:1; transform:translateX(0); }
+    }
+    .ledgr-slide-in { animation:ledgr-slide-in 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+
+    /* ── Spinning sync icon ─────────────────────────────────────── */
+    @keyframes ledgr-spin { to { transform:rotate(360deg); } }
+    .ledgr-spinning { animation:ledgr-spin 0.8s linear infinite; }
+
   `;
   document.head.appendChild(el);
 })();

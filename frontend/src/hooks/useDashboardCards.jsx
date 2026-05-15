@@ -150,7 +150,7 @@ export function useDashboardCards({
 
   /* ── SpendingBreakdownCard ─────────────────────────────────── */
   const SpendingBreakdownCard = (
-    <div className="lumen-card" style={{ ...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden" }}>
+    <div className="lumen-card ledgr-card-hover" style={{ ...S.card, height:isMobile?"auto":"395px", boxSizing:"border-box", overflow:"hidden" }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8, paddingLeft: 22 }}>
         <div style={S.cardTitle}>Spending Breakdown</div>
       </div>
@@ -237,7 +237,7 @@ export function useDashboardCards({
 
   /* ── AccountBalanceStrip ──────────────────────────────────── */
   const AccountBalanceStrip = accounts.length === 0 ? null : (
-    <div className="lumen-card" style={{...S.card, padding:0, overflow:"hidden"}}>
+    <div className="lumen-card ledgr-card-hover" style={{...S.card, padding:0, overflow:"hidden"}}>
       <div
         style={{display:"flex",overflowX:"auto",scrollbarWidth:"thin",scrollbarColor:"var(--line-2) transparent",alignItems:"center",WebkitOverflowScrolling:"touch"}}
         onWheel={e=>{e.currentTarget.scrollLeft+=e.deltaY;}}
@@ -263,7 +263,7 @@ export function useDashboardCards({
 
   /* ── CashFlowCard ─────────────────────────────────── */
   const CashFlowCard = (
-    <div className="lumen-card" style={{ ...S.card }}>
+    <div className="lumen-card ledgr-card-hover" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 8 }}>
         <div style={S.cardTitle}>Cash Flow</div>
       </div>
@@ -336,7 +336,7 @@ export function useDashboardCards({
 
   /* ── OverspendingHighlightsCard ─────────────────────────────────── */
   const OverspendingHighlightsCard = (
-    <div className="lumen-card" style={{ ...S.card }}>
+    <div className="lumen-card ledgr-card-hover" style={{ ...S.card }}>
       <div style={{ ...S.sectionHdr, marginBottom: 10 }}>
         <div style={S.cardTitle}>Overspending Highlights</div>
       </div>
@@ -525,7 +525,7 @@ export function useDashboardCards({
         </div>
       ),
       action: (
-        <div className="lumen-card" style={S.card}>
+        <div className="lumen-card ledgr-card-hover" style={S.card}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10,paddingLeft:22}}>
             <div style={S.cardTitle}>Action Items</div>
             {insightsTodos.length > 0 && (
@@ -556,7 +556,7 @@ export function useDashboardCards({
         </div>
       ),
       goals: goals.length === 0 ? null : (
-        <div className="lumen-card" style={S.card}>
+        <div className="lumen-card ledgr-card-hover" style={S.card}>
           <div style={{...S.sectionHdr,marginBottom:8,paddingLeft:22}}>
             <div style={S.cardTitle}>Goals</div>
             <button style={{...S.btn("ghost",true),color:"var(--warn)"}} className="ledgr-btn" onClick={()=>{ setAnalyticsTab("goals"); navigate("analytics"); }}>All →</button>

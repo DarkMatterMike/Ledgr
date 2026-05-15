@@ -20,6 +20,15 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 /* ── CSS injected once ──────────────────────────────────── */
 const CSS = `
     }
+  .la-wrap{
+    --fd: var(--font-display);
+    --fm: var(--font-mono);
+    --fu: var(--font-ui);
+    --rx: var(--r-xl);
+    --rl: var(--r-lg);
+    --rm: var(--r-md);
+    --rs: var(--r-sm);
+  }
   .la-wrap{padding:40px 48px 80px;background:var(--bg-0);}
   @media(max-width:600px){.la-wrap{padding:0;}}
   .la-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--rx);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;}

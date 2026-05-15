@@ -14,6 +14,7 @@ export function useDashboardCards({
   navigate, plaidItems, staleItemIds,
   rules, theme, pendingDuplicates, newTxnNotifs, budgetBarsAnimated, pad,
   setAnalyticsTab, setInsightsTodos,
+  needsReview, dismissedNotifs, setDismissedNotifs,
 }) {
   /* -- Dashboard -- */
   const budgetAnalytics = useMemo(() => {

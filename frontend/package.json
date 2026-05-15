@@ -1,12 +1,14 @@
 {
   "name": "ledgr-frontend",
   "version": "1.0.0",
-  "description": "Ledgr finance app – React + Vite frontend",
+  "description": "Ledgr finance app \u2013 React + Vite frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "npx eslint src/ -c eslint.config.mjs",
+    "lint:fix": "npx eslint src/ -c eslint.config.mjs --fix"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.1",
@@ -18,8 +20,11 @@
   },
   "devDependencies": {
     "@babel/parser": "^7.29.3",
+    "@eslint/js": "^10.0.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "esbuild-linux-64": "^0.15.18"
+    "esbuild-linux-64": "^0.15.18",
+    "eslint": "^10.4.0",
+    "eslint-plugin-react-hooks": "^7.1.1"
   }
 }

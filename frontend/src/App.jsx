@@ -630,6 +630,38 @@ function AppInner({ isDemo = false }) {
   // A transaction needs review if it has no category AND hasn't been marked reviewed
   // Income, transfer, reimbursement auto-reviewed when type set
   const needsReview = t => !t.reviewed && !t.categoryId && (t.type==="expense" || t.type==="refund" || !t.type);
+  const reviewCount = transactions.filter(t => needsReview(t)).length;
+
+  /* -- Notification list -- */
+  const notifList = useMemo(() => {
+    const todayStr = today.toISOString().slice(0,10);
+    const goalReminders = (goals||[]).flatMap(g => {
+      if (!g.startDate || !g.deadline || !g.period) return [];
+      const start = new Date(g.startDate + "T12:00:00");
+      const end   = new Date(g.deadline  + "T12:00:00");
+      const periodDays = { week:7, biweekly:14, month:30, quarter:91, year:365 }[g.period] || 30;
+      const dates = [];
+      let d = new Date(end);
+      while (d >= start) { dates.unshift(d.toISOString().slice(0,10)); d = new Date(d.getTime() - periodDays*86400000); }
+      return dates.includes(todayStr) ? [{ id:`goal-${g.id}`, type:"goal", goal:g }] : [];
+    });
+    const reauthNotifs = [...staleItemIds].map(itemId => {
+      const item = plaidItems.find(i => i.item_id === itemId);
+      return { id:`reauth-${itemId}`, type:"reauth", itemId, institution: item?.institution || "Connected bank" };
+    });
+    return [
+      ...reauthNotifs,
+      ...(reviewCount > 0 ? [{ id:"review", type:"review", count:reviewCount }] : []),
+      ...goalReminders,
+    ];
+  }, [reviewCount, goals, today, staleItemIds, plaidItems]);
+
+  const visibleNotifs = useMemo(
+    () => notifList.filter(n => !dismissedNotifs.has(n.id)),
+    [notifList, dismissedNotifs]
+  );
+  const notifCount = visibleNotifs.length;
+  const isNewUser = transactions.length === 0 && plaidItems.length === 0 && accounts.length === 0;
   function markReviewed(id) {
     setTransactions(p => p.map(t => {
       if (t.id !== id) return t;
@@ -913,6 +945,7 @@ function AppInner({ isDemo = false }) {
     initialized,
     applyRulesRef,
     catMap, customAccountNames, runAutoCategorizeRef, cap,
+    setNotifOpen, setAllTransactions, resetAnalyticsLoad, lastSyncedAt,
   });
   /* -- Category CRUD -- */
   function openAddCat()   { setCatForm({name:"",limit:"",color:CAT_COLORS[0]}); setModal("addCat"); }
@@ -1017,6 +1050,7 @@ function AppInner({ isDemo = false }) {
     navigate, plaidItems, staleItemIds,
     rules, theme, pendingDuplicates, newTxnNotifs, budgetBarsAnimated, pad,
     setAnalyticsTab, setInsightsTodos,
+    needsReview, dismissedNotifs, setDismissedNotifs,
   });
   const Dashboard = null; // rendered via early return above
 
@@ -1159,6 +1193,7 @@ function AppInner({ isDemo = false }) {
     budgetBarsAnimated={budgetBarsAnimated}
     setCategories={setCategories}
     limitSuggestions={limitSuggestions} setLimitSuggestions={setLimitSuggestions}
+    suggestingLimits={suggestingLimits} runSuggestLimits={runSuggestLimits}
   />;
 
   /* -- Accounts -- */

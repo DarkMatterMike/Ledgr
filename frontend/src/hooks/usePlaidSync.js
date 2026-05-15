@@ -12,6 +12,7 @@ export function usePlaidSync({
   initialized,
   applyRulesRef,
   catMap, customAccountNames, runAutoCategorizeRef, cap,
+  setNotifOpen, setAllTransactions, resetAnalyticsLoad, lastSyncedAt,
 }) {
   // Merchant normalisation — must match computeFingerprint() in db.js
   function normMerchant(t) {
@@ -176,7 +177,7 @@ export function usePlaidSync({
       setSyncing(false);
       const now = Date.now();
       lastSyncedAt.current = now;
-      try { localStorage.setItem("ledgr_last_sync", String(now)); } catch {}
+      try { localStorage.setItem("ledgr_last_sync", String(now)); } catch(e) { /* ignore */ }
     }
   }, [catMap, rules]);
 
@@ -196,7 +197,6 @@ export function usePlaidSync({
     if (Date.now() - lastSyncedAt.current > 24 * 60 * 60 * 1000) {
       doSync();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized.current]);
 
   // Auto-sync on tab/window focus if last sync was >30 minutes ago

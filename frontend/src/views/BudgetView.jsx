@@ -17,6 +17,7 @@ export default function BudgetView({
   budgetBarsAnimated,
   setCategories,
   limitSuggestions, setLimitSuggestions,
+  suggestingLimits, runSuggestLimits,
 }) {
 
   /* ── Compute category groups ─────────────────────── */

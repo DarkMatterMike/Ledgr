@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import * as api from "../api.js";
+const { debounce } = api;
 
 // All transaction mutation and categorization logic, extracted from AppInner.
 // Returns an object of all action functions.

@@ -1,12 +1,14 @@
 {
   "name": "ledgr",
   "version": "1.0.0",
-  "description": "Ledgr – personal finance app with Plaid integration",
+  "description": "Ledgr \u2013 personal finance app with Plaid integration",
   "private": true,
   "scripts": {
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
-    "start": "npm start --prefix backend"
+    "start": "npm start --prefix backend",
+    "lint": "npm run lint --prefix frontend",
+    "lint:fix": "npm run lint:fix --prefix frontend"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

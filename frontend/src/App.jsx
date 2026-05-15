@@ -245,11 +245,6 @@ function useIsMobile() {
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
-    /* ── Mobile: prevent bottom-nav overlap ── */
-    @media (max-width: 768px) {
-      .lb-wrap, .lc-wrap, .la-wrap, .lt-wrap, .lgs-wrap { padding-bottom: 90px !important; }
-      .ledgr-content { padding-bottom: 0 !important; }
-    }
     /* ── Mobile bottom nav ── */
     .mobile-bottom-nav {
       height: 82px;
@@ -261,8 +256,8 @@ function useIsMobile() {
     }
     .mobile-nav-indicator {
       position: absolute; top: -2px; height: 2px;
-      background: var(--safe);
-      box-shadow: 0 0 10px var(--safe), 0 0 20px rgba(93,202,165,0.2);
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--glow-color);
       border-radius: 0 0 2px 2px;
       transition: left 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1);
       pointer-events: none; z-index: 11;
@@ -277,7 +272,7 @@ function useIsMobile() {
       -webkit-tap-highlight-color: transparent;
       align-self: stretch;
     }
-    .mobile-nav-item.active { background: var(--safe-bg); }
+    .mobile-nav-item.active { background: var(--cyan-dim); }
     .mobile-nav-item svg {
       width: 24px; height: 24px;
       stroke: rgba(232,221,208,0.32); fill: none;
@@ -293,7 +288,7 @@ function useIsMobile() {
       color: rgba(232,221,208,0.32); transition: color 0.18s;
       font-family: var(--font-body); line-height: 1;
     }
-    .mobile-nav-item.active .mobile-nav-label { color: var(--safe); }
+    .mobile-nav-item.active .mobile-nav-label { color: var(--cyan); }
 
     /* ── Top-right glow orb ── */
     .mobile-glow-orb {
@@ -4994,6 +4989,7 @@ function AppInner({ isDemo = false }) {
       hasApiKey={aiChat.hasApiKey}
       saveApiKey={aiChat.saveApiKey}
       navigate={navigate}
+      isMobile={isMobile}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}

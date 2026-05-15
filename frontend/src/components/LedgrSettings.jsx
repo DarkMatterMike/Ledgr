@@ -291,6 +291,7 @@ export default function LedgrSettings({
   settingsTab="profile", setSettingsTab=()=>{},
   hasApiKey=false, saveApiKey=async()=>{},
   navigate=()=>{},
+  isMobile=false,
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
 }) {
   const user = api.getStoredUser();

@@ -5,7 +5,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { S } from '../../theme/index.js';
 import * as api from '../../api.js';
-import { NAV } from '../../App.jsx';
+import { NAV } from '../../utils/globals.js';
 
 /* ── Ink bleed nav CSS injected once ─────────────────────── */
 const INK_CSS = `

@@ -606,7 +606,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
           <div className="lb-brief" style={isMobile?{display:"block",width:"100%",minHeight:"unset"}:{}}>
 
             {/* sidenav */}
-            {!isMobile&&<PageNav activeId="dashboard" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview} fmt={fmt}/>}
+            {/* LumenShell provides nav */ false&&<PageNav activeId="dashboard" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview} fmt={fmt}/>}
 
             {/* agenda */}
             {!isMobile&&<aside className="lb-agenda">

@@ -13,15 +13,9 @@
  *   fmt            {Function} — optional, passed to NotifPanel
  */
 import NotifPanel from "./NotifPanel.jsx";
+import { NAV as LUMEN_NAV } from "../utils/globals.js";
 
-export const NAV = [
-  { icon:"◐", id:"dashboard"    },
-  { icon:"⇅", id:"transactions" },
-  { icon:"▣", id:"accounts"     },
-  { icon:"◉", id:"budgets"      },
-  { icon:"▦", id:"calendar"     },
-  { icon:"◈", id:"analytics"    },
-];
+export const NAV = LUMEN_NAV;
 
 const CSS = `
   .pn-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);flex-shrink:0;align-self:stretch;min-height:100%;}

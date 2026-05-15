@@ -494,7 +494,7 @@ export default function LedgrTransactions({
           <div className="lt-body" style={isMobile?{display:"block",width:"100%"}:{}}>
 
             {/* ── Col 1: Nav ── */}
-            {!isMobile&&<PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
+            {/* LumenShell provides nav */ false&&<PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             {/* ── Col 2: Ledger list ── */}
             <div className="lt-main">

@@ -158,3 +158,105 @@ input, select, textarea, button { font-family: var(--font-ui); }
   0%,100% { box-shadow: 0 0 0 0 rgba(232,115,99,0.5); }
   50%     { box-shadow: 0 0 0 5px rgba(232,115,99,0); }
 }
+
+/* ── Lumen layout helpers (restored from globalCSS.js) ──────────── */
+.lumen-content     { padding: 0; }
+.lumen-stat-grid   { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.lumen-dash-cards  { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── View slide-in (companion to ledgr-view-enter) ──────────────── */
+@keyframes ledgr-slide-in-anim {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.ledgr-slide-in { animation: ledgr-slide-in-anim 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ── Sync / spinner ─────────────────────────────────────────────── */
+@keyframes ledgr-spin { to { transform: rotate(360deg); } }
+.ledgr-spinning { animation: ledgr-spin 0.7s linear infinite; }
+
+/* ── Skeleton loading pulse ─────────────────────────────────────── */
+@keyframes ledgr-skel { 0%,100% { opacity: 0.35; } 50% { opacity: 0.65; } }
+.ledgr-skeleton { animation: ledgr-skel 1.4s ease-in-out infinite; background: var(--bg-3); border-radius: var(--r-sm); }
+
+/* ── Budget bar fill animation ──────────────────────────────────── */
+@keyframes ledgr-bar-fill { from { width: 0; } }
+.ledgr-bar-anim { animation: ledgr-bar-fill 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ── Stat number count-up flash ────────────────────────────────── */
+@keyframes ledgr-stat-flash { 0% { color: var(--safe); } 100% { color: inherit; } }
+.ledgr-stat-flash { animation: ledgr-stat-flash 0.6s ease both; }
+
+/* ── Number count-in ────────────────────────────────────────────── */
+@keyframes ledgr-num-in { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
+.ledgr-num-in { animation: ledgr-num-in 0.25s ease both; }
+
+/* ── Pill pop ───────────────────────────────────────────────────── */
+@keyframes ledgr-pill-pop { 0% { transform:scale(0.8); opacity:0; } 60% { transform:scale(1.08); } 100% { transform:scale(1); opacity:1; } }
+.ledgr-pill-pop { animation: ledgr-pill-pop 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ── Row slide-in stagger ───────────────────────────────────────── */
+@keyframes ledgr-row-in { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:none; } }
+.ledgr-row-in { animation: ledgr-row-in 0.2s ease both; }
+
+/* ── Card hover lift ────────────────────────────────────────────── */
+.ledgr-card-hover { transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
+.ledgr-card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.35); }
+
+/* ── Drag handle ────────────────────────────────────────────────── */
+.ledgr-drag-handle { cursor: grab; opacity: 0.4; transition: opacity 0.15s; }
+.ledgr-drag-handle:hover { opacity: 0.9; }
+.ledgr-drag-handle:active { cursor: grabbing; }
+
+/* ── Loading screen animations ──────────────────────────────────── */
+@keyframes ll-orb { 0%,100%{transform:scale(1);opacity:0.9;} 50%{transform:scale(1.08);opacity:1;} }
+@keyframes ll-fade-in { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:none;} }
+@keyframes ll-bar-slide { 0%{left:0;width:40px;} 50%{left:40px;width:60px;} 100%{left:120px;width:0;} }
+.ll-orb   { animation: ll-orb 2s ease-in-out infinite; }
+.ll-fade  { animation: ll-fade-in 0.6s 0.1s ease both; }
+.ll-fade2 { animation: ll-fade-in 0.6s 0.3s ease both; }
+.ll-bar   { animation: ll-bar-slide 1.4s ease-in-out infinite; position: absolute; height: 100%; background: #5dcaa5; border-radius: 1px; }
+
+/* ── Rule save prompt toast ─────────────────────────────────────── */
+.ledgr-rule-prompt { animation: ledgr-slide-in-anim 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* ── Chevron toggle ─────────────────────────────────────────────── */
+.ledgr-chevron { transition: transform 0.2s; display: inline-block; }
+.ledgr-chevron-open { transform: rotate(180deg); }
+
+/* ─── Mobile more sheet ──────────────────────────────────────────── */
+.mobile-more-sheet {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 50;
+  background: rgba(11,14,20,0.98);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px 20px 0 0;
+  padding: 0 0 calc(82px + env(safe-area-inset-bottom, 0px));
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.mobile-more-sheet.open { transform: translateY(0); }
+.mobile-sheet-handle {
+  width: 36px; height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  margin: 12px auto 8px;
+}
+.mobile-sheet-item {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%; padding: 14px 22px;
+  background: none; border: none;
+  color: var(--ink-1); font-size: 15px; font-family: var(--font-ui);
+  cursor: pointer; text-align: left;
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-sheet-item:active { background: rgba(255,255,255,0.04); }
+.mobile-sheet-item svg { width: 20px; height: 20px; flex-shrink: 0; opacity: 0.7; }
+.mobile-sheet-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 6px 0;
+}

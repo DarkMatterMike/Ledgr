@@ -475,7 +475,7 @@ export default function LedgrSettings({
         <div className="lb-brief">
 
           {/* Nav rail — identical to LedgrBriefing */}
-          {!isMobile&&<PageNav activeId="settings" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
+          {/* LumenShell provides nav */ false&&<PageNav activeId="settings" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
           {/* Main */}
           <div className="lgs-main">

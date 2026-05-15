@@ -65,7 +65,7 @@ const CSS = `
   .lt-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
 
   /* 3-column body */
-  .lt-body { display:grid;grid-template-columns:64px 1fr 360px;flex:1;min-height:0;align-items:start; }
+  .lt-body { display:grid;grid-template-columns:64px 1fr 320px;flex:1;min-height:0;align-items:start; }
   @media(max-width:1100px){.lt-body{grid-template-columns:64px 1fr;}}
 
   /* Left nav */

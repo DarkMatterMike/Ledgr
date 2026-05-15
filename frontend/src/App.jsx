@@ -1571,6 +1571,7 @@ function AppInner({ isDemo = false }) {
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
       onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
       userName={currentUser?.name?.split(" ")[0] || null}
+      calendarTxnsByDay={calendarTxnsByDay}
     /></MobileWrap>;
 
   if (view === "transactions") return <MobileWrap><>

@@ -52,7 +52,6 @@ const CSS = `
   .la-tb-title{font-family:var(--fd);font-size:22px;letter-spacing:-0.3px;}
   .la-tb-div{width:1px;height:14px;background:var(--line-2);flex-shrink:0;}
   .la-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
-  .la-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--goal-d),var(--goal));font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--ink-0);}
   /* pill */
   .la-pill{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 9px;border-radius:99px;font-family:var(--fm);white-space:nowrap;}
   .la-pill.safe{background:var(--safe-bg);color:var(--safe);border:1px solid rgba(93,202,165,0.2);}
@@ -708,7 +707,6 @@ export default function LedgrAnalytics({
   const gradeText  = g => g==="A"?"var(--safe)":g==="B"?"var(--calm)":g==="C"?"var(--warn)":"var(--debt)";
 
   const monthLabel = today.toLocaleString("en-US",{month:"short",year:"numeric"});
-  const initials = accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
 
   return (
     <>
@@ -740,7 +738,6 @@ export default function LedgrAnalytics({
                   <span className="la-tb-div"/>
                   <span className="la-tb-sub">{monthLabel}</span>
                 </div>
-                <div className="la-av">{initials}</div>
               </div>
 
               {/* ═══ SECTION 1: REPORT CARD ═══ */}

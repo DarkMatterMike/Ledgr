@@ -20,8 +20,8 @@ const CSS = `
   .lc-sync-btn svg{transition:transform .6s;}
   .lc-sync-btn.spinning svg{animation:lc-spin .7s linear infinite;}
   @keyframes lc-spin{to{transform:rotate(360deg);}}
-  .lc-body{display:grid;grid-template-columns:64px 320px 1fr 300px;flex:1;}
-  @media(max-width:1100px){.lc-body{grid-template-columns:64px 260px 1fr 240px;}}
+  .lc-body{display:grid;grid-template-columns:64px 320px 1fr 320px;flex:1;}
+  @media(max-width:1100px){.lc-body{grid-template-columns:64px 240px 1fr 280px;}}
   @media(max-width:900px){.lc-body{grid-template-columns:64px 1fr;}}
   .lc-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
   .lc-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}

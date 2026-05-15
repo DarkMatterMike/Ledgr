@@ -251,14 +251,31 @@ function Gauge({pct=0.5}){
 }
 
 /* ─── Mini Calendar ───────────────────────────────────────────── */
-function MiniCal({today,bills,incs,mixes}){
+function MiniCal({today,bills,incs,mixes,txnsByDay={}}){
   const[cm,setCm]=useState({y:today.getFullYear(),m:today.getMonth()});
   const{y,m}=cm;
   const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate(),dimp=new Date(y,m,0).getDate();
   const isCur=y===today.getFullYear()&&m===today.getMonth();
   const cells=[];
   for(let i=first-1;i>=0;i--) cells.push({d:dimp-i,muted:true});
-  for(let d=1;d<=dim;d++) cells.push({d,isToday:isCur&&d===today.getDate(),hasMix:isCur&&mixes.has(d),hasBill:isCur&&bills.has(d),hasInc:isCur&&incs.has(d)});
+  for(let d=1;d<=dim;d++){
+    // Use calendarTxnsByDay if available (matches calendar page exactly), else fall back to recurring sets
+    let hasMix=false,hasBill=false,hasInc=false;
+    const useTxns=isCur&&txnsByDay[d]&&txnsByDay[d].length>0;
+    if(useTxns){
+      const txns=txnsByDay[d];
+      const dayHasInc=txns.some(t=>t.amount>0);
+      const dayHasBill=txns.some(t=>t.amount<0);
+      hasMix=dayHasInc&&dayHasBill;
+      hasInc=dayHasInc&&!dayHasBill;
+      hasBill=dayHasBill&&!dayHasInc;
+    } else if(isCur){
+      hasMix=mixes.has(d);
+      hasBill=!hasMix&&bills.has(d);
+      hasInc=!hasMix&&incs.has(d);
+    }
+    cells.push({d,isToday:isCur&&d===today.getDate(),hasMix,hasBill,hasInc});
+  }
   while(cells.length<42) cells.push({d:cells.length-first-dim+1,muted:true});
   return(
     <div style={{marginBottom:22}}>
@@ -352,6 +369,7 @@ export default function LedgrBriefing({
   doSync=null,syncing=false,
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
   userName=null,
+  calendarTxnsByDay={},
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
@@ -592,7 +610,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
             {/* agenda */}
             {!isMobile&&<aside className="lb-agenda">
-              <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
+              <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays} txnsByDay={calendarTxnsByDay}/>
               <div className="lb-mstats">
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
                 <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>

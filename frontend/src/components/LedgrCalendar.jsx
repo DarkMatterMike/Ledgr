@@ -306,11 +306,11 @@ export default function LedgrCalendar({
               )}
             </span>
           </div>
-          <div className="lc-body" style={isMobile?{display:"block",width:"100%"}:{}}>
-            {!isMobile&&{!isMobile&&<PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}}
+          <div className="lc-body" style={{isMobile?{display:"block",width:"100%"}:{}}}>
+            {!isMobile&&<PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             {/* ── left aside ── */}
-            {!isMobile&&<aside className="lc-aside">
+            <aside className="lc-aside">
               <div className="lc-cal-head">
                 <div className="lc-cal-title">{MN[cm-1]} {cy}</div>
                 <div className="lc-cal-navs"><span onClick={prevCalMonth}>‹</span><span onClick={nextCalMonth}>›</span></div>
@@ -554,7 +554,7 @@ export default function LedgrCalendar({
               </div>
             </div>
             {/* ── edit column ── */}
-            {!isMobile&&<div className="lc-edit-col">
+            <div className="lc-edit-col">
               {!selectedRiId&&!selectedTxn&&(
                 <div className="lc-edit-empty">
                   <div className="lc-edit-empty-icon">↻</div>

@@ -47,9 +47,11 @@ import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
-  const [mobile, setMobile] = useState(() => window.innerWidth < 877);
+  // screen.width = physical device CSS pixels, unaffected by viewport initial-scale
+  const check = () => screen.width < 768 || window.innerWidth < 877;
+  const [mobile, setMobile] = useState(check);
   useEffect(() => {
-    const fn = () => setMobile(window.innerWidth < 877);
+    const fn = () => setMobile(check());
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);

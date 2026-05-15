@@ -47,17 +47,7 @@ import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
-  const check = () =>
-    navigator.maxTouchPoints > 1 ||
-    window.matchMedia("(hover: none) and (pointer: coarse)").matches ||
-    window.innerWidth < 768;
-  const [mobile, setMobile] = useState(check);
-  useEffect(() => {
-    const fn = () => setMobile(check());
-    window.addEventListener("resize", fn);
-    return () => window.removeEventListener("resize", fn);
-  }, []);
-  return mobile;
+  return true;
 }
 
 function DebugBanner() {

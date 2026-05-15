@@ -306,7 +306,7 @@ export default function LedgrCalendar({
               )}
             </span>
           </div>
-          <div className="lc-body" style={{isMobile?{display:"block",width:"100%"}:{}}}>
+          <div className="lc-body" style={isMobile?{display:"block",width:"100%"}:{}}>
             {!isMobile&&<PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             {/* ── left aside ── */}

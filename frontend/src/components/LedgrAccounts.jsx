@@ -131,7 +131,7 @@ export default function LedgrAccounts({
               )}
             </span>
           </div>
-          <div className="la-body" style={{isMobile?{display:"block",width:"100%"}:{}}}>
+          <div className="la-body" style={isMobile?{display:"block",width:"100%"}:{}}>
             {!isMobile&&<PageNav activeId="accounts" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
             <main className="la-main">
               <div className="la-topbar">

@@ -396,7 +396,7 @@ export default function LedgrBudgets({
             </span>
           </div>
 
-          <div className="lb-body" style={{isMobile?{display:"block",width:"100%"}:{}}}>
+          <div className="lb-body">
             {/* sidenav */}
             {!isMobile&&<PageNav activeId="budgets" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 

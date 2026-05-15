@@ -353,6 +353,13 @@ export default function LedgrBriefing({
 }){
   // ── Computed financials ────────────────────────────────────────
   const totalBalance=useMemo(()=>accounts.reduce((s,a)=>s+(a.balance||0),0),[accounts]);
+  // Account selector state — must be declared before effectiveAcctIds useMemo
+  const[acctPopOpen,setAcctPopOpen]=useState(false);
+  const[selectedAcctIds,setSelectedAcctIds]=useState(()=>{
+    try{ const s=localStorage.getItem("ledgr_free_accts"); if(s) return JSON.parse(s); }catch{}
+    return null;
+  });
+
   const effectiveAcctIds = useMemo(()=>
     selectedAcctIds!==null ? selectedAcctIds
     : accounts.filter(a=>a.type==="checking"||a.type==="Checking").map(a=>a.id)
@@ -399,11 +406,6 @@ export default function LedgrBriefing({
   // ── What-if state ──────────────────────────────────────────────
   const initScenarios=useMemo(()=>generateScenarios(categories,monthTxns,upcomingBills,accounts,safeToSpend),[]);
   const[scenarios,setScenarios]=useState(initScenarios);
-  const[acctPopOpen,setAcctPopOpen]=useState(false);
-  const[selectedAcctIds,setSelectedAcctIds]=useState(()=>{
-    try{ const s=localStorage.getItem("ledgr_free_accts"); if(s) return JSON.parse(s); }catch{}
-    return null;
-  });
   const[selIdx,setSelIdx]=useState(null); // null = none active
   const[expandedCard,setExpandedCard]=useState(null); // 0 | 1 | null
   const[aiLoading,setAiLoading]=useState(false);

@@ -33,7 +33,7 @@ export function useAppData({
   setCalendarSplitView,
   setAccess,
   setLoading,
-  applyRules,
+  applyRulesRef,
   onData,
   onPortfolioData,
   onAiData,
@@ -139,7 +139,7 @@ export function useAppData({
           setAccounts(coreData.accounts || []);
         }
         setCategories(coreData.categories          || []);
-        setTransactions(applyRules(cleanedTxns, loadedRules));
+        setTransactions((applyRulesRef?.current || (t => t))(cleanedTxns, loadedRules));
         setPlaidItems(coreData.plaidItems          || []);
         setRules(loadedRules);
         setCalendarAccounts(coreData.calendarAccounts || null);

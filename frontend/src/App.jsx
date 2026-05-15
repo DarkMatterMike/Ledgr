@@ -270,6 +270,7 @@ function AppInner({ isDemo = false }) {
   /* -- Stable save ref (allows portfolio hook to be defined before useAppData) -- */
   const scheduleSaveRef = useRef(null);
   const rulesRef        = useRef([]);  // always holds current rules for use inside stale closures
+  const applyRulesRef    = useRef(null); // set after useRulesAndGoals initializes
 
   /* -- Portfolio (via hook) -- */
   const portfolio = usePortfolio((patch) => scheduleSaveRef.current?.(patch));
@@ -326,7 +327,7 @@ function AppInner({ isDemo = false }) {
           resetAnalyticsLoad } = isDemo ? { initialized:true, scheduleSave:()=>{}, loadPortfolioOnce:()=>{}, loadAiOnce:()=>{}, loadAnalyticsOnce:()=>{}, resetAnalyticsLoad:()=>{} } : useAppData({
     accounts, categories, transactions, plaidItems, rules, calendarAccounts, calendarSplitView,
     setAccounts, setCategories, setTransactions, setPlaidItems, setRules,
-    setCalendarAccounts, setCalendarSplitView, setAccess, setLoading, applyRules,
+    setCalendarAccounts, setCalendarSplitView, setAccess, setLoading, applyRulesRef,
     onData: (data, txnTotal) => {
       aiChat.loadFromData(data);
       if (data.aiCatExamples)  setAiCatExamples(data.aiCatExamples);
@@ -471,11 +472,9 @@ function AppInner({ isDemo = false }) {
           if (brandNew.length > 0) {
             setTransactions(prev => {
               const existingIds = new Set(prev.map(t => t.id));
-              const toAdd = applyRules(
-                brandNew.filter(t => !existingIds.has(t.id)),
-                rulesRef.current,   // ref always has current rules, even in stale closure
-                { onlyUncategorized: true }
-              );
+              const toAdd = applyRulesRef.current
+                ? applyRulesRef.current(brandNew.filter(t => !existingIds.has(t.id)), rulesRef.current, { onlyUncategorized: true })
+                : brandNew.filter(t => !existingIds.has(t.id));
               if (toAdd.length === 0) return prev;
               return [...toAdd, ...prev];
             });
@@ -529,10 +528,9 @@ function AppInner({ isDemo = false }) {
       if (!oldestDate) return;
       const data = await api.loadTransactions({ limit: TXN_PAGE_SIZE, toDate: oldestDate });
       const existingIds = new Set(transactions.map(t => t.id));
-      const newTxns = applyRules(
-        (data.transactions||[]).filter(t => !existingIds.has(t.id)),
-        rules, { onlyUncategorized: true }
-      );
+      const newTxns = applyRulesRef.current
+        ? applyRulesRef.current((data.transactions||[]).filter(t => !existingIds.has(t.id)), rules, { onlyUncategorized: true })
+        : (data.transactions||[]).filter(t => !existingIds.has(t.id));
       if (newTxns.length === 0) { setTxnTotal(transactions.length); return; }
       setTransactions(prev => [...prev, ...newTxns]);
       setTxnTotal(data.total || 0);
@@ -895,6 +893,7 @@ function AppInner({ isDemo = false }) {
     filteredTxns,
     goals, setGoals,
   });
+  applyRulesRef.current = applyRules;
   /* -- Plaid (via hook) -- */
   const {
     normMerchant, fp, handleFocus, plaidTxnToLocal,
@@ -907,6 +906,7 @@ function AppInner({ isDemo = false }) {
     showToast, syncing, setSyncing,
     setNewTxnNotifs, setNewTxnIds,
     initialized,
+    applyRulesRef,
   });
   /* -- Category CRUD -- */
   function openAddCat()   { setCatForm({name:"",limit:"",color:CAT_COLORS[0]}); setModal("addCat"); }

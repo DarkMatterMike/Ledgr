@@ -10,6 +10,7 @@ export function usePlaidSync({
   showToast, syncing, setSyncing,
   setNewTxnNotifs, setNewTxnIds,
   initialized,
+  applyRulesRef,
 }) {
   /* -- Plaid -- */
   const doSync = useCallback(async (itemId) => {
@@ -69,7 +70,7 @@ export function usePlaidSync({
             reviewed:   t.reviewed || false,
           };
           // Only apply rules if user hasn't manually categorized this txn
-          return applyRules([merged], rules, { onlyUncategorized: true })[0];
+          return (applyRulesRef?.current || (t=>t[0]))([merged], rules, { onlyUncategorized: true })[0];
         });
         const existingIds=new Set(next.map(t=>t.id));
         const fingerprints=new Set(next.map(t=>fp(t)));
@@ -82,7 +83,7 @@ export function usePlaidSync({
             fingerprints.add(f);
             return true;
           });
-        const finalNew = applyRules(rawNew, rules, { onlyUncategorized: true });
+        const finalNew = applyRulesRef?.current ? applyRulesRef.current(rawNew, rules, { onlyUncategorized: true }) : rawNew;
         if (finalNew.length > 0) {
           setNewTxnIds(new Set(finalNew.map(t => t.id)));
           setTimeout(() => setNewTxnIds(new Set()), 1200);

@@ -127,9 +127,9 @@ const CSS = `
   .lb-led.warn{background:var(--warn);}
 
   /* story headline */
-  .lb-story-head{font-family:var(--font-display);font-size:60px;line-height:0.98;letter-spacing:-2px;font-weight:400;margin-bottom:24px;}
+  .lb-story-head{font-family:var(--font-display);font-size:clamp(20px,3.2vw,60px);line-height:1.05;letter-spacing:-1px;font-weight:400;margin-bottom:24px;white-space:nowrap;}
   .lb-story-head .story-num{font-family:var(--font-display);font-style:italic;display:inline-block;margin:0 4px;}
-  @media(max-width:900px){.lb-story-head{font-size:40px;letter-spacing:-1px;}}
+
 
   /* gauge + pool callout */
   .lb-story-callout{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;}
@@ -158,7 +158,7 @@ const CSS = `
     .lb-brief{grid-template-columns:1fr !important;min-height:unset;}
     .pn-nav{display:none !important;}
     .lb-main{padding:20px 16px 0;}
-    .lb-story-head{font-size:24px !important;letter-spacing:-0.5px !important;white-space:normal !important;}
+    .lb-story-head{font-size:clamp(20px,5.8vw,36px) !important;letter-spacing:-0.5px !important;white-space:normal !important;line-height:1.15 !important;}
     .lb-deck{font-size:13px;line-height:1.6;}
     .lb-story-callout{grid-template-columns:1fr !important;gap:12px;margin-top:20px;}
     .lb-gauge-pct{font-size:36px !important;}
@@ -639,7 +639,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
               {/* hero */}
               <div style={{marginBottom:40}}>
                 <div className="lb-eyebrow">
-                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{displayName?`, ${displayName}`:""} · the headline
+                  Good {today.getHours()<12?"morning":today.getHours()<17?"afternoon":"evening"}{displayName?`, ${displayName}`:""}
                   {selIdx!==null&&<span style={{marginLeft:10,fontSize:9,letterSpacing:"1.2px",color:"var(--calm)",fontFamily:"var(--font-mono)",textTransform:"uppercase"}}>· scenario active</span>}
                 </div>
 

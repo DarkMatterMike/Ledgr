@@ -1,3 +1,4 @@
+import * as api from "../api.js";
 import { S } from "../theme/index.js";
 import { Modal, CustomSelect, CategoryBadge } from "../components/ui/index.jsx";
 import { CAT_COLORS } from "../constants.js";

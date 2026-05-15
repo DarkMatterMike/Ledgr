@@ -64,8 +64,8 @@ import "./styles/globalCSS.js";
 /* --- Mobile detection -------------------------------------------- */
 
 
-export { NAV } from "./utils/globals.js";
-import { today, pad, fmt, cap, currentMonth, daysInMonth, daysLeft } from "./utils/globals.js";
+import { today, pad, fmt, cap, currentMonth, daysInMonth, daysLeft, NAV } from "./utils/globals.js";
+export { NAV };
 
 
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as api from "../api.js";
+import { S } from "../theme/index.js";
 
 function AdminPanel() {
   const isMobile = useIsMobile();

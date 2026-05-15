@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import * as api from "../api.js";
 
 // Plaid sync and transaction normalization, extracted from AppInner.

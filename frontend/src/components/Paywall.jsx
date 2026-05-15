@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import * as api from "../api.js";
 function Paywall({ onUpgrade }) {
   const [loading, setLoading] = useState(false);
   const user = api.getStoredUser();

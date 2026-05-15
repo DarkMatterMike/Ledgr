@@ -5444,7 +5444,7 @@ function AppInner({ isDemo = false }) {
       </div>
     )}
     {/* Content — always full width; BottomNav CSS handles layout on mobile */}
-    {true ? (
+    {
       /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
          DESKTOP — persistent sidebar
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
@@ -5474,7 +5474,7 @@ function AppInner({ isDemo = false }) {
           </div>{/* /max-width wrapper */}
         </div>
       </>
-    )}
+    }
 
       {/* Lumen bottom nav — always rendered, CSS (pointer:coarse) shows on mobile only */}
       <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>

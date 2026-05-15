@@ -153,6 +153,33 @@ export function applyTheme(theme) {
       hex2rgb(theme.accent).join(','));
   }
 
+  // ── Lumen token derivation ──────────────────────────────────────────
+  if (theme.bg) {
+    const [br, bg2, bb] = hex2rgb(theme.bg);
+    const bgScale = [
+      rgb2hex([Math.max(0,br-6),  Math.max(0,bg2-6),  Math.max(0,bb-8)]),
+      rgb2hex([br+4,  bg2+5,  bb+8]),
+      rgb2hex([br+12, bg2+14, bb+20]),
+      rgb2hex([br+20, bg2+23, bb+32]),
+      rgb2hex([br+28, bg2+32, bb+44]),
+    ];
+    bgScale.forEach((v,i) => root.style.setProperty(`--bg-${i}`, v));
+    root.style.setProperty('--line',   'rgba(255,255,255,0.06)');
+    root.style.setProperty('--line-2', 'rgba(255,255,255,0.10)');
+    root.style.setProperty('--line-3', 'rgba(255,255,255,0.18)');
+  }
+  if (theme.t1) {
+    const t1 = theme.t1;
+    const rgb = t1.startsWith('#') ? hex2rgb(t1) : t1.match(/[\d.]+/g).slice(0,3).map(Number);
+    const [r,g,b] = rgb;
+    root.style.setProperty('--ink-0', t1);
+    root.style.setProperty('--ink-1', `rgba(${r},${g},${b},0.82)`);
+    root.style.setProperty('--ink-2', `rgba(${r},${g},${b},0.50)`);
+    root.style.setProperty('--ink-3', `rgba(${r},${g},${b},0.30)`);
+    root.style.setProperty('--ink-4', `rgba(${r},${g},${b},0.18)`);
+  }
+  // ── End Lumen token derivation ───────────────────────────────────────
+
   // Body background: radial gradient derived from theme
   // Bleed color = mix of surface and accent, ~40 steps above bg
   if (theme.bgImage) {

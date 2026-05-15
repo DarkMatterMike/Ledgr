@@ -11,7 +11,7 @@ export function usePlaidSync({
   setNewTxnNotifs, setNewTxnIds,
   initialized,
   applyRulesRef,
-  catMap, customAccountNames, runAutoCategorize, cap,
+  catMap, customAccountNames, runAutoCategorizeRef, cap,
 }) {
   /* -- Plaid -- */
   const doSync = useCallback(async (itemId) => {
@@ -169,7 +169,7 @@ export function usePlaidSync({
       }
       // Auto-categorize new uncategorized transactions if user has AI key
       if (added.length > 0) {
-        const count = await runAutoCategorize();
+        const count = runAutoCategorizeRef?.current ? await runAutoCategorizeRef.current() : 0;
         if (count > 0) showToast(`✦ Auto-categorized ${count} transaction${count === 1 ? "" : "s"}`);
       }
     } catch(e) { showToast("Sync error: "+e.message); }

@@ -270,7 +270,8 @@ function AppInner({ isDemo = false }) {
   /* -- Stable save ref (allows portfolio hook to be defined before useAppData) -- */
   const scheduleSaveRef = useRef(null);
   const rulesRef        = useRef([]);  // always holds current rules for use inside stale closures
-  const applyRulesRef    = useRef(null); // set after useRulesAndGoals initializes
+  const applyRulesRef         = useRef(null); // set after useRulesAndGoals initializes
+  const runAutoCategorizeRef  = useRef(null); // set after useTransactionActions initializes
 
   /* -- Portfolio (via hook) -- */
   const portfolio = usePortfolio((patch) => scheduleSaveRef.current?.(patch));
@@ -911,7 +912,7 @@ function AppInner({ isDemo = false }) {
     setNewTxnNotifs, setNewTxnIds,
     initialized,
     applyRulesRef,
-    catMap, customAccountNames, runAutoCategorize, cap,
+    catMap, customAccountNames, runAutoCategorizeRef, cap,
   });
   /* -- Category CRUD -- */
   function openAddCat()   { setCatForm({name:"",limit:"",color:CAT_COLORS[0]}); setModal("addCat"); }
@@ -1001,6 +1002,7 @@ function AppInner({ isDemo = false }) {
     recurringItems, modal, editingName, search, txnForm, riForm, riSearch,
     editingRecurringItem, promptSaveRule, today,
   });
+  runAutoCategorizeRef.current = runAutoCategorize;
   // DrillDownModal → extracted to AppModals
 
   const {
@@ -1014,6 +1016,7 @@ function AppInner({ isDemo = false }) {
     dashboardCardOrder, setDashboardCardOrder, scheduleSaveRef,
     navigate, plaidItems, staleItemIds,
     rules, theme, pendingDuplicates, newTxnNotifs, budgetBarsAnimated, pad,
+    setAnalyticsTab, setInsightsTodos,
   });
   const Dashboard = null; // rendered via early return above
 

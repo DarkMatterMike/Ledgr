@@ -178,7 +178,7 @@ function Exchange({ msg, prevMsg, index }) {
       {question && (
         <div style={{ display:"flex", gap:14, marginBottom:20 }}>
           <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
-          <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--ink-0)" }}>
+          <div style={{ fontFamily:"var(--font-display)", fontStyle:"italic", fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--ink-0)" }}>
             {question}
           </div>
         </div>
@@ -301,9 +301,9 @@ function ApiKeySetup({ onSave }) {
   return (
     <div style={{ maxWidth:520, margin:"0 auto", padding:"48px 28px" }}>
       {/* Ghost */}
-      <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:80,
+      <div style={{ fontFamily:"var(--font-display)", fontStyle:"italic", fontSize:80,
         color:"rgba(201,149,106,0.05)", lineHeight:1, marginBottom:-24, userSelect:"none" }}>✦</div>
-      <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:26, color:"var(--ink-0)", marginBottom:8 }}>
+      <div style={{ fontFamily:"var(--font-display)", fontStyle:"italic", fontSize:26, color:"var(--ink-0)", marginBottom:8 }}>
         Set up your advisor
       </div>
       <div style={{ fontSize:13, color:"var(--ink-2)", lineHeight:1.7, marginBottom:28, maxWidth:400 }}>
@@ -483,7 +483,7 @@ export default function AiChat({
         position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:1,
           background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)" }}/>
-        <div style={{ position:"absolute", fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+        <div style={{ position:"absolute", fontFamily:"var(--font-display)", fontStyle:"italic",
           fontSize:64, fontWeight:500, color:"rgba(201,149,106,0.06)", top:"50%",
           transform:"translateY(-50%)", left:6, lineHeight:1, pointerEvents:"none", userSelect:"none" }}>III</div>
         <div style={{ padding:"14px 28px 0", position:"relative", zIndex:1 }}>
@@ -491,7 +491,7 @@ export default function AiChat({
             borderBottom:"1px solid rgba(201,149,106,0.1)" }}>
             <span style={{ fontFamily:"var(--font-mono)", fontSize:10, fontWeight:600,
               color:"rgba(201,149,106,0.45)", letterSpacing:"1px" }}>III ·</span>
-            <span style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+            <span style={{ fontFamily:"var(--font-display)", fontStyle:"italic",
               fontWeight:400, fontSize:20, color:"var(--ink-0)" }}>Ask Claude</span>
             <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(201,149,106,0.12),transparent)" }}/>
             {/* Mobile: toggle panels */}
@@ -538,7 +538,7 @@ export default function AiChat({
           {/* Empty state */}
           {isEmpty && (
             <div style={{ padding:"40px 0 20px" }}>
-              <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+              <div style={{ fontFamily:"var(--font-display)", fontStyle:"italic",
                 fontSize:14, color:"var(--ink-2)", marginBottom:24, lineHeight:1.7 }}>
                 I have access to your transactions, budgets, and accounts.
                 Ask me anything about your financial picture.
@@ -583,7 +583,7 @@ export default function AiChat({
                 <div key={`q${i}`} className="dispatch-exchange">
                   <div style={{ display:"flex", gap:14, marginBottom:20 }}>
                     <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+                    <div style={{ fontFamily:"var(--font-display)", fontStyle:"italic",
                       fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--ink-0)" }}>
                       {question?.content}
                     </div>
@@ -612,7 +612,7 @@ export default function AiChat({
                 {question && (
                   <div style={{ display:"flex", gap:14, marginBottom:20 }}>
                     <div style={{ width:2, background:"rgba(201,149,106,0.3)", flexShrink:0, borderRadius:1, marginTop:4 }}/>
-                    <div style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic",
+                    <div style={{ fontFamily:"var(--font-display)", fontStyle:"italic",
                       fontWeight:400, fontSize:18, lineHeight:1.5, color:"var(--ink-0)" }}>
                       {question.content}
                     </div>

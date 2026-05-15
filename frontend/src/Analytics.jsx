@@ -916,14 +916,14 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
     }}>
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,
         background:"linear-gradient(90deg,rgba(201,149,106,0.1),rgba(255,255,255,0.03) 35%,transparent 75%)"}}/>
-      {ghost && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",
+      {ghost && <div style={{position:"absolute",fontFamily:"var(--font-display)",fontStyle:"italic",
         fontSize:88,fontWeight:500,color:"rgba(201,149,106,0.06)",top:0,left:4,
         lineHeight:1,pointerEvents:"none",userSelect:"none",zIndex:0}}>{ghost}</div>}
       <div style={{display:"flex",alignItems:"baseline",gap:12,paddingBottom:10,
         borderBottom:"1px solid rgba(201,149,106,0.1)",marginBottom:6,position:"relative",zIndex:1}}>
         <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,
           color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>{ord} ·</span>
-        <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,
+        <span style={{fontFamily:"var(--font-display)",fontStyle:"italic",fontWeight:400,
           fontSize:20,color:"var(--ink-0)"}}>{title}</span>
         <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.12),transparent)"}}/>
       </div>
@@ -934,7 +934,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
   );
 
   const ColHdr = ({ children }) => (
-    <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",
+    <div style={{fontFamily:"'Cormorant Garamond',var(--font-display)",fontStyle:"italic",
       fontSize:12,color:"var(--ink-2)",paddingBottom:8,
       borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>{children}</div>
   );
@@ -1011,7 +1011,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
         <div style={{position:"absolute",top:0,left:0,right:0,height:1,
           background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)"}}/>
         {/* Ghost "II" */}
-        {!isMobile && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",
+        {!isMobile && <div style={{position:"absolute",fontFamily:"var(--font-display)",fontStyle:"italic",
           fontSize:72,fontWeight:500,color:"rgba(201,149,106,0.06)",top:"50%",transform:"translateY(-50%)",
           left:8,lineHeight:1,pointerEvents:"none",userSelect:"none",zIndex:0}}>II</div>}
         {/* Title + meta row */}
@@ -1019,7 +1019,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
           position:"relative",zIndex:1}}>
           <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,
             color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>II ·</span>
-          <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",
+          <span style={{fontFamily:"var(--font-display)",fontStyle:"italic",
             fontWeight:400,fontSize:20,color:"var(--ink-0)"}}>Analytics</span>
           <div style={{width:1,height:12,background:"rgba(255,255,255,0.1)",margin:"0 4px"}}/>
           <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--ink-2)",
@@ -1324,7 +1324,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
             {/* AI pull quote */}
             {aiInsights && (
               <div>
-                <div style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:17,
+                <div style={{fontFamily:"var(--font-display)",fontStyle:"italic",fontSize:17,
                   color:"var(--ink-0)",lineHeight:1.7,marginBottom:20,paddingLeft:20,
                   borderLeft:"2px solid rgba(201,149,106,0.3)"}}>
                   {aiInsights.headline || "Your financial data has been analyzed. See insights below."}
@@ -1646,7 +1646,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
                 {/* Retirement */}
                 <div>
-                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Retirement projection</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',var(--font-display)",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Retirement projection</div>
                   {(()=>{
                     const {fv:retFv,target:retTarget,years,monthlySavings:ms}=retirementProjection;
                     const onTrack = retTarget>0?retFv>=retTarget:true;
@@ -1690,7 +1690,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
                 {/* Emergency fund */}
                 <div>
-                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Emergency fund</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',var(--font-display)",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:14}}>Emergency fund</div>
                   {(()=>{
                     const months = Math.round(monthsCovered*10)/10;
                     const statusColor = months>=6?"var(--safe)":months>=3?"var(--warn)":"var(--debt)";
@@ -1753,7 +1753,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
                 {/* Top drains */}
                 {topSubs.length>0&&(
                   <div>
-                    <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Biggest drains · 10yr cost</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',var(--font-display)",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Biggest drains · 10yr cost</div>
                     {topSubs.map((s,i)=>(
                       <div key={s.name} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<topSubs.length-1?"1px solid rgba(255,255,255,0.03)":"none"}}>
                         <div style={{width:2,height:24,background:"rgba(255,255,255,0.1)",borderRadius:1,flexShrink:0}}/>
@@ -1833,7 +1833,7 @@ export default function Analytics({ transactions, categories, accounts, catMap, 
 
                 {/* Account projections */}
                 <div>
-                  <div style={{fontFamily:"'Cormorant Garamond','Playfair Display',serif",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Account balance projections</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',var(--font-display)",fontStyle:"italic",fontSize:12,color:"var(--ink-2)",paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.04)",marginBottom:10}}>Account balance projections</div>
                   {accountProjections.length===0?(
                     <div style={{fontSize:12,color:"var(--ink-2)"}}>No accounts found.</div>
                   ):accountProjections.slice(0,6).map((a,i)=>(

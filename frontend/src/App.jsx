@@ -1883,7 +1883,7 @@ function AppInner({ isDemo = false }) {
          ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
       <>
         {/* Desktop body */}
-        <div style={{flex:1,overflowY:"auto",position:"relative"}} className="lumen-content" ref={contentRef}>
+        <div style={{flex:1,overflowY:"auto",position:"relative",background:"var(--bg-0)"}} className="lumen-content" ref={contentRef}>
           <div style={{display:"flex",maxWidth:1080,margin:"0 auto",minHeight:"100%"}}>
           {/* Rail */}
           <aside style={{
@@ -1898,10 +1898,10 @@ function AppInner({ isDemo = false }) {
             
             
             {view === "dashboard"
-              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
+              ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,padding:"40px 0 80px"}}>{VIEWS[view]}</div>
               : view === "calendar" || view === "rules"
               ? <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
+              : <div key={navKey} className="ledgr-view-enter" style={{position:"relative",zIndex:1,padding:"40px 48px 80px"}}><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
             }
           </div>
           </div>{/* /max-width wrapper */}

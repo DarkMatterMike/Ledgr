@@ -45,13 +45,13 @@ export default function BudgetView({
   const SectionHdr = ({ord, title, sub, count, accentColor="rgba(201,149,106,0.45)", ruleColor="rgba(201,149,106,0.14)", ghost}) => (
     <div style={{marginBottom:18,position:"relative"}}>
       {ghost && !isMobile && (
-        <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:88,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-60%)",left:8,lineHeight:1}}>
+        <div style={{position:"absolute",fontFamily:"var(--font-display)",fontStyle:"italic",fontSize:88,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-60%)",left:8,lineHeight:1}}>
           {ghost}
         </div>
       )}
       <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"baseline",gap:12,paddingBottom:10,borderBottom:`1px solid ${ruleColor}`}}>
         <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:accentColor,letterSpacing:"1px",flexShrink:0}}>{ord} ·</span>
-        <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:isMobile?18:22,color:title==="Overspent"?"var(--debt)":title==="Completed"?"var(--safe)":"var(--ink-0)"}}>{title}</span>
+        <span style={{fontFamily:"var(--font-display)",fontStyle:"italic",fontWeight:400,fontSize:isMobile?18:22,color:title==="Overspent"?"var(--debt)":title==="Completed"?"var(--safe)":"var(--ink-0)"}}>{title}</span>
         <div style={{flex:1,height:1,background:`linear-gradient(90deg,${ruleColor},transparent)`,alignSelf:"center"}}/>
         {count != null && <span style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--ink-2)",flexShrink:0}}>{count} {count===1?"category":"categories"}</span>}
       </div>
@@ -207,10 +207,10 @@ export default function BudgetView({
       {/* ── Page header ── */}
       <div style={{padding:isMobile?"20px 16px 0":"28px 28px 0",borderBottom:"1px solid rgba(0,0,0,0.35)",position:"relative",overflow:"hidden",background:"radial-gradient(ellipse 55% 80% at 0% 40%, rgba(201,149,106,0.055) 0%, transparent 65%), var(--bg-0,#0b0a08)"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.14),rgba(255,255,255,0.04) 35%,transparent 75%)",pointerEvents:"none"}}/>
-        {!isMobile && <div style={{position:"absolute",fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:96,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-55%)",left:8,lineHeight:1}}>II</div>}
+        {!isMobile && <div style={{position:"absolute",fontFamily:"var(--font-display)",fontStyle:"italic",fontSize:96,fontWeight:500,color:"rgba(201,149,106,0.07)",pointerEvents:"none",userSelect:"none",top:"50%",transform:"translateY(-55%)",left:8,lineHeight:1}}>II</div>}
         <div style={{display:"flex",alignItems:"baseline",gap:12,paddingBottom:12,borderBottom:"1px solid rgba(201,149,106,0.12)",position:"relative",zIndex:1}}>
           <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:600,color:"rgba(201,149,106,0.45)",letterSpacing:"1px"}}>II ·</span>
-          <span style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontWeight:400,fontSize:isMobile?18:22,color:"var(--ink-0)"}}>Budget Categories</span>
+          <span style={{fontFamily:"var(--font-display)",fontStyle:"italic",fontWeight:400,fontSize:isMobile?18:22,color:"var(--ink-0)"}}>Budget Categories</span>
           <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(201,149,106,0.15),transparent)",alignSelf:"center",marginLeft:4}}/>
         </div>
         <div style={{fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.7px",color:"var(--ink-2)",marginTop:6,paddingBottom:20,position:"relative",zIndex:1}}>

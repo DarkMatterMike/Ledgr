@@ -1,226 +1,320 @@
 /**
- * LedgrAccounts.jsx
- * src/components/LedgrAccounts.jsx
+ * LedgrAccounts.jsx — Concept 1 "Ledger Rows"
+ * Dense table layout: every account is one row, grouped by institution.
  */
 import { useMemo } from "react";
 import PageNav from "./PageNav.jsx";
 
 const CSS = `
-    }
-  @media(max-width:600px){.la-wrap{padding:0;}}
-  .la-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:800px;}
-  @media(max-width:600px){.la-frame{border-radius:0;border:none;}}
-  @media(hover:none)and(pointer:coarse){
-    .la-content{padding:16px!important;}
-    .la-hero-num{font-size:36px!important;}
-    .la-acct-card{padding:10px 14px!important;}
-    .la-balance{font-size:24px!important;}
-    .la-group-hdr{padding:8px 14px!important;}
+  .la-wrap { font-family: var(--font-ui); color: var(--ink-0); background: var(--bg-0); min-height: 100vh; }
+  .la-frame { background: var(--bg-1); border: 1px solid var(--line-2); border-radius: 16px; overflow: hidden; max-width: 1400px; margin: 0 auto; box-shadow: 0 32px 80px rgba(0,0,0,0.5); }
+  @media(max-width:600px){ .la-wrap{ padding:0; } .la-frame{ border-radius:0; border:none; } }
+
+  /* chrome bar */
+  .la-bar { height: 36px; background: var(--bg-2); border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 14px; gap: 6px; flex-shrink: 0; }
+  .la-bar-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-4); }
+  .la-bar-url { margin-left: 12px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+  .la-bar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); }
+  .la-bar-sync { background: none; border: 1px solid var(--line-2); border-radius: 5px; padding: 2px 8px; font-size: 9px; font-family: var(--font-mono); color: var(--ink-3); cursor: pointer; transition: .15s; }
+  .la-bar-sync:hover { border-color: var(--line-3); color: var(--ink-1); }
+  @keyframes la-spin { to { transform: rotate(360deg); } }
+  .la-bar-sync.spinning svg { animation: la-spin .7s linear infinite; }
+
+  /* layout */
+  .la-inner { display: flex; }
+  .la-main { flex: 1; min-width: 0; }
+
+  /* topbar */
+  .la-topbar { height: 50px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--bg-1); position: sticky; top: 0; z-index: 10; }
+  .la-title { font-family: var(--font-display); font-size: 18px; display: flex; align-items: baseline; gap: 10px; }
+  .la-title-sub { font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); }
+  .la-actions { display: flex; gap: 8px; }
+  .la-btn { background: transparent; border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 12px; font-size: 10px; font-family: var(--font-mono); color: var(--ink-2); cursor: pointer; transition: .15s; letter-spacing: 0.3px; }
+  .la-btn:hover { border-color: var(--line-3); color: var(--ink-0); }
+  .la-btn.primary { border-color: rgba(93,202,165,0.35); color: var(--safe); }
+  .la-btn.danger { border-color: rgba(232,115,99,0.3); color: var(--debt); }
+
+  /* summary strip */
+  .la-strip { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--line); }
+  .la-stat { padding: 12px 24px; border-right: 1px solid var(--line); }
+  .la-stat:last-child { border-right: none; }
+  .la-stat-lbl { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; font-family: var(--font-mono); }
+  .la-stat-val { font-family: var(--font-mono); font-size: 15px; font-weight: 500; color: var(--ink-0); }
+  @media(max-width:700px){ .la-strip{ grid-template-columns:1fr 1fr; } .la-stat{ padding:10px 16px; } }
+
+  /* table */
+  .la-table { width: 100%; }
+  .la-thead { display: grid; grid-template-columns: 28px 1fr 90px 110px 110px 90px 100px; padding: 0 24px; height: 30px; align-items: center; border-bottom: 1px solid var(--line); background: var(--bg-2); }
+  .la-th { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-3); }
+  .la-th.r { text-align: right; }
+
+  /* group header row */
+  .la-group-row { display: flex; align-items: center; padding: 0 24px; height: 28px; background: rgba(255,255,255,0.015); border-bottom: 1px solid var(--line); gap: 8px; }
+  .la-group-pip { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .la-group-name { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-3); font-family: var(--font-mono); }
+  .la-group-count { font-family: var(--font-mono); font-size: 9px; color: var(--ink-4); margin-left: 4px; }
+  .la-group-total { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); }
+  .la-group-actions { display: flex; gap: 4px; margin-left: 12px; }
+  .la-stale-bar { padding: 6px 24px; background: rgba(232,115,99,0.05); border-bottom: 1px solid rgba(232,115,99,0.1); font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); }
+
+  /* account row */
+  .la-row { display: grid; grid-template-columns: 28px 1fr 90px 110px 110px 90px 100px; padding: 0 24px; height: 42px; align-items: center; border-bottom: 1px solid var(--line); transition: background .1s; }
+  .la-row:hover { background: rgba(255,255,255,0.02); }
+  .la-row:last-child { border-bottom: none; }
+  .la-row:hover .la-row-actions { opacity: 1; }
+  .la-icon { width: 20px; height: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; font-family: var(--font-mono); flex-shrink: 0; }
+  .la-acct-name { font-size: 12px; color: var(--ink-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px; }
+  .la-acct-type { font-size: 9px; color: var(--ink-3); font-family: var(--font-mono); letter-spacing: 0.5px; margin-top: 1px; }
+  .la-cell { font-family: var(--font-mono); font-size: 12px; color: var(--ink-1); text-align: right; }
+  .la-cell.dim { color: var(--ink-3); font-size: 11px; }
+  .la-cell.safe { color: var(--safe); }
+  .la-cell.debt { color: var(--debt); }
+  .la-cell.goal { color: var(--goal); }
+  .la-row-actions { display: flex; justify-content: flex-end; gap: 4px; opacity: 0; transition: opacity .15s; }
+  .la-act-btn { background: var(--bg-3); border: 1px solid var(--line-2); border-radius: 4px; padding: 2px 7px; font-size: 9px; font-family: var(--font-mono); color: var(--ink-2); cursor: pointer; transition: .12s; }
+  .la-act-btn:hover { color: var(--ink-0); }
+  .la-act-btn.danger { border-color: rgba(232,115,99,0.2); color: var(--debt); }
+
+  /* empty */
+  .la-empty { padding: 80px; text-align: center; color: var(--ink-3); }
+  .la-empty-title { font-family: var(--font-display); font-size: 28px; color: var(--ink-2); margin-bottom: 8px; }
+
+  /* mobile */
+  @media(max-width:700px){
+    .la-thead { display: none; }
+    .la-row { grid-template-columns: 28px 1fr auto; height: auto; padding: 10px 16px; gap: 8px; }
+    .la-cell { display: none; }
+    .la-cell.bal { display: block; font-size: 13px; }
+    .la-group-row { padding: 0 16px; }
+    .la-topbar { padding: 0 16px; }
+    .la-strip { grid-template-columns: 1fr 1fr; }
+    .la-stat { padding: 10px 16px; }
+    .la-row-actions { display: none; }
   }
-  .la-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
-  .la-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
-  .la-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
-  .la-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
-  .la-sync-btn{background:none;border:1px solid rgba(255,255,255,0.06);border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-3);transition:.15s;flex-shrink:0;}
-  .la-sync-btn:hover{border-color:rgba(255,255,255,0.18);color:var(--ink-0);}
-  .la-sync-btn svg{transition:transform .6s;}
-  .la-sync-btn.spinning svg{animation:la-spin .7s linear infinite;}
-  @keyframes la-spin{to{transform:rotate(360deg);}}
-  .la-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
-  .la-body{display:grid;grid-template-columns:64px 1fr;flex:1;}
-  .la-nav{width:64px;border-right:1px solid var(--line);padding:24px 0;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg-1);}
-  .la-nav-logo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--safe),var(--safe-d) 80%);margin-bottom:24px;}
-  .la-nav-item{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:18px;cursor:pointer;transition:.15s;user-select:none;}
-  .la-nav-item:hover{color:var(--ink-1);background:var(--bg-2);}
-  .la-nav-item.active{color:var(--safe);background:var(--safe-bg);}
-  .la-nav-spacer{flex:1;}
-  .la-main{overflow-y:auto;min-width:0;}
-  .la-topbar{height:60px;padding:0 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-1);z-index:10;}
-  .la-tb-left{display:flex;align-items:baseline;gap:16px;}
-  .la-tb-num{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
-  .la-tb-title{font-family:var(--font-display);font-size:22px;letter-spacing:-0.3px;}
-  .la-tb-div{width:1px;height:14px;background:var(--line-2);flex-shrink:0;}
-  .la-tb-sub{font-size:11px;color:var(--ink-3);letter-spacing:1.5px;text-transform:uppercase;}
-  .la-tb-right{display:flex;align-items:center;gap:14px;}
-  .la-search{background:var(--bg-2);border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--ink-3);font-family:var(--font-mono);display:flex;align-items:center;gap:8px;min-width:240px;}
-  .la-kbd{margin-left:auto;font-size:10px;padding:1px 6px;background:var(--bg-3);border-radius:4px;color:var(--ink-3);}
-  .la-btn{background:transparent;border:1px solid var(--line);border-radius:8px;padding:5px 14px;font-size:11px;font-family:var(--font-mono);color:var(--ink-2);cursor:pointer;transition:.15s;}
-  .la-btn:hover{border-color:var(--line-3);color:var(--ink-0);}
-  .la-btn.primary{background:var(--safe-bg);border-color:rgba(93,202,165,0.4);color:var(--safe);}
-  .la-btn.danger{background:var(--debt-bg);border-color:rgba(232,115,99,0.3);color:var(--debt);}
-  .la-content{padding:40px;}
-  .la-hero{margin-bottom:40px;padding-bottom:32px;border-bottom:1px solid var(--line);}
-  .la-hero-eye{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;}
-  .la-hero-num{font-family:var(--font-display);font-size:72px;line-height:0.9;letter-spacing:-2px;color:var(--ink-0);margin-bottom:12px;}
-  .la-hero-sub{font-size:14px;color:var(--ink-2);line-height:1.6;}
-  .la-groups{display:flex;flex-direction:column;gap:16px;}
-  .la-group{border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;}
-  .la-group-seam{height:2px;}
-  .la-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--line);}
-  .la-group-left{display:flex;align-items:center;gap:10px;}
-  .la-group-name{font-size:14px;font-weight:600;}
-  .la-group-count{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);}
-  .la-group-right{display:flex;align-items:center;gap:10px;}
-  .la-group-total{font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--ink-1);}
-  .la-stale-bar{padding:10px 20px;background:rgba(232,115,99,0.05);border-bottom:1px solid rgba(232,115,99,0.1);font-size:12px;color:var(--ink-3);}
-  .la-acct-grid{display:grid;}
-  .la-acct-card{padding:20px 24px;border-bottom:1px solid var(--line);}
-  .la-acct-card:last-child{border-bottom:none;}
-  .la-acct-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
-  .la-acct-name{font-size:13px;color:var(--ink-2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .la-acct-actions{display:flex;gap:6px;flex-shrink:0;}
-  .la-balance{font-family:var(--font-display);font-size:40px;line-height:1;letter-spacing:-1px;color:var(--ink-0);margin-bottom:6px;}
-  .la-balance.neg{color:var(--debt);}
-  .la-acct-type{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);margin-bottom:12px;}
-  .la-pills{display:flex;gap:6px;flex-wrap:wrap;}
-  .la-pill{display:inline-flex;align-items:center;font-size:10px;padding:3px 10px;border-radius:99px;font-family:var(--font-mono);}
-  .la-empty{padding:80px;text-align:center;color:var(--ink-3);}
-  .la-empty-title{font-family:var(--font-display);font-size:28px;color:var(--ink-2);margin-bottom:6px;}
-  @media(max-width:700px){.la-wrap{padding:0;}.la-topbar,.la-content{padding-left:16px;padding-right:16px;}.la-hero-num{font-size:48px;}.la-balance{font-size:28px;}}
 `;
 
-const DN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
-const NAV=[{icon:"◐",id:"dashboard"},{icon:"⇅",id:"transactions"},{icon:"▣",id:"accounts",active:true},{icon:"◉",id:"budgets"},{icon:"▦",id:"calendar"},{icon:"◈",id:"analytics"}];
-function daysInMonth(y,m){return new Date(y,m,0).getDate();}
+const INSTITUTION_COLORS = [
+  'var(--calm)', 'var(--warn)', 'var(--goal)', 'var(--safe)', 'var(--debt)',
+];
+
+const DN = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 export default function LedgrAccounts({
-  accounts=[],plaidItems=[],staleItemIds=new Set(),spentByAcct={},monthTxns=[],
-  openAddAcct,openEditAcct,deleteAcct,disconnectItem,doSync,syncing=false,
-  reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,showToast=()=>{},
+  accounts=[], plaidItems=[], staleItemIds=new Set(), spentByAcct={}, monthTxns=[],
+  openAddAcct, openEditAcct, deleteAcct, disconnectItem, doSync, syncing=false,
+  reconnectingItemId=null, setReconnectingItemId, handlePlaidSuccess, PlaidButton,
+  showToast=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
-  today=new Date(),isMobile=false,navigate=()=>{},
-  notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
+  today=new Date(), isMobile=false, navigate=()=>{},
+  notifs=[], onDismissNotif=()=>{}, onFilterReview=()=>{},
 }) {
-  const totalBalance =accounts.reduce((s,a)=>s+(a.balance||0),0);
-  const totalSpentAc=accounts.reduce((s,a)=>s+(spentByAcct[a.id]||0),0);
-  const totalIncome =monthTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
+  const totalBalance = accounts.reduce((s,a)=>s+(a.balance||0), 0);
+  const totalSpent   = accounts.reduce((s,a)=>s+(spentByAcct[a.id]||0), 0);
+  const totalIncome  = monthTxns.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount, 0);
+  const timeLabel    = `${DN[today.getDay()]}, ${MN[today.getMonth()]} ${today.getDate()}`;
 
-  const groups=useMemo(()=>{
-    const g={};
+  const groups = useMemo(()=>{
+    const g = {};
     accounts.forEach(a=>{
-      const key=a.plaidItemId||"__manual__";
-      if(!g[key]){const item=plaidItems.find(i=>i.item_id===a.plaidItemId);g[key]={label:item?.institution||a.institution||"Manual",accts:[]};}
+      const key = a.plaidItemId||"__manual__";
+      if (!g[key]) {
+        const item = plaidItems.find(i=>i.item_id===a.plaidItemId);
+        g[key] = { label: item?.institution||a.institution||"Manual", accts: [] };
+      }
       g[key].accts.push(a);
     });
-    return Object.entries(g).sort(([ka],[kb])=>{if(ka==="__manual__")return 1;if(kb==="__manual__")return -1;return g[ka].label.localeCompare(g[kb].label);});
-  },[accounts,plaidItems]);
+    return Object.entries(g).sort(([ka],[kb])=>{
+      if (ka==="__manual__") return 1;
+      if (kb==="__manual__") return -1;
+      return g[ka].label.localeCompare(g[kb].label);
+    });
+  }, [accounts, plaidItems]);
 
-  const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
-  const timeLabel=`${DN[today.getDay()]}, ${MN[today.getMonth()]} ${today.getDate()}`;
+  // Assign a color per institution
+  const groupColors = {};
+  groups.forEach(([key,{label}], i) => {
+    groupColors[key] = label==="Manual"
+      ? "var(--ink-3)"
+      : INSTITUTION_COLORS[i % INSTITUTION_COLORS.length];
+  });
+
+  function acctInitials(a) {
+    return (a.institution||a.name||"??").slice(0,2).toUpperCase();
+  }
 
   return (
     <>
       <style>{CSS}</style>
       <div className="la-wrap">
         <div className="la-frame">
+          {/* chrome bar */}
           <div className="la-bar">
             <div className="la-bar-dot"/><div className="la-bar-dot"/><div className="la-bar-dot"/>
             <span className="la-bar-url">app.ledgr.app / accounts</span>
-            <span className="la-bar-live">
+            <div className="la-bar-right">
               live · synced just now
               {doSync && (
-                <button className={`la-sync-btn${syncing?" spinning":""}`} onClick={()=>!syncing&&doSync()} title="Sync now">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <button className={`la-bar-sync${syncing?" spinning":""}`} onClick={()=>!syncing&&doSync()} title="Sync all">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 </button>
               )}
-            </span>
+            </div>
           </div>
-          <div className="la-body" style={isMobile?{display:"block",width:"100%"}:{}}>
-            {!isMobile&&<PageNav activeId="accounts" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
-            <main className="la-main">
+
+          <div className="la-inner">
+            {!isMobile && (
+              <PageNav activeId="accounts" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+            )}
+
+            <div className="la-main">
+              {/* topbar */}
               <div className="la-topbar">
-                <div className="la-tb-left">
-                  <span className="la-tb-num">iii ·</span>
-                  <span className="la-tb-title">Accounts</span>
-                  <span className="la-tb-div"/>
-                  <span className="la-tb-sub">{timeLabel}</span>
+                <div className="la-title">
+                  Accounts
+                  <span className="la-title-sub">{timeLabel}</span>
                 </div>
-                <div className="la-tb-right">
-                  {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="Link Bank" showToast={showToast} style={{}}/>}
+                <div className="la-actions">
+                  {doSync && (
+                    <button className="la-btn" onClick={()=>doSync()} disabled={syncing}>
+                      {syncing?"Syncing…":"↻ Sync"}
+                    </button>
+                  )}
                   <button className="la-btn" onClick={openAddAcct}>+ Manual</button>
+                  {PlaidButton && (
+                    <PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="+ Link Bank" showToast={showToast} style={{}} />
+                  )}
                 </div>
               </div>
-              <div className="la-content">
-                <div className="la-hero">
-                  <div className="la-hero-eye">Total balance across all accounts</div>
-                  <div className="la-hero-num">{fmt(totalBalance)}</div>
-                  <div className="la-hero-sub">
-                    {accounts.length} account{accounts.length!==1?"s":""} ·{" "}
-                    <span style={{color:"var(--debt)",fontFamily:"var(--font-mono)"}}>−{fmt(totalSpentAc)}</span> spent ·{" "}
-                    <span style={{color:"var(--safe)",fontFamily:"var(--font-mono)"}}>+{fmt(totalIncome)}</span> income this month
+
+              {/* summary strip */}
+              <div className="la-strip">
+                <div className="la-stat">
+                  <div className="la-stat-lbl">Net Worth</div>
+                  <div className="la-stat-val" style={{color: totalBalance>=0?"var(--safe)":"var(--debt)"}}>
+                    {totalBalance<0?"−":""}{fmt(Math.abs(totalBalance))}
                   </div>
                 </div>
-                {accounts.length===0 ? (
-                  <div className="la-empty"><div className="la-empty-title">No accounts yet</div><div>Link a bank or add a manual account to get started</div></div>
-                ) : (
-                  <div className="la-groups">
-                    {groups.map(([key,{label,accts}])=>{
-                      const plaidItem=plaidItems.find(i=>i.item_id===key);
-                      const isStale=plaidItem&&staleItemIds.has(plaidItem.item_id);
-                      const isManual=key==="__manual__";
-                      const groupTotal=accts.reduce((s,a)=>s+(a.balance||0),0);
-                      const seam=isManual?"linear-gradient(90deg,rgba(255,255,255,0.1),transparent)":isStale?"linear-gradient(90deg,rgba(232,115,99,0.5),transparent)":"linear-gradient(90deg,rgba(93,202,165,0.5),transparent)";
-                      return (
-                        <div key={key} className="la-group">
-                          <div className="la-group-seam" style={{background:seam}}/>
-                          <div className="la-group-hdr">
-                            <div className="la-group-left">
-                              {isStale&&<span style={{color:"var(--warn)",fontSize:14}}>⚠</span>}
-                              <span className="la-group-name" style={{color:isStale?"var(--warn)":"var(--ink-0)"}}>{label}</span>
-                              <span className="la-group-count">{accts.length} account{accts.length!==1?"s":""}</span>
-                            </div>
-                            <div className="la-group-right">
-                              <span className="la-group-total">{fmt(groupTotal)}</span>
-                              {!isManual&&plaidItem&&(isStale?(
-                                <>
-                                  {PlaidButton&&<PlaidButton itemId={plaidItem.item_id} onSuccess={async(pt,inst)=>{await handlePlaidSuccess(pt,inst||label);setReconnectingItemId&&setReconnectingItemId(null);}} onExit={()=>setReconnectingItemId&&setReconnectingItemId(null)} label={reconnectingItemId===plaidItem.item_id?"Opening…":"Reconnect"} showToast={showToast} style={{fontSize:11,padding:"4px 10px"}}/>}
-                                  <button className="la-btn danger" style={{fontSize:11}} onClick={()=>disconnectItem(plaidItem.item_id)}>Remove</button>
-                                </>
-                              ):(
-                                <>
-                                  <button className="la-btn" style={{fontSize:11}} onClick={()=>doSync(plaidItem.item_id)} disabled={syncing}>{syncing?"…":"↻ Sync"}</button>
-                                  <button className="la-btn danger" style={{fontSize:11}} onClick={()=>disconnectItem(plaidItem.item_id)}>Disconnect</button>
-                                </>
-                              ))}
-                            </div>
-                          </div>
-                          {isStale&&<div className="la-stale-bar">Connection expired — reconnect to restore syncing. Your existing data won't be affected.</div>}
-                          <div className="la-acct-grid" style={{gridTemplateColumns:!isMobile&&accts.length>1?"1fr 1fr":"1fr"}}>
-                            {accts.map((acct,i)=>{
-                              const spent=spentByAcct[acct.id]||0;
-                              const income=monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((s,t)=>s+t.amount,0);
-                              const daily=today.getDate()>0?spent/today.getDate():0;
-                              const proj=daily*daysInMonth(today.getFullYear(),today.getMonth()+1);
-                              const isNeg=(acct.balance||0)<0;
-                              const showBorder=!isMobile&&accts.length>1&&i%2===0&&i<accts.length-1;
-                              return (
-                                <div key={acct.id} className="la-acct-card" style={{borderRight:showBorder?"1px solid var(--line)":"none"}}>
-                                  <div className="la-acct-hdr">
-                                    <span className="la-acct-name">{acct.name}</span>
-                                    <div className="la-acct-actions">
-                                      <button className="la-btn" style={{fontSize:10,padding:"2px 8px"}} onClick={()=>openEditAcct(acct)}>Edit</button>
-                                      <button className="la-btn" style={{fontSize:10,padding:"2px 8px",borderColor:"transparent"}} onClick={()=>deleteAcct(acct.id)}>✕</button>
-                                    </div>
-                                  </div>
-                                  <div className={`la-balance${isNeg?" neg":""}`}>{isNeg?"−":""}{fmt(Math.abs(acct.balance||0))}</div>
-                                  <div className="la-acct-type">{acct.type}{acct.mask?` ····${acct.mask}`:""}{acct.available!=null?` · Avail ${fmt(acct.available)}`:""}</div>
-                                  <div className="la-pills">
-                                    {spent>0&&<span className="la-pill" style={{background:"var(--debt-bg)",color:"var(--debt)",border:"1px solid rgba(232,115,99,0.2)"}}>−{fmt(spent)} spent</span>}
-                                    {income>0&&<span className="la-pill" style={{background:"var(--safe-bg)",color:"var(--safe)",border:"1px solid rgba(93,202,165,0.2)"}}>+{fmt(income)} income</span>}
-                                    {!isMobile&&daily>0&&<span className="la-pill" style={{background:"rgba(255,255,255,0.03)",color:"var(--ink-3)",border:"1px solid var(--line)"}}>~{fmt(proj)} proj</span>}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                <div className="la-stat">
+                  <div className="la-stat-lbl">Accounts</div>
+                  <div className="la-stat-val">{accounts.length}</div>
+                </div>
+                <div className="la-stat">
+                  <div className="la-stat-lbl">Spent MTD</div>
+                  <div className="la-stat-val" style={{color:"var(--debt)"}}>
+                    {totalSpent>0?`−${fmt(totalSpent)}`:"—"}
+                  </div>
+                </div>
+                <div className="la-stat">
+                  <div className="la-stat-lbl">Income MTD</div>
+                  <div className="la-stat-val" style={{color:"var(--safe)"}}>
+                    {totalIncome>0?`+${fmt(totalIncome)}`:"—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* table */}
+              {accounts.length===0 ? (
+                <div className="la-empty">
+                  <div className="la-empty-title">No accounts yet</div>
+                  <div style={{fontSize:13,marginTop:8}}>Link a bank or add a manual account to get started</div>
+                </div>
+              ) : (
+                <div className="la-table">
+                  {/* thead */}
+                  <div className="la-thead">
+                    <div className="la-th"/>
+                    <div className="la-th">Account</div>
+                    <div className="la-th r">Type</div>
+                    <div className="la-th r">Spent MTD</div>
+                    <div className="la-th r">Income MTD</div>
+                    <div className="la-th r">Proj.</div>
+                    <div className="la-th r">Balance</div>
+                  </div>
+
+                  {groups.map(([key,{label,accts}], gi)=>{
+                    const plaidItem = plaidItems.find(i=>i.item_id===key);
+                    const isStale   = plaidItem && staleItemIds.has(plaidItem.item_id);
+                    const isManual  = key==="__manual__";
+                    const color     = groupColors[key];
+                    const groupBal  = accts.reduce((s,a)=>s+(a.balance||0),0);
+
+                    return (
+                      <div key={key}>
+                        {/* group row */}
+                        <div className="la-group-row">
+                          <div className="la-group-pip" style={{background:color}}/>
+                          <span className="la-group-name">{label}</span>
+                          <span className="la-group-count">{accts.length} acct{accts.length!==1?"s":""}</span>
+                          <span className="la-group-total">{groupBal<0?"−":""}{fmt(Math.abs(groupBal))}</span>
+                          <div className="la-group-actions">
+                            {isStale && PlaidButton && (
+                              <PlaidButton
+                                itemId={plaidItem.item_id}
+                                onSuccess={async(pt,inst)=>{ await handlePlaidSuccess(pt,inst||label); setReconnectingItemId&&setReconnectingItemId(null); }}
+                                onExit={()=>setReconnectingItemId&&setReconnectingItemId(null)}
+                                label={reconnectingItemId===plaidItem.item_id?"Opening…":"Reconnect"}
+                                showToast={showToast} style={{}}
+                              />
+                            )}
+                            {!isManual && plaidItem && !isStale && (
+                              <button className="la-btn" style={{fontSize:9,padding:"1px 7px"}} onClick={()=>doSync(plaidItem.item_id)} disabled={syncing}>
+                                ↻ Sync
+                              </button>
+                            )}
+                            {!isManual && plaidItem && (
+                              <button className="la-btn danger" style={{fontSize:9,padding:"1px 7px"}} onClick={()=>disconnectItem(plaidItem.item_id)}>
+                                {isStale?"Remove":"Disconnect"}
+                              </button>
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </main>
+
+                        {isStale && (
+                          <div className="la-stale-bar">
+                            ⚠ Connection expired — reconnect to restore syncing
+                          </div>
+                        )}
+
+                        {/* account rows */}
+                        {accts.map(acct=>{
+                          const spent  = spentByAcct[acct.id]||0;
+                          const income = monthTxns.filter(t=>t.amount>0&&t.accountId===acct.id).reduce((s,t)=>s+t.amount,0);
+                          const daily  = today.getDate()>0 ? spent/today.getDate() : 0;
+                          const daysInMo = new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+                          const proj   = daily*daysInMo;
+                          const isNeg  = (acct.balance||0)<0;
+                          const isInvestment = /invest|401|ira|brokerage|roth/i.test(acct.type||"");
+                          const iconBg = isManual?"var(--bg-3)": `rgba(${color.includes("calm")?"108,140,255":color.includes("warn")?"240,176,76":color.includes("goal")?"167,139,255":color.includes("safe")?"93,202,165":"232,115,99"},0.12)`;
+
+                          return (
+                            <div key={acct.id} className="la-row">
+                              <div className="la-icon" style={{background:iconBg,color}}>
+                                {acctInitials(acct)}
+                              </div>
+                              <div>
+                                <div className="la-acct-name">{acct.name}{acct.mask?` ··${acct.mask}`:""}</div>
+                              </div>
+                              <div className="la-cell dim" style={{textAlign:"right"}}>{(acct.type||"").toLowerCase()}</div>
+                              <div className={`la-cell${spent>0?" debt":""}`}>{spent>0?`−${fmt(spent)}`:"—"}</div>
+                              <div className={`la-cell${income>0?" safe":""}`}>{income>0?`+${fmt(income)}`:"—"}</div>
+                              <div className="la-cell dim">{proj>0?fmt(proj):"—"}</div>
+                              <div className={`la-cell bal${isNeg?" debt":isInvestment?" goal":""}`}>
+                                {isNeg?"−":""}{fmt(Math.abs(acct.balance||0))}
+                              </div>
+                              <div className="la-row-actions" style={{display:"flex",gridColumn:"span 0",position:"absolute",right:24}}>
+                                <button className="la-act-btn" onClick={()=>openEditAcct(acct)}>Edit</button>
+                                <button className="la-act-btn danger" onClick={()=>deleteAcct(acct.id)}>✕</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

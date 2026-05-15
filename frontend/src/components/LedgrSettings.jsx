@@ -21,7 +21,13 @@ const CSS = `
   @media(max-width:1000px){.lb-wrap{padding:20px 16px 60px;}}
   @media(max-width:600px){.lb-wrap{padding:0;}}
   .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:20px;overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:80vh;}
-  @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
+  @media(max-width:600px){.lb-frame{border-radius:0;border:none;}
+  @media(hover:none)and(pointer:coarse){
+    .pn-nav{display:none!important;}
+    .lgs-topbar{padding:0 16px;}
+    .lgs-theme-grid{grid-template-columns:repeat(3,1fr)!important;}
+    .lgs-input{width:100%!important;box-sizing:border-box;}
+  }}
   .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
   .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
@@ -476,7 +482,7 @@ export default function LedgrSettings({
         <div className="lb-brief">
 
           {/* Nav rail — identical to LedgrBriefing */}
-          <PageNav activeId="settings" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+          {!isMobile&&<PageNav activeId="settings" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
           {/* Main */}
           <div className="lgs-main">

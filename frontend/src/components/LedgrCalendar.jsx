@@ -307,7 +307,7 @@ export default function LedgrCalendar({
             </span>
           </div>
           <div className="lc-body">
-            <PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+            {!isMobile&&<PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             {/* ── left aside ── */}
             <aside className="lc-aside">

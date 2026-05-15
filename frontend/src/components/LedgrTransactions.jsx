@@ -510,7 +510,7 @@ export default function LedgrTransactions({
           <div className="lt-body">
 
             {/* ── Col 1: Nav ── */}
-            <PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+            {!isMobile&&<PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             {/* ── Col 2: Ledger list ── */}
             <div className="lt-main">

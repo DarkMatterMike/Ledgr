@@ -5168,7 +5168,7 @@ function AppInner({ isDemo = false }) {
     ? Math.max(0, Math.ceil((_trialUser.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
-  // Mobile shell wrapper — adds BottomNav to full-screen Lumen views
+  // Mobile shell wrapper
   const MobileWrap = ({ children }) => isMobile ? (
     <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"var(--bg,#07090d)"}}>
       <div style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}}>{children}</div>

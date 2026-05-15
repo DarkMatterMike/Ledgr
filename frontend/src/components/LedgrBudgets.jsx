@@ -398,7 +398,7 @@ export default function LedgrBudgets({
 
           <div className="lb-body">
             {/* sidenav */}
-            <PageNav activeId="budgets" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+            {!isMobile&&<PageNav activeId="budgets" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             <main className="lb-main">
               {/* topbar */}

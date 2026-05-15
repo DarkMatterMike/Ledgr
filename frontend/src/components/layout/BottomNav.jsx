@@ -35,13 +35,13 @@ const NAV_CSS = `
   text-transform: uppercase; letter-spacing: .5px;
   transition: color .15s;
 }
-.new-bottom-nav-tab.active { color: var(--cyan); }
+.new-bottom-nav-tab.active { color: var(--safe); }
 .new-bottom-nav-dot {
   width: 3px; height: 3px; border-radius: 50%;
   background: transparent; margin-top: 1px;
   transition: background .15s;
 }
-.new-bottom-nav-tab.active .new-bottom-nav-dot { background: var(--cyan); }
+.new-bottom-nav-tab.active .new-bottom-nav-dot { background: var(--safe); }
 `;
 
 let bottomNavCssInjected = false;

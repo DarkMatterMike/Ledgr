@@ -245,6 +245,11 @@ function useIsMobile() {
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
+    /* ── Mobile: prevent bottom-nav overlap ── */
+    @media (max-width: 768px) {
+      .lb-wrap, .lc-wrap, .la-wrap, .lt-wrap, .lgs-wrap { padding-bottom: 90px !important; }
+      .ledgr-content { padding-bottom: 0 !important; }
+    }
     /* ── Mobile bottom nav ── */
     .mobile-bottom-nav {
       height: 82px;
@@ -256,8 +261,8 @@ function useIsMobile() {
     }
     .mobile-nav-indicator {
       position: absolute; top: -2px; height: 2px;
-      background: var(--cyan);
-      box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--glow-color);
+      background: var(--safe);
+      box-shadow: 0 0 10px var(--safe), 0 0 20px rgba(93,202,165,0.2);
       border-radius: 0 0 2px 2px;
       transition: left 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1);
       pointer-events: none; z-index: 11;
@@ -272,7 +277,7 @@ function useIsMobile() {
       -webkit-tap-highlight-color: transparent;
       align-self: stretch;
     }
-    .mobile-nav-item.active { background: var(--cyan-dim); }
+    .mobile-nav-item.active { background: var(--safe-bg); }
     .mobile-nav-item svg {
       width: 24px; height: 24px;
       stroke: rgba(232,221,208,0.32); fill: none;
@@ -288,7 +293,7 @@ function useIsMobile() {
       color: rgba(232,221,208,0.32); transition: color 0.18s;
       font-family: var(--font-body); line-height: 1;
     }
-    .mobile-nav-item.active .mobile-nav-label { color: var(--cyan); }
+    .mobile-nav-item.active .mobile-nav-label { color: var(--safe); }
 
     /* ── Top-right glow orb ── */
     .mobile-glow-orb {
@@ -513,7 +518,7 @@ function useDashboardColumns(defaultCols, scheduleSaveRef, setDefaultCols) {
   return { cols, moveItem, moveToCol };
 }
 
-function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast, existingInstitutions=[] }) {
+function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const fetchToken = useCallback(async () => {
@@ -525,14 +530,7 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null,
       else console.error("[PlaidButton]", msg);
     } finally { setLoading(false); }
   }, [products, itemId, showToast]);
-  const handleSuccess = useCallback((pt, meta) => {
-    const instName = meta?.institution?.name || "";
-    if (instName && existingInstitutions.some(i => i.toLowerCase() === instName.toLowerCase())) {
-      if (!window.confirm(`${instName} is already connected. Link again anyway? This may create duplicate accounts.`)) return;
-    }
-    onSuccess(pt, instName);
-  }, [onSuccess, existingInstitutions]);
-  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:handleSuccess, onExit });
+  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
     <button
@@ -4456,7 +4454,6 @@ function AppInner({ isDemo = false }) {
       setReconnectingItemId={setReconnectingItemId}
       handlePlaidSuccess={handlePlaidSuccess}
       PlaidButton={PlaidButton}
-      existingInstitutions={plaidItems.map(i=>i.institution||"").filter(Boolean)}
       showToast={showToast}
       fmt={fmt}
       today={today}

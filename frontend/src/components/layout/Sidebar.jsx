@@ -19,6 +19,10 @@ const INK_CSS = `
   overflow: visible;
   z-index: 10;
 }
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .ink-rail { display: none !important; }
+  .ink-panel { display: none !important; }
+}
 .ink-rail::after {
   content: '';
   position: absolute; top: 0; right: 0; bottom: 0;

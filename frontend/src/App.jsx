@@ -47,29 +47,19 @@ import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
-  return true;
-}
-
-function DebugBanner() {
-  const [info, setInfo] = useState(null);
-  useEffect(() => {
-    setInfo({
-      innerWidth: window.innerWidth,
-      screenWidth: window.screen.width,
-      dpr: window.devicePixelRatio,
-      touchPoints: navigator.maxTouchPoints,
-      hoverNone: window.matchMedia("(hover: none)").matches,
-      pointerCoarse: window.matchMedia("(pointer: coarse)").matches,
-      both: window.matchMedia("(hover: none) and (pointer: coarse)").matches,
-      ua: navigator.userAgent.slice(0,60),
-    });
-  }, []);
-  if (!info) return null;
-  return (
-    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"#ff0050",color:"#fff",fontSize:"10px",fontFamily:"monospace",padding:"4px 8px",lineHeight:1.4}}>
-      iW:{info.innerWidth} sw:{info.screenWidth} dpr:{info.dpr} touch:{info.touchPoints} hover:none:{info.hoverNone?"Y":"N"} pointer:coarse:{info.pointerCoarse?"Y":"N"} both:{info.both?"Y":"N"}
-    </div>
+  const check = () => (
+    navigator.maxTouchPoints > 1 ||
+    ('ontouchstart' in window) ||
+    window.matchMedia("(pointer: coarse)").matches ||
+    window.innerWidth < 768
   );
+  const [mobile, setMobile] = useState(check);
+  useEffect(() => {
+    const fn = () => setMobile(check());
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return mobile;
 }
 
 /* --- Global CSS --------------------------------------------------- */

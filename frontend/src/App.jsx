@@ -47,11 +47,9 @@ import RulesPage from "./RulesPage.jsx";
 
 /* --- Mobile detection -------------------------------------------- */
 function useIsMobile() {
-  // screen.width = physical device CSS pixels, unaffected by viewport initial-scale
-  const check = () => screen.width < 768 || window.innerWidth < 877;
-  const [mobile, setMobile] = useState(check);
+  const [mobile, setMobile] = useState(() => screen.width < 768);
   useEffect(() => {
-    const fn = () => setMobile(check());
+    const fn = () => setMobile(screen.width < 768);
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
@@ -247,6 +245,14 @@ function useIsMobile() {
     }
     .ledgr-pulse-glow { animation: ledgr-pulse-glow 2s ease-in-out infinite; }
 
+    /* ── Bottom nav always rendered; CSS controls visibility ── */
+    .new-bottom-nav { display: none !important; }
+    .mobile-more-sheet { display: none !important; }
+    @media (max-width: 877px) {
+      .new-bottom-nav { display: flex !important; }
+      .mobile-more-sheet { display: block !important; }
+      .pn-nav { display: none !important; }
+    }
     /* ── Mobile bottom nav ── */
     .mobile-bottom-nav {
       height: 82px;
@@ -258,8 +264,8 @@ function useIsMobile() {
     }
     .mobile-nav-indicator {
       position: absolute; top: -2px; height: 2px;
-      background: var(--safe);
-      box-shadow: 0 0 10px var(--safe);
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan), 0 0 20px var(--glow-color);
       border-radius: 0 0 2px 2px;
       transition: left 0.28s cubic-bezier(0.4,0,0.2,1), width 0.28s cubic-bezier(0.4,0,0.2,1);
       pointer-events: none; z-index: 11;
@@ -274,7 +280,7 @@ function useIsMobile() {
       -webkit-tap-highlight-color: transparent;
       align-self: stretch;
     }
-    .mobile-nav-item.active { background: var(--safe-bg); }
+    .mobile-nav-item.active { background: var(--cyan-dim); }
     .mobile-nav-item svg {
       width: 24px; height: 24px;
       stroke: rgba(232,221,208,0.32); fill: none;
@@ -290,7 +296,7 @@ function useIsMobile() {
       color: rgba(232,221,208,0.32); transition: color 0.18s;
       font-family: var(--font-body); line-height: 1;
     }
-    .mobile-nav-item.active .mobile-nav-label { color: var(--safe); }
+    .mobile-nav-item.active .mobile-nav-label { color: var(--cyan); }
 
     /* ── Top-right glow orb ── */
     .mobile-glow-orb {
@@ -4458,7 +4464,6 @@ function AppInner({ isDemo = false }) {
       setReconnectingItemId={setReconnectingItemId}
       handlePlaidSuccess={handlePlaidSuccess}
       PlaidButton={PlaidButton}
-      existingInstitutions={plaidItems.map(i=>i.institution||"").filter(Boolean)}
       showToast={showToast}
       fmt={fmt}
       today={today}
@@ -5489,39 +5494,6 @@ function AppInner({ isDemo = false }) {
           }
         </div>
 
-        {/* More sheet overlay */}
-        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:82,zIndex:39}}/>}
-
-        {/* More sheet */}
-        <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
-          <div className="mobile-sheet-handle"/>
-          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("settings"); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            Profile & Settings
-          </button>
-          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("accounts"); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Accounts
-          </button>
-          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("rules"); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
-            Rules
-          </button>
-          {currentUser?.role === "owner" && <>
-            <div className="mobile-sheet-divider"/>
-            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("admin"); }} style={{color:"var(--cyan)"}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              Admin
-            </button>
-            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("dani"); }} style={{color:"#f9a8d4"}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              Dani
-            </button>
-          </>}
-        </div>
-
-        {/* Bottom nav */}
-        <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
       </>
     ) : (
       /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
@@ -5554,6 +5526,36 @@ function AppInner({ isDemo = false }) {
         </div>
       </>
     )}
+
+    {/* More sheet overlay — always in DOM, CSS shows on mobile only */}
+    {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:82,zIndex:39}}/>}
+    <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
+      <div className="mobile-sheet-handle"/>
+      <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("settings"); }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Profile & Settings
+      </button>
+      <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("accounts"); }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Accounts
+      </button>
+      <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("rules"); }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+        Rules
+      </button>
+      {currentUser?.role === "owner" && <>
+        <div className="mobile-sheet-divider"/>
+        <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("admin"); }} style={{color:"var(--cyan)"}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          Admin
+        </button>
+        <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("dani"); }} style={{color:"#f9a8d4"}}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Dani
+        </button>
+      </>}
+    </div>
+    <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
 
       {/* -- Modals -- */}
       {(modal==="addCat"||modal==="editCat")   && CatModal}

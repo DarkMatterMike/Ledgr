@@ -7,6 +7,7 @@ import PageNav from "./PageNav.jsx";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
+  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;--line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);--warn:#f0b04c;--warn-bg:rgba(240,176,76,0.08);--debt:#e87363;--debt-bg:rgba(232,115,99,0.08);--calm:#6c8cff;--calm-bg:rgba(108,140,255,0.08);--goal:#a78bff;--goal-d:#2a1f5e;--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;}
   .lc-wrap *,.lc-wrap *::before,.lc-wrap *::after{box-sizing:border-box;}
   .lc-wrap h1,.lc-wrap h2,.lc-wrap h3,.lc-wrap h4,.lc-wrap p{margin:0;padding:0;}
   .lc-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
@@ -35,30 +36,6 @@ const CSS = `
   .lc-nav-spacer{flex:1;}
   .lc-aside{border-right:1px solid var(--line);background:var(--bg-1);padding:22px 18px;overflow-y:auto;}
   @media(max-width:900px){.lc-aside{display:none;}}
-  /* ── Mobile calendar ── */
-  @media(max-width:768px){
-    .lc-body{grid-template-columns:1fr !important;}
-    .lc-right{display:flex;flex-direction:column;}
-    .lc-topbar{padding:14px 16px;}
-    .lc-agenda{padding:16px;}
-    .lc-day-chip{font-size:10px;}
-    .lc-items{padding:0 0 0 8px;}
-    .lc-item{padding:10px 12px;}
-    /* Bottom sheet for day details */
-    .lc-mobile-sheet{position:fixed;left:0;right:0;bottom:0;z-index:200;
-      background:var(--bg-2);border-top:1px solid var(--line-2);
-      border-radius:20px 20px 0 0;
-      padding:0 0 env(safe-area-inset-bottom,16px);
-      transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
-      max-height:70vh;overflow-y:auto;}
-    .lc-mobile-sheet.open{transform:translateY(0);}
-    .lc-mobile-sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--line-3);
-      margin:12px auto 16px;display:block;}
-    .lc-mobile-sheet-title{font-family:var(--font-display);font-size:20px;letter-spacing:-0.3px;
-      padding:0 20px 12px;border-bottom:1px solid var(--line);}
-    .lc-mobile-sheet-body{padding:16px 20px 24px;}
-    .lc-mobile-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:199;}
-  }
   .lc-cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
   .lc-cal-title{font-family:var(--font-display);font-size:20px;letter-spacing:-0.3px;}
   .lc-cal-navs{display:flex;gap:6px;}
@@ -189,6 +166,8 @@ const CSS = `
   .lc-expand-camt{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--debt);flex-shrink:0;}
   .lc-expand-link{background:rgba(93,202,165,0.1);border:1px solid rgba(93,202,165,0.25);border-radius:6px;padding:3px 10px;font-size:11px;font-family:var(--font-mono);color:var(--safe);cursor:pointer;flex-shrink:0;}
   .lc-expand-none{font-size:11px;color:var(--ink-4);padding:4px 0;}
+
+  @media(max-width:768px){.pn-nav{display:none !important;}}
 `;
 
 const MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -217,11 +196,6 @@ export default function LedgrCalendar({
   const now=calendarMonth||`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
   const [cy,cm]=now.split("-").map(Number);
   const [selDay,setSelDay]=useState(cy===today.getFullYear()&&cm===today.getMonth()+1?today.getDate():1);
-  const [sheetOpen,setSheetOpen]=useState(false);
-  function handleDayClick(d){
-    setSelDay(d);
-    if(isMobile) setSheetOpen(true);
-  }
   const [expandedRiDay,setExpandedRiDay]=useState(null);
   const isCurMo=cy===today.getFullYear()&&cm===today.getMonth()+1;
   const [selectedRiId,setSelectedRiId]=useState(null);    // which ri is selected for edit col
@@ -328,7 +302,7 @@ export default function LedgrCalendar({
             </span>
           </div>
           <div className="lc-body">
-            <PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+            {!isMobile&&<PageNav activeId="calendar" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             {/* ── left aside ── */}
             <aside className="lc-aside">
@@ -573,30 +547,7 @@ export default function LedgrCalendar({
                   );
                 })}
               </div>
-              {/* Mobile day bottom sheet */}
-              {isMobile&&sheetOpen&&(
-                <>
-                  <div className="lc-mobile-backdrop" onClick={()=>setSheetOpen(false)}/>
-                  <div className={`lc-mobile-sheet${sheetOpen?" open":""}`}>
-                    <span className="lc-mobile-sheet-handle"/>
-                    <div className="lc-mobile-sheet-title">{MN[cm-1]} {selDay}</div>
-                    <div className="lc-mobile-sheet-body">
-                      {(calendarTxnsByDay[`${cy}-${String(cm).padStart(2,"0")}-${String(selDay).padStart(2,"0")}`]||[]).length===0
-                        ?<div style={{color:"var(--ink-3)",fontSize:13,fontStyle:"italic"}}>Nothing on this day</div>
-                        :(calendarTxnsByDay[`${cy}-${String(cm).padStart(2,"0")}-${String(selDay).padStart(2,"0")}`]||[]).map((t,i)=>(
-                          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                            padding:"10px 0",borderBottom:"1px solid var(--line)",fontFamily:"var(--font-mono)",fontSize:12}}>
-                            <span style={{color:"var(--ink-1)"}}>{t.merchant||t.name}</span>
-                            <span style={{color:(t.amount||0)>0?"var(--safe)":"var(--debt)"}}>{(t.amount||0)>0?"+":"−"}{fmt(Math.abs(t.amount||0))}</span>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
-
             {/* ── edit column ── */}
             <div className="lc-edit-col">
               {!selectedRiId&&!selectedTxn&&(

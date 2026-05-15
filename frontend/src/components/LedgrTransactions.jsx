@@ -70,24 +70,6 @@ const CSS = `
     box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:820px;
   }
   @media(max-width:600px){.lt-frame{border-radius:0;border:none;}}
-  /* ── Mobile transactions ── */
-  @media(max-width:768px){
-    .lt-body{grid-template-columns:1fr !important;}
-    .lt-panel{display:none !important;}
-    .lt-topbar{padding:12px 16px;}
-    .lt-filters{padding:8px 16px;gap:6px;flex-wrap:wrap;}
-    .lt-search{font-size:13px;}
-    /* condense rows: hide date col, show inline */
-    .lt-th.date-col,.lt-cell.date-col{display:none;}
-    .lt-th.cat-col,.lt-cell.cat-col{display:none;}
-    .lt-th.acct-col,.lt-cell.acct-col{display:none;}
-    .lt-merchant-val{font-size:12px;}
-    .lt-amt-val{font-size:12px;}
-    .lt-date-val{font-size:10px;}
-    .lt-row-acts{opacity:1;}
-    .lt-bulk{bottom:98px !important;width:calc(100% - 32px);justify-content:center;}
-    .lt-th,.lt-cell{padding:8px 10px;}
-  }
 
   /* Browser chrome */
   .lt-bar {
@@ -302,10 +284,12 @@ const CSS = `
   .lt-panel-row .lt-panel-btn{flex:1;}
 
   /* Bulk bar */
-  .lt-bulk{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:10px 20px;display:flex;align-items:center;gap:12px;z-index:150;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:var(--font-mono);font-size:12px;}
+  .lt-bulk{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-3);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:10px 20px;display:flex;align-items:center;gap:12px;z-index:50;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:var(--font-mono);font-size:12px;}
 
   /* Sort arrows inline with th */
   .lt-sort-arrow { font-size:9px; opacity:0.6; margin-left:3px; }
+
+  @media(max-width:768px){.pn-nav{display:none !important;}}
 `;
 
 /* ─── Static data ─────────────────────────────────────────────────────────── */
@@ -522,7 +506,7 @@ export default function LedgrTransactions({
           <div className="lt-body">
 
             {/* ── Col 1: Nav ── */}
-            <PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+            {!isMobile&&<PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             {/* ── Col 2: Ledger list ── */}
             <div className="lt-main">

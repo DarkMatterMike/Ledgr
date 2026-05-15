@@ -14,6 +14,7 @@ import { applyTheme, applyGlobalOpacity } from "../theme/index.js";
    CSS — scoped to .lgs-* namespace, Lumen dark tokens
 ───────────────────────────────────────────────────────── */
 const CSS = `
+  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--line:rgba(255,255,255,0.06);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;}
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
 
   /* ── Shared shell (matches LedgrBriefing lb-* exactly) ── */
@@ -22,22 +23,6 @@ const CSS = `
   @media(max-width:600px){.lb-wrap{padding:0;}}
   .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:20px;overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:80vh;}
   @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
-  /* ── Mobile settings ── */
-  @media(max-width:768px){
-    .lgs-topbar{padding:0 16px;height:auto;flex-direction:column;align-items:flex-start;gap:0;}
-    .lgs-tabs{width:100%;overflow-x:auto;border-bottom:1px solid var(--line);display:flex;}
-    .lgs-tab{padding:10px 12px;font-size:9px;flex-shrink:0;}
-    .lgs-content{padding:0;}
-    .lgs-section{padding:20px 16px;}
-    .lgs-theme-grid{grid-template-columns:repeat(3,1fr) !important;}
-    .lgs-input{width:100% !important;box-sizing:border-box;}
-    .lgs-range{width:100% !important;}
-    .lgs-field-row{flex-direction:column;align-items:flex-start !important;gap:6px;}
-    .lgs-field-row label{min-width:unset !important;}
-    .lgs-id-card{flex-direction:column;gap:12px;}
-    .lgs-row{flex-direction:column;gap:8px;align-items:flex-start !important;}
-    .lgs-budget-row{flex-direction:column;gap:4px;align-items:flex-start !important;}
-  }
   .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
   .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
@@ -225,13 +210,14 @@ const CSS = `
     border-bottom:1px solid rgba(255,255,255,0.04);
   }
   .lgs-trash-item:last-child { border-bottom:none; }
+
+  @media(max-width:768px){.pn-nav{display:none !important;}}
 `;
 
 /* ─────────────────────────────────────────────────────────
    Theme presets (same list as App.jsx)
 ───────────────────────────────────────────────────────── */
 const PRESETS = [
-  { name:"Lumen",     bg:"#07090d", surface:"#0b0e14", card:"#11151d", accent:"#5dcaa5", t1:"#f4f4f1", t2:"rgba(244,244,241,0.55)", t3:"rgba(244,244,241,0.3)" },
   { name:"Obsidian",  bg:"#0b0a08", surface:"#1a1612", card:"#181511", accent:"#c9956a", t1:"#e8ddd0", t2:"rgba(232,221,208,0.55)", t3:"rgba(232,221,208,0.3)" },
   { name:"Midnight",  bg:"#09090f", surface:"#111120", card:"#18181e", accent:"#a78bfa", t1:"#e8e8ff", t2:"rgba(232,232,255,0.5)",  t3:"rgba(232,232,255,0.3)" },
   { name:"Ledgr Dark",bg:"#060a0f", surface:"#0d1520", card:"#111a28", accent:"#00d4ff", t1:"#daeaf8", t2:"rgba(218,234,248,0.5)",  t3:"rgba(218,234,248,0.3)" },
@@ -491,7 +477,7 @@ export default function LedgrSettings({
         <div className="lb-brief">
 
           {/* Nav rail — identical to LedgrBriefing */}
-          <PageNav activeId="settings" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+          {!isMobile&&<PageNav activeId="settings" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
           {/* Main */}
           <div className="lgs-main">
@@ -535,7 +521,7 @@ export default function LedgrSettings({
                     <Row>
                       <RL label="Display name" hint="Shown in app header"/>
                       <div style={{display:"flex",gap:6}}>
-                        <input className="lgs-input" value={name}
+                        <input className="lgs-input" style={{width:150}} value={name}
                           onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveName()}/>
                         <Btn variant="primary" sm onClick={saveName} disabled={savingName}>{savingName?"…":"Save"}</Btn>
                       </div>
@@ -546,17 +532,17 @@ export default function LedgrSettings({
                     <BH title="Security"/>
                     <Row>
                       <RL label="Current password"/>
-                      <input className="lgs-input" type="password" placeholder="••••••••"
+                      <input className="lgs-input" style={{width:170}} type="password" placeholder="••••••••"
                         value={currPw} onChange={e=>{setCurrPw(e.target.value);setPwError("");}}/>
                     </Row>
                     <Row>
                       <RL label="New password"/>
-                      <input className="lgs-input" type="password" placeholder="Min. 8 characters"
+                      <input className="lgs-input" style={{width:170}} type="password" placeholder="Min. 8 characters"
                         value={newPw} onChange={e=>{setNewPw(e.target.value);setPwError("");}}/>
                     </Row>
                     <Row>
                       <RL label="Confirm new password"/>
-                      <input className="lgs-input" type="password" placeholder="••••••••"
+                      <input className="lgs-input" style={{width:170}} type="password" placeholder="••••••••"
                         value={confirmPw} onChange={e=>{setConfirmPw(e.target.value);setPwError("");}}/>
                     </Row>
                     {pwError   && <div style={{padding:"4px 18px",fontSize:11,color:"#e87363"}}>{pwError}</div>}

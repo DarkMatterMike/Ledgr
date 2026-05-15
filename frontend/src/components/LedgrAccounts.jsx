@@ -33,6 +33,8 @@ const MODAL_CSS = `
   .am-btn:hover{border-color:rgba(255,255,255,0.2);color:#f4f4f1;}
   .am-btn.primary{background:rgba(93,202,165,0.1);border-color:rgba(93,202,165,0.45);color:#5dcaa5;}
   .am-btn.primary:hover{background:rgba(93,202,165,0.18);}
+
+  @media(max-width:768px){.pn-nav{display:none !important;}}
 `;
 
 export function AccountModal({ mode="add", acct=null, onSave, onClose }) {
@@ -142,6 +144,7 @@ export function AccountModal({ mode="add", acct=null, onSave, onClose }) {
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600&display=swap');
+  :root{--bg-0:#07090d;--bg-1:#0b0e14;--bg-2:#11151d;--bg-3:#161c26;--bg-4:#1c2330;--line:rgba(255,255,255,0.06);--line-2:rgba(255,255,255,0.10);--line-3:rgba(255,255,255,0.18);--ink-0:#f4f4f1;--ink-1:#c8cdd6;--ink-2:#7d8594;--ink-3:#4a5161;--ink-4:#2e3340;--safe:#5dcaa5;--safe-d:#0f6e56;--safe-bg:rgba(93,202,165,0.08);--warn:#f0b04c;--warn-bg:rgba(240,176,76,0.08);--debt:#e87363;--debt-bg:rgba(232,115,99,0.08);--calm:#6c8cff;--calm-bg:rgba(108,140,255,0.08);--goal:#a78bff;--goal-d:#2a1f5e;--font-display:'Instrument Serif',Georgia,serif;--font-ui:'Geist',-apple-system,sans-serif;--font-mono:'JetBrains Mono',ui-monospace,monospace;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:20px;}
   .la-wrap *,.la-wrap *::before,.la-wrap *::after{box-sizing:border-box;}
   .la-wrap h1,.la-wrap h2,.la-wrap h3,.la-wrap h4,.la-wrap p{margin:0;padding:0;}
   .la-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
@@ -234,15 +237,6 @@ const CSS = `
   .la-empty-title{font-family:var(--font-display);font-size:28px;color:var(--ink-2);margin-bottom:6px;}
 
   /* mobile: hide some columns */
-  /* ── Mobile accounts ── */
-  @media(max-width:768px){
-    .la-topbar{padding:12px 16px;}
-    .la-hero-num{font-size:36px !important;}
-    .la-group-row{padding:0 16px;}
-    .la-acct-row{padding:8px 16px;}
-    .la-strip{grid-template-columns:1fr 1fr !important;}
-    .la-stat{border-bottom:1px solid var(--line);}
-  }
   @media(max-width:700px){
     .la-wrap{padding:0;}
     .la-col-hide{display:none;}
@@ -321,7 +315,7 @@ export default function LedgrAccounts({
           </div>
 
           <div className="la-body">
-            <PageNav activeId="accounts" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>
+            {!isMobile&&<PageNav activeId="accounts" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
 
             <main className="la-main">
 

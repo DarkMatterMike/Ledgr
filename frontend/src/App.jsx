@@ -5517,8 +5517,6 @@ function AppInner({ isDemo = false }) {
           </>}
         </div>
 
-        {/* Bottom nav */}
-        <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
       </>
     ) : (
       /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
@@ -5551,6 +5549,9 @@ function AppInner({ isDemo = false }) {
         </div>
       </>
     )}
+
+      {/* BottomNav — always rendered; CSS (hover:none + pointer:coarse) controls visibility */}
+      <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
 
       {/* -- Modals -- */}
       {(modal==="addCat"||modal==="editCat")   && CatModal}

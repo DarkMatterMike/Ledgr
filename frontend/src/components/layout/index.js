@@ -5,3 +5,4 @@
 export { SidebarContent }           from './Sidebar.jsx';
 export { BottomNav, BOTTOM_NAV }    from './BottomNav.jsx';
 export { InstallPrompt }            from './InstallPrompt.jsx';
+export { default as LumenShell }    from './LumenShell.jsx';

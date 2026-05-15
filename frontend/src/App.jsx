@@ -1,20 +1,6 @@
-﻿/**
- * App.jsx
- *
- * Root application component and main orchestrator.
- * Holds shared application state and renders the appropriate view
- * based on the current navigation state.
- *
- * Architecture:
- *   - AppInner: stateful orchestrator, owns all shared data state
- *   - Pages (Dashboard, Transactions, etc.) defined inline as they share
- *     state via closure — see Phase 3 for context-based extraction
- *   - Extracted standalone components: /components, /auth, /layout, /theme
- */
-import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { usePlaidLink } from "react-plaid-link";
 import * as api from "./api.js";
-const { debounce } = api;
 import { useAppData } from "./hooks/useAppData.js";
 import LedgrBriefing from "./components/LedgrBriefing.jsx";
 import LedgrSettings from "./components/LedgrSettings.jsx";
@@ -22,29 +8,21 @@ import LedgrTransactions from "./components/LedgrTransactions.jsx";
 import LedgrAccounts from "./components/LedgrAccounts.jsx";
 import LedgrCalendar from "./components/LedgrCalendar.jsx";
 import LedgrBudgets from "./components/LedgrBudgets.jsx";
+import LedgrAnalytics from "./components/LedgrAnalytics.jsx";
 import OnboardingWizard, { ONBOARDING_STORAGE_KEY } from "./components/OnboardingWizard.jsx";
 import { useDuplicateScan } from "./hooks/useDuplicateScan.js";
 import { usePortfolio } from "./hooks/usePortfolio.js";
 import { useAiChat } from "./hooks/useAiChat.js";
-import PortfolioView from "./PortfolioView.jsx";
-import AiChat from "./AiChat.jsx";
-import Analytics from "./components/LedgrAnalytics.jsx";
 import DaniPage from "./DaniPage.jsx";
 import { DEMO_CATEGORIES, DEMO_ACCOUNTS, DEMO_TRANSACTIONS, DEMO_RULES, DEMO_GOALS, DEMO_USER_PROFILE } from "./demoData.js";
-
-// Extracted modules — see src/components, src/theme, src/constants
-import { S, applyTheme, applyGlobalOpacity } from "./theme/index.js";
-import { CAT_COLORS, DAYS_OF_WEEK, PAGE_RIGHT_COL_W, PAGE_COL_GAP, SHARED_LEFT_WIDTH, INSTALL_KEY, getDaysLeft } from "./constants.js";
+import { S, applyTheme } from "./theme/index.js";
+import { CAT_COLORS, DAYS_OF_WEEK, INSTALL_KEY } from "./constants.js";
 import { Modal, Toast, CustomSelect, PageLayout, CategoryBadge } from "./components/ui/index.jsx";
 import MerchantIcon from "./components/MerchantIcon.jsx";
 import TxnRow from "./components/TxnRow.jsx";
-import { SidebarContent } from "./components/layout/Sidebar.jsx";
-import { BottomNav, BOTTOM_NAV } from "./components/layout/BottomNav.jsx";
 import { InstallPrompt } from "./components/layout/InstallPrompt.jsx";
 import { PrivacyPolicy, TermsOfService } from "./auth/Legal.jsx";
 import { SecurityBadges } from "./auth/SecurityBadges.jsx";
-import RulesPage from "./RulesPage.jsx";
-import BudgetView from "./views/BudgetView.jsx";
 import AppModals from "./components/AppModals.jsx";
 import { useDashboardCards } from "./hooks/useDashboardCards.jsx";
 import { useTransactionActions } from "./hooks/useTransactionActions.js";
@@ -53,19 +31,14 @@ import Paywall from "./components/Paywall.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
 import { usePlaidSync } from "./hooks/usePlaidSync.js";
 import { useRulesAndGoals } from "./hooks/useRulesAndGoals.js";
-
 import useIsMobile from "./hooks/useIsMobile.js";
 import { DragCard, useDashboardColumns } from "./components/DragCard.jsx";
 import PlaidButton from "./components/PlaidButton.jsx";
 import { isAuthValid, AuthGate } from "./auth/AuthGate.jsx";
-
-import "./styles/globalCSS.js";
-
-/* --- Mobile detection -------------------------------------------- */
-
-
+import LumenShell from "./components/layout/LumenShell.jsx";
 import { today, pad, fmt, cap, currentMonth, daysInMonth, daysLeft, NAV } from "./utils/globals.js";
-export { NAV };
+
+// NAV is defined in constants.js and utils/globals.js
 
 
 
@@ -1052,74 +1025,7 @@ function AppInner({ isDemo = false }) {
     setAnalyticsTab, setInsightsTodos,
     needsReview, dismissedNotifs, setDismissedNotifs,
   });
-  const Dashboard = null; // rendered via early return above
-
-
-  /* -- Transactions -- */
-
-  /* ── Transactions — Clarity flat table ─────────────── */
-  const Transactions = (
-    <LedgrTransactions
-      transactions={transactions}
-      filteredTxns={filteredTxns}
-      categories={categories}
-      catMap={catMap}
-      accounts={accounts}
-      acctMap={acctMap}
-      search={search}
-      handleTxnSearchChange={handleTxnSearchChange}
-      filterCat={filterCat}
-      setFilterCat={setFilterCat}
-      filterAcct={filterAcct}
-      setFilterAcct={setFilterAcct}
-      txnTypeFilter={txnTypeFilter}
-      setTxnTypeFilter={setTxnTypeFilter}
-      txnSortCol={txnSortCol}
-      setTxnSortCol={setTxnSortCol}
-      txnSortDir={txnSortDir}
-      setTxnSortDir={setTxnSortDir}
-      selectedTxns={selectedTxns}
-      setSelectedTxns={setSelectedTxns}
-      needsReview={needsReview}
-      deleteTxn={deleteTxn}
-      openAddTxn={openAddTxn}
-      bulkSetCategory={bulkSetCategory}
-      bulkSetType={bulkSetType}
-      bulkDelete={bulkDelete}
-      bulkMarkReviewed={bulkMarkReviewed}
-      selectAllVisible={selectAllVisible}
-      clearSelection={clearSelection}
-      txnLoading={txnLoading}
-      fmt={fmt}
-      today={today}
-      isMobile={isMobile}
-      navigate={navigate}
-      updateTxnType={updateTxnType}
-      updateTxnCat={updateTxnCat}
-      updateTxnNotes={updateTxnNotes}
-      updateTxnName={updateTxnName}
-      markReviewed={markReviewed}
-      onMakeRecurring={(t) => {
-        const raw = t.date || '';
-        const day = raw.includes('-') ? raw.split('-')[2] : raw.split('/')[1] || '';
-        setRiForm({
-          name:           t.name || t.merchant || '',
-          amountMin:      t.amount != null ? String(Math.abs(t.amount)) : '',
-          amountMax:      t.amount != null ? String(Math.abs(t.amount)) : '',
-          type:           t.amount >= 0 ? 'income' : 'expense',
-          categoryId:     t.categoryId  || '',
-          accountId:      t.accountId   || '',
-          recurringFreq:  'monthly',
-          recurringDay:   day ? String(parseInt(day)) : '',
-          recurringStart: raw,
-        });
-        setCalendarOpenNewRi(true);
-        navigate('calendar');
-      }}
-      doSync={doSync}
-      syncing={syncing}
-    />
-  );
+  // Views are composed in the LUMEN_VIEWS section below
 
 
   function saveCatName(id) {
@@ -1172,34 +1078,50 @@ function AppInner({ isDemo = false }) {
     }
   }
 
-  /* ── Budgets ─────────────────────────────────── */
-  // BudgetView extracted to src/views/BudgetView.jsx
-  const Budgets = <BudgetView
-    sortedCategories={sortedCategories} spentByCat={spentByCat}
-    totalSpent={totalSpent} totalBudget={totalBudget} selectedMonth={selectedMonth}
-    isMobile={isMobile} fmt={fmt} catMap={catMap} monthTxns={monthTxns}
-    budgetExpandedCatId={budgetExpandedCatId} setBudgetExpandedCatId={setBudgetExpandedCatId}
-    budgetTxnSearch={budgetTxnSearch} setBudgetTxnSearch={setBudgetTxnSearch}
-    saveCat={saveCat} deleteCat={deleteCat} toggleCatComplete={toggleCatComplete}
-    showToast={showToast} categories={categories}
-    budgetKebabId={budgetKebabId} setBudgetKebabId={setBudgetKebabId}
-    openEditCat={openEditCat} openAddCat={openAddCat}
-    saveCatName={saveCatName} startEditLimit={startEditLimit} saveLimit={saveLimit}
-    editingCatNameId={editingCatNameId} setEditingCatNameId={setEditingCatNameId}
-    editingCatName={editingCatName} setEditingCatName={setEditingCatName}
-    editingLimitId={editingLimitId} setEditingLimitId={setEditingLimitId}
-    editingLimitVal={editingLimitVal} setEditingLimitVal={setEditingLimitVal}
-    updateTxnCat={updateTxnCat} aiChat={aiChat} monthLabel={monthLabel}
-    budgetBarsAnimated={budgetBarsAnimated}
-    setCategories={setCategories}
-    limitSuggestions={limitSuggestions} setLimitSuggestions={setLimitSuggestions}
-    suggestingLimits={suggestingLimits} runSuggestLimits={runSuggestLimits}
-  />;
 
-  /* -- Accounts -- */
+  /* ── Budgets (Lumen) ───────────────────────────── */
+  const BudgetsPage = (
+    <LedgrBudgets
+      categories={categories}
+      sortedCategories={sortedCategories}
+      spentByCat={spentByCat}
+      monthTxns={monthTxns}
+      catMap={catMap}
+      selectedMonth={selectedMonth}
+      monthLabel={monthLabel}
+      totalSpent={totalSpent}
+      totalBudget={totalBudget}
+      today={today}
+      fmt={fmt}
+      isMobile={isMobile}
+      navigate={navigate}
+      openAddCat={openAddCat}
+      openEditCat={openEditCat}
+      deleteCat={deleteCat}
+      toggleCatComplete={toggleCatComplete}
+      updateTxnCat={updateTxnCat}
+      editingLimitId={editingLimitId}
+      setEditingLimitId={setEditingLimitId}
+      editingLimitVal={editingLimitVal}
+      setEditingLimitVal={setEditingLimitVal}
+      saveLimit={saveLimit}
+      startEditLimit={startEditLimit}
+      limitSuggestions={limitSuggestions}
+      setLimitSuggestions={setLimitSuggestions}
+      suggestingLimits={suggestingLimits}
+      runSuggestLimits={runSuggestLimits}
+      hasApiKey={aiChat.hasApiKey}
+      showToast={showToast}
+      doSync={doSync}
+      syncing={syncing}
+      notifs={visibleNotifs}
+      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+      onFilterReview={() => { setFilterReview(true); navigate('transactions'); }}
+    />
+  );
 
-  /* ── Accounts ─────────────────────────────────── */
-  const Accounts = (
+  /* ── Accounts (Lumen) ──────────────────────────── */
+  const AccountsPage = (
     <LedgrAccounts
       accounts={accounts}
       plaidItems={plaidItems}
@@ -1223,41 +1145,12 @@ function AppInner({ isDemo = false }) {
       navigate={navigate}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
-      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
-    />
-  )
-
-  /* -- Rules -- */
-  const [ruleSearch, setRuleSearch] = useState("");
-  const [collapsedSections, setCollapsedSections] = useState({});
-
-  /* ── Rules ─────────────────────────────────── */
-  const Rules = (
-    <RulesPage
-      rules={rules}
-      catMap={catMap}
-      isMobile={isMobile}
-      ruleSearch={ruleSearch}
-      setRuleSearch={setRuleSearch}
-      toggleRule={toggleRule}
-      deleteRule={deleteRule}
-      onOpenAdd={() => { setRuleForm({ pattern:"", matchType:"contains", categoryId:"", enabled:true }); setModal("addRule"); }}
-      onOpenEdit={(rule) => { setRuleForm({ pattern:rule.pattern, matchType:rule.matchType, categoryId:rule.categoryId||"", typeOverride:rule.typeOverride||"", enabled:rule.enabled }); setEditTarget(rule); setModal("editRule"); }}
+      onFilterReview={() => { setFilterReview(true); navigate('transactions'); }}
     />
   );
 
-
-
-  /* -- Calendar -- */
-  const calYear=parseInt(calendarMonth.split("-")[0]);
-  const calMonthN=parseInt(calendarMonth.split("-")[1]);
-  const firstDow=new Date(calYear,calMonthN-1,1).getDay();
-  const daysInCal=daysInMonth(calYear,calMonthN);
-  const totalCells=Math.ceil((firstDow+daysInCal)/7)*7;
-
-
-  /* ── Calendar — Agenda View ────────────────────── */
-  const Calendar = (
+  /* ── Calendar (Lumen) ──────────────────────────── */
+  const CalendarPage = (
     <LedgrCalendar
       accounts={accounts}
       categories={categories}
@@ -1287,295 +1180,10 @@ function AppInner({ isDemo = false }) {
       navigate={navigate}
     />
   );
-  /* -----------------------------------------------------------------
-     MODALS
-  ----------------------------------------------------------------- */
-  // All modals → extracted to AppModals
 
-  /* -----------------------------------------------------------------
-     NAV + RENDER
-  ----------------------------------------------------------------- */
-
-  /* -- Shared sidebar -- */
-  const currentUser  = api.getStoredUser();
-  const PREMIUM_PRICE_ID = import.meta.env.VITE_PREMIUM_PRICE_ID || "";
-  const FAMILY_PRICE_ID  = import.meta.env.VITE_FAMILY_PRICE_ID  || "";
-  const isPremium = currentUser?.role === "owner" ||
-    (currentUser?.isPremium === true) ||
-    (PREMIUM_PRICE_ID && currentUser?.stripe_price_id === PREMIUM_PRICE_ID);
-  const isFamilyPlan = currentUser?.role === "owner" ||
-    (FAMILY_PRICE_ID && currentUser?.stripe_price_id === FAMILY_PRICE_ID);
-  const _avatarColors = ["#00d4ff","#00e676","#a78bfa","#f97316","#ec4899","#fbbf24","#14b8a6"];
-  const avatarColor  = _avatarColors[(currentUser?.email || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0) % _avatarColors.length];
-  const avatarLetter = (currentUser?.name || currentUser?.email || "?")[0].toUpperCase();
-
-
-  /* ── Portfolio Plaid handler — must be declared before any early returns ── */
-  const handlePortfolioPlaidSuccess = useCallback(async (publicToken, institutionName) => {
-    try {
-      const { item_id } = await api.exchangePublicToken(publicToken, institutionName);
-      setPlaidItems(p => [...p.filter(i => i.item_id !== item_id), { item_id, institution: institutionName }]);
-      showToast(`${institutionName} connected!`);
-    } catch(e) { showToast("Connection failed: " + e.message); }
-  }, []);
-
-  /* ── SettingsPage ─────────────────────────────────── */
-  if (view === "settings") return (
-    <LedgrSettings
-      theme={theme}
-      onSaveTheme={t => {
-        setTheme(t);
-        applyTheme(t);
-        const { bgImage, ...themeForServer } = t;
-        scheduleSaveRef.current?.({ theme: themeForServer });
-        try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {}
-      }}
-      transactions={transactions}
-      accounts={accounts}
-      categories={categories}
-      catMap={catMap}
-      acctMap={acctMap}
-      avatarLetter={avatarLetter}
-      showToast={showToast}
-      setTransactions={setTransactions}
-      setAccounts={setAccounts}
-      setCategories={setCategories}
-      setRules={setRules}
-      setPlaidItems={setPlaidItems}
-      plaidItems={plaidItems}
-      access={access}
-      userProfile={userProfile}
-      onSaveProfile={p => {
-        setUserProfile(p);
-        scheduleSaveRef.current?.({ userProfile: p });
-      }}
-      deletedTransactions={deletedTransactions}
-      setDeletedTransactions={setDeletedTransactions}
-      showTrash={showTrash}
-      setShowTrash={setShowTrash}
-      scheduleSaveRef={scheduleSaveRef}
-      isFamilyPlan={isFamilyPlan}
-      settingsTab={settingsTab}
-      setSettingsTab={setSettingsTab}
-      hasApiKey={aiChat.hasApiKey}
-      saveApiKey={aiChat.saveApiKey}
-      navigate={navigate}
-      notifs={visibleNotifs}
-      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
-      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
-    />
-  );
-
-  const DaniPageView = currentUser?.role === "owner" ? (
-    <DaniPage
-      accounts={accounts}
-      transactions={transactions}
-      recurringTxns={recurringTxns}
-      recurringItems={recurringItems}
-      daniData={daniData}
-      isMobile={isMobile}
-      onSave={(patch) => {
-        if (patch.dani) {
-          setDaniData(patch.dani);
-          scheduleSaveRef.current?.({ dani: patch.dani });
-        }
-      }}
-    />
-  ) : null;
-
-  const AdminPage = currentUser?.role === "owner" ? <AdminPanel /> : null;
-
-  // Free-tier users get read-only dashboard + settings, paywall for everything else
-  const paywallView = <Paywall />;
-
-
-  /* ── PortfolioPage ─────────────────────────────────── */
-  const PortfolioPage = (
-    <PortfolioView
-      investmentAccounts={portfolio.investmentAccounts}
-      holdings={portfolio.holdings}
-      netWorthSnapshots={portfolio.netWorthSnapshots}
-      metrics={portfolio.metrics}
-      syncing={portfolio.syncing}
-      addAccount={portfolio.addAccount}
-      updateAccount={portfolio.updateAccount}
-      deleteAccount={portfolio.deleteAccount}
-      addHolding={portfolio.addHolding}
-      updateHolding={portfolio.updateHolding}
-      deleteHolding={portfolio.deleteHolding}
-      syncFromPlaid={portfolio.syncFromPlaid}
-      showToast={showToast}
-      isMobile={isMobile}
-      PlaidButtonComponent={PlaidButton}
-      onPlaidSuccess={handlePortfolioPlaidSuccess}
-      isPremium={isPremium}
-    />
-  );
-
-
-  /* ── AiChatPage ─────────────────────────────────── */
-  const AiChatPage = (
-    <AiChat
-      messages={aiChat.messages}
-      hasApiKey={aiChat.hasApiKey}
-      keyChecked={aiChat.keyChecked}
-      loading={aiChat.loading}
-      error={aiChat.error}
-      checkApiKey={aiChat.checkApiKey}
-      saveApiKey={aiChat.saveApiKey}
-      sendMessage={aiChat.sendMessage}
-      clearHistory={aiChat.clearHistory}
-      transactions={transactions}
-      categories={categories}
-      accounts={accounts}
-      catMap={catMap}
-      acctMap={acctMap}
-      isMobile={isMobile}
-    />
-  );
-
-
-  /* ── AnalyticsPage — full-screen bypass (same pattern as other Ledgr* views) ── */
-  if (view === "analytics") return (
-    <Analytics
-      transactions={allTransactions ?? transactions}
-      categories={categories}
-      accounts={accounts}
-      catMap={catMap}
-      isMobile={isMobile}
-      hasApiKey={aiChat.hasApiKey}
-      userProfile={userProfile}
-      onSaveProfile={p => {
-        setUserProfile(p);
-        scheduleSaveRef.current?.({ userProfile: p });
-      }}
-      aiInsights={analyticsInsights}
-      onSetAiInsights={insights => {
-        setAnalyticsInsights(insights);
-        scheduleSaveRef.current?.({ analyticsInsights: insights });
-      }}
-      todos={insightsTodos}
-      onTodosChange={todos => {
-        setInsightsTodos(todos);
-        scheduleSaveRef.current?.({ insightsTodos: todos });
-      }}
-      goals={goals}
-      onSaveGoal={saveGoal}
-      onDeleteGoal={deleteGoal}
-      onMarkRecurring={ids => {
-        const txns = transactions.filter(t => ids.includes(t.id));
-        const dayCounts = {};
-        txns.forEach(t => {
-          if (t.date) {
-            const d = parseInt(t.date.split("-")[2]);
-            dayCounts[d] = (dayCounts[d] || 0) + 1;
-          }
-        });
-        const recurringDay = Object.keys(dayCounts).length > 0
-          ? parseInt(Object.entries(dayCounts).sort((a,b) => b[1]-a[1])[0][0])
-          : null;
-        const dates = txns.map(t => t.date).filter(Boolean).sort();
-        const recurringStart = dates[0] || null;
-        setTransactions(prev => prev.map(t => ids.includes(t.id) ? {
-          ...t,
-          recurring: true,
-          recurringDay: t.recurringDay || recurringDay,
-          recurringFreq: t.recurringFreq || "monthly",
-          recurringStart: t.recurringStart || recurringStart,
-        } : t));
-        ids.forEach(id => {
-          const t = transactions.find(tx => tx.id === id);
-          api.updateTransaction(id, {
-            recurring: true,
-            recurringDay: t?.recurringDay || recurringDay,
-            recurringFreq: t?.recurringFreq || "monthly",
-            recurringStart: t?.recurringStart || recurringStart,
-          }).catch(console.error);
-        });
-      }}
-      defaultTab={analyticsTab}
-      navigate={navigate}
-    />
-  );
-
-
-  const VIEWS = access === "full"
-    ? { dashboard:Dashboard, transactions:Transactions, budgets:Budgets, accounts:Accounts, portfolio:PortfolioPage, rules:Rules, calendar:Calendar, ai:AiChatPage, admin:AdminPage, dani:DaniPageView }
-    : { dashboard:Dashboard, transactions:paywallView, budgets:paywallView, accounts:paywallView, portfolio:paywallView, rules:paywallView, calendar:paywallView, ai:AiChatPage, admin:AdminPage, dani:DaniPageView };
-
-  if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#07090d",flexDirection:"column"}}>
-      <style>{`
-        @keyframes ll-bounce {
-          0%,100% { transform: translateY(0) scale(1); }
-          50%      { transform: translateY(-24px) scale(1.06); }
-        }
-        @keyframes ll-bounce-shadow {
-          0%,100% { transform: scaleX(1); opacity:0.25; }
-          50%      { transform: scaleX(0.55); opacity:0.08; }
-        }
-      `}</style>
-      {/* Orb above text */}
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:12}}>
-        <div style={{width:52,height:52,borderRadius:"50%",background:"radial-gradient(circle at 35% 35%,#5dcaa5,#085041)",animation:"ll-bounce 1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite",boxShadow:"0 0 32px rgba(93,202,165,0.2)"}}/>
-        <div style={{width:32,height:5,borderRadius:"50%",background:"rgba(93,202,165,0.12)",marginTop:6,animation:"ll-bounce-shadow 1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite"}}/>
-      </div>
-      <div className="ll-fade" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:36,letterSpacing:"-1px",color:"#f4f4f1",lineHeight:1,marginBottom:6,textAlign:"center"}}>
-        your <em style={{fontStyle:"italic",color:"#5dcaa5"}}>money</em>, told plainly.
-      </div>
-      <div className="ll-fade2" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:"2px",textTransform:"uppercase",color:"#4a5161",marginBottom:28}}>
-        ledgr finance
-      </div>
-      <div style={{width:120,height:1,background:"#161c26",borderRadius:1,overflow:"hidden",position:"relative"}}>
-        <div className="ll-bar" style={{position:"absolute",inset:0,width:40,background:"#5dcaa5",borderRadius:1}}/>
-      </div>
-      <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#2e3340",marginTop:16,letterSpacing:"0.5px"}}>
-        loading your data…
-      </div>
-    </div>
-  );
-
-  const _trialUser = api.getStoredUser();
-  const trialDaysLeft = (_trialUser && _trialUser.role !== "owner" && _trialUser.role !== "free" && _trialUser.subscription_status === "trialing")
-    ? Math.max(0, Math.ceil((_trialUser.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24)))
-    : null;
-
-  // Mobile shell wrapper
-  const MobileWrap = ({ children }) => isMobile ? (
-    <div style={{display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden",background:"var(--bg-0,#07090d)"}}>
-      <div style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}}>{children}</div>
-      <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
-    </div>
-  ) : <>{children}</>;
-
-  // Full-screen views — bypass app shell entirely
-  if (view === "dashboard") return <MobileWrap><LedgrBriefing
-      accounts={accounts}
-      categories={categories}
-      monthTxns={monthTxns}
-      recurringItems={recurringItems}
-      totalSpent={totalSpent}
-      totalIncome={totalIncome}
-      totalBudget={totalBudget}
-      goals={goals}
-      today={today}
-      fmt={fmt}
-      navigate={navigate}
-      isMobile={isMobile}
-      hasApiKey={aiChat.hasApiKey}
-      apiBase={(import.meta.env.VITE_API_URL || "https://ledgr-production-9e35.up.railway.app")}
-      authHeaders={() => ({ "Authorization": `Bearer ${api.getToken()}`, "Content-Type": "application/json" })}
-      doSync={doSync}
-      syncing={syncing}
-      notifs={visibleNotifs}
-      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
-      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
-      userName={currentUser?.name?.split(" ")[0] || null}
-      calendarTxnsByDay={calendarTxnsByDay}
-    /></MobileWrap>;
-
-  if (view === "transactions") return <MobileWrap><>
-      <LedgrTransactions
+  /* ── Transactions (Lumen) — complete prop set ──── */
+  const TransactionsPage = (
+    <LedgrTransactions
       transactions={transactions}
       filteredTxns={filteredTxns}
       categories={categories}
@@ -1638,292 +1246,318 @@ function AppInner({ isDemo = false }) {
       setFilterReview={setFilterReview}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
-      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
+      onFilterReview={() => { setFilterReview(true); navigate('transactions'); }}
     />
-    </></MobileWrap>;
+  );
 
-  if (view === "accounts") return <MobileWrap><>
-      <LedgrAccounts
+  /* ─── User + plan info ──────────────────────────── */
+  const currentUser      = api.getStoredUser();
+  const PREMIUM_PRICE_ID = import.meta.env.VITE_PREMIUM_PRICE_ID || '';
+  const FAMILY_PRICE_ID  = import.meta.env.VITE_FAMILY_PRICE_ID  || '';
+  const isPremium   = currentUser?.role === 'owner' || (currentUser?.isPremium === true) || (PREMIUM_PRICE_ID && currentUser?.stripe_price_id === PREMIUM_PRICE_ID);
+  const isFamilyPlan = currentUser?.role === 'owner' || (FAMILY_PRICE_ID && currentUser?.stripe_price_id === FAMILY_PRICE_ID);
+  const _avatarColors = ['#00d4ff','#00e676','#a78bfa','#f97316','#ec4899','#fbbf24','#14b8a6'];
+  const avatarColor   = _avatarColors[(currentUser?.email || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % _avatarColors.length];
+  const avatarLetter  = (currentUser?.name || currentUser?.email || '?')[0].toUpperCase();
+
+  /* ── Dashboard (Lumen) ─────────────────────────── */
+  const DashboardPage = (
+    <LedgrBriefing
       accounts={accounts}
-      plaidItems={plaidItems}
-      staleItemIds={staleItemIds}
-      spentByAcct={spentByAcct}
-      monthTxns={monthTxns}
-      openAddAcct={openAddAcct}
-      openEditAcct={openEditAcct}
-      deleteAcct={deleteAcct}
-      disconnectItem={disconnectItem}
-      doSync={doSync}
-      syncing={syncing}
-      reconnectingItemId={reconnectingItemId}
-      setReconnectingItemId={setReconnectingItemId}
-      handlePlaidSuccess={handlePlaidSuccess}
-      PlaidButton={PlaidButton}
-      fmt={fmt}
-      today={today}
-      isMobile={isMobile}
-      navigate={navigate}
-    />
-    </></MobileWrap>;
-
-  if (view === "budgets") return <MobileWrap><>
-      <LedgrBudgets
       categories={categories}
-      sortedCategories={sortedCategories}
-      spentByCat={spentByCat}
       monthTxns={monthTxns}
-      catMap={catMap}
-      selectedMonth={selectedMonth}
-      monthLabel={monthLabel}
+      recurringItems={recurringItems}
       totalSpent={totalSpent}
+      totalIncome={totalIncome}
       totalBudget={totalBudget}
+      goals={goals}
       today={today}
       fmt={fmt}
-      isMobile={isMobile}
       navigate={navigate}
-      openAddCat={openAddCat}
-      openEditCat={openEditCat}
-      deleteCat={deleteCat}
-      toggleCatComplete={toggleCatComplete}
-      updateTxnCat={updateTxnCat}
-      editingLimitId={editingLimitId}
-      setEditingLimitId={setEditingLimitId}
-      editingLimitVal={editingLimitVal}
-      setEditingLimitVal={setEditingLimitVal}
-      saveLimit={saveLimit}
-      startEditLimit={startEditLimit}
-      limitSuggestions={limitSuggestions}
-      setLimitSuggestions={setLimitSuggestions}
-      suggestingLimits={suggestingLimits}
-      runSuggestLimits={runSuggestLimits}
+      isMobile={isMobile}
       hasApiKey={aiChat.hasApiKey}
-      showToast={showToast}
+      apiBase={(import.meta.env.VITE_API_URL || 'https://ledgr-production-9e35.up.railway.app')}
+      authHeaders={() => ({ 'Authorization': `Bearer ${api.getToken()}`, 'Content-Type': 'application/json' })}
       doSync={doSync}
       syncing={syncing}
       notifs={visibleNotifs}
       onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
-      onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
+      onFilterReview={() => { setFilterReview(true); navigate('transactions'); }}
+      userName={currentUser?.name?.split(' ')[0] || null}
+      calendarTxnsByDay={calendarTxnsByDay}
     />
-    </></MobileWrap>;
+  );
 
-  if (view === "calendar") return <MobileWrap><>
-      <LedgrCalendar
-        accounts={accounts}
-        categories={categories}
-        calendarMonth={calendarMonth}
-        calendarTxnsByDay={calendarTxnsByDay}
-        recurringItems={recurringItems}
-        transactions={transactions}
-        monthTxns={monthTxns}
-        catMap={catMap}
-        acctMap={acctMap}
-        prevCalMonth={prevCalMonth}
-        nextCalMonth={nextCalMonth}
-        openNewRecurringItem={openNewRecurringItem}
-        linkTxnToRecurringItem={linkTxnToRecurringItem}
-        unlinkTxnFromRecurringItem={unlinkTxnFromRecurringItem}
-        deleteRecurringItem={deleteRecurringItem}
-        saveRecurringItemForm={saveRecurringItemForm}
-        searchTxnsForRI={searchTxnsForRI}
-        riForm={riForm}
-        setRiForm={setRiForm}
-        riSearch={riSearch}
-        setRiSearch={setRiSearch}
-        riSearchResults={riSearchResults}
-        riSearchLoading={riSearchLoading}
-        editingRecurringItem={editingRecurringItem}
-        setEditingRecurringItem={setEditingRecurringItem}
-        fmt={fmt}
-        today={today}
-        isMobile={isMobile}
-        navigate={navigate}
-        doSync={doSync}
-        syncing={syncing}
-        notifs={visibleNotifs}
-        onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
-        onFilterReview={() => { setFilterReview(true); navigate("transactions"); }}
-      />
-    </></MobileWrap>;
+  /* ── Settings (Lumen) ──────────────────────────── */
+  const SettingsPage = (
+    <LedgrSettings
+      theme={theme}
+      onSaveTheme={t => {
+        setTheme(t);
+        applyTheme(t);
+        const { bgImage, ...themeForServer } = t;
+        scheduleSaveRef.current?.({ theme: themeForServer });
+        try { localStorage.setItem('ledgr_theme', JSON.stringify(t)); } catch {}
+      }}
+      transactions={transactions}
+      accounts={accounts}
+      categories={categories}
+      catMap={catMap}
+      acctMap={acctMap}
+      avatarLetter={avatarLetter}
+      showToast={showToast}
+      setTransactions={setTransactions}
+      setAccounts={setAccounts}
+      setCategories={setCategories}
+      setRules={setRules}
+      setPlaidItems={setPlaidItems}
+      plaidItems={plaidItems}
+      access={access}
+      userProfile={userProfile}
+      onSaveProfile={p => {
+        setUserProfile(p);
+        scheduleSaveRef.current?.({ userProfile: p });
+      }}
+      deletedTransactions={deletedTransactions}
+      setDeletedTransactions={setDeletedTransactions}
+      showTrash={showTrash}
+      setShowTrash={setShowTrash}
+      scheduleSaveRef={scheduleSaveRef}
+      isFamilyPlan={isFamilyPlan}
+      settingsTab={settingsTab}
+      setSettingsTab={setSettingsTab}
+      hasApiKey={aiChat.hasApiKey}
+      saveApiKey={aiChat.saveApiKey}
+      navigate={navigate}
+      notifs={visibleNotifs}
+      onDismissNotif={id => setDismissedNotifs(prev => new Set([...prev, id]))}
+      onFilterReview={() => { setFilterReview(true); navigate('transactions'); }}
+    />
+  );
 
-  return (
-    <div style={{...S.shell, paddingTop: isDemo ? 45 : 0, ...(theme.bgImage ? {
-      background: "transparent",
-      backgroundImage: `url(${theme.bgImage})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundAttachment: "fixed",
-      backgroundRepeat: "no-repeat",
-    } : {})}}>
-    {/* --- Demo mode banner --- */}
-    {isDemo && (
-      <div style={{
-        position:"fixed", top:0, left:0, right:0, zIndex:9999,
-        background:"linear-gradient(90deg,rgba(0,212,255,0.12),rgba(0,212,255,0.07))",
-        borderBottom:"2px solid var(--warn)",
-        padding:"0 20px", height:45,
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        backdropFilter:"blur(12px)",
-      }}>
-        <div style={{display:"flex", alignItems:"center", gap:10}}>
-          <span style={{background:"var(--warn)", color:"#000", fontSize:10, fontWeight:800,
-            padding:"2px 8px", borderRadius:99, letterSpacing:"1px", textTransform:"uppercase", flexShrink:0}}>
-            Demo
-          </span>
-          <span style={{fontSize:13, color:"var(--ink-1)"}}>
-            Exploring with sample data — nothing is saved
-          </span>
-        </div>
-        <a href="https://ledgr-eight-zeta.vercel.app"
-          style={{background:"var(--warn)", color:"#000", padding:"7px 18px",
-            borderRadius:"var(--r-md)", fontSize:13, fontWeight:700,
-            textDecoration:"none", whiteSpace:"nowrap", flexShrink:0}}>
-          Get Started — It's Free ←
-        </a>
-      </div>
-    )}
-    <InstallPrompt />
-
-    {/* System message modal */}
-    {systemMsgOpen && systemMsg && (
-      <div className="ledgr-overlay-anim" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(6px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-        <div className="ledgr-modal-anim lumen-card" style={{...S.modal,maxWidth:460,width:"100%",display:"flex",flexDirection:"column",gap:16}}>
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:20}}>📢</span>
-              <div style={{fontFamily:"var(--font-display)",fontSize:15,fontWeight:700,color:"var(--ink-0)"}}>Message from Ledgr</div>
-            </div>
-            <button onClick={()=>setSystemMsgOpen(false)}
-              style={{background:"none",border:"none",cursor:"pointer",color:"var(--ink-2)",fontSize:18,lineHeight:1,padding:"2px 4px",flexShrink:0}}>✕</button>
-          </div>
-          <div style={{fontSize:14,color:"var(--ink-1)",lineHeight:1.7,padding:"4px 0"}}>
-            {systemMsg.text}
-          </div>
-          <div style={{display:"flex",gap:10,justifyContent:"flex-end",paddingTop:4}}>
-            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>{
-              // Remember dismissal so it doesn't show again
-              try {
-                const key = "ledgr_dismissed_msgs";
-                const dismissed = JSON.parse(localStorage.getItem(key)||"[]");
-                dismissed.push(systemMsg.id);
-                localStorage.setItem(key, JSON.stringify(dismissed));
-              } catch {}
-              setSystemMsgOpen(false);
-            }}>Don't show again</button>
-            <button style={S.btn("primary",true)} onClick={()=>setSystemMsgOpen(false)}>Got it</button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Trial countdown banner */}
-    {trialDaysLeft !== null && (
-      <div style={{
-        flexShrink:0, background: trialDaysLeft <= 1 ? "var(--debt-bg)" : "#fbbf2415",
-        borderBottom:`1px solid ${trialDaysLeft <= 1 ? "#ff4d6d44" : "#fbbf2433"}`,
-        padding:"8px 16px", display:"flex", alignItems:"center",
-        justifyContent:"space-between", gap:10,
-      }}>
-        <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color: trialDaysLeft <= 1 ? "var(--debt)" : "var(--warn)"}}>
-          <span style={{fontSize:14}}>{trialDaysLeft <= 1 ? "⚠⚠" : "·"}</span>
-          <span style={{fontWeight:600}}>
-            {trialDaysLeft === 0
-              ? "Your trial expires today"
-              : trialDaysLeft === 1
-              ? "Your trial expires tomorrow"
-              : `${trialDaysLeft} days left in your free trial`}
-          </span>
-        </div>
-        <button
-          onClick={() => { setSettingsTab("subscription"); navigate("settings"); }}
-          style={{
-            background: trialDaysLeft <= 1 ? "var(--debt)" : "var(--warn)",
-            color:"#000", border:"none", borderRadius:"var(--r-md)",
-            padding:"5px 12px", fontSize:12, fontWeight:700, cursor:"pointer",
-            flexShrink:0, whiteSpace:"nowrap",
-          }}>
-          View plans
-        </button>
-      </div>
-    )}
-    {isMobile ? (
-      /* ── MOBILE — bottom nav ── */
-      <>
-        <div ref={contentRef} style={{flex:1,overflowY:"auto",overscrollBehavior:"none"}} className="lumen-content">
-          {view === "dashboard"
-            ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in">{VIEWS[view]}</div>
-            : view === "calendar" || view === "rules"
-            ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in">{VIEWS[view]}</div>
-            : <div key={navKey} className="ledgr-view-enter ledgr-slide-in"><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
+  /* ── Analytics (Lumen) ─────────────────────────── */
+  const AnalyticsPage = (
+    <LedgrAnalytics
+      transactions={allTransactions ?? transactions}
+      categories={categories}
+      accounts={accounts}
+      catMap={catMap}
+      isMobile={isMobile}
+      hasApiKey={aiChat.hasApiKey}
+      userProfile={userProfile}
+      onSaveProfile={p => {
+        setUserProfile(p);
+        scheduleSaveRef.current?.({ userProfile: p });
+      }}
+      aiInsights={analyticsInsights}
+      onSetAiInsights={insights => {
+        setAnalyticsInsights(insights);
+        scheduleSaveRef.current?.({ analyticsInsights: insights });
+      }}
+      todos={insightsTodos}
+      onTodosChange={todos => {
+        setInsightsTodos(todos);
+        scheduleSaveRef.current?.({ insightsTodos: todos });
+      }}
+      goals={goals}
+      onSaveGoal={saveGoal}
+      onDeleteGoal={deleteGoal}
+      onMarkRecurring={ids => {
+        const txns = transactions.filter(t => ids.includes(t.id));
+        const dayCounts = {};
+        txns.forEach(t => {
+          if (t.date) {
+            const d = parseInt(t.date.split('-')[2]);
+            dayCounts[d] = (dayCounts[d] || 0) + 1;
           }
-        </div>
+        });
+        const recurringDay = Object.keys(dayCounts).length > 0
+          ? parseInt(Object.entries(dayCounts).sort((a,b) => b[1]-a[1])[0][0])
+          : null;
+        const dates = txns.map(t => t.date).filter(Boolean).sort();
+        const recurringStart = dates[0] || null;
+        setTransactions(prev => prev.map(t => ids.includes(t.id) ? {
+          ...t, recurring: true,
+          recurringDay: t.recurringDay || recurringDay,
+          recurringFreq: t.recurringFreq || 'monthly',
+          recurringStart: t.recurringStart || recurringStart,
+        } : t));
+        ids.forEach(id => {
+          const t = transactions.find(tx => tx.id === id);
+          api.updateTransaction(id, {
+            recurring: true,
+            recurringDay: t?.recurringDay || recurringDay,
+            recurringFreq: t?.recurringFreq || 'monthly',
+            recurringStart: t?.recurringStart || recurringStart,
+          }).catch(console.error);
+        });
+      }}
+      defaultTab={analyticsTab}
+      navigate={navigate}
+    />
+  );
 
-        {/* More sheet overlay */}
-        {moreOpen && <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,bottom:82,zIndex:39}}/>}
+  /* ── Admin + Dani (owner-only, will be wired soon) */
+  const AdminPageEl = currentUser?.role === 'owner' ? <AdminPanel /> : null;
+  const DaniPageEl  = currentUser?.role === 'owner' ? (
+    <DaniPage
+      accounts={accounts}
+      transactions={transactions}
+      recurringTxns={recurringTxns}
+      recurringItems={recurringItems}
+      daniData={daniData}
+      isMobile={isMobile}
+      onSave={(patch) => {
+        if (patch.dani) {
+          setDaniData(patch.dani);
+          scheduleSaveRef.current?.({ dani: patch.dani });
+        }
+      }}
+    />
+  ) : null;
 
-        {/* More sheet */}
-        <div className={`mobile-more-sheet${moreOpen?" open":""}`}>
-          <div className="mobile-sheet-handle"/>
-          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("settings"); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            Profile & Settings
-          </button>
-          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("accounts"); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Accounts
-          </button>
-          <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("rules"); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
-            Rules
-          </button>
-          {currentUser?.role === "owner" && <>
-            <div className="mobile-sheet-divider"/>
-            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("admin"); }} style={{color:"var(--warn)"}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              Admin
-            </button>
-            <button className="mobile-sheet-item" onClick={()=>{ setMoreOpen(false); navigate("dani"); }} style={{color:"#f9a8d4"}}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              Dani
-            </button>
-          </>}
-        </div>
+  /* ── LUMEN VIEWS ──────────────────────────────────
+     Single source of truth for all Lumen page routing.
+     Paywall gate applies to non-dashboard pages for free-tier users.
+  ─────────────────────────────────────────────────── */
+  const paywallView = <Paywall />;
+  const LUMEN_VIEWS = access === 'full'
+    ? {
+        dashboard:    DashboardPage,
+        transactions: TransactionsPage,
+        budgets:      BudgetsPage,
+        accounts:     AccountsPage,
+        calendar:     CalendarPage,
+        analytics:    AnalyticsPage,
+        settings:     SettingsPage,
+        admin:        AdminPageEl,
+        dani:         DaniPageEl,
+      }
+    : {
+        dashboard:    DashboardPage,
+        transactions: paywallView,
+        budgets:      paywallView,
+        accounts:     paywallView,
+        calendar:     paywallView,
+        analytics:    paywallView,
+        settings:     SettingsPage,
+        admin:        AdminPageEl,
+        dani:         DaniPageEl,
+      };
 
-        {/* Bottom nav */}
-        <BottomNav view={view} navigate={navigate} moreOpen={moreOpen} setMoreOpen={setMoreOpen} currentUser={currentUser}/>
-      </>
-    ) : (
-      /* ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓
-         DESKTOP — persistent sidebar
-         ✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓✓ */
-      <>
-        {/* Desktop body */}
-        <div style={{flex:1,overflowY:"auto",position:"relative",background:"var(--bg-0)"}} className="lumen-content" ref={contentRef}>
-          <div style={{display:"flex",maxWidth:1080,margin:"0 auto",minHeight:"100%"}}>
-          {/* Rail */}
-          <aside style={{
-            width:72,flexShrink:0,display:"flex",flexDirection:"column",
-            position:"sticky",top:0,height:"100vh",overflow:"visible",
-            alignSelf:"flex-start",
-          }}>
-            <SidebarContent onNav={navigate} view={view} syncing={syncing} doSync={doSync} showToast={showToast} avatarColor={avatarColor} avatarLetter={avatarLetter} />
-          </aside>
-          {/* Content */}
-          <div style={{flex:1,minWidth:0,position:"relative"}}>
-            
-            
-            {view === "dashboard"
-              ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : view === "calendar" || view === "rules"
-              ? <div key={navKey} className="ledgr-view-enter ledgr-slide-in" style={{position:"relative",zIndex:1}}>{VIEWS[view]}</div>
-              : <div key={navKey} className="ledgr-view-enter ledgr-slide-in" style={{position:"relative",zIndex:1}}><div style={{width:"100%",maxWidth:1080}}>{VIEWS[view]}</div></div>
-            }
+  /* ── Loading screen ───────────────────────────────
+     Shown while useAppData fetches the initial dataset.
+  ─────────────────────────────────────────────────── */
+  if (loading) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#07090d',flexDirection:'column'}}>
+      <style>{`
+        @keyframes ll-bounce {
+          0%,100% { transform: translateY(0) scale(1); }
+          50%      { transform: translateY(-24px) scale(1.06); }
+        }
+        @keyframes ll-bounce-shadow {
+          0%,100% { transform: scaleX(1); opacity:0.25; }
+          50%      { transform: scaleX(0.55); opacity:0.08; }
+        }
+      `}</style>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:12}}>
+        <div style={{width:52,height:52,borderRadius:'50%',background:'radial-gradient(circle at 35% 35%,#5dcaa5,#085041)',animation:'ll-bounce 1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite',boxShadow:'0 0 32px rgba(93,202,165,0.2)'}}/>
+        <div style={{width:32,height:5,borderRadius:'50%',background:'rgba(93,202,165,0.12)',marginTop:6,animation:'ll-bounce-shadow 1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite'}}/>
+      </div>
+      <div className="ll-fade" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:36,letterSpacing:'-1px',color:'#f4f4f1',lineHeight:1,marginBottom:6,textAlign:'center'}}>
+        your <em style={{fontStyle:'italic',color:'#5dcaa5'}}>money</em>, told plainly.
+      </div>
+      <div className="ll-fade2" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,letterSpacing:'2px',textTransform:'uppercase',color:'#4a5161',marginBottom:28}}>
+        lumen finance
+      </div>
+      <div style={{width:120,height:1,background:'#161c26',borderRadius:1,overflow:'hidden',position:'relative'}}>
+        <div className="ll-bar" style={{position:'absolute',inset:0,width:40,background:'#5dcaa5',borderRadius:1}}/>
+      </div>
+      <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:'#2e3340',marginTop:16,letterSpacing:'0.5px'}}>
+        loading your data…
+      </div>
+    </div>
+  );
+
+  /* ── Trial days remaining ─────────────────────── */
+  const _trialUser = api.getStoredUser();
+  const trialDaysLeft = (
+    _trialUser &&
+    _trialUser.role !== 'owner' &&
+    _trialUser.role !== 'free' &&
+    _trialUser.subscription_status === 'trialing'
+  )
+    ? Math.max(0, Math.ceil((_trialUser.trial_ends_at - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+
+  /* ── Root render ──────────────────────────────────
+     LumenShell handles the persistent layout.
+     Modals, toasts, and floating elements live here
+     outside the shell so they don't affect layout.
+  ─────────────────────────────────────────────────── */
+  return (
+    <div style={{
+      ...S.shell,
+      ...(theme.bgImage ? {
+        background: 'transparent',
+        backgroundImage: `url(${theme.bgImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat',
+      } : {}),
+    }}>
+      <InstallPrompt />
+
+      <LumenShell
+        view={view}
+        views={LUMEN_VIEWS}
+        navigate={navigate}
+        isMobile={isMobile}
+        isDemo={isDemo}
+        trialDaysLeft={trialDaysLeft}
+        onUpgrade={() => { setSettingsTab('subscription'); navigate('settings'); }}
+        syncing={syncing}
+        doSync={doSync}
+        showToast={showToast}
+        avatarColor={avatarColor}
+        avatarLetter={avatarLetter}
+        moreOpen={moreOpen}
+        setMoreOpen={setMoreOpen}
+        currentUser={currentUser}
+        contentRef={contentRef}
+        navKey={navKey}
+      />
+
+      {/* ── System message modal ───────────────── */}
+      {systemMsgOpen && systemMsg && (
+        <div className="ledgr-overlay-anim" style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div className="ledgr-modal-anim lumen-card" style={{...S.modal,maxWidth:460,width:'100%',display:'flex',flexDirection:'column',gap:16}}>
+            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <span style={{fontSize:20}}>📢</span>
+                <div style={{fontFamily:'var(--font-display)',fontSize:15,fontWeight:700,color:'var(--ink-0)'}}>Message from Lumen</div>
+              </div>
+              <button onClick={()=>setSystemMsgOpen(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-2)',fontSize:18,lineHeight:1,padding:'2px 4px',flexShrink:0}}>✕</button>
+            </div>
+            <div style={{fontSize:14,color:'var(--ink-1)',lineHeight:1.7,padding:'4px 0'}}>{systemMsg.text}</div>
+            <div style={{display:'flex',gap:10,justifyContent:'flex-end',paddingTop:4}}>
+              <button style={S.btn('ghost',true)} className="ledgr-btn" onClick={()=>{
+                try {
+                  const key = 'ledgr_dismissed_msgs';
+                  const dismissed = JSON.parse(localStorage.getItem(key)||'[]');
+                  dismissed.push(systemMsg.id);
+                  localStorage.setItem(key, JSON.stringify(dismissed));
+                } catch {}
+                setSystemMsgOpen(false);
+              }}>Don't show again</button>
+              <button style={S.btn('primary',true)} onClick={()=>setSystemMsgOpen(false)}>Got it</button>
+            </div>
           </div>
-          </div>{/* /max-width wrapper */}
         </div>
-      </>
-    )}
+      )}
 
-      {/* -- Modals -- */}
+      {/* ── All modals ────────────────────────────── */}
       <AppModals
         drillCat={drillCat} setDrillCat={setDrillCat} catTxns={catTxns} spentByCat={spentByCat}
         budgetBarsAnimated={budgetBarsAnimated} view={view} isMobile={isMobile}
@@ -1947,38 +1581,35 @@ function AppInner({ isDemo = false }) {
         saveRecurringItemForm={saveRecurringItemForm} searchTxnsForRI={searchTxnsForRI}
       />
 
-      {/* Category suggestion confirmation modal */}
+      {/* ── Category suggestion modal ──────────── */}
       {catSuggestions && (
-        <div style={{position:"fixed",inset:0,background:"#0009",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}
+        <div style={{position:'fixed',inset:0,background:'#0009',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}
           onClick={e=>{ if(e.target===e.currentTarget) setCatSuggestions(null); }}>
-          <div style={{background:"var(--bg-2)",border:"none",borderRadius:"var(--r-lg)",width:"100%",maxWidth:580,maxHeight:"85vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-            <div style={{padding:"20px 20px 14px",borderBottom:"1px solid var(--line)"}}>
-              <div style={{fontSize:16,fontWeight:700,color:"var(--ink-0)",marginBottom:4}}>✦ Suggested Categories</div>
-              <div style={{fontSize:12,color:"var(--ink-2)"}}>AI analyzed your transactions and suggested these categories. Set a monthly budget limit for each, then confirm to create them.</div>
+          <div style={{background:'var(--bg-2)',borderRadius:'var(--r-lg)',width:'100%',maxWidth:580,maxHeight:'85vh',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+            <div style={{padding:'20px 20px 14px',borderBottom:'1px solid var(--line)'}}>
+              <div style={{fontSize:16,fontWeight:700,color:'var(--ink-0)',marginBottom:4}}>✦ Suggested Categories</div>
+              <div style={{fontSize:12,color:'var(--ink-2)'}}>AI analyzed your transactions and suggested these categories. Set a monthly budget limit for each, then confirm to create them.</div>
             </div>
-            <div style={{overflowY:"auto",padding:"14px 20px",flex:1,display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{overflowY:'auto',padding:'14px 20px',flex:1,display:'flex',flexDirection:'column',gap:8}}>
               {catSuggestions.map((s, i) => (
-                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"var(--bg-1)",borderRadius:"var(--r-md)",border:"none",borderLeft:`3px solid ${s.color||"var(--warn)"}`}}>
+                <div key={i} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg-1)',borderRadius:'var(--r-md)',borderLeft:`3px solid ${s.color||'var(--warn)'}`}}>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:600,color:"var(--ink-0)"}}>{s.name}</div>
-                    <div style={{fontSize:11,color:"var(--ink-2)",marginTop:1}}>{(s.transactions||[]).length} transaction{(s.transactions||[]).length!==1?"s":""}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:'var(--ink-0)'}}>{s.name}</div>
+                    <div style={{fontSize:11,color:'var(--ink-2)',marginTop:1}}>{(s.transactions||[]).length} transaction{(s.transactions||[]).length!==1?'s':''}</div>
                   </div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                    <span style={{fontSize:11,color:"var(--ink-2)"}}>Limit $</span>
-                    <input
-                      type="number" min="0" step="10"
-                      value={s.limit || ""}
+                  <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+                    <span style={{fontSize:11,color:'var(--ink-2)'}}>Limit $</span>
+                    <input type="number" min="0" step="10" value={s.limit||''} placeholder="0"
                       onChange={e => setCatSuggestions(prev => prev.map((x,j) => j===i ? {...x,limit:e.target.value} : x))}
-                      style={{...S.input,width:80,padding:"5px 8px",fontSize:13,textAlign:"right"}}
-                      placeholder="0"
+                      style={{...S.input,width:80,padding:'5px 8px',fontSize:13,textAlign:'right'}}
                     />
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{padding:"14px 20px",borderTop:"1px solid var(--line)",display:"flex",gap:8,justifyContent:"flex-end"}}>
-              <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setCatSuggestions(null)}>Cancel</button>
-              <button style={S.btn("primary",true)} onClick={()=>confirmCatSuggestions(catSuggestions)}>
+            <div style={{padding:'14px 20px',borderTop:'1px solid var(--line)',display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button style={S.btn('ghost',true)} className="ledgr-btn" onClick={()=>setCatSuggestions(null)}>Cancel</button>
+              <button style={S.btn('primary',true)} onClick={()=>confirmCatSuggestions(catSuggestions)}>
                 Create {catSuggestions.length} Categories
               </button>
             </div>
@@ -1986,170 +1617,169 @@ function AppInner({ isDemo = false }) {
         </div>
       )}
 
-      {rulePrompt&&(
-        <div className="ledgr-rule-prompt" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,maxWidth:420,width:"90vw",borderRadius:12,overflow:"hidden",boxShadow:"0 12px 40px #00000090",display:"flex"}}>
-          <div style={{width:4,background:"var(--warn)",flexShrink:0}}/>
-          <div style={{flex:1,background:"#1e1a15",padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+      {/* ── Rule save prompt ──────────────────────── */}
+      {rulePrompt && (
+        <div className="ledgr-rule-prompt" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:200,maxWidth:420,width:'90vw',borderRadius:12,overflow:'hidden',boxShadow:'0 12px 40px #00000090',display:'flex'}}>
+          <div style={{width:4,background:'var(--warn)',flexShrink:0}}/>
+          <div style={{flex:1,background:'#1e1a15',padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
             <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:600,color:"var(--ink-0)",marginBottom:2}}>Save as a rule?</div>
-              <div style={{fontSize:12,color:"var(--ink-1)"}}>&quot;{rulePrompt.merchant}&quot; ← <strong style={{color:"var(--warn)"}}>{catMap[rulePrompt.categoryId]?.name}</strong></div>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--ink-0)',marginBottom:2}}>Save as a rule?</div>
+              <div style={{fontSize:12,color:'var(--ink-1)'}}>&quot;{rulePrompt.merchant}&quot; ← <strong style={{color:'var(--warn)'}}>{catMap[rulePrompt.categoryId]?.name}</strong></div>
             </div>
-            <button style={S.btn("primary",true)} onClick={confirmSaveRule}>Save Rule</button>
-            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setRulePrompt(null)}>✕</button>
+            <button style={S.btn('primary',true)} onClick={confirmSaveRule}>Save Rule</button>
+            <button style={S.btn('ghost',true)} className="ledgr-btn" onClick={()=>setRulePrompt(null)}>✕</button>
           </div>
         </div>
       )}
 
-      {typeRulePrompt&&(
-        <div className="ledgr-rule-prompt" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:200,maxWidth:440,width:"90vw",borderRadius:12,overflow:"hidden",boxShadow:"0 12px 40px #00000090",display:"flex"}}>
-          <div style={{width:4,background:"#fbbf24",flexShrink:0}}/>
-          <div style={{flex:1,background:"#1e1a15",padding:"14px 16px",display:"flex",alignItems:"center",gap:12}}>
+      {/* ── Type rule prompt ──────────────────────── */}
+      {typeRulePrompt && (
+        <div className="ledgr-rule-prompt" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:200,maxWidth:440,width:'90vw',borderRadius:12,overflow:'hidden',boxShadow:'0 12px 40px #00000090',display:'flex'}}>
+          <div style={{width:4,background:'#fbbf24',flexShrink:0}}/>
+          <div style={{flex:1,background:'#1e1a15',padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
             <div style={{flex:1}}>
-              <div style={{fontSize:13,fontWeight:600,color:"var(--ink-0)",marginBottom:2}}>Create a type rule?</div>
-              <div style={{fontSize:12,color:"var(--ink-1)"}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{color:"#fbbf24",textTransform:"capitalize"}}>{typeRulePrompt.type}</strong></div>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--ink-0)',marginBottom:2}}>Create a type rule?</div>
+              <div style={{fontSize:12,color:'var(--ink-1)'}}>Always mark &quot;{typeRulePrompt.merchant}&quot; as <strong style={{color:'#fbbf24',textTransform:'capitalize'}}>{typeRulePrompt.type}</strong></div>
             </div>
-            <button style={{...S.btn("primary",true),background:"#fbbf24",borderColor:"#fbbf24",color:"#000"}} onClick={confirmTypeRule}>Save Rule</button>
-            <button style={S.btn("ghost",true)} className="ledgr-btn" onClick={()=>setTypeRulePrompt(null)}>✕</button>
+            <button style={{...S.btn('primary',true),background:'#fbbf24',borderColor:'#fbbf24',color:'#000'}} onClick={confirmTypeRule}>Save Rule</button>
+            <button style={S.btn('ghost',true)} className="ledgr-btn" onClick={()=>setTypeRulePrompt(null)}>✕</button>
           </div>
         </div>
       )}
 
+      {/* ── Bulk selection bar ────────────────────── */}
       {selectedTxns.size > 0 && (
-        <div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:210,
-          background:"var(--bg-2)",border:"none",borderRadius:12,
-          padding:"12px 18px",boxShadow:"0 8px 32px #00000090",
-          display:"flex",alignItems:"center",gap:10,maxWidth:640,width:"92vw",flexWrap:"wrap"}}>
-          <span style={{fontSize:13,fontWeight:700,color:"var(--warn)",marginRight:4,flexShrink:0}}>
+        <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:210,
+          background:'var(--bg-2)',borderRadius:12,
+          padding:'12px 18px',boxShadow:'0 8px 32px #00000090',
+          display:'flex',alignItems:'center',gap:10,maxWidth:640,width:'92vw',flexWrap:'wrap'}}>
+          <span style={{fontSize:13,fontWeight:700,color:'var(--warn)',marginRight:4,flexShrink:0}}>
             {selectedTxns.size} selected
           </span>
-          {/* Category */}
-          <CustomSelect value="" onChange={v=>{ if(v) bulkSetCategory(v); }} options={[{value:"",label:"Set category…"},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:130}} compact/>
-          {/* Type */}
-          <CustomSelect value="" onChange={v=>{ if(v) bulkSetType(v); }} options={[{value:"",label:"Set type…"},{value:"expense",label:"Expense"},{value:"income",label:"Income"},{value:"transfer",label:"Transfer"},{value:"reimbursement",label:"Reimbursement"}]} style={{flex:1,minWidth:120}} compact/>
-          <CustomSelect value="" onChange={v=>{ if(v) bulkSetAccount(v==="__none__"?"":v); }} options={[{value:"",label:"Set account…"},{value:"__none__",label:"— Remove —"},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:130}} compact/>
-          <button style={{...S.btn("ghost",true),fontSize:12}} className="ledgr-btn" onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
-          <button style={{...S.btn("danger",true),fontSize:12}} onClick={bulkDelete}>Delete</button>
-          <button style={{...S.btn("ghost",true),fontSize:12,marginLeft:"auto"}} className="ledgr-btn" onClick={clearSelection}>✕</button>
+          <CustomSelect value="" onChange={v=>{ if(v) bulkSetCategory(v); }} options={[{value:'',label:'Set category…'},...[...categories].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>({value:c.id,label:c.name}))]} style={{flex:1,minWidth:130}} compact/>
+          <CustomSelect value="" onChange={v=>{ if(v) bulkSetType(v); }} options={[{value:'',label:'Set type…'},{value:'expense',label:'Expense'},{value:'income',label:'Income'},{value:'transfer',label:'Transfer'},{value:'reimbursement',label:'Reimbursement'}]} style={{flex:1,minWidth:120}} compact/>
+          <CustomSelect value="" onChange={v=>{ if(v) bulkSetAccount(v==='__none__'?'':v); }} options={[{value:'',label:'Set account…'},{value:'__none__',label:'— Remove —'},...[...accounts].sort((a,b)=>a.name.localeCompare(b.name)).map(a=>({value:a.id,label:a.name}))]} style={{flex:1,minWidth:130}} compact/>
+          <button style={{...S.btn('ghost',true),fontSize:12}} className="ledgr-btn" onClick={()=>bulkMarkReviewed(true)}>✓ Reviewed</button>
+          <button style={{...S.btn('danger',true),fontSize:12}} onClick={bulkDelete}>Delete</button>
+          <button style={{...S.btn('ghost',true),fontSize:12,marginLeft:'auto'}} className="ledgr-btn" onClick={clearSelection}>✕</button>
         </div>
       )}
 
-      {newTxnCount>0&&(
+      {/* ── New transactions synced toast ─────────── */}
+      {newTxnCount > 0 && (
         <div style={{
-          position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",
-          zIndex:300,background:"var(--warn)",color:"#000",
-          borderRadius:12,padding:"12px 20px",
-          boxShadow:"0 8px 32px #00000080",
-          display:"flex",alignItems:"center",gap:10,
-          maxWidth:400,width:"90vw",cursor:"pointer",
-        }} onClick={()=>{ setView("transactions"); setNewTxnCount(0); }}>
+          position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',
+          zIndex:300,background:'var(--warn)',color:'#000',
+          borderRadius:12,padding:'12px 20px',
+          boxShadow:'0 8px 32px #00000080',
+          display:'flex',alignItems:'center',gap:10,
+          maxWidth:400,width:'90vw',cursor:'pointer',
+        }} onClick={()=>{ navigate('transactions'); setNewTxnCount(0); }}>
           <span style={{fontSize:18}}>⇅</span>
           <div style={{flex:1}}>
-            <div style={{fontWeight:700,fontSize:14}}>
-              {newTxnCount} new transaction{newTxnCount!==1?"s":""} synced
-            </div>
+            <div style={{fontWeight:700,fontSize:14}}>{newTxnCount} new transaction{newTxnCount!==1?'s':''} synced</div>
             <div style={{fontSize:12,opacity:0.7}}>Tap to view</div>
           </div>
-          <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}}
-            style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#000"}}>✕</button>
+          <button onClick={e=>{e.stopPropagation();setNewTxnCount(0);}} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'#000'}}>✕</button>
         </div>
       )}
 
-
-
+      {/* ── Deleted transactions trash modal ──────── */}
       {showTrash && (
         <div style={S.overlay} className="ledgr-overlay-anim" onClick={()=>setShowTrash(false)}>
-          <div className="ledgr-modal-anim" style={{...S.modal, width:560, maxHeight:"82vh", display:"flex", flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, flexShrink:0}}>
+          <div className="ledgr-modal-anim" style={{...S.modal,width:560,maxHeight:'82vh',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexShrink:0}}>
               <div style={S.modalTitle}>Deleted Transactions</div>
-              <button onClick={()=>setShowTrash(false)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--ink-2)",fontSize:20,lineHeight:1}}>✕</button>
+              <button onClick={()=>setShowTrash(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-2)',fontSize:20,lineHeight:1}}>✕</button>
             </div>
             {deletedTransactions.length === 0 ? (
-              <div style={{flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--ink-2)", fontSize:13}}>No deleted transactions</div>
+              <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--ink-2)',fontSize:13}}>No deleted transactions</div>
             ) : (
               <>
-                <div style={{fontSize:11, color:"var(--ink-2)", marginBottom:12, flexShrink:0}}>{deletedTransactions.length} deleted transaction{deletedTransactions.length!==1?"s":""}</div>
-                <div style={{overflowY:"auto", flex:1, display:"flex", flexDirection:"column", gap:2}}>
+                <div style={{fontSize:11,color:'var(--ink-2)',marginBottom:12,flexShrink:0}}>{deletedTransactions.length} deleted transaction{deletedTransactions.length!==1?'s':''}</div>
+                <div style={{overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:2}}>
                   {deletedTransactions.map(t=>{
                     const cat = catMap[t.categoryId];
                     const acct = acctMap[t.accountId];
-                    const deletedDate = t.deletedAt ? new Date(t.deletedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "Unknown";
+                    const deletedDate = t.deletedAt ? new Date(t.deletedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'Unknown';
                     return (
-                      <div key={t.id} style={{display:"flex", alignItems:"center", gap:10, padding:"9px 10px", background:"var(--bg-1)", borderRadius:"var(--r-md)", flexShrink:0}}>
-                        <div style={{flex:1, minWidth:0}}>
-                          <div style={{fontSize:13, color:"var(--ink-0)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{t.name||t.merchant}</div>
-                          <div style={{fontSize:11, color:"var(--ink-2)", marginTop:2}}>
-                            {t.date} · {cat ? <span style={{color:cat.color}}>{cat.name}</span> : "Uncategorized"}
+                      <div key={t.id} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 10px',background:'var(--bg-1)',borderRadius:'var(--r-md)',flexShrink:0}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,color:'var(--ink-0)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.name||t.merchant}</div>
+                          <div style={{fontSize:11,color:'var(--ink-2)',marginTop:2}}>
+                            {t.date} · {cat ? <span style={{color:cat.color}}>{cat.name}</span> : 'Uncategorized'}
                             {acct && <span> · {acct.name}</span>}
-                            <span style={{marginLeft:6, opacity:0.6}}>deleted {deletedDate}</span>
+                            <span style={{marginLeft:6,opacity:0.6}}>deleted {deletedDate}</span>
                           </div>
                         </div>
-                        <span style={{fontFamily:"var(--font-mono)",fontSize:12,fontWeight:700,color:t.amount<0?"var(--debt)":"var(--safe)",flexShrink:0}}>
-                          {t.amount<0?"-":"+"}{fmt(Math.abs(t.amount))}
+                        <span style={{fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,color:t.amount<0?'var(--debt)':'var(--safe)',flexShrink:0}}>
+                          {t.amount<0?'-':'+'}{fmt(Math.abs(t.amount))}
                         </span>
-                        <button style={{...S.btn("ghost",true),fontSize:11,flexShrink:0}} className="ledgr-btn" onClick={()=>{
+                        <button style={{...S.btn('ghost',true),fontSize:11,flexShrink:0}} className="ledgr-btn" onClick={()=>{
                           const { deletedAt, ...restored } = t;
                           setTransactions(p=>[restored,...p]);
                           setDeletedTransactions(p=>{ const next=p.filter(x=>x.id!==t.id); scheduleSaveRef.current?.({ deletedTransactions: next }); return next; });
                           api.createTransaction(restored).catch(console.error);
-                          showToast("Transaction restored");
+                          showToast('Transaction restored');
                         }}>Restore</button>
                       </div>
                     );
                   })}
                 </div>
-                <div style={{marginTop:14, flexShrink:0, display:"flex", justifyContent:"flex-end", gap:8}}>
-                  <button style={{...S.btn("danger",true),fontSize:12}} onClick={()=>{
+                <div style={{marginTop:14,flexShrink:0,display:'flex',justifyContent:'flex-end',gap:8}}>
+                  <button style={{...S.btn('danger',true),fontSize:12}} onClick={()=>{
                     if(!window.confirm(`Permanently delete all ${deletedTransactions.length} transactions? This cannot be undone.`)) return;
                     setDeletedTransactions([]);
                     scheduleSaveRef.current?.({ deletedTransactions: [] });
                   }}>Empty Trash</button>
-                  <button style={S.btn("ghost")} className="ledgr-btn" onClick={()=>setShowTrash(false)}>Close</button>
+                  <button style={S.btn('ghost')} className="ledgr-btn" onClick={()=>setShowTrash(false)}>Close</button>
                 </div>
               </>
             )}
           </div>
         </div>
       )}
-      {/* Invite Accept Modal */}
+
+      {/* ── Invite accept modal ───────────────────── */}
       {showInviteModal && inviteToken && (
-        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div style={{background:"var(--bg-2)",borderRadius:16,padding:"24px",width:"100%",maxWidth:380,display:"flex",flexDirection:"column",gap:14}}>
-            <div style={{fontFamily:"var(--font-display)",fontSize:20,fontWeight:800,color:"var(--ink-0)"}}>ledgr.</div>
-            {inviteStatus==="loading" && <div style={{fontSize:13,color:"var(--ink-2)"}}>Checking invite…</div>}
-            {inviteStatus==="error"   && <div style={{fontSize:13,color:"var(--debt)"}}>This invite link is invalid or has expired.</div>}
-            {(inviteStatus==="ready"||inviteStatus==="accepting") && (<>
-              <div style={{background:"var(--bg-1)",borderRadius:10,padding:"12px 14px"}}>
-                <div style={{fontSize:13,fontWeight:600,color:"var(--ink-0)",marginBottom:4}}>You've been invited to a Ledgr household</div>
-                <div style={{fontSize:12,color:"var(--ink-2)"}}>Sign in or create an account to accept.</div>
+        <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:'var(--bg-2)',borderRadius:16,padding:'24px',width:'100%',maxWidth:380,display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:800,color:'var(--ink-0)'}}>lumen.</div>
+            {inviteStatus==='loading' && <div style={{fontSize:13,color:'var(--ink-2)'}}>Checking invite…</div>}
+            {inviteStatus==='error'   && <div style={{fontSize:13,color:'var(--debt)'}}>This invite link is invalid or has expired.</div>}
+            {(inviteStatus==='ready'||inviteStatus==='accepting') && (<>
+              <div style={{background:'var(--bg-1)',borderRadius:10,padding:'12px 14px'}}>
+                <div style={{fontSize:13,fontWeight:600,color:'var(--ink-0)',marginBottom:4}}>You've been invited to a Lumen household</div>
+                <div style={{fontSize:12,color:'var(--ink-2)'}}>Sign in or create an account to accept.</div>
               </div>
               <input style={S.input} placeholder="Email" type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}/>
-              <input style={S.input} placeholder="Password" type="password" value={invitePw} onChange={e=>setInvitePw(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&acceptInvite()}/>
-              {inviteError && <div style={{fontSize:12,color:"var(--debt)"}}>{inviteError}</div>}
-              <button style={{...S.btn("primary"),width:"100%"}} onClick={acceptInvite} disabled={inviteStatus==="accepting"}>
-                {inviteStatus==="accepting"?"Please wait…":inviteIsNew?"Create account & Accept":"Sign in & Accept"}
+              <input style={S.input} placeholder="Password" type="password" value={invitePw} onChange={e=>setInvitePw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&acceptInvite()}/>
+              {inviteError && <div style={{fontSize:12,color:'var(--debt)'}}>{inviteError}</div>}
+              <button style={{...S.btn('primary'),width:'100%'}} onClick={acceptInvite} disabled={inviteStatus==='accepting'}>
+                {inviteStatus==='accepting'?'Please wait…':inviteIsNew?'Create account & Accept':'Sign in & Accept'}
               </button>
-              <button style={{background:"none",border:"none",cursor:"pointer",color:"var(--ink-2)",fontSize:12,textAlign:"center"}}
-                onClick={()=>setInviteIsNew(p=>!p)}>
-                {inviteIsNew?"Already have an account? Sign in":"New to Ledgr? Create an account"}
+              <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--ink-2)',fontSize:12,textAlign:'center'}} onClick={()=>setInviteIsNew(p=>!p)}>
+                {inviteIsNew?'Already have an account? Sign in':'New to Lumen? Create an account'}
               </button>
             </>)}
           </div>
         </div>
       )}
+
       <Toast
-        msg={undoAction ? "" : toast}
+        msg={undoAction ? '' : toast}
         undoAction={undoAction}
         onUndo={() => { undoAction?.fn(); setUndoAction(null); clearTimeout(undoTimer.current); }}
         onDismiss={() => setUndoAction(null)}
         isMobile={isMobile}
       />
+
       {showOnboarding && (
         <OnboardingWizard
           onComplete={cats => {
             setCategories(cats);
             setShowOnboarding(false);
-            showToast("Budget categories created!");
+            showToast('Budget categories created!');
           }}
           onSkip={() => setShowOnboarding(false)}
         />

@@ -260,3 +260,98 @@ input, select, textarea, button { font-family: var(--font-ui); }
   background: rgba(255,255,255,0.06);
   margin: 6px 0;
 }
+
+/* ─── LumenShell: flatten Ledgr* page frames ─────────────────────
+   Each Ledgr* component was a standalone "fake browser window" with
+   its own chrome bar, card frame, and CSS grid that included a 64px
+   nav column. Inside LumenShell the shell provides navigation, so
+   we flatten the card frames and correct the grid column templates.
+   This is a CSS-only fix — no changes to JS/JSX needed.
+─────────────────────────────────────────────────────────────────── */
+
+/* 1. Strip outer wrapper padding and background */
+.lumen-content .lb-wrap,
+.lumen-content .lt-wrap,
+.lumen-content .la-wrap,
+.lumen-content .lc-wrap {
+  padding: 0 !important;
+  background: transparent !important;
+  min-height: unset !important;
+}
+
+/* 2. Flatten the card frame — was rendering as a modal-like card */
+.lumen-content .lb-frame,
+.lumen-content .lt-frame,
+.lumen-content .la-frame,
+.lumen-content .lc-frame {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  max-width: none !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+/* 3. Hide the fake browser chrome bars (3 dots + URL bar) */
+.lumen-content .lb-bar,
+.lumen-content .lt-bar,
+.lumen-content .la-bar,
+.lumen-content .lc-bar {
+  display: none !important;
+}
+
+/* 4. Fix CSS grid column layouts — remove the empty 64px nav slot
+   Each grid had [64px nav] [content...] but the nav DOM node is
+   gone (false && <PageNav>), so all content shifted into the wrong
+   columns. We remove the nav column from each grid here.        */
+
+/* LedgrBriefing + LedgrSettings: .lb-brief
+   Dashboard was: 64px 320px 1fr  →  now just 1fr (hide the agenda
+   sidebar since Calendar page covers that; Settings: same, 1fr)  */
+.lumen-content .lb-brief {
+  grid-template-columns: 1fr !important;
+}
+/* Hide the mini-calendar agenda — Calendar page handles this */
+.lumen-content .lb-agenda {
+  display: none !important;
+}
+
+/* LedgrBudgets: .lb-body was 64px 1fr → 1fr */
+.lumen-content .lb-body {
+  grid-template-columns: 1fr !important;
+}
+
+/* LedgrTransactions: .lt-body was 64px 1fr 320px → 1fr 320px */
+.lumen-content .lt-body {
+  grid-template-columns: 1fr 320px !important;
+}
+@media (max-width: 1100px) {
+  .lumen-content .lt-body {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* LedgrCalendar: .lc-body was 64px 320px 1fr 320px → 320px 1fr 320px
+   (lc-aside + main + lc-right; no own nav sidebar rendered)      */
+.lumen-content .lc-body {
+  grid-template-columns: 320px 1fr 320px !important;
+}
+@media (max-width: 1100px) {
+  .lumen-content .lc-body {
+    grid-template-columns: 240px 1fr 280px !important;
+  }
+}
+@media (max-width: 900px) {
+  .lumen-content .lc-body {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* LedgrAnalytics: has its own la-nav sidebar (not PageNav).
+   Hide it — LumenShell provides the nav — and collapse to 1fr.  */
+.lumen-content .la-nav {
+  display: none !important;
+}
+.lumen-content .la-body {
+  grid-template-columns: 1fr !important;
+}

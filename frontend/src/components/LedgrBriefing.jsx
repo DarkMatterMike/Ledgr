@@ -582,13 +582,13 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
           </div>
 
           {/* brief grid */}
-          <div className="lb-brief">
+          <div className="lb-brief" style={isMobile?{display:"block",width:"100%"}:{}}>
 
             {/* sidenav */}
             {!isMobile&&<PageNav activeId="dashboard" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview} fmt={fmt}/>}
 
             {/* agenda */}
-            <aside className="lb-agenda">
+            {!isMobile&&<aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
@@ -621,7 +621,7 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                   {recent.length===0&&<div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)",padding:"12px 0"}}>No transactions yet.</div>}
                 </>);
               })()}
-                        </aside>
+                        </aside>}
 
             {/* main */}
             <main className="lb-main">

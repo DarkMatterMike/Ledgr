@@ -507,10 +507,10 @@ export default function LedgrTransactions({
           </div>
 
           {/* 3-column body */}
-          <div className="lt-body">
+          <div className="lt-body" style={isMobile?{display:"block",width:"100%"}:{}}>
 
             {/* ── Col 1: Nav ── */}
-            {!isMobile&&<PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}
+            {!isMobile&&{!isMobile&&<PageNav activeId="transactions" navigate={navigate} notifs={notifs} onDismissNotif={onDismissNotif} onFilterReview={onFilterReview}/>}}
 
             {/* ── Col 2: Ledger list ── */}
             <div className="lt-main">
@@ -737,7 +737,7 @@ export default function LedgrTransactions({
             </div>
 
             {/* ── Col 3: Edit panel ── */}
-            <div className="lt-panel">
+            {!isMobile&&<div className="lt-panel">
               {!selectedTxn ? (
                 /* Empty state */
                 <div className="lt-panel-empty">

@@ -398,12 +398,18 @@ export default function LedgrBriefing({
   const displayPace   =daysLeft&&daysLeft>0?Math.round(displaySafe/daysLeft):null;
 
   // Alloc bar uses displaySafe
-  const allocFree =displaySafe;
-  const allocBill =billsTotal;
-  const allocCush =Math.round(checkingBal*0.1);
-  const allocGoal =Math.round(goalsSaved*0.1);
-  const allocFlex =Math.round(totalSpent*0.05);
-  const allocTotal=allocFree+allocBill+allocCush+allocGoal+allocFlex;
+  const allocFree  = displaySafe;
+  const allocBill  = billsTotal;
+  // Goal contributions due this period: remaining ÷ months until deadline
+  const allocGoal  = useMemo(()=>goals.reduce((s,g)=>{
+    const target=g.targetAmount||0, saved=g.savedAmount||0;
+    const remaining=Math.max(0,target-saved);
+    if(!g.deadline||remaining===0) return s;
+    const msLeft=new Date(g.deadline+"T12:00:00")-today;
+    const monthsLeft=Math.max(1,msLeft/(1000*60*60*24*30.44));
+    return s+Math.round(remaining/monthsLeft);
+  },0),[goals,today]);
+  const vaultTotal = allocBill + allocGoal;
 
   // Headline color based on pressure
   const safeColor=displayPct>0.5?"var(--safe)":displayPct>0.25?"var(--warn)":"var(--debt)";
@@ -511,6 +517,17 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
 
   // ── Display helpers ────────────────────────────────────────────
   const initials=accounts[0]?.institution?.slice(0,2).toUpperCase()||"ME";
+  // Overspent: how much over limit per category
+  const overspentTotal = useMemo(()=>categories.reduce((s,c)=>{
+    if(!c.limit) return s;
+    const spent=monthTxns.filter(t=>t.categoryId===c.id&&t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0);
+    return s+Math.max(0,spent-c.limit);
+  },0),[categories,monthTxns]);
+  // Projected spend: max(limit, actual) per category
+  const budgetIncOverspent = useMemo(()=>categories.reduce((s,c)=>{
+    const spent=monthTxns.filter(t=>t.categoryId===c.id&&t.amount<0).reduce((a,t)=>a+Math.abs(t.amount),0);
+    return s+Math.max(c.limit||0,spent);
+  },0),[categories,monthTxns]);
   const halfIncome=nextPay?(nextPay.amountMin||0):totalIncome/2;
   const bills1to15  = useMemo(()=>upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
   const bills16toEnd = useMemo(()=>upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15).reduce((s,b)=>s+(b.amountMin||0),0),[upcomingBills]);
@@ -546,67 +563,38 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
             <aside className="lb-agenda">
               <MiniCal today={today} bills={billDays} incs={incDays} mixes={mixDays}/>
               <div className="lb-mstats">
-                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
                 <div className="lb-mrow"><span className="l">Expected income</span><span className="v safe">+{fmt(recurringItems.filter(r=>r.type==="income").reduce((s,r)=>s+(r.amountMin||0),0))}</span></div>
-                <div className="lb-mrow"><span className="l">Posted so far</span><span className="v">{fmt(totalSpent)}</span></div>
-                <div className="lb-mrow"><span className="l">Remaining</span><span className="v calm">{fmt(displaySafe)}</span></div>
+                <div className="lb-mrow"><span className="l">Monthly expenses</span><span className="v debt">−{fmt(totalBudget)}</span></div>
+                <div className="lb-mrow"><span className="l">Overspent</span><span className="v" style={{color:overspentTotal>0?"var(--debt)":"var(--ink-3)"}}>{overspentTotal>0?`−${fmt(overspentTotal)}`:"—"}</span></div>
+                <div className="lb-mrow"><span className="l">Projected spend</span><span className="v" style={{color:"var(--warn)"}}>{fmt(budgetIncOverspent)}</span></div>
               </div>
-              <div className="lb-pc-lbl">Paycheck planning</div>
-              {[
-                {label:"1 – 15",  income:halfIncome, bills:bills1to15,   billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)<=15)},
-                {label:"16 – End",income:halfIncome, bills:bills16toEnd, billItems:upcomingBills.filter(b=>(parseInt(b.recurringDay)||31)>15)},
-              ].map((card,i)=>{
-                const isOpen=expandedCard===i;
-                const byAcct={};
-                card.billItems.forEach(b=>{
-                  const k=b.accountId||"__none__";
-                  if(!byAcct[k]) byAcct[k]={name:b.accountId?(accounts.find(a=>a.id===b.accountId)?.name||"Account"):"Unassigned",total:0,items:[]};
-                  byAcct[k].total+=(b.amountMin||0);
-                  byAcct[k].items.push(b);
-                });
-                const acctRows=Object.values(byAcct);
-                const net=card.income-card.bills;
-                return(
-                  <div key={i} style={{marginBottom:8}}>
-                    <div className={`lb-pc-card${isOpen?" open":""}`} onClick={()=>setExpandedCard(isOpen?null:i)}>
-                      <div><div style={{fontSize:11,color:"var(--ink-2)"}}>Days</div><div style={{fontFamily:"var(--font-display)",fontSize:16,lineHeight:1.1}}>{card.label}</div></div>
-                      <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                        <span style={{fontFamily:"var(--font-mono)",color:"var(--safe)",fontSize:13}}>+{fmt(card.income)}</span>
-                        <span style={{fontFamily:"var(--font-mono)",color:"var(--debt)",fontSize:13}}>−{fmt(card.bills)}</span>
-                      </div>
-                      <span className={`lb-pc-chevron${isOpen?" open":""}`} style={{color:"var(--ink-3)",fontSize:11}}>▾</span>
-                    </div>
-                    {isOpen&&(
-                      <div className="lb-pc-expand">
-                        {card.billItems.length===0 ? (
-                          <div style={{padding:"14px",fontSize:11,color:"var(--ink-3)",fontStyle:"italic"}}>No bills in this period.</div>
-                        ) : acctRows.map(row=>(
-                          <div key={row.name}>
-                            {acctRows.length>1&&(
-                              <div className="lb-pc-sect-lbl">{row.name}</div>
-                            )}
-                            {row.items.map(b=>(
-                              <div key={b.id||b.name} className="lb-pc-acct">
-                                <span className="l">{b.name}</span>
-                                <span className="v">−{fmt(b.amountMin||0)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
-                        {card.billItems.length>0&&(
-                          <div style={{padding:"4px 8px 8px"}}>
-                            <div className="lb-pc-net">
-                              <span className="l">Period net</span>
-                              <span className={`v${net>=0?" ok":" neg"}`}>{net>=0?"+":"−"}{fmt(Math.abs(net))}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+              {/* Recent transactions — mono compact */}
+              {(()=>{
+                const MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                const recent=[...monthTxns].filter(t=>t.date).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+                return(<>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",fontSize:10,letterSpacing:"1.6px",textTransform:"uppercase",color:"var(--ink-3)",marginTop:20,paddingTop:16,borderTop:"1px solid var(--line)"}}>
+                    <span>Recent</span>
+                    <span style={{cursor:"pointer",letterSpacing:0,textTransform:"none",fontSize:11}} onClick={()=>navigate("transactions")}>all →</span>
                   </div>
-                );
-              })}
-            </aside>
+                  {recent.map((t,i)=>{
+                    const parts=t.date.split("-");
+                    const mo=MO[parseInt(parts[1])-1];
+                    const day=parseInt(parts[2]);
+                    const name=t.merchant||t.name||"Transaction";
+                    const isPos=(t.amount||0)>0;
+                    return(
+                      <div key={t.id||i} style={{display:"flex",alignItems:"baseline",padding:"7px 0",borderBottom:"1px solid var(--line)",fontFamily:"var(--font-mono)",fontSize:11}}>
+                        <span style={{color:"var(--ink-3)",flexShrink:0,width:44}}>{mo} {day}</span>
+                        <span style={{flex:1,minWidth:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"var(--ink-1)"}}>{name}</span>
+                        <span style={{flexShrink:0,marginLeft:8,color:isPos?"var(--safe)":"var(--debt)"}}>{isPos?"+":"−"}{fmt(Math.abs(t.amount||0))}</span>
+                      </div>
+                    );
+                  })}
+                  {recent.length===0&&<div style={{fontSize:11,color:"var(--ink-3)",fontFamily:"var(--font-mono)",padding:"12px 0"}}>No transactions yet.</div>}
+                </>);
+              })()}
+                        </aside>
 
             {/* main */}
             <main className="lb-main">
@@ -669,9 +657,9 @@ Reply with ONLY: {"name":"max 8 word label","delta":positiveNumber,"positive":tr
                       <div className="lb-pool-stripe"/>
                       <div>
                         <div className="lb-pool-nm">Vault · spoken for</div>
-                        <div className="lb-pool-desc">bills, cushion, goals</div>
+                        <div className="lb-pool-desc">spoken for the rest of the month</div>
                       </div>
-                      <div className="lb-pool-v">{fmt(allocBill+allocCush+allocGoal+allocFlex)}</div>
+                      <div className="lb-pool-v">{fmt(vaultTotal)}</div>
                     </div>
                   </div>
                 </div>

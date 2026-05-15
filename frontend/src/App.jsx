@@ -513,7 +513,7 @@ function useDashboardColumns(defaultCols, scheduleSaveRef, setDefaultCols) {
   return { cols, moveItem, moveToCol };
 }
 
-function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast }) {
+function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null, itemId=null, style={}, showToast, existingInstitutions=[] }) {
   const [linkToken, setLinkToken] = useState(null);
   const [loading,   setLoading]   = useState(false);
   const fetchToken = useCallback(async () => {
@@ -525,7 +525,14 @@ function PlaidButton({ onSuccess, onExit, label="Connect a Bank", products=null,
       else console.error("[PlaidButton]", msg);
     } finally { setLoading(false); }
   }, [products, itemId, showToast]);
-  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:(pt,meta)=>onSuccess(pt,meta?.institution?.name), onExit });
+  const handleSuccess = useCallback((pt, meta) => {
+    const instName = meta?.institution?.name || "";
+    if (instName && existingInstitutions.some(i => i.toLowerCase() === instName.toLowerCase())) {
+      if (!window.confirm(`${instName} is already connected. Link again anyway? This may create duplicate accounts.`)) return;
+    }
+    onSuccess(pt, instName);
+  }, [onSuccess, existingInstitutions]);
+  const { open, ready } = usePlaidLink({ token:linkToken, onSuccess:handleSuccess, onExit });
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
   return (
     <button
@@ -4449,6 +4456,7 @@ function AppInner({ isDemo = false }) {
       setReconnectingItemId={setReconnectingItemId}
       handlePlaidSuccess={handlePlaidSuccess}
       PlaidButton={PlaidButton}
+      existingInstitutions={plaidItems.map(i=>i.institution||"").filter(Boolean)}
       showToast={showToast}
       fmt={fmt}
       today={today}

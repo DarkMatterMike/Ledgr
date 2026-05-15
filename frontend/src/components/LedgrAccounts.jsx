@@ -261,7 +261,7 @@ const COLS_MOBILE="28px 1fr 90px";
 export default function LedgrAccounts({
   accounts=[],plaidItems=[],staleItemIds=new Set(),spentByAcct={},monthTxns=[],
   openAddAcct,openEditAcct,deleteAcct,disconnectItem,doSync,syncing=false,
-  reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,showToast=()=>{},
+  reconnectingItemId=null,setReconnectingItemId,handlePlaidSuccess,PlaidButton,existingInstitutions=[],showToast=()=>{},
   fmt=n=>`$${Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`,
   today=new Date(),isMobile=false,navigate=()=>{},
   notifs=[],onDismissNotif=()=>{},onFilterReview=()=>{},
@@ -326,7 +326,7 @@ export default function LedgrAccounts({
                   <span className="la-tb-sub">{timeLabel}</span>
                 </div>
                 <div className="la-tb-right">
-                  {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="+ Link Bank" showToast={showToast} style={{}}/>}
+                  {PlaidButton&&<PlaidButton onSuccess={handlePlaidSuccess} onExit={()=>{}} label="+ Link Bank" existingInstitutions={existingInstitutions} showToast={showToast} style={{}}/>}
                   <button className="la-btn" onClick={openAddAcct}>+ Manual</button>
                 </div>
               </div>

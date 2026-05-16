@@ -38,7 +38,7 @@ import { useState, useMemo, useEffect } from "react";
 
 /* ─── CSS ─────────────────────────────────────────────────────────────────── */
 const CSS = `
-  .lt-wrap{padding:40px 48px 80px;background:var(--bg-0);}
+  .lt-wrap{padding:0;background:transparent;}
   @media(max-width:600px){.lt-wrap{padding:0;}}
 
   /* Frame */
@@ -50,10 +50,7 @@ const CSS = `
   @media(max-width:600px){.lt-frame{border-radius:0;border:none;}}
 
   /* Browser chrome */
-  .lt-bar {
-    height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);
-    display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;
-  }
+  .lt-bar { display:none; }
   .lt-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lt-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lt-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}

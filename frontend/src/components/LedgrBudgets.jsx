@@ -37,9 +37,9 @@ import PageNav from "./PageNav.jsx";
 import { useState, useMemo } from "react";
 
 const CSS = `
-  .lb-wrap{padding:40px 48px 80px;background:var(--bg-0);}
+  .lb-wrap{padding:0;background:transparent;}
   @media(max-width:600px){.lb-wrap{padding:0;}}
-  .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:800px;}
+  .lb-frame{background:var(--bg-0);border:none;border-radius:0;overflow:hidden;max-width:none;margin:0;box-shadow:none;display:flex;flex-direction:column;}
   @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
   @media(hover:none)and(pointer:coarse){
     .lb-content{padding:16px!important;}
@@ -47,7 +47,7 @@ const CSS = `
     .lb-rstat-v{font-size:20px!important;}
     .lb-band-row{grid-template-columns:90px 1fr 64px!important;gap:8px;}
   }
-  .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
+  .lb-bar{display:none;}
   .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lb-bar-live::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);display:inline-block;}
   .lb-sync-btn{background:none;border:1px solid rgba(255,255,255,0.06);border-radius:6px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-3);transition:.15s;flex-shrink:0;}

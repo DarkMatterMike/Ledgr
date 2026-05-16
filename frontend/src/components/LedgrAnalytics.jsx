@@ -27,13 +27,13 @@ const CSS = `
     --rl: var(--r-lg);
     --rm: var(--r-md);
     --rs: var(--r-sm);
-    padding:40px 48px 80px;
-    background:var(--bg-0);
+    padding:0;
+    background:transparent;
   }
   @media(max-width:600px){.la-wrap{padding:0;}}
-  .la-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--rx);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;}
+  .la-frame{background:transparent;border:none;border-radius:0;overflow:hidden;max-width:none;margin:0;box-shadow:none;display:flex;flex-direction:column;}
   @media(max-width:600px){.la-frame{border-radius:0;border:none;}}
-  .la-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
+  .la-bar{display:none;}
   .la-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .la-bar-url{margin-left:14px;font-family:var(--fm);font-size:11px;color:var(--ink-3);}
   .la-bar-live{margin-left:auto;font-family:var(--fm);font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:6px;}

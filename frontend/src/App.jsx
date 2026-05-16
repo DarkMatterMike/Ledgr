@@ -387,16 +387,17 @@ function AppInner({ isDemo = false }) {
   // Wire the ref once scheduleSave is available
   scheduleSaveRef.current = scheduleSave;
 
-  // Show onboarding wizard for new users with no categories
+  // Show onboarding wizard for new users with no categories.
+  // categories.length is in the dep array so the effect re-runs when categories
+  // load — the cleanup cancels the timer if categories arrive before 1.5 s.
   useEffect(() => {
     if (!initialized.current) return;
     if (isDemo) return;
     if (categories.length > 0) return;
     if (localStorage.getItem(ONBOARDING_STORAGE_KEY)) return;
-    // Small delay so app finishes rendering first
-    const t = setTimeout(() => setShowOnboarding(true), 600);
+    const t = setTimeout(() => setShowOnboarding(true), 1500);
     return () => clearTimeout(t);
-  }, [initialized.current, isDemo]);
+  }, [initialized.current, categories.length, isDemo]);
 
   rulesRef.current        = rules;
 

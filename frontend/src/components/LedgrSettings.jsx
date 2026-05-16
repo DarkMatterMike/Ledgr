@@ -15,12 +15,12 @@ import { applyTheme, applyGlobalOpacity } from "../theme/index.js";
 ───────────────────────────────────────────────────────── */
 const CSS = `
     /* ── Shared shell (matches LedgrBriefing lb-* exactly) ── */
-  .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:var(--bg-0);min-height:100vh;padding:40px 48px 80px;}
+  .lb-wrap{font-family:var(--font-ui);color:var(--ink-0);-webkit-font-smoothing:antialiased;background:transparent;min-height:unset;padding:0;}
   @media(max-width:1000px){.lb-wrap{padding:20px 16px 60px;}}
   @media(max-width:600px){.lb-wrap{padding:0;}}
-  .lb-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:20px;overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:80vh;}
+  .lb-frame{background:var(--bg-0);border:none;border-radius:0;overflow:hidden;max-width:none;margin:0;box-shadow:none;display:flex;flex-direction:column;}
   @media(max-width:600px){.lb-frame{border-radius:0;border:none;}}
-  .lb-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
+  .lb-bar{display:none;}
   .lb-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lb-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lb-bar-live{margin-left:auto;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}

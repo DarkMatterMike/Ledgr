@@ -6,11 +6,11 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import PageNav from "./PageNav.jsx";
 
 const CSS = `
-  .lc-wrap{padding:40px 48px 80px;background:var(--bg-0);}
+  .lc-wrap{padding:0;background:transparent;}
   @media(max-width:600px){.lc-wrap{padding:0;}}
-  .lc-frame{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden;max-width:1400px;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.5);display:flex;flex-direction:column;min-height:800px;}
+  .lc-frame{background:var(--bg-0);border:none;border-radius:0;overflow:hidden;max-width:none;margin:0;box-shadow:none;display:flex;flex-direction:column;}
   @media(max-width:600px){.lc-frame{border-radius:0;border:none;}}
-  .lc-bar{height:40px;background:var(--bg-2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px;gap:8px;flex-shrink:0;}
+  .lc-bar{display:none;}
   .lc-bar-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-4);}
   .lc-bar-url{margin-left:14px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
   .lc-bar-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3);}
